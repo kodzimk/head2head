@@ -21,10 +21,10 @@ export function MobileNav() {
           <div className="flex items-center justify-between border-b pb-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500">
-                <p className="font-bold text-white text-sm sm:text-base">H2H</p>
+                <p className="font-bold text-white text-sm sm:text-base">h2h</p>
               </div>
               <span className="hidden sm:block font-bold text-lg sm:text-xl text-slate-900">
-                Head2Head
+                head2head
               </span>
             </div>
           </div>

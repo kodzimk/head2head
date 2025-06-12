@@ -5,9 +5,9 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-3 md:ml-8">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500">
-            <p className="font-bold text-white">H2H</p>
+            <p className="font-bold text-white">h2h</p>
           </div>
-          <span className="font-bold text-xl text-slate-900">Head2Head</span>
+          <span className="font-bold text-xl text-slate-900">head2head</span>
         </div>
             <nav className="flex flex-wrap justify-center gap-4 md:gap-6">
               <a href="#" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
@@ -27,7 +27,7 @@ export default function Footer() {
               </a>
             </nav>
             <p className="text-xs md:text-sm text-slate-500">
-              © {new Date().getFullYear()} Head2Head. All rights reserved.
+              © {new Date().getFullYear()} head2head. All rights reserved.
             </p>
           </div>
         </div>

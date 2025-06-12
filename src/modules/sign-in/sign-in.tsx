@@ -1,6 +1,6 @@
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card"
 import { Input } from "../../shared/ui/input"
@@ -17,6 +17,10 @@ export default function SignInPage() {
     password: "",
     rememberMe: false,
   })
+
+  useEffect(() => {
+    document.title = "Sign In";
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target

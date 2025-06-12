@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card"
 import { Mail, ArrowLeft } from "lucide-react"
@@ -5,6 +6,10 @@ import { Link, useNavigate } from "react-router-dom"
 
 export default function SignUpPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Sign Up";
+  }, []);
 
 
   return (

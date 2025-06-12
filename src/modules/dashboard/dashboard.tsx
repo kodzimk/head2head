@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "../../shared/ui/button";
 import { Card, CardContent } from "../../shared/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "../../shared/ui/tabs";
@@ -18,6 +18,10 @@ import Header from "./header";
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
+
+  useEffect(() => {
+    document.title = "Dashboard";
+  }, []);
 
   const user = {
     name: "Alex Johnson",
@@ -110,7 +114,7 @@ export default function DashboardPage() {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-[25px] md:text-3xl font-bold text-gray-900">
                 Welcome back, {user.username}! 👋
               </h1>
               <p className="text-gray-600 mt-1">
@@ -134,10 +138,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <div>
                   <p className="text-orange-100 text-sm">Current Rank</p>
                   <p className="text-2xl font-bold">{user.rank}</p>
@@ -149,7 +153,7 @@ export default function DashboardPage() {
 
           <Card className="bg-gradient-to-br from-green-500 to-emerald-500 text-white border-0">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <div>
                   <p className="text-green-100 text-sm">Win Rate</p>
                   <p className="text-2xl font-bold">{user.winRate}%</p>
@@ -161,7 +165,7 @@ export default function DashboardPage() {
 
           <Card className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-0">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <div>
                   <p className="text-blue-100 text-sm">Win Streak</p>
                   <p className="text-2xl font-bold">{user.streak}</p>
@@ -173,7 +177,7 @@ export default function DashboardPage() {
 
           <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <div>
                   <p className="text-purple-100 text-sm">Total Battles</p>
                   <p className="text-2xl font-bold">{user.totalBattles}</p>

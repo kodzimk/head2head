@@ -41,6 +41,18 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
                   <span className="text-gray-600">Favorite Sport</span>
                   <span className="font-semibold">{user.favoritesSport}</span>
                 </div>
+                <div className="flex justify-between md:visible sm:hidden ">
+                  <span className="text-gray-600">Winning Streak</span>
+                  <span className="font-semibold">{user.streak}</span>
+                </div>
+                <div className="md:visible sm:hidden flex justify-between">
+                  <span className="text-gray-600">Total Battles</span>
+                  <span className="font-semibold">{user.totalBattles}</span>
+                </div>
+                <div className="flex justify-between md:visible sm:hidden " >
+                  <span className="text-gray-600">Winning Percentage</span>
+                  <span className="font-semibold">{user.winRate}%</span>
+                </div>
               </div>
 
               <Button variant="outline" className="w-full">

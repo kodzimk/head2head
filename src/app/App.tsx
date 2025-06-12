@@ -5,6 +5,7 @@ import SignUpPage from '../modules/sign-up/sign-up'
 import EmailSignUpPage from '../modules/sign-up/signup-email'
 import SignInPage from '../modules/sign-in/sign-in'
 import DashboardPage from '../modules/dashboard/dashboard'
+import ProfilePage from '../modules/profile/profile'
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
       <Route path = '/signup-email' element = {<EmailSignUpPage />} />
       <Route path = '/sign-in' element = {<SignInPage />} />
       <Route path = '/dashboard' element = {<DashboardPage />} />
+      <Route path = '/profile' element = {<ProfilePage />} />
     </Routes>
   )
 }

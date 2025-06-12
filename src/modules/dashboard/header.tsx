@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../shared/ui/dropdown-menu";
-import { LogOut, User as UserIcon, BookOpen } from "lucide-react";
+import { LogOut, User as UserIcon, BookOpen, Trophy, List, Users, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Header({ user }: { user: User }) {
@@ -21,29 +21,50 @@ export default function Header({ user }: { user: User }) {
       <a href="#hero" className="flex items-center justify-center">
         <div className="flex items-center gap-2 sm:gap-3 ml-2 sm:ml-8">
           <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500">
-            <p className="font-bold text-white text-sm sm:text-base">H2H</p>
+            <p className="font-bold text-white text-sm sm:text-base">h2h</p>
           </div>
           <span className="hidden md:block font-bold text-lg sm:text-xl text-slate-900">
-            Head2Head
+            head2head
           </span>
         </div>
       </a>
 
-      <nav className="flex gap-8 items-center sm:-ml-16">
-      
-      <div className="flex gap-10 items-center sm:-ml-16">
-        <Link to="/selection" className="hover:bg-slate-100">
-          <Button variant="ghost" className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100">
-            <p className="text-slate-900">Selection</p>
-          </Button>
-        </Link>
-      <Link to="/leaderboard" className="hover:bg-slate-100">
-          <Button variant="ghost" className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100">
-            <p className="text-slate-900">Leaderboard</p>
-          </Button>
-        </Link>
+      <nav className="flex items-center gap-4">
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex gap-6 items-center">
+        <Link to="/battle">
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <Play className="mr-2 h-4 w-4" />
+              <span>Battle</span>
+            </Button>
+          </Link>
+          <Link to="/selection">
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <List className="mr-2 h-4 w-4" />
+              <span>Selection</span>
+            </Button>
+          </Link>
+          <Link to="/leaderboard">
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <Trophy className="mr-2 h-4 w-4" />
+              <span>Leaderboard</span>
+            </Button>
+          </Link>
+          <Link to="/trainings">
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <BookOpen className="mr-2 h-4 w-4" />
+              <span>Trainings</span>
+            </Button>
+          </Link>
+          <Link to="/friend">
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <Users className="mr-2 h-4 w-4" />
+              <span>Friends</span>
+            </Button>
+              </Link>
         </div>
 
+        {/* Mobile Navigation (in dropdown) and Profile Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -71,22 +92,49 @@ export default function Header({ user }: { user: User }) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <Link to="/trainings">
-            <DropdownMenuItem
-              onClick={() => navigate("/profile")}
-              className="cursor-pointer"
-            >
-              <BookOpen className="mr-2 h-4 w-4" />
-              <span>Trainings</span>
-            </DropdownMenuItem>
+            
+            {/* Mobile Navigation Links */}
+            <div className="md:hidden">
+            <Link to="/battle">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Play className="mr-2 h-4 w-4" />
+                  <span>Battle</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/selection">
+                <DropdownMenuItem className="cursor-pointer">
+                  <List className="mr-2 h-4 w-4" />
+                  <span>Selection</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/leaderboard">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  <span>Leaderboard</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/trainings">
+                <DropdownMenuItem className="cursor-pointer">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  <span>Trainings</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/friend">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Friends</span>
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuSeparator />
+            </div>
+            
+
+            <Link to="/profile">
+              <DropdownMenuItem className="cursor-pointer">
+                <UserIcon className="mr-2 h-4 w-4" />
+                <span>Manage Profile</span>
+              </DropdownMenuItem>
             </Link>
-            <DropdownMenuItem
-              onClick={() => navigate("/profile")}
-              className="cursor-pointer"
-            >
-              <UserIcon className="mr-2 h-4 w-4" />
-              <span>Manage Profile</span>
-            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => navigate("/")}
               className="cursor-pointer"

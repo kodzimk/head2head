@@ -10,9 +10,9 @@ export default function Header() {
       <a href="#hero" className="flex items-center justify-center">
         <div className="flex items-center gap-2 sm:gap-3 ml-2 sm:ml-8">
           <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500">
-            <p className="font-bold text-white text-sm sm:text-base">H2H</p>
+            <p className="font-bold text-white text-sm sm:text-base">h2h</p>
           </div>
-          <span className="font-bold text-lg sm:text-xl text-slate-900">Head2Head</span>
+          <span className="font-bold text-lg sm:text-xl text-slate-900">head2head</span>
         </div>
       </a>
       <nav className="ml-auto hidden md:flex gap-6 items-center mr-10">
