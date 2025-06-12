@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/car
 import { Button } from "../../../shared/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/ui/avatar"
 import { Badge } from "../../../shared/ui/badge"
-import { Sword, Trophy, Share2, MessageCircle, Plus } from "lucide-react"
+import { Sword, Trophy, Share2, MessageCircle, Plus, ChevronRight } from "lucide-react"
 import type { Friend } from "../../../shared/interface/user"
 
 export default function Friends({ friends }: { friends: Friend[] }) {
@@ -15,10 +15,9 @@ export default function Friends({ friends }: { friends: Friend[] }) {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     Friends ({friends.length})
-                    <Button size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Friend
-                    </Button>
+                    <Button variant="ghost" size="sm" className="w-32 h-8">
+                  View All <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -52,8 +51,8 @@ export default function Friends({ friends }: { friends: Friend[] }) {
                           >
                             {friend.status}
                           </Badge>
-                          <Button size="sm" variant="outline">
-                            <Sword className="w-4 h-4 mr-1" />
+                          <Button size="sm" variant="outline" className="w-32 h-8">
+                            <Sword className="w-3 h-4 ml-3 " />
                             Challenge
                           </Button>
                         </div>

@@ -26,17 +26,13 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Level {user.level}</span>
-                  <span>
-                    {user.xp}/{user.xpToNext} XP
-                  </span>
-                </div>
-                <Progress value={(user.xp / user.xpToNext) * 100} className="h-2" />
-              </div>
+  
 
               <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Rank</span>
+                  <span className="font-semibold">{user.rank}</span>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Battles Won</span>
                   <span className="font-semibold">{user.wins}</span>

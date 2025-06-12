@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../shared/ui/dropdown-menu";
-import { LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, User as UserIcon, BookOpen } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function Header({ user }: { user: User }) {
   const navigate = useNavigate();
@@ -22,16 +23,38 @@ export default function Header({ user }: { user: User }) {
           <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500">
             <p className="font-bold text-white text-sm sm:text-base">H2H</p>
           </div>
-          <span className="hidden md:block font-bold text-lg sm:text-xl text-slate-900">Head2Head</span>
+          <span className="hidden md:block font-bold text-lg sm:text-xl text-slate-900">
+            Head2Head
+          </span>
         </div>
       </a>
+
+      <nav className="flex gap-8 items-center sm:-ml-16">
       
-      <nav className="flex gap-4 items-center sm:-ml-16">
+      <div className="flex gap-10 items-center sm:-ml-16">
+        <Link to="/selection" className="hover:bg-slate-100">
+          <Button variant="ghost" className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100">
+            <p className="text-slate-900">Selection</p>
+          </Button>
+        </Link>
+      <Link to="/leaderboard" className="hover:bg-slate-100">
+          <Button variant="ghost" className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100">
+            <p className="text-slate-900">Leaderboard</p>
+          </Button>
+        </Link>
+        </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100">
+            <Button
+              variant="ghost"
+              className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100"
+            >
               <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.username} />
+                <AvatarImage
+                  src={user.avatar || "/placeholder.svg"}
+                  alt={user.username}
+                />
                 <AvatarFallback>AJ</AvatarFallback>
               </Avatar>
             </Button>
@@ -39,19 +62,32 @@ export default function Header({ user }: { user: User }) {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none text-slate-900">{user.username}</p>
-                <p className="text-xs leading-none text-slate-500">{user.rank}</p>
+                <p className="text-sm font-medium leading-none text-slate-900">
+                  {user.username}
+                </p>
+                <p className="text-xs leading-none text-slate-500">
+                  {user.rank}
+                </p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <Link to="/trainings">
+            <DropdownMenuItem
+              onClick={() => navigate("/profile")}
+              className="cursor-pointer"
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              <span>Trainings</span>
+            </DropdownMenuItem>
+            </Link>
+            <DropdownMenuItem
               onClick={() => navigate("/profile")}
               className="cursor-pointer"
             >
               <UserIcon className="mr-2 h-4 w-4" />
               <span>Manage Profile</span>
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => navigate("/")}
               className="cursor-pointer"
             >
@@ -63,4 +99,4 @@ export default function Header({ user }: { user: User }) {
       </nav>
     </header>
   );
-} 
+}

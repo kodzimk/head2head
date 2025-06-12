@@ -2,8 +2,6 @@ export interface User {
     username: string;
     avatar: string;
     level: number;
-    xp: number;
-    xpToNext: number;
     wins: number;
     favoritesSport: string;
     rank: string;
