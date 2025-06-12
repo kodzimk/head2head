@@ -11,20 +11,12 @@ export default function FAQ() {
       answer: "Head2Head is a real-time sports trivia platform where you can challenge friends and players worldwide to test your sports knowledge. Compete in various battle modes and climb the leaderboards!"
     },
     {
-      question: "Can I play with friends?",
-      answer: "Yes! You can invite friends to play in Team Battles or challenge them directly in Quick Battles. Create your own team and compete against others!"
-    },
-    {
       question: "When are tournaments held?",
       answer: "Tournaments are held every week on Sunday at 10:00 AM UTC. You can check the tournament schedule on the website."
     },
     {
       question: "Is it free to play?",
       answer: "Yes, Head2Head is completely free to play! We offer various features and battle modes at no cost. Premium features may be added in the future."
-    },
-    {
-      question: "How does the rating system work?",
-      answer: "Your rating is based on your performance in battles. Win matches to increase your rating and earn titles. The more you play and win, the higher you'll climb on the leaderboard!"
     },
     {
       question: "Do you have a mobile app?",

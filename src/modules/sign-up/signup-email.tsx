@@ -8,14 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card"
 import { Input } from "../../shared/ui/input"
 import { Label } from "../../shared/ui/label"
 import { Checkbox } from "../../shared/ui/checkbox"
-import { Badge } from "../../shared/ui/badge"
-import { Eye, EyeOff, Mail, Lock, User, Calendar, ArrowLeft, Trophy, Shield, Zap } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User,  ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
 export default function EmailSignUpPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -39,6 +37,7 @@ export default function EmailSignUpPage() {
     e.preventDefault()
     // Handle form submission here
     console.log("Form submitted:", formData)
+    navigate("/dashboard")
   }
 
   return (

@@ -20,7 +20,7 @@ export function MobileNav() {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between border-b pb-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500">
+              <div className="flex h-12 w-12 items-center rounded-full bg-orange-500">
                 <p className="font-bold text-white">H2H</p>
               </div>
               <span className="font-bold text-xl text-slate-900">

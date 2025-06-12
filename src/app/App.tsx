@@ -4,6 +4,7 @@ import EntryPage from '../modules/entry-page/page'
 import SignUpPage from '../modules/sign-up/sign-up'
 import EmailSignUpPage from '../modules/sign-up/signup-email'
 import SignInPage from '../modules/sign-in/sign-in'
+import DashboardPage from '../modules/dashboard/dashboard'
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
       <Route path = '/sign-up' element = {<SignUpPage />} />
       <Route path = '/signup-email' element = {<EmailSignUpPage />} />
       <Route path = '/sign-in' element = {<SignInPage />} />
+      <Route path = '/dashboard' element = {<DashboardPage />} />
     </Routes>
   )
 }

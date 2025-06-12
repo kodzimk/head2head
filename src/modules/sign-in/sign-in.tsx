@@ -30,6 +30,7 @@ export default function SignInPage() {
     e.preventDefault()
     // Handle form submission here
     console.log("Form submitted:", formData)
+    navigate("/dashboard")
   }
 
   return (
