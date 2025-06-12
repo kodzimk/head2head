@@ -1,16 +1,11 @@
 import { Button } from "../../shared/ui/button"
 import { Card, CardContent } from "../../shared/ui/card"
 import { Badge } from "../../shared/ui/badge"
-import { Zap, Users, Crown, Play, ArrowRight,  } from "lucide-react"
-import { MobileNav } from '../../shared/mobile-nav'
-import  Header  from "./header"
+import { Zap, Users, Crown, Play } from "lucide-react"
+import FAQ from "./faq"
 
 export default function Component() {
-  return (
-    <div className="flex flex-col min-h-screen">
-      {/* Header */}
-     <Header></Header>
-
+  return (  
       <main className="flex-1 ">
         {/* Hero Section with Background Image - Full Viewport Height */}
         <section
@@ -171,7 +166,7 @@ export default function Component() {
           }}
         >
           {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-900/90 to-orange-900/80"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-900/90 to-red-900/80"></div>
 
           <div className="container px-4 md:px-6 relative z-10">
             <div className="text-center mb-16">
@@ -214,44 +209,8 @@ export default function Component() {
           </div>
         </section>
 
-       {/* CTA Section with Angled Design */}
-       <section className="w-full py-24 relative overflow-hidden bg-gradient-to-br from-orange-500 to-red-500">
-          {/* Background with diagonal elements */}
-          <div className="bg-gradient-to-br from-gray-900/90 to-orange-900/80"></div>
-          <div
-            className="absolute top-0 left-0 right-0 h-24 bg-white"
-            style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 0)" }}
-          ></div>
-          <div
-            className="absolute bottom-0 left-0 right-0 h-24 bg-white"
-            style={{ clipPath: "polygon(0 100%, 100% 0, 100% 100%, 0 100%)" }}
-          ></div>
-
-          <div className="container px-4 md:px-6 relative z-10">
-            <div className="grid md:grid-cols-5 gap-8 items-center">
-              <div className="md:col-span-3 space-y-6">
-                <h2 className="text-4xl font-bold text-white">Ready to Compete?</h2>
-                <p className="text-xl text-orange-100">
-                  Join thousands of sports fans competing daily. Show everyone who you are!
-                </p>
-                <Button
-                  size="lg"
-                  className="bg-black text-orange-600 hover:bg-gray-100 px-8 py-3 text-lg font-semibold transition-all duration-300 hover:scale-105"
-                >
-                  
-                  Start Playing Free
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-                <p className="text-orange-200 text-sm">Free to play • No downloads required</p>
-              </div>
-
-
-            </div>
-          </div>
-        </section>
+              <FAQ />
       </main>
 
-     
-    </div>
   )
 }

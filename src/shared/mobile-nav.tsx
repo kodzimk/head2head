@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Menu, X } from "lucide-react"
+import { Menu } from "lucide-react"
 import { Button } from "./ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet"
 
@@ -21,9 +21,9 @@ export function MobileNav() {
       <SheetContent side="right" className="w-[80%] sm:w-[350px] pr-0">
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between border-b pb-4">
-            <div className="flex items-center space-x-2">
-              <img src="/logo.png" alt="Head2Head Logo" width={28} height={28} />
-              <span className="font-bold text-xl text-slate-900">Head2Head</span>
+            <div className="flex items-center">
+              <h1 className="font-bold text-xl text-slate-900 -ml-5">H2H</h1>
+              <span className="font-bold text-xl text-slate-900 -ml-5">Head2Head</span>
             </div>
           </div>
           <div className="mt-auto pb-8">

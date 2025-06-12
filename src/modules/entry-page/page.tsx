@@ -8,7 +8,7 @@ export default function EntryPage() {
       {/* Header */}
      <Header />
      <Hero />
-
+     
       {/* Footer */}
      <Footer />
     </div>
