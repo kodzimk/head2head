@@ -1,40 +1,11 @@
-import type React from "react"
-
-import { useState } from "react"
 import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card"
-import { Badge } from "../../shared/ui/badge"
-import { Mail, Trophy, Star, Users, Zap, ArrowLeft } from "lucide-react"
+import { Mail, ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 
 export default function SignUpPage() {
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    dateOfBirth: "",
-    agreeToTerms: false,
-    subscribeNewsletter: true,
-  })
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }))
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Handle form submission here
-    console.log("Form submitted:", formData)
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 relative overflow-hidden">

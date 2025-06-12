@@ -1,6 +1,6 @@
 import { MobileNav } from "../../shared/mobile-nav";
 import { Button } from "../../shared/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function Header() {
   const navigate = useNavigate();

@@ -1,31 +1,25 @@
-"use client"
-
 import { useState } from "react"
 import { Button } from "../../shared/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card"
-import { Badge } from "../../shared/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar"
-import { Progress } from "../../shared/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../shared/ui/tabs"
+import { Card, CardContent } from "../../shared/ui/card"
+import { Tabs,TabsList, TabsTrigger } from "../../shared/ui/tabs"
 import {
-  Trophy,
   Users,
   Crown,
   Target,
-  Settings,
   Play,
   Sword,
   FlameIcon as Fire,
-  ChevronRight,
-  Plus,
-  MessageCircle,
-  Share2,
 } from "lucide-react"
+
+
+import Overview from "./tabs/overview"
+import Battles from "./tabs/battles"
+import Friends from "./tabs/friends"
+import Header from "./header"
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview")
 
-  // Mock user data
   const user = {
     name: "Alex Johnson",
     username: "sportsfan_alex",
@@ -49,35 +43,23 @@ export default function DashboardPage() {
   ]
 
   const friends = [
-    { id: 1, name: "Mike Sports", avatar: "/placeholder.svg?height=40&width=40", status: "online", rank: "#892" },
-    { id: 2, name: "Sarah Trivia", avatar: "/placeholder.svg?height=40&width=40", status: "in-battle", rank: "#1,156" },
-    { id: 3, name: "Quiz Master", avatar: "/placeholder.svg?height=40&width=40", status: "offline", rank: "#2,341" },
-    { id: 4, name: "Sports Guru", avatar: "/placeholder.svg?height=40&width=40", status: "online", rank: "#567" },
+    { id: 1, username: "Mike Sports", avatar: "/placeholder.svg?height=40&width=40", status: "online", rank: "#892" },
+    { id: 2, username: "Sarah Trivia", avatar: "/placeholder.svg?height=40&width=40", status: "in-battle", rank: "#1,156" },
+    { id: 3, username: "Quiz Master", avatar: "/placeholder.svg?height=40&width=40", status: "offline", rank: "#2,341" },
+    { id: 4, username: "Sports Guru", avatar: "/placeholder.svg?height=40&width=40", status: "online", rank: "#567" },
   ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
       {/* Header */}
-      <header className="px-2 lg:px-2 h-16 flex items-center justify-between bg-white/80 backdrop-blur-sm border-b border-orange-200 sticky top-0 z-50">
-        
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500">
-            <p className="font-bold text-white">H2H</p>
-          </div>
-      
-        <nav className="ml-auto flex gap-4 items-center">
-          <Avatar className="w-8 h-8">
-            <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-            <AvatarFallback>AJ</AvatarFallback>
-          </Avatar>
-        </nav>
-      </header>
+      <Header user={user} />
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Welcome Section */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user.name}! 👋</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user.username}! 👋</h1>
               <p className="text-gray-600 mt-1">Ready to dominate the sports trivia world?</p>
             </div>
             <div className="flex gap-3">
@@ -153,232 +135,16 @@ export default function DashboardPage() {
   
           </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid lg:grid-cols-3 gap-6">
-              {/* Profile Card */}
-              <Card className="lg:col-span-1">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Avatar className="w-12 h-12">
-                      <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-                      <AvatarFallback>AJ</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-bold">{user.name}</h3>
-                      <p className="text-sm text-gray-600">@{user.username}</p>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Level {user.level}</span>
-                      <span>
-                        {user.xp}/{user.xpToNext} XP
-                      </span>
-                    </div>
-                    <Progress value={(user.xp / user.xpToNext) * 100} className="h-2" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Battles Won</span>
-                      <span className="font-semibold">{user.wins}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Favorite Sport</span>
-                      <span className="font-semibold">{user.favoritesSport}</span>
-                    </div>
-                  </div>
-
-                  <Button variant="outline" className="w-full">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Recent Activity */}
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Recent Battles
-                    <Button variant="ghost" size="sm">
-                      View All <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentBattles.map((battle) => (
-                      <div key={battle.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <div className="text-2xl">{battle.sport}</div>
-                          <div>
-                            <p className="font-medium">vs {battle.opponent}</p>
-                            <p className="text-sm text-gray-600">{battle.time}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={battle.result === "win" ? "default" : "destructive"}>
-                            {battle.result === "win" ? "Won" : "Lost"}
-                          </Badge>
-                          <p className="text-sm text-gray-600 mt-1">{battle.score}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+          <Overview user={user} recentBattles={recentBattles} />
 
           {/* Battles Tab */}
-          <TabsContent value="battles" className="space-y-6">
-            <div className="grid lg:grid-cols-3 gap-6">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle>Battle History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {recentBattles.map((battle) => (
-                      <div key={battle.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <div className="text-3xl">{battle.sport}</div>
-                          <div>
-                            <p className="font-medium">vs {battle.opponent}</p>
-                            <p className="text-sm text-gray-600">{battle.time}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant={battle.result === "win" ? "default" : "destructive"} className="mb-2">
-                            {battle.result === "win" ? "Victory" : "Defeat"}
-                          </Badge>
-                          <p className="text-lg font-bold">{battle.score}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Battle Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <p className="text-2xl font-bold text-green-600">{user.wins}</p>
-                    <p className="text-sm text-gray-600">Total Wins</p>
-                  </div>
-                  <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <p className="text-2xl font-bold text-red-600">{user.totalBattles - user.wins}</p>
-                    <p className="text-sm text-gray-600">Total Losses</p>
-                  </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <p className="text-2xl font-bold text-orange-600">{user.streak}</p>
-                    <p className="text-sm text-gray-600">Current Streak</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+          <Battles user={user} recentBattles={recentBattles} />
+          
 
           {/* Friends Tab */}
-          <TabsContent value="friends" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    Friends ({friends.length})
-                    <Button size="sm">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Friend
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {friends.map((friend) => (
-                      <div key={friend.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-10 h-10">
-                            <AvatarImage src={friend.avatar || "/placeholder.svg"} alt={friend.name} />
-                            <AvatarFallback>
-                              {friend.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{friend.name}</p>
-                            <p className="text-sm text-gray-600">Rank: {friend.rank}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={
-                              friend.status === "online"
-                                ? "default"
-                                : friend.status === "in-battle"
-                                  ? "secondary"
-                                  : "outline"
-                            }
-                          >
-                            {friend.status}
-                          </Badge>
-                          <Button size="sm" variant="outline">
-                            <Sword className="w-4 h-4 mr-1" />
-                            Challenge
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+          <Friends friends={friends} />
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Friend Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <MessageCircle className="w-5 h-5 text-blue-500" />
-                      <div>
-                        <p className="text-sm">
-                          <strong>Mike Sports</strong> challenged you to a Football battle
-                        </p>
-                        <p className="text-xs text-gray-600">2 hours ago</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Trophy className="w-5 h-5 text-yellow-500" />
-                      <div>
-                        <p className="text-sm">
-                          <strong>Sarah Trivia</strong> won a tournament
-                        </p>
-                        <p className="text-xs text-gray-600">5 hours ago</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Share2 className="w-5 h-5 text-green-500" />
-                      <div>
-                        <p className="text-sm">
-                          <strong>Quiz Master</strong> shared an achievement
-                        </p>
-                        <p className="text-xs text-gray-600">1 day ago</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+
         </Tabs>
       </main>
     </div>
