@@ -5,8 +5,8 @@ export default function Footer() {
         <footer className="bg-white border-t border-slate-200 py-6 md:py-8">
         <div className="container px-4 md:px-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-3 ml-8">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-600">
+          <div className="flex items-center gap-3 md:ml-8">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500">
             <p className="font-bold text-white">H2H</p>
           </div>
           <span className="font-bold text-xl text-slate-900">Head2Head</span>
