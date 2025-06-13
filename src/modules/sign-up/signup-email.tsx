@@ -74,7 +74,6 @@ export default function EmailSignUpPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSubmit()) {
-      console.log("Form validation failed")
       return
     }
 
