@@ -13,7 +13,6 @@ export default function SignUpPage() {
     document.title = "Sign Up";
   }, []);
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 relative overflow-hidden">
       {/* Header */}
@@ -29,7 +28,7 @@ export default function SignUpPage() {
         </div>
       </header>
 
-      <main className="flex-1 py-12 px-4">  
+      <main className="flex py-12 px-4 justify-center items-center">
         <div className="container mx-auto max-w-6xl">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Side - Benefits */}
@@ -48,7 +47,7 @@ export default function SignUpPage() {
             </div>
 
             {/* Right Side - Sign Up Form */}
-            <div className="relative">
+            <div>
               <Card className="bg-white/80 backdrop-blur-sm border border-white/50 shadow-2xl">
                 <CardHeader className="text-center pb-6">
                   <CardTitle className="text-2xl font-bold text-gray-900">Create Your Account</CardTitle>
@@ -64,7 +63,7 @@ export default function SignUpPage() {
                           return;
                         }
 
-                        const decodedToken = JSON.parse(atob(credentialResponse.credential.split('.')[1]));                
+                        const decodedToken = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
                         // Try to sign up first
                         axios.post("http://127.0.0.1:8000/user/signup", {
                           email: decodedToken.email,
@@ -76,27 +75,26 @@ export default function SignUpPage() {
                             'accept': 'application/json'
                           }
                         })
-                        .then(response => {
-                          console.log('Signup successful:', response.data);
-                          navigate("/dashboard");
-                        })
-                        .catch(error => {
-                          axios.post("http://127.0.0.1:8000/user/signin", {
-                            email: decodedToken.email,
-                            password: credentialResponse.credential,
-                          }, {
+                        .then(async () => {
+                          const tempResponse = await axios.get("http://127.0.0.1:8000/user/signin", {
+                            params: {
+                              email: decodedToken.email,
+                              password: credentialResponse.credential
+                            },
                             headers: {
-                              'Content-Type': 'application/json',
                               'accept': 'application/json'
                             }
-                          })
-                          .then(response => {
-                            navigate("/dashboard");
-                          })
-                          .catch(signinError => {
-             
                           });
-                        });
+                    
+                          if (tempResponse.data) {
+                            localStorage.setItem("user", JSON.stringify(tempResponse.data.email))
+                            navigate("/dashboard");
+                          }
+                          else {
+                            localStorage.setItem("user", JSON.stringify(tempResponse.data.email))
+                            navigate("/dashboard");
+                          }
+                        })
                       }}
                       onError={() => {
                         
@@ -120,7 +118,7 @@ export default function SignUpPage() {
 
                   {/* Form */}
                   <div className="space-y-4">
-                    <Link to ="/signup-email">
+                    <Link to="/signup-email">
                       <Button className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold">
                         <Mail className="w-5 h-5 mr-2" />
                         Create with Email

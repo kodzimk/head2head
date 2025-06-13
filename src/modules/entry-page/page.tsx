@@ -1,12 +1,22 @@
-  import Header from "./header"
+import Header from "./header"
 import Hero from "./hero"
 import Footer from "./footer"
-import { useEffect } from "react";
+import { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 
 export default function EntryPage() {
+  const navigate = useNavigate();
+
   useEffect(() => {
-    document.title = "head2head";
-  }, []);
+
+    const user = localStorage.getItem("user");
+    if (user) {
+      setInterval(() => {
+        navigate("/dashboard");
+      }, 500);
+    
+    }
+  }, [navigate]);
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">

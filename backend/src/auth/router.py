@@ -1,8 +1,7 @@
-from auth.init import router, SessionLocal, User, UserCreate, engine
+from auth.init import router, SessionLocal, User, UserCreate
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import EmailStr
 from sqlalchemy import select
-
 
 async def user_exists(db: AsyncSession, email: str) -> bool:
     stmt = select(User).where(User.email == email)
@@ -18,12 +17,15 @@ async def create_user(user: UserCreate):
             db.add(db_user)
             await db.commit()
             await db.refresh(db_user)
-            return True
-        return False
+            print(db_user)
+            return db_user
+        return None
 
 @router.get("/signin")
-async def check_user(email: EmailStr) -> bool:
+async def check_user(email: EmailStr):
     async with SessionLocal() as db:
-        if not await user_exists(db, email):
-            return False
-        return True
+        data =  await db.get(User, email)
+        return data
+
+
+

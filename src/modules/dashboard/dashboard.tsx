@@ -9,39 +9,23 @@ import {
   Play,
   Sword,
   FlameIcon as Fire,
-  Camera,
 } from "lucide-react";
 
 import Overview from "./tabs/overview";
 import Battles from "./tabs/battles";
 import Friends from "./tabs/friends";
 import Header from "./header";
-import type { RecentBattle, Friend } from "../../shared/interface/user";
+import type { RecentBattle, Friend, User } from "../../shared/interface/user";
 
-export default function DashboardPage() {
+export default function DashboardPage({ user }: { user: User }) {
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
     document.title = "Dashboard";
   }, []);
 
-  const user = {
-    name: "Alex Johnson",
-    username: "sportsfan_alex",
-    avatar: "/placeholder.svg?height=100&width=100",
-    level: 42,
-    xp: 8750,
-    xpToNext: 10000,
-    rank: "#1,247",
-    winRate: 78,
-    totalBattles: 156,
-    wins: 122,
-    streak: 7,
-    favoritesSport: "Football",
-  };
 
   const recentBattles: RecentBattle[] = [];
-
   const friends: Friend[] = [];
 
   return (

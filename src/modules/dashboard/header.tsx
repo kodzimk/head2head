@@ -136,7 +136,10 @@ export default function Header({ user }: { user: User }) {
               </DropdownMenuItem>
             </Link>
             <DropdownMenuItem
-              onClick={() => navigate("/")}
+              onClick={() => {
+                localStorage.removeItem("user");
+                navigate("/");
+              }}
               className="cursor-pointer"
             >
               <LogOut className="mr-2 h-4 w-4" />

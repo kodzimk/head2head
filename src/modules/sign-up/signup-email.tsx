@@ -1,12 +1,11 @@
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card"
 import { Input } from "../../shared/ui/input"
 import { Label } from "../../shared/ui/label"
 import { Checkbox } from "../../shared/ui/checkbox"
-import { Eye, EyeOff, Mail, Lock, User,  ArrowLeft, AlertCircle, Info, X } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle, Info, X } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 
@@ -89,7 +88,8 @@ export default function EmailSignUpPage() {
       }
     })
       .then(response => {
-        if (response.data === true) {
+        if (response.data) {
+          localStorage.setItem("user", JSON.stringify(response.data.email)) 
           navigate("/dashboard")
         } else {
           setValidationErrors({
@@ -153,7 +153,7 @@ export default function EmailSignUpPage() {
         </div>
       </header>
 
-      <main className="flex-1 py-4 px-4">
+      <main className="flex py-12 px-4 justify-center items-center">
         <div className="container mx-auto max-w-2xl">
           {/* Main Form Card */}
           <Card className="bg-white/80 backdrop-blur-sm border border-white/50 shadow-2xl relative">
@@ -180,7 +180,6 @@ export default function EmailSignUpPage() {
                     />
                   </div>
                 </div>
-               
 
                 {/* Email */}
                 <div className="space-y-2">
@@ -232,7 +231,7 @@ export default function EmailSignUpPage() {
                         <X className="w-4 h-4" />
                       </button>
                       <p className="text-sm font-medium text-gray-900 mb-2">Password Requirements:</p>
-                      <ul className="text-xs space-y-1.5 text-gray-600">
+                      <ul className="space-y-1 text-sm text-gray-600">
                         <li className="flex items-start">
                           <span className="text-orange-500 mr-1.5">•</span>
                           At least 8 characters long
@@ -252,40 +251,38 @@ export default function EmailSignUpPage() {
                       </ul>
                     </div>
                   )}
-                  <div className="space-y-1">
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Create a strong password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className={`pl-10 pr-10 h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500 ${
-                          validationErrors.password ? 'border-red-500' : ''
-                        }`}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {validationErrors.password && (
-                      <div className="flex items-center text-red-500 text-sm min-h-[20px]">
-                        <AlertCircle className="w-4 h-4 mr-1.5 flex-shrink-0" />
-                        <span>{validationErrors.password}</span>
-                      </div>
-                    )}
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Create a strong password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className={`pl-10 pr-10 h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500 ${
+                        validationErrors.password ? 'border-red-500' : ''
+                      }`}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
+                  {validationErrors.password && (
+                    <div className="flex items-center text-red-500 text-sm min-h-[20px]">
+                      <AlertCircle className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                      <span>{validationErrors.password}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Checkboxes */}
-                <div className="space-y-4 pt-2">
+                <div className="space-y-4">
                   <div className="flex items-start space-x-3">
                     <Checkbox
                       id="agreeToTerms"
@@ -326,10 +323,8 @@ export default function EmailSignUpPage() {
               </form>
             </CardContent>
           </Card>
-
         </div>
       </main>
-
     </div>
   )
 }
