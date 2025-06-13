@@ -8,6 +8,8 @@ import { Label } from "../../shared/ui/label"
 import { Checkbox } from "../../shared/ui/checkbox"
 import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
+import axios from "axios"
+
 
 export default function SignInPage() {
   const navigate = useNavigate();
@@ -17,10 +19,16 @@ export default function SignInPage() {
     password: "",
     rememberMe: false,
   })
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     document.title = "Sign In";
   }, []);
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
@@ -28,13 +36,62 @@ export default function SignInPage() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }))
+
+    // Validate email on change
+    if (name === 'email') {
+      if (value && !validateEmail(value)) {
+        setValidationErrors(prev => ({
+          ...prev,
+          email: 'Please enter a valid email address'
+        }))
+      } else {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev }
+          delete newErrors.email
+          return newErrors
+        })
+      }
+    }
+  }
+
+  const canSubmit = () => {
+    const hasValidEmail = validateEmail(formData.email);
+    const hasAllFields = formData.email && formData.password;
+    return hasValidEmail && hasAllFields;
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle form submission here
-    console.log("Form submitted:", formData)
-    navigate("/dashboard")
+    if (!canSubmit()) {
+      return
+    }
+    // Send the data to the server using GET method
+    axios.get(`http://127.0.0.1:8000/user/signin?email=${encodeURIComponent(formData.email)}&password=${encodeURIComponent(formData.password)}`)
+      .then(response => {
+        if (response.data) {
+          navigate("/dashboard")
+        } else {
+          setValidationErrors({
+            submit: 'Invalid email or password'
+          })
+        }
+      })
+      .catch(error => {
+        console.error("Login failed:", error)
+        if (error.response) {
+          setValidationErrors({
+            submit: error.response.data.message || 'Invalid email or password'
+          })
+        } else if (error.request) {
+          setValidationErrors({
+            submit: 'No response from server. Please try again.'
+          })
+        } else {
+          setValidationErrors({
+            submit: 'An error occurred. Please try again.'
+          })
+        }
+      })
   }
 
   return (
@@ -120,6 +177,9 @@ export default function SignInPage() {
                           required
                         />
                       </div>
+                      {validationErrors.email && (
+                        <p className="text-sm text-red-500 mt-1">{validationErrors.email}</p>
+                      )}
                     </div>
 
                     {/* Password */}
@@ -171,9 +231,15 @@ export default function SignInPage() {
                     </div>
 
                     {/* Submit Button */}
+                    {validationErrors.submit && (
+                      <div className="text-sm text-red-500 text-center">
+                        {validationErrors.submit}
+                      </div>
+                    )}
                     <Button
                       type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold"
+                      disabled={!canSubmit()}
+                      className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Sign In
                       <ArrowRight className="w-5 h-5 ml-2" />
