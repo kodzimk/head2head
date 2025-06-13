@@ -7,6 +7,8 @@ import {
 import { Badge } from "../../../shared/ui/badge";
 import { TabsContent } from "../../../shared/ui/tabs";
 import type { User, RecentBattle } from "../../../shared/interface/user";
+import { Button } from "../../../shared/ui/button";
+import { ChevronRight } from "lucide-react";
 
 export default function Battles({
   user,
@@ -21,7 +23,12 @@ export default function Battles({
         <div className="grid lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>Battle History</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                Battle History
+              <Button variant="ghost" size="sm" className="w-32 h-8">
+                  View All <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

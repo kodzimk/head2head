@@ -9,6 +9,7 @@ import {
   Play,
   Sword,
   FlameIcon as Fire,
+  Camera,
 } from "lucide-react";
 
 import Overview from "./tabs/overview";
@@ -138,10 +139,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Overview */}
-        <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0">
+        <div className="hidden xl:grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 md:hidden lg:block">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between py-2">
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-orange-100 text-sm">Current Rank</p>
                   <p className="text-2xl font-bold">{user.rank}</p>
@@ -151,9 +152,9 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-emerald-500 text-white border-0">
+          <Card className="bg-gradient-to-br from-green-500 to-emerald-500 text-white border-0 md:hidden lg:block">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between py-2">
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-100 text-sm">Win Rate</p>
                   <p className="text-2xl font-bold">{user.winRate}%</p>
@@ -163,9 +164,9 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-0">
+          <Card className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-0 md:hidden lg:block">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between py-2">
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-100 text-sm">Win Streak</p>
                   <p className="text-2xl font-bold">{user.streak}</p>
@@ -175,9 +176,9 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0">
+          <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0 md:hidden lg:block">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between py-2">
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm">Total Battles</p>
                   <p className="text-2xl font-bold">{user.totalBattles}</p>

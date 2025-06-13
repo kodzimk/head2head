@@ -23,7 +23,7 @@ export default function Header({ user }: { user: User }) {
           <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500">
             <p className="font-bold text-white text-sm sm:text-base">h2h</p>
           </div>
-          <span className="hidden md:block font-bold text-lg sm:text-xl text-slate-900">
+          <span className="hidden sm:block md:block font-bold text-lg sm:text-xl text-slate-900">
             head2head
           </span>
         </div>
@@ -31,7 +31,7 @@ export default function Header({ user }: { user: User }) {
 
       <nav className="flex items-center gap-4">
         {/* Desktop Navigation */}
-        <div className="hidden md:flex gap-6 items-center">
+        <div className="hidden lg:flex gap-6 items-center">
         <Link to="/battle">
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <Play className="mr-2 h-4 w-4" />
@@ -94,7 +94,7 @@ export default function Header({ user }: { user: User }) {
             <DropdownMenuSeparator />
             
             {/* Mobile Navigation Links */}
-            <div className="md:hidden">
+            <div className="lg:hidden">
             <Link to="/battle">
                 <DropdownMenuItem className="cursor-pointer">
                   <Play className="mr-2 h-4 w-4" />

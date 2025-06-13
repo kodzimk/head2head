@@ -14,31 +14,22 @@ import { Badge } from "../../shared/ui/badge"
 import { Separator } from "../../shared/ui/separator"
 import { Alert, AlertDescription } from "../../shared/ui/alert"
 import {
-  User,
-  Bell,
   Settings,
-  Shield,
   LogOut,
   Upload,
   Trash2,
   AlertTriangle,
   ChevronLeft,
-  Facebook,
-  Twitter,
-  Instagram,
-  Globe,
-  Eye,
-  EyeOff,
   Save,
+  Camera,
 } from "lucide-react"
 import { Link } from "react-router-dom"
-
-
-export default function ProfileSettingsPage() {
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../../shared/ui/dropdown-menu"
+import { Play, List, Trophy, BookOpen, Users, UserIcon, User } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+export default function ProfileSettingsPage(  ) {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("profile")
-  const [showPassword, setShowPassword] = useState(false)
-  const [showNewPassword, setShowNewPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Mock user data
   const user = {
@@ -51,34 +42,100 @@ export default function ProfileSettingsPage() {
     phone: "+1 (555) 123-4567",
     dateJoined: "January 2023",
     favoritesSport: "Football",
-    level: 42,
+    rank: "#1247",
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
       {/* Header */}
       <header className="px-4 lg:px-6 h-16 flex items-center bg-white/80 backdrop-blur-sm border-b border-orange-200 sticky top-0 z-50">
-        <Link href="/dashboard" className="flex items-center justify-center">
-          <div className="flex items-center space-x-2">
-            <span className="font-bold text-xl text-gray-900">head2head</span>
-          </div>
-        </Link>
-
-        <div className="ml-6 flex items-center">
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          <Link href="/dashboard" className="text-sm text-gray-600 hover:text-orange-600">
+        <div className="ml-2 flex items-center">
+          <ChevronLeft className="w-4 h-4" />
+          <Link to="/dashboard" className="text-sm text-gray-600 hover:text-orange-600">
             Back to Dashboard
           </Link>
         </div>
 
-        <div className="ml-auto flex items-center gap-4">
-          <Badge variant="outline" className="bg-white">
-            Level {user.level}
-          </Badge>
-          <Avatar className="w-8 h-8">
-            <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-            <AvatarFallback>AJ</AvatarFallback>
-          </Avatar>
+        <div className="ml-auto flex items-center gap-4 xl:hidden block">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100"
+            >
+              <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+                <AvatarImage
+                  src={user.avatar || "/placeholder.svg"}
+                  alt={user.username}
+                />
+                <AvatarFallback>AJ</AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none text-slate-900">
+                  {user.username}
+                </p>
+                <p className="text-xs leading-none text-slate-500">
+                  {user.rank}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            
+            {/* Mobile Navigation Links */}
+            <div className="xl:hidden">
+            <Link to="/battle">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Play className="mr-2 h-4 w-4" />
+                  <span>Battle</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/selection">
+                <DropdownMenuItem className="cursor-pointer">
+                  <List className="mr-2 h-4 w-4" />
+                  <span>Selection</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/leaderboard">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  <span>Leaderboard</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/trainings">
+                <DropdownMenuItem className="cursor-pointer">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  <span>Trainings</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to="/friend">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Friends</span>
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuSeparator />
+            </div>
+            
+
+            <Link to="/profile">
+              <DropdownMenuItem className="cursor-pointer">
+                <UserIcon className="mr-2 h-4 w-4" />
+                <span>Manage Profile</span>
+              </DropdownMenuItem>
+            </Link>
+            <DropdownMenuItem
+              onClick={() => navigate("/sign-in")}
+              className="cursor-pointer"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sign Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         </div>
       </header>
 
@@ -89,7 +146,7 @@ export default function ProfileSettingsPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 lg:w-auto">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-2 lg:w-auto">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="w-4 h-4" />
               <span className="hidden md:inline">Profile</span>
@@ -97,18 +154,6 @@ export default function ProfileSettingsPage() {
             <TabsTrigger value="account" className="flex items-center gap-2">
               <Settings className="w-4 h-4" />
               <span className="hidden md:inline">Account</span>
-            </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              <span className="hidden md:inline">Security</span>
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <Bell className="w-4 h-4" />
-              <span className="hidden md:inline">Notifications</span>
-            </TabsTrigger>
-            <TabsTrigger value="social" className="flex items-center gap-2">
-              <Globe className="w-4 h-4" />
-              <span className="hidden md:inline">Social</span>
             </TabsTrigger>
           </TabsList>
 
@@ -122,23 +167,35 @@ export default function ProfileSettingsPage() {
               <CardContent className="space-y-6">
                 {/* Profile Picture */}
                 <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-                  <Avatar className="w-24 h-24">
-                    <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-                    <AvatarFallback>AJ</AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="w-24 h-24">
+                      <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+                      <AvatarFallback>AJ</AvatarFallback>
+                    </Avatar>
+                    <label 
+                      htmlFor="avatar-upload" 
+                      className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-md cursor-pointer hover:bg-gray-50 transition-colors"
+                    >
+                      <Camera className="w-4 h-4 text-gray-600" />
+                      <input
+                        id="avatar-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          // Handle file upload here
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            // Add your file upload logic here
+                            console.log('Selected file:', file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
                   <div className="space-y-2">
                     <h3 className="font-medium">Profile Picture</h3>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload New
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Remove
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500">Recommended: Square image, at least 300x300px</p>
+                    <p className="text-xs text-gray-500">Click the camera icon to upload a new profile picture. Recommended: Square image, at least 300x300px</p>
                   </div>
                 </div>
 
@@ -147,24 +204,12 @@ export default function ProfileSettingsPage() {
                 {/* Basic Info Form */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" defaultValue={user.name} />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
                     <Input id="username" defaultValue={user.username} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" defaultValue={user.email} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input id="phone" defaultValue={user.phone} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
-                    <Input id="location" defaultValue={user.location} />
+                    <Input disabled id="email" type="email" defaultValue={user.email} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="favoriteSport">Favorite Sport</Label>
@@ -206,14 +251,6 @@ export default function ProfileSettingsPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Show Online Status</Label>
-                    <p className="text-sm text-gray-500">Allow others to see when you're online</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
                     <Label>Show Battle History</Label>
                     <p className="text-sm text-gray-500">Make your battle history visible to others</p>
                   </div>
@@ -224,14 +261,6 @@ export default function ProfileSettingsPage() {
                   <div className="space-y-0.5">
                     <Label>Show Stats & Achievements</Label>
                     <p className="text-sm text-gray-500">Display your stats and achievements on your profile</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Appear in Leaderboards</Label>
-                    <p className="text-sm text-gray-500">Allow your name to appear in public leaderboards</p>
                   </div>
                   <Switch defaultChecked />
                 </div>
@@ -295,23 +324,6 @@ export default function ProfileSettingsPage() {
 
                 <Separator />
 
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Sound Effects</Label>
-                    <p className="text-sm text-gray-500">Enable sound effects during battles</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Animations</Label>
-                    <p className="text-sm text-gray-500">Enable animations throughout the app</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
               </CardContent>
               <CardFooter>
                 <Button>Save Preferences</Button>
@@ -348,20 +360,6 @@ export default function ProfileSettingsPage() {
 
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                      <h4 className="font-medium">Deactivate Account</h4>
-                      <p className="text-sm text-gray-500">
-                        Temporarily disable your account. You can reactivate it anytime.
-                      </p>
-                    </div>
-                    <Button variant="outline" className="text-amber-600 border-amber-200">
-                      Deactivate
-                    </Button>
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div>
                       <h4 className="font-medium">Delete Account</h4>
                       <p className="text-sm text-gray-500">Permanently delete your account and all associated data</p>
                     </div>
@@ -369,388 +367,6 @@ export default function ProfileSettingsPage() {
                   </div>
                 </div>
               </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Security Tab */}
-          <TabsContent value="security" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Change Password</CardTitle>
-                <CardDescription>Update your password to keep your account secure</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current-password">Current Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="current-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your current password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="new-password">New Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="new-password"
-                      type={showNewPassword ? "text" : "password"}
-                      placeholder="Enter your new password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Password must be at least 8 characters with numbers and special characters
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="confirm-password"
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm your new password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button>Update Password</Button>
-              </CardFooter>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Two-Factor Authentication</CardTitle>
-                <CardDescription>Add an extra layer of security to your account</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Enable Two-Factor Authentication</Label>
-                    <p className="text-sm text-gray-500">
-                      Require a verification code when signing in from a new device
-                    </p>
-                  </div>
-                  <Switch />
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <h4 className="font-medium">Backup Recovery Codes</h4>
-                  <p className="text-sm text-gray-500">
-                    Generate backup codes to access your account if you lose your two-factor authentication device
-                  </p>
-                  <Button variant="outline" disabled>
-                    Generate Backup Codes
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Login Sessions</CardTitle>
-                <CardDescription>Manage your active sessions and devices</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Chrome on Windows</h4>
-                      <p className="text-sm text-gray-500">New York, USA • Current Session</p>
-                    </div>
-                    <Badge>Current</Badge>
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Safari on iPhone</h4>
-                      <p className="text-sm text-gray-500">New York, USA • Last active: 2 hours ago</p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Sign Out
-                    </Button>
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Chrome on MacBook</h4>
-                      <p className="text-sm text-gray-500">Boston, USA • Last active: 3 days ago</p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      Sign Out
-                    </Button>
-                  </div>
-                </div>
-
-                <Button variant="outline" className="w-full mt-4">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out of All Devices
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Notifications Tab */}
-          <TabsContent value="notifications" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>Control how and when you receive notifications</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Email Notifications</h3>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Battle Challenges</Label>
-                      <p className="text-sm text-gray-500">Receive emails when someone challenges you</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Tournament Updates</Label>
-                      <p className="text-sm text-gray-500">Get notified about tournament starts and results</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Friend Requests</Label>
-                      <p className="text-sm text-gray-500">Receive emails for new friend requests</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>News & Updates</Label>
-                      <p className="text-sm text-gray-500">Get the latest news and feature updates</p>
-                    </div>
-                    <Switch />
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Push Notifications</h3>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Battle Invites</Label>
-                      <p className="text-sm text-gray-500">Get notified when someone invites you to battle</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Friend Activity</Label>
-                      <p className="text-sm text-gray-500">Get updates when friends win tournaments or set records</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Tournament Reminders</Label>
-                      <p className="text-sm text-gray-500">Get reminded before tournaments you've joined</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Daily Challenges</Label>
-                      <p className="text-sm text-gray-500">Get notified about new daily challenges</p>
-                    </div>
-                    <Switch />
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Notification Schedule</h3>
-                  <p className="text-sm text-gray-500">Set quiet hours when you don't want to receive notifications</p>
-
-                  <div className="grid grid-cols-2 gap-4 mt-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="quiet-start">Quiet Hours Start</Label>
-                      <Select defaultValue="22">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select time" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 24 }).map((_, i) => (
-                            <SelectItem key={i} value={i.toString()}>
-                              {i === 0 ? "12 AM" : i === 12 ? "12 PM" : i < 12 ? `${i} AM` : `${i - 12} PM`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="quiet-end">Quiet Hours End</Label>
-                      <Select defaultValue="8">
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select time" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: 24 }).map((_, i) => (
-                            <SelectItem key={i} value={i.toString()}>
-                              {i === 0 ? "12 AM" : i === 12 ? "12 PM" : i < 12 ? `${i} AM` : `${i - 12} PM`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button>Save Notification Settings</Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-
-          {/* Social Tab */}
-          <TabsContent value="social" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Connected Accounts</CardTitle>
-                <CardDescription>Manage your connected social accounts</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Facebook className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Facebook</h4>
-                      <p className="text-sm text-gray-500">Not Connected</p>
-                    </div>
-                  </div>
-                  <Button variant="outline">Connect</Button>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                      <Twitter className="w-5 h-5 text-blue-500" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Twitter</h4>
-                      <p className="text-sm text-gray-500">Connected as @sportsfan_alex</p>
-                    </div>
-                  </div>
-                  <Button variant="outline">Disconnect</Button>
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-pink-100 flex items-center justify-center">
-                      <Instagram className="w-5 h-5 text-pink-600" />
-                    </div>
-                    <div>
-                      <h4 className="font-medium">Instagram</h4>
-                      <p className="text-sm text-gray-500">Not Connected</p>
-                    </div>
-                  </div>
-                  <Button variant="outline">Connect</Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Social Sharing</CardTitle>
-                <CardDescription>Control what gets shared to your social accounts</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Share Battle Victories</Label>
-                    <p className="text-sm text-gray-500">Automatically share when you win battles</p>
-                  </div>
-                  <Switch />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Share Tournament Achievements</Label>
-                    <p className="text-sm text-gray-500">Share when you win or place in tournaments</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Share New Achievements</Label>
-                    <p className="text-sm text-gray-500">Share when you unlock new achievements</p>
-                  </div>
-                  <Switch />
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <Label>Default Share Message</Label>
-                  <Textarea
-                    defaultValue="I just achieved [achievement] on Head2Head Sports Trivia! Can you beat my score? #Head2Head #SportsBattle"
-                    rows={3}
-                  />
-                  <p className="text-xs text-gray-500">
-                    Use [achievement], [score], or [rank] to automatically insert those values
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button>Save Social Settings</Button>
-              </CardFooter>
             </Card>
           </TabsContent>
         </Tabs>

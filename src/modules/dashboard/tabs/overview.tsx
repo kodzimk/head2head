@@ -1,13 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/ui/avatar"
-import { Progress } from "../../../shared/ui/progress"
 import { TabsContent } from "../../../shared/ui/tabs"
 import { Button } from "../../../shared/ui/button"
 import { Badge } from "../../../shared/ui/badge"
-import { Settings, ChevronRight } from "lucide-react"
+import { Settings } from "lucide-react"
 import type { User, RecentBattle } from '../../../shared/interface/user'
-
+import { useNavigate } from "react-router-dom"
+  
 export default function Overview({ user, recentBattles }: { user: User, recentBattles: RecentBattle[] }) {
+    const navigate = useNavigate()
     return (
         <TabsContent value="overview" className="space-y-6">
         <div className="grid lg:grid-cols-3 gap-6">
@@ -33,29 +34,29 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
                   <span className="text-gray-600">Rank</span>
                   <span className="font-semibold">{user.rank}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className=" flex justify-between">
                   <span className="text-gray-600">Battles Won</span>
                   <span className="font-semibold">{user.wins}</span>
+                </div>
+                <div className="sm:hidden flex justify-between">
+                  <span className="text-gray-600">Winning Percentage</span>
+                  <span className="font-semibold">{user.winRate}%</span>
+                </div>
+                <div className="sm:hidden flex justify-between">
+                  <span className="text-gray-600">Winning Streak</span>
+                  <span className="font-semibold">{user.streak}</span>
+                </div>
+                <div className="sm:hidden flex justify-between">
+                  <span className="text-gray-600">Total Battles</span>
+                  <span className="font-semibold">{user.totalBattles}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Favorite Sport</span>
                   <span className="font-semibold">{user.favoritesSport}</span>
                 </div>
-                <div className="flex justify-between md:visible sm:hidden ">
-                  <span className="text-gray-600">Winning Streak</span>
-                  <span className="font-semibold">{user.streak}</span>
-                </div>
-                <div className="md:visible sm:hidden flex justify-between">
-                  <span className="text-gray-600">Total Battles</span>
-                  <span className="font-semibold">{user.totalBattles}</span>
-                </div>
-                <div className="flex justify-between md:visible sm:hidden " >
-                  <span className="text-gray-600">Winning Percentage</span>
-                  <span className="font-semibold">{user.winRate}%</span>
-                </div>
               </div>
 
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={() => navigate("/profile")}>
                 <Settings className="w-4 h-4 mr-2" />
                 Edit Profile
               </Button>
@@ -67,9 +68,6 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 Recent Battles
-                <Button variant="ghost" size="sm">
-                  View All <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>

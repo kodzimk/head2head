@@ -64,7 +64,12 @@ export default function Friends({ friends }: { friends: Friend[] }) {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Friend Activity</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    Friend Activity
+                    <Button variant="ghost" size="sm" className="w-32 h-8">
+                  View All <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
