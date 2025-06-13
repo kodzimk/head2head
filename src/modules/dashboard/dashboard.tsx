@@ -16,6 +16,7 @@ import Overview from "./tabs/overview";
 import Battles from "./tabs/battles";
 import Friends from "./tabs/friends";
 import Header from "./header";
+import type { RecentBattle, Friend } from "../../shared/interface/user";
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -39,71 +40,9 @@ export default function DashboardPage() {
     favoritesSport: "Football",
   };
 
-  const recentBattles = [
-    {
-      id: 1,
-      opponent: "Mike_Sports",
-      sport: "🏈",
-      result: "win",
-      score: "8-6",
-      time: "2 hours ago",
-    },
-    {
-      id: 2,
-      opponent: "Sarah_Trivia",
-      sport: "🏀",
-      result: "win",
-      score: "10-7",
-      time: "5 hours ago",
-    },
-    {
-      id: 3,
-      opponent: "TriviaKing99",
-      sport: "⚽",
-      result: "loss",
-      score: "5-9",
-      time: "1 day ago",
-    },
-    {
-      id: 4,
-      opponent: "QuizMaster",
-      sport: "🏈",
-      result: "win",
-      score: "12-4",
-      time: "2 days ago",
-    },
-  ];
+  const recentBattles: RecentBattle[] = [];
 
-  const friends = [
-    {
-      id: 1,
-      username: "Mike Sports",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "online",
-      rank: "#892",
-    },
-    {
-      id: 2,
-      username: "Sarah Trivia",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "in-battle",
-      rank: "#1,156",
-    },
-    {
-      id: 3,
-      username: "Quiz Master",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "offline",
-      rank: "#2,341",
-    },
-    {
-      id: 4,
-      username: "Sports Guru",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "online",
-      rank: "#567",
-    },
-  ];
+  const friends: Friend[] = [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
@@ -144,7 +83,7 @@ export default function DashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100 text-sm">Current Rank</p>
+                  <p className="text-orange-100 text-sm py-2">Current Rank</p>
                   <p className="text-2xl font-bold">{user.rank}</p>
                 </div>
                 <Crown className="w-8 h-8 text-orange-200" />
@@ -156,7 +95,7 @@ export default function DashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm">Win Rate</p>
+                  <p className="text-green-100 text-sm py-2">Win Rate</p>
                   <p className="text-2xl font-bold">{user.winRate}%</p>
                 </div>
                 <Target className="w-8 h-8 text-green-200" />
@@ -168,7 +107,7 @@ export default function DashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm">Win Streak</p>
+                  <p className="text-blue-100 text-sm py-2">Win Streak</p>
                   <p className="text-2xl font-bold">{user.streak}</p>
                 </div>
                 <Fire className="w-8 h-8 text-blue-200" />
@@ -180,7 +119,7 @@ export default function DashboardPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm">Total Battles</p>
+                  <p className="text-purple-100 text-sm py-2">Total Battles</p>
                   <p className="text-2xl font-bold">{user.totalBattles}</p>
                 </div>
                 <Sword className="w-8 h-8 text-purple-200" />

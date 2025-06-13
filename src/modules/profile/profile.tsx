@@ -56,7 +56,7 @@ export default function ProfileSettingsPage(  ) {
           </Link>
         </div>
 
-        <div className="ml-auto flex items-center gap-4 xl:hidden block">
+        <div className="ml-auto flex items-center gap-4 sm:hidden block">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -86,7 +86,7 @@ export default function ProfileSettingsPage(  ) {
             <DropdownMenuSeparator />
             
             {/* Mobile Navigation Links */}
-            <div className="xl:hidden">
+            <div className="md:hidden">
             <Link to="/battle">
                 <DropdownMenuItem className="cursor-pointer">
                   <Play className="mr-2 h-4 w-4" />

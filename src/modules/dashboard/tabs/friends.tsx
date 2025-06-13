@@ -22,42 +22,52 @@ export default function Friends({ friends }: { friends: Friend[] }) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {friends.map((friend) => (
-                      <div key={friend.id} className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-10 h-10">
-                            <AvatarImage src={friend.avatar || "/placeholder.svg"} alt={friend.username} />
-                            <AvatarFallback>
-                              {friend.username
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{friend.username}</p>
-                            <p className="text-sm text-gray-600">Rank: {friend.rank}</p>
+                    {friends.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-gray-500 text-lg mb-4">You don't have any friends yet</p>
+                        <Button variant="outline" className="gap-2">
+                          <Plus className="w-4 h-4" />
+                          Add Friends
+                        </Button>
+                      </div>
+                    ) : (
+                      friends.map((friend) => (
+                        <div key={friend.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-10 h-10">
+                              <AvatarImage src={friend.avatar || "/placeholder.svg"} alt={friend.username} />
+                              <AvatarFallback>
+                                {friend.username
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{friend.username}</p>
+                              <p className="text-sm text-gray-600">Rank: {friend.rank}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={
+                                friend.status === "online"
+                                  ? "default"
+                                  : friend.status === "in-battle"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                            >
+                              {friend.status}
+                            </Badge>
+                            <Button size="sm" variant="outline" className="w-32 h-8">
+                              <Sword className="w-3 h-4 ml-3 " />
+                              Challenge
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={
-                              friend.status === "online"
-                                ? "default"
-                                : friend.status === "in-battle"
-                                  ? "secondary"
-                                  : "outline"
-                            }
-                          >
-                            {friend.status}
-                          </Badge>
-                          <Button size="sm" variant="outline" className="w-32 h-8">
-                            <Sword className="w-3 h-4 ml-3 " />
-                            Challenge
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>

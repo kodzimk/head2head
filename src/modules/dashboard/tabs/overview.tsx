@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/ui/avatar"
 import { TabsContent } from "../../../shared/ui/tabs"
 import { Button } from "../../../shared/ui/button"
 import { Badge } from "../../../shared/ui/badge"
-import { Settings } from "lucide-react"
+import { Settings, Sword } from "lucide-react"
 import type { User, RecentBattle } from '../../../shared/interface/user'
 import { useNavigate } from "react-router-dom"
   
@@ -72,25 +72,37 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentBattles.map((battle) => (
-                  <div key={battle.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">{battle.sport}</div>
-                      <div>
-                        <p className="font-medium">vs {battle.opponent}</p>
-                        <p className="text-sm text-gray-600">{battle.time}</p>
+                {recentBattles.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 text-lg mb-4">There are no battles yet</p>
+                    <Button variant="outline" className="gap-2">
+                      <Sword className="w-4 h-4" />
+                      Start Your First Battle
+                    </Button>
+                  </div>
+                ) : (
+                  recentBattles.map((battle) => (
+                    <div key={battle.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">{battle.sport}</div>
+                        <div>
+                          <p className="font-medium">vs {battle.opponent}</p>
+                          <p className="text-sm text-gray-600">{battle.time}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={battle.result === "win" ? "default" : "destructive"}>
+                          {battle.result === "win" ? "Won" : "Lost"}
+                        </Badge>
+                        <p className="text-sm text-gray-600 mt-1">{battle.score}</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <Badge variant={battle.result === "win" ? "default" : "destructive"}>
-                        {battle.result === "win" ? "Won" : "Lost"}
-                      </Badge>
-                      <p className="text-sm text-gray-600 mt-1">{battle.score}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
+              
             </CardContent>
+            
           </Card>
         </div>
       </TabsContent>

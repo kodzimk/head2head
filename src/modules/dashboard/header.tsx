@@ -23,7 +23,7 @@ export default function Header({ user }: { user: User }) {
           <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500">
             <p className="font-bold text-white text-sm sm:text-base">h2h</p>
           </div>
-          <span className="hidden sm:block md:block font-bold text-lg sm:text-xl text-slate-900">
+          <span className="hidden xl:block font-bold text-lg sm:text-xl text-slate-900">
             head2head
           </span>
         </div>

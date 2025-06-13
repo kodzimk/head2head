@@ -31,14 +31,14 @@ export default function SignUpPage() {
         <div className="container mx-auto max-w-6xl">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Side - Benefits */}
-            <div className="space-y-8">
+            <div className="space-y-4">
               <div>
-                <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+                <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-2">
                   Start Your Sports
                   <br />
                   <span className="text-orange-600">Battle Journey</span>
                 </h1>
-                <p className="text-xl text-gray-600 leading-relaxed">
+                <p className="hidden lg:block text-xl text-gray-600 leading-relaxed">
                   Join over 500,000 sports fans competing in real-time trivia battles. Test your knowledge and climb the
                   leaderboards!
                 </p>
