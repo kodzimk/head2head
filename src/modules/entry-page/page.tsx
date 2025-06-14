@@ -3,7 +3,6 @@ import Hero from "./hero"
 import Footer from "./footer"
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-
 export default function EntryPage() {
   const navigate = useNavigate();
   useEffect(() => {
@@ -12,6 +11,7 @@ export default function EntryPage() {
       navigate("/dashboard");
     }
   }, [navigate]);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">

@@ -11,9 +11,9 @@ import type { User } from '../shared/interface/user'
 import { GlobalStore } from '../shared/interface/gloabL_var'
 
 const initialUser: User = {
+  email: "",
   username: "",
   avatar: "/placeholder.svg?height=100&width=100",
-  level: 1,
   rank: "#1",
   winRate: 0,
   totalBattles: 0,
@@ -26,13 +26,13 @@ export default function App() {
   const [user, setUser] = useState<User>(initialUser)
 
   return (
-    <GlobalStore.Provider value={{user, setUser}}>
+    <GlobalStore.Provider value={{user, setUser: (user: User) => setUser(user)}}>
       <Routes>
         <Route path="/" element={<EntryPage />} />
         <Route path="/sign-up" element={<SignUpPage />} />
         <Route path="/signup-email" element={<EmailSignUpPage />} />
         <Route path="/sign-in" element={<SignInPage />} />
-        <Route path="/dashboard" element={<DashboardPage user={user} />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </GlobalStore.Provider>

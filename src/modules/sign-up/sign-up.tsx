@@ -1,14 +1,13 @@
-import { useEffect } from "react"
-import { Button } from "../../shared/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card"
-import { Mail, ArrowLeft } from "lucide-react"
-import { Link, useNavigate } from "react-router-dom"
-import { GoogleLogin } from '@react-oauth/google'
-import axios from "axios"
-
+import { Button } from "../../shared/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card";
+import { Mail, ArrowLeft } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
+import axios from "axios";
+import { useGlobalStore } from "../../shared/interface/gloabL_var";
 export default function SignUpPage() {
   const navigate = useNavigate();
-  
+  const { user, setUser } = useGlobalStore();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 relative overflow-hidden">
@@ -37,8 +36,8 @@ export default function SignUpPage() {
                   <span className="text-orange-600">Battle Journey</span>
                 </h1>
                 <p className="hidden lg:block text-xl text-gray-600 leading-relaxed">
-                  Join over 500,000 sports fans competing in real-time trivia battles. Test your knowledge and climb the
-                  leaderboards!
+                  Join over 500,000 sports fans competing in real-time trivia
+                  battles. Test your knowledge and climb the leaderboards!
                 </p>
               </div>
             </div>
@@ -47,55 +46,111 @@ export default function SignUpPage() {
             <div>
               <Card className="bg-white/80 backdrop-blur-sm border border-white/50 shadow-2xl">
                 <CardHeader className="text-center pb-6">
-                  <CardTitle className="text-2xl font-bold text-gray-900">Create Your Account</CardTitle>
-                  <p className="text-gray-600">Join the ultimate sports trivia community</p>
+                  <CardTitle className="text-2xl font-bold text-gray-900">
+                    Create Your Account
+                  </CardTitle>
+                  <p className="text-gray-600">
+                    Join the ultimate sports trivia community
+                  </p>
                 </CardHeader>
 
                 <CardContent className="space-y-6">
                   {/* Social Sign Up */}
                   <div className="space-y-3">
                     <GoogleLogin
-                      onSuccess={(credentialResponse) => {                    
+                      onSuccess={(credentialResponse) => {
                         if (!credentialResponse.credential) {
                           return;
                         }
 
-                        const decodedToken = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
+                        const decodedToken = JSON.parse(
+                          atob(credentialResponse.credential.split(".")[1])
+                        );
                         // Try to sign up first
-                        axios.post("http://127.0.0.1:8000/user/signup", {
-                          email: decodedToken.email,
-                          username: decodedToken.given_name,
-                          password: credentialResponse.credential,
-                        }, {
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'accept': 'application/json'
-                          }
-                        })
-                        .then(async () => {
-                          const tempResponse = await axios.get("http://127.0.0.1:8000/user/signin", {
-                            params: {
+                        axios
+                          .post(
+                            "http://127.0.0.1:8000/user/signup",
+                            {
                               email: decodedToken.email,
-                              password: credentialResponse.credential
+                              password: credentialResponse.credential,
+                              username: decodedToken.given_name,
+                              winRate: 0,
+                              totalBattle: 0,
+                              winBattle: 0,
+                              ranking: 1,
+                              favourite: "Football",
+                              streak: 0,
+
                             },
-                            headers: {
-                              'accept': 'application/json'
+                            {
+                              headers: {
+                                "Content-Type": "application/json",
+                                accept: "application/json",
+                              },
+                            }
+                          )
+                          .then(async (response) => {
+                            if (response.data) {
+                              user.email = response.data.email
+                              user.username = response.data.username
+                              user.avatar = ""
+                              user.wins = response.data.winBattle
+                              user.favoritesSport = response.data.favourite
+                              user.rank = response.data.ranking
+                              user.winRate = response.data.winRate
+                              user.totalBattles = response.data.totalBattle
+                              user.streak = response.data.winBattle
+                              setUser(user)
+                              console.log(response.data);
+                              localStorage.setItem(
+                                "user",
+                                JSON.stringify(decodedToken.email)
+                              );
+                              navigate("/dashboard");
+                            } else {
+                              const tempResponse = await axios.get(
+                                "http://127.0.0.1:8000/user/signin",
+                                {
+                                  params: {
+                                    email: decodedToken.email,
+                                    password: credentialResponse.credential,
+                                    username: decodedToken.given_name,
+                                    winRate: 0,
+                                    totalBattle: 0,
+                                    winBattle: 0,
+                                    ranking: 1,
+                                    favourite: "Football",
+                                    streak: 0,
+                                  },
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                    accept: "application/json",
+                                  },
+                                }
+                              );
+
+                              if (tempResponse.data) {
+                                user.email = tempResponse.data.email
+                              user.username = tempResponse.data.username
+                              user.avatar = ""
+                              user.wins = tempResponse.data.winBattle
+                              user.favoritesSport = tempResponse.data.favourite
+                              user.rank = tempResponse.data.ranking
+                              user.winRate = tempResponse.data.winRate
+                              user.totalBattles = tempResponse.data.totalBattle
+                              user.streak = tempResponse.data.winBattle
+                              setUser(user)
+                                console.log(tempResponse.data);
+                                localStorage.setItem(
+                                  "user",
+                                  JSON.stringify(decodedToken.email)
+                                );
+                                navigate("/dashboard");
+                              }
                             }
                           });
-                    
-                          if (tempResponse.data) {
-                            localStorage.setItem("user", JSON.stringify(tempResponse.data.email))
-                            navigate("/dashboard");
-                          }
-                          else {
-                            localStorage.setItem("user", JSON.stringify(tempResponse.data.email))
-                            navigate("/dashboard");
-                          }
-                        })
                       }}
-                      onError={() => {
-                        
-                      }}
+                      onError={() => {}}
                       useOneTap
                       theme="filled_blue"
                       shape="rectangular"
@@ -109,7 +164,9 @@ export default function SignUpPage() {
                       <div className="w-full border-t border-gray-300"></div>
                     </div>
                     <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-white text-gray-500">Or sign up with email</span>
+                      <span className="px-2 bg-white text-gray-500">
+                        Or sign up with email
+                      </span>
                     </div>
                   </div>
 
@@ -127,8 +184,11 @@ export default function SignUpPage() {
                   <div className="text-center pt-4 border-t border-gray-200">
                     <p className="text-gray-600">
                       Already have an account?{" "}
-                      <Link to="/sign-in" className="text-orange-600 hover:text-orange-700 font-medium">
-                        sign in 
+                      <Link
+                        to="/sign-in"
+                        className="text-orange-600 hover:text-orange-700 font-medium"
+                      >
+                        sign in
                       </Link>
                     </p>
                   </div>
@@ -139,5 +199,5 @@ export default function SignUpPage() {
         </div>
       </main>
     </div>
-  )
+  );
 }

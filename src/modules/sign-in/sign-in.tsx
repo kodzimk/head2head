@@ -8,6 +8,8 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { GoogleLogin } from '@react-oauth/google'
+import { useGlobalStore } from "../../shared/interface/gloabL_var"
+import type { User } from "../../shared/interface/user"
 
 export default function SignInPage() {
   const navigate = useNavigate();
@@ -17,6 +19,7 @@ export default function SignInPage() {
     password: "",
   })
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const {user, setUser} = useGlobalStore()
 
   useEffect(() => {
     document.title = "Sign In";
@@ -63,7 +66,14 @@ export default function SignInPage() {
     const tempResponse = await axios.get("http://127.0.0.1:8000/user/signin", {
       params: {
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        winRate: 0,
+        totalBattle: 0,
+        winBattle: 0,
+        ranking: 1,
+        favourite: "Football",
+        streak: 0,
+        username: "",
       },
       headers: {
         'accept': 'application/json'
@@ -71,6 +81,16 @@ export default function SignInPage() {
     });
 
     if (tempResponse.data) {
+      user.email = tempResponse.data.email
+      user.username = tempResponse.data.username
+      user.avatar = ""
+      user.wins = tempResponse.data.winBattle
+      user.favoritesSport = tempResponse.data.favourite
+      user.rank = tempResponse.data.ranking
+      user.winRate = tempResponse.data.winRate
+      user.totalBattles = tempResponse.data.totalBattle
+      user.streak = tempResponse.data.winBattle
+      setUser(user)
       localStorage.setItem("user", JSON.stringify(formData.email))
       navigate("/dashboard");
      }
@@ -81,6 +101,7 @@ export default function SignInPage() {
     }
   }
 
+
   const handleGoogleSuccess = async (credentialResponse: any) => {
     if (!credentialResponse.credential) {
       return;
@@ -89,11 +110,16 @@ export default function SignInPage() {
     try {
       const decodedToken = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
       
-    console.log(decodedToken)
       axios.post("http://127.0.0.1:8000/user/signup", {
         email: decodedToken.email,
-        username: decodedToken.given_name,
         password: credentialResponse.credential,
+        winRate: 0,
+        totalBattle: 0,
+        winBattle: 0,
+        ranking: 1,
+        favourite: "Football",
+        streak: 0,
+        username: decodedToken.given_name,
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -102,6 +128,16 @@ export default function SignInPage() {
       })
       .then(async (response) => {
        if(response.data){
+        user.email = decodedToken.email
+        user.username = decodedToken.given_name
+        user.avatar = ""
+        user.wins = 0
+        user.favoritesSport = "Football"
+        user.rank = 1
+        user.winRate = 0
+        user.totalBattles = 0
+        user.streak = 0
+        setUser(user)
         localStorage.setItem("user", JSON.stringify(decodedToken.email))
         navigate("/dashboard");
        }
@@ -109,7 +145,14 @@ export default function SignInPage() {
         const tempResponse = await axios.get("http://127.0.0.1:8000/user/signin", {
           params: {
             email: decodedToken.email,
-            password: credentialResponse.credential
+            password: credentialResponse.credential,
+            winRate: 0,
+            totalBattle: 0,
+            winBattle: 0,
+            ranking: 1,
+            favourite: "Football",
+            streak: 0,
+            username: decodedToken.given_name,
           },
           headers: {
             'accept': 'application/json'
@@ -117,6 +160,16 @@ export default function SignInPage() {
         });
   
         if (tempResponse.data) {
+          user.email = decodedToken.email
+          user.username = decodedToken.given_name
+          user.avatar = ""
+          user.wins = 0
+          user.favoritesSport = "Football"
+          user.rank = 1
+          user.winRate = 0
+          user.totalBattles = 0
+          user.streak = 0
+          setUser(user)
           localStorage.setItem("user", JSON.stringify(decodedToken.email))
           navigate("/dashboard");
         }

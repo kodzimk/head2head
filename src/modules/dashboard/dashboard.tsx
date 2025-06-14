@@ -16,12 +16,15 @@ import Battles from "./tabs/battles";
 import Friends from "./tabs/friends";
 import Header from "./header";
 import type { RecentBattle, Friend, User } from "../../shared/interface/user";
+import { useGlobalStore } from "../../shared/interface/gloabL_var";
 
-export default function DashboardPage({ user }: { user: User }) {
+export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
+  const {user, setUser} = useGlobalStore()
 
   useEffect(() => {
     document.title = "Dashboard";
+    console.log(user)
   }, []);
 
 
@@ -31,7 +34,7 @@ export default function DashboardPage({ user }: { user: User }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
       {/* Header */}
-      <Header user={user} />
+      <Header user = {user} />
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Welcome Section */}

@@ -32,7 +32,7 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Rank</span>
-                  <span className="font-semibold">{user.rank}</span>
+                  <span className="font-semibold">#{user.rank}</span>
                 </div>
                 <div className=" flex justify-between">
                   <span className="text-gray-600">Battles Won</span>

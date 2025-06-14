@@ -8,6 +8,7 @@ import { Checkbox } from "../../shared/ui/checkbox"
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle, Info, X } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
+import { useGlobalStore } from "../../shared/interface/gloabL_var"
 
 interface ValidationErrors {
   email?: string;
@@ -26,6 +27,8 @@ export default function EmailSignUpPage() {
     password: "",
     agreeToTerms: false,
   })
+
+  const {user, setUser} = useGlobalStore()
 
   useEffect(() => {
     document.title = "Sign Up with Email";
@@ -78,9 +81,15 @@ export default function EmailSignUpPage() {
 
     // Send the data to the server using POST method with JSON body
     axios.post("http://127.0.0.1:8000/user/signup", {
-      username: formData.username,
       email: formData.email,
-      password: formData.password
+      password: formData.password,
+      username: formData.username,
+      winRate: 0,
+      totalBattle: 0,
+      winBattle: 0,
+      ranking: 1,
+      favourite: "Football",
+      streak: 0,
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -89,6 +98,16 @@ export default function EmailSignUpPage() {
     })
       .then(response => {
         if (response.data) {
+          user.email = response.data.email
+          user.username = response.data.username
+          user.avatar = ""
+          user.wins = response.data.winBattle
+          user.favoritesSport = response.data.favourite
+          user.rank = response.data.ranking
+          user.winRate = response.data.winRate
+          user.totalBattles = response.data.totalBattle
+          user.streak = response.data.winBattle
+          setUser(user)
           localStorage.setItem("user", JSON.stringify(response.data.email)) 
           navigate("/dashboard")
         } else {
@@ -107,7 +126,6 @@ export default function EmailSignUpPage() {
             setValidationErrors(prev => ({
               ...prev,
               email: errorData.detail?.email || errorData.detail,
-              username: errorData.detail?.username,
               password: errorData.detail?.password,
               submit: 'Please fix the errors above'
             }));

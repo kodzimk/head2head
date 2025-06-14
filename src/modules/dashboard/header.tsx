@@ -92,7 +92,7 @@ export default function Header({ user }: { user: User }) {
                   {user.username}
                 </p>
                 <p className="text-xs leading-none text-slate-500">
-                  {user.rank}
+                  #{user.rank}
                 </p>
               </div>
             </DropdownMenuLabel>

@@ -2,11 +2,11 @@ import { createContext, useContext } from "react"
 import type { User } from "./user"
 
 interface GlobalStoreType {
-  user: User | undefined;
-  setUser: (user: User | undefined) => void;
+  user: User ;
+  setUser: (user: User ) => void;
 }
 
-export const GlobalStore = createContext<GlobalStoreType | null>(null)
+export const GlobalStore = createContext<GlobalStoreType>()
 
 export const useGlobalStore = () => {
     const context = useContext(GlobalStore)

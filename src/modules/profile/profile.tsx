@@ -10,14 +10,11 @@ import { Textarea } from "../../shared/ui/textarea"
 import { Switch } from "../../shared/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../shared/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar"
-import { Badge } from "../../shared/ui/badge"
 import { Separator } from "../../shared/ui/separator"
 import { Alert, AlertDescription } from "../../shared/ui/alert"
 import {
   Settings,
   LogOut,
-  Upload,
-  Trash2,
   AlertTriangle,
   ChevronLeft,
   Save,
@@ -27,6 +24,7 @@ import { Link } from "react-router-dom"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../../shared/ui/dropdown-menu"
 import { Play, List, Trophy, BookOpen, Users, UserIcon, User } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+
 export default function ProfileSettingsPage(  ) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("profile")
@@ -37,10 +35,6 @@ export default function ProfileSettingsPage(  ) {
     username: "sportsfan_alex",
     email: "alex@example.com",
     avatar: "/placeholder.svg?height=200&width=200",
-    bio: "Sports enthusiast and trivia lover. I'm all about football, basketball, and baseball!",
-    location: "New York, USA",
-    phone: "+1 (555) 123-4567",
-    dateJoined: "January 2023",
     favoritesSport: "Football",
     rank: "#1247",
   }
@@ -226,11 +220,6 @@ export default function ProfileSettingsPage(  ) {
                         <SelectItem value="Tennis">Tennis</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor="bio">Bio</Label>
-                    <Textarea id="bio" defaultValue={user.bio} rows={4} />
-                    <p className="text-xs text-gray-500">Brief description for your profile. Maximum 200 characters.</p>
                   </div>
                 </div>
               </CardContent>

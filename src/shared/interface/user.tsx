@@ -1,10 +1,10 @@
 export interface User {
+    email: string;
     username: string;
     avatar: string;
-    level: number;
     wins: number;
     favoritesSport: string;
-    rank: string;
+    rank: number;
     winRate: number;
     totalBattles: number;
     streak: number;
