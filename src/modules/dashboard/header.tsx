@@ -16,6 +16,11 @@ import { Link } from "react-router-dom";
 export default function Header({ user }: { user: User }) {
   const navigate = useNavigate();
 
+  function handleSignOut(){
+    localStorage.removeItem("user");
+    navigate("/");
+  }
+
   return (
     <header className="px-2 sm:px-4 lg:px-6 h-16 flex items-center justify-between bg-white/60 backdrop-blur border-b border-slate-200 w-full">
       <a href="#hero" className="flex items-center justify-center">
@@ -136,10 +141,7 @@ export default function Header({ user }: { user: User }) {
               </DropdownMenuItem>
             </Link>
             <DropdownMenuItem
-              onClick={() => {
-                localStorage.removeItem("user");
-                navigate("/");
-              }}
+              onClick={handleSignOut}
               className="cursor-pointer"
             >
               <LogOut className="mr-2 h-4 w-4" />

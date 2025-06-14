@@ -26,7 +26,6 @@ export default function SignInPage() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
     setFormData((prev) => ({
@@ -49,55 +48,37 @@ export default function SignInPage() {
       }
     }
   }
-
   const canSubmit = () => {
     const hasValidEmail = validateEmail(formData.email);
     const hasAllFields = formData.email && formData.password;
     return hasValidEmail && hasAllFields;
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSubmit()) {
       return
     }
-    // Send the data to the server using POST method
-    axios.post('http://127.0.0.1:8000/user/signin', {
-      email: formData.email,
-      password: formData.password
-    }, {
+
+    const tempResponse = await axios.get("http://127.0.0.1:8000/user/signin", {
+      params: {
+        email: formData.email,
+        password: formData.password
+      },
       headers: {
-        'Content-Type': 'application/json',
         'accept': 'application/json'
       }
-    })
-      .then(response => {
-        console.log(response.data)
-        if (response.data) {
-          localStorage.setItem("user", JSON.stringify(response.data.email))
-          navigate("/dashboard")
-        } else {
-          setValidationErrors({
-            submit: 'Invalid email or password'
-          })
-        }
+    });
+
+    if (tempResponse.data) {
+      localStorage.setItem("user", JSON.stringify(formData.email))
+      navigate("/dashboard");
+     }
+    else{
+      setValidationErrors({
+        submit: 'Invalid email or password'
       })
-      .catch(error => {
-        console.error("Login failed:", error)
-        if (error.response) {
-          setValidationErrors({
-            submit: error.response.data.message || 'Invalid email or password'
-          })
-        } else if (error.request) {
-          setValidationErrors({
-            submit: 'No response from server. Please try again.'
-          })
-        } else {
-          setValidationErrors({
-            submit: 'An error occurred. Please try again.'
-          })
-        }
-      })
+    }
   }
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
@@ -108,10 +89,10 @@ export default function SignInPage() {
     try {
       const decodedToken = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
       
-      // Send the Google sign-in data to the backend
+    console.log(decodedToken)
       axios.post("http://127.0.0.1:8000/user/signup", {
         email: decodedToken.email,
-        username: decodedToken.email,
+        username: decodedToken.given_name,
         password: credentialResponse.credential,
       }, {
         headers: {
@@ -119,7 +100,12 @@ export default function SignInPage() {
           'accept': 'application/json'
         }
       })
-      .then(async () => {
+      .then(async (response) => {
+       if(response.data){
+        localStorage.setItem("user", JSON.stringify(decodedToken.email))
+        navigate("/dashboard");
+       }
+       else{
         const tempResponse = await axios.get("http://127.0.0.1:8000/user/signin", {
           params: {
             email: decodedToken.email,
@@ -131,13 +117,10 @@ export default function SignInPage() {
         });
   
         if (tempResponse.data) {
-          localStorage.setItem("user", JSON.stringify(tempResponse.data.email))
+          localStorage.setItem("user", JSON.stringify(decodedToken.email))
           navigate("/dashboard");
         }
-        else {
-          localStorage.setItem("user", JSON.stringify(tempResponse.data.email))
-          navigate("/dashboard");
-        }
+      }
       })
     } catch (error) {
 

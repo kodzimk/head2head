@@ -1,4 +1,4 @@
-from auth.config import DATABASE_URL
+from config import DATABASE_URL
 from sqlalchemy import Column,  String
 from sqlalchemy.ext.declarative import declarative_base
 from fastapi import APIRouter

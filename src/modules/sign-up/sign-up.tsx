@@ -8,10 +8,7 @@ import axios from "axios"
 
 export default function SignUpPage() {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    document.title = "Sign Up";
-  }, []);
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 relative overflow-hidden">
@@ -67,7 +64,7 @@ export default function SignUpPage() {
                         // Try to sign up first
                         axios.post("http://127.0.0.1:8000/user/signup", {
                           email: decodedToken.email,
-                          username: decodedToken.email,
+                          username: decodedToken.given_name,
                           password: credentialResponse.credential,
                         }, {
                           headers: {

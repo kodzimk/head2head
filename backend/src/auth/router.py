@@ -1,4 +1,4 @@
-from auth.init import router, SessionLocal, User, UserCreate
+from init import router, SessionLocal, User, UserCreate
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import EmailStr
 from sqlalchemy import select
