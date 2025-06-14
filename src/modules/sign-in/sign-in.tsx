@@ -9,7 +9,6 @@ import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { GoogleLogin } from '@react-oauth/google'
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
-import type { User } from "../../shared/interface/user"
 
 export default function SignInPage() {
   const navigate = useNavigate();
@@ -63,7 +62,7 @@ export default function SignInPage() {
       return
     }
 
-    const tempResponse = await axios.get("http://127.0.0.1:8000/user/signin", {
+    const tempResponse = await axios.get("http://127.0.0.1:8000/auth/signin", {
       params: {
         email: formData.email,
         password: formData.password,
@@ -110,7 +109,7 @@ export default function SignInPage() {
     try {
       const decodedToken = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
       
-      axios.post("http://127.0.0.1:8000/user/signup", {
+      axios.post("http://127.0.0.1:8000/auth/signup", {
         email: decodedToken.email,
         password: credentialResponse.credential,
         winRate: 0,
@@ -142,7 +141,7 @@ export default function SignInPage() {
         navigate("/dashboard");
        }
        else{
-        const tempResponse = await axios.get("http://127.0.0.1:8000/user/signin", {
+        const tempResponse = await axios.get("http://127.0.0.1:8000/auth/signin", {
           params: {
             email: decodedToken.email,
             password: credentialResponse.credential,

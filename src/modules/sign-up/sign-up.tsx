@@ -69,7 +69,7 @@ export default function SignUpPage() {
                         // Try to sign up first
                         axios
                           .post(
-                            "http://127.0.0.1:8000/user/signup",
+                            "http://127.0.0.1:8000/auth/signup",
                             {
                               email: decodedToken.email,
                               password: credentialResponse.credential,
@@ -109,7 +109,7 @@ export default function SignUpPage() {
                               navigate("/dashboard");
                             } else {
                               const tempResponse = await axios.get(
-                                "http://127.0.0.1:8000/user/signin",
+                                "http://127.0.0.1:8000/auth/signin",
                                 {
                                   params: {
                                     email: decodedToken.email,

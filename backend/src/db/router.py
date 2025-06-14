@@ -1,10 +1,10 @@
 from models import UserData, UserDataCreate
-from init import SessionLocal
-from .init import db_router, redis
+from init import SessionLocal, redis
+from .init import db_router
 from pydantic import EmailStr
 import json
 
-@db_router.post("/update-user")
+@db_router.post("/update-user",name="update user data")
 async def update_user_data(user: UserDataCreate):
     async with SessionLocal() as db:
         db_user = await db.get(UserData, user.email)
@@ -21,15 +21,16 @@ async def update_user_data(user: UserDataCreate):
 
         user_dict = db_user.__dict__
         user_dict.pop('_sa_instance_state', None)         
-        await redis.set(user.email, json.dumps(user_dict))
+        redis.set(user.email, json.dumps(user_dict))
         return True
     
-@db_router.delete("/delete-user")
+@db_router.delete("/delete-user",name="delete user")
 async def delete_user_data(email: EmailStr):
     async with SessionLocal() as db:
         data = await db.get(UserData, email)
         await db.delete(data)
         await db.commit()
+        redis.delete(email)
         return True
     
 @db_router.on_event("shutdown")
@@ -41,12 +42,11 @@ async def get_user_data(email: EmailStr):
     data = redis.get(email)
     if data is None:
         async with SessionLocal() as db:
-            data = db.get(UserData, email)
+            data = await db.get(UserData, email)
             user_dict = data.__dict__
             user_dict.pop('_sa_instance_state', None)         
             await redis.set(email, json.dumps(user_dict))
-        return data
-    print("redis")
+        return json.loads(data)
     return json.loads(data)
 
 
