@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   Save,
   Camera,
+  Loader2,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../../shared/ui/dropdown-menu"
@@ -38,6 +39,7 @@ export default function ProfileSettingsPage(  ) {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme === 'dark';
   });
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (isDarkMode) {
@@ -49,12 +51,13 @@ export default function ProfileSettingsPage(  ) {
     }
   }, [isDarkMode]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     user.username = username
     user.favoritesSport = favourite
     setUser(user)
-
-    const response = axios.post("http://127.0.0.1:8000/db/update-user", {
+    setIsLoading(true)
+    try {
+      await axios.post('http://localhost:8000/db/update-user', {
       username: user.username,
       email: user.email,
       favourite: user.favoritesSport,
@@ -64,8 +67,17 @@ export default function ProfileSettingsPage(  ) {
       ranking: user.rank,
       streak: user.streak,
       password: user.password,
-    })
+      })
 
+      const updatedUser = { ...user }
+      updatedUser.username = username
+      updatedUser.favoritesSport = favourite
+      setUser(updatedUser)
+    } catch (error) {
+      console.error('Error updating profile:', error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleReset = () => {
@@ -75,7 +87,7 @@ export default function ProfileSettingsPage(  ) {
     user.rank = 0
     user.streak = 0
     setUser(user)
-    const response = axios.post("http://127.0.0.1:8000/db/update-user", {
+     axios.post("http://127.0.0.1:8000/db/update-user", {
       username: user.username,
       email: user.email,
       favourite: user.favoritesSport,
@@ -103,10 +115,6 @@ const handleDelete = async () => {
       },
       credentials: 'include'
     });
-    
-
-    const data = await response.text();
-  
     
     if (response.ok) {
       localStorage.removeItem("theme");
@@ -215,8 +223,15 @@ const handleDelete = async () => {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline">Cancel</Button>
-                <Button onClick={handleSave}>
-                  <Save className="w-4 h-4 mr-2" />
+                <Button onClick={handleSave} disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
                   Save Changes
                 </Button>
               </CardFooter>

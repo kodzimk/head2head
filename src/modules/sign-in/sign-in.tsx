@@ -107,80 +107,93 @@ export default function SignInPage() {
       return;
     }
 
-    try {
-      const decodedToken = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
-      
-      axios.post("http://127.0.0.1:8000/auth/signup", {
-        email: decodedToken.email,
-        password: credentialResponse.credential,
-        winRate: 0,
-        totalBattle: 0,
-        winBattle: 0,
-        ranking: 1,
-        favourite: "Football",
-        streak: 0,
-        username: decodedToken.given_name,
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'accept': 'application/json'
-        }
-      })
-      .then(async (response) => {
-       if(response.data){
-        user.password = credentialResponse.credential
-        user.email = decodedToken.email
-        user.username = decodedToken.given_name
-        user.avatar = ""
-        user.wins = 0
-        user.favoritesSport = "Football"
-        user.rank = 1
-        user.winRate = 0
-        user.totalBattles = 0
-        user.streak = 0
-        setUser(user)
-        localStorage.setItem("user", JSON.stringify(decodedToken.email))
-        navigate("/dashboard");
-       }
-       else{
-        const tempResponse = await axios.get("http://127.0.0.1:8000/auth/signin", {
-          params: {
-            email: decodedToken.email,
-            password: credentialResponse.credential,
-            winRate: 0,
-            totalBattle: 0,
-            winBattle: 0,
-            ranking: 1,
-            favourite: "Football",
-            streak: 0,
-            username: decodedToken.given_name,
-          },
+    const decodedToken = JSON.parse(
+      atob(credentialResponse.credential.split(".")[1])
+    );
+    // Try to sign up first
+    axios
+      .post(
+        "http://127.0.0.1:8000/auth/signup",
+        {
+          email: decodedToken.email,
+          password: credentialResponse.credential,
+          username: decodedToken.given_name,
+          winRate: 0,
+          totalBattle: 0,
+          winBattle: 0,
+          ranking: 1,
+          favourite: "Football",
+          streak: 0,
+        },
+        {
           headers: {
-            'accept': 'application/json'
-          }
-        });
-  
-        if (tempResponse.data) {
-          user.password = credentialResponse.credential
-          user.email = decodedToken.email
-          user.username = decodedToken.given_name
-          user.avatar = ""
-          user.wins = 0
-          user.favoritesSport = "Football"
-          user.rank = 1
-          user.winRate = 0
-          user.totalBattles = 0
-          user.streak = 0
-          setUser(user)
-          localStorage.setItem("user", JSON.stringify(decodedToken.email))
-          navigate("/dashboard");
+            "Content-Type": "application/json",
+            accept: "application/json",
+          },
         }
-      }
-      })
-    } catch (error) {
+      )
+      .then(async (response) => {
+        if (response.data) {
+          user.email = response.data.email
+          user.username = response.data.username
+          user.avatar = ""
+          user.wins = response.data.winBattle
+          user.favoritesSport = response.data.favourite
+          user.rank = response.data.ranking
+          user.winRate = response.data.winRate
+          user.totalBattles = response.data.totalBattle
+          user.streak = response.data.winBattle
+          setUser(user)
+          console.log(response.data);
+          localStorage.setItem(
+            "user",
+            JSON.stringify(decodedToken.email)
+          );
+          navigate("/dashboard");
+        } else {
+          const tempResponse = await axios.get(
+            "http://127.0.0.1:8000/auth/signin",
+            {
+              params: {
+                email: decodedToken.email,
+                password: credentialResponse.credential,
+                username: decodedToken.given_name,
+                winRate: 0,
+                totalBattle: 0,
+                winBattle: 0,
+                ranking: 1,
+                favourite: "Football",
+                streak: 0,
+              },
+              headers: {
+                "Content-Type": "application/json",
+                accept: "application/json",
+              },
+            }
+          );
 
-    }
+          if (tempResponse.data) {
+            user.email = tempResponse.data.email
+          user.username = tempResponse.data.username
+          user.avatar = ""
+          user.wins = tempResponse.data.winBattle
+          user.favoritesSport = tempResponse.data.favourite
+          user.rank = tempResponse.data.ranking
+          user.winRate = tempResponse.data.winRate
+          user.totalBattles = tempResponse.data.totalBattle
+          user.streak = tempResponse.data.winBattle
+          setUser(user)
+            console.log(tempResponse.data);
+            localStorage.setItem(
+              "user",
+              JSON.stringify(decodedToken.email)
+            );
+            navigate("/dashboard");
+          }
+        }
+      });
   }
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 relative overflow-hidden">
