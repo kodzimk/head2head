@@ -34,12 +34,18 @@ export default function ProfileSettingsPage(  ) {
   const [activeTab, setActiveTab] = useState("profile")
   const {user, setUser} = useGlobalStore()
   const [username, setUsername] = useState(user.username) 
-  const [favourite, setFavourite] = useState(user.favoritesSport)
+  const [favourite, setFavourite] = useState<string>(user?.favoritesSport || 'Football')
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
     return savedTheme === 'dark';
   });
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (user?.favoritesSport) {
+      setFavourite(user.favoritesSport)
+    }
+  }, [user?.favoritesSport])
 
   useEffect(() => {
     if (isDarkMode) {
@@ -103,10 +109,8 @@ export default function ProfileSettingsPage(  ) {
 
 const handleDelete = async () => {
   try {
-    console.log('Attempting to delete user:', user.email);
-    const url = `http://localhost:8000/db/delete-user?email=${encodeURIComponent(user.email)}`;
-    console.log('Request URL:', url);
-    
+
+    const url = `http://localhost:8000/db/delete-user?email=${encodeURIComponent(user.email)}`;    
     const response = await fetch(url, {
       method: 'DELETE',
       headers: {
@@ -205,16 +209,21 @@ const handleDelete = async () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="favoriteSport">Favorite Sport</Label>
-                    <Select defaultValue={favourite} onValueChange={(value) => setFavourite(value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a sport" />
+                    <Select 
+                      value={favourite} 
+                      onValueChange={(value) => {
+                        setFavourite(value)
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a sport">
+                          {favourite || "Select a sport"}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Football">Football</SelectItem>
                         <SelectItem value="Basketball">Basketball</SelectItem>
                         <SelectItem value="Baseball">Baseball</SelectItem>
-                        <SelectItem value="Soccer">Soccer</SelectItem>
-                        <SelectItem value="Hockey">Hockey</SelectItem>
                         <SelectItem value="Tennis">Tennis</SelectItem>
                       </SelectContent>
                     </Select>

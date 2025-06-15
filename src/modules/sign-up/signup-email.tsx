@@ -80,7 +80,7 @@ export default function EmailSignUpPage() {
     }
 
     // Send the data to the server using POST method with JSON body
-    axios.post("http://127.0.0.1:8000/user/signup", {
+    axios.post("http://127.0.0.1:8000/auth/signup", {
       email: formData.email,
       password: formData.password,
       username: formData.username,
