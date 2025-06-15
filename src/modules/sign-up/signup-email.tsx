@@ -90,6 +90,7 @@ export default function EmailSignUpPage() {
       ranking: 1,
       favourite: "Football",
       streak: 0,
+
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -108,9 +109,10 @@ export default function EmailSignUpPage() {
           user.totalBattles = response.data.totalBattle
           user.streak = response.data.winBattle
           user.password = response.data.password
+          
           setUser(user)
           localStorage.setItem("user", JSON.stringify(response.data.email)) 
-          navigate("/dashboard")
+          navigate(`/${user.username}`)
         } else {
           setValidationErrors({
             submit: 'Signup failed. Account already exists.'
@@ -118,7 +120,6 @@ export default function EmailSignUpPage() {
         }
       })
       .catch(error => {
-        console.error("Signup failed:", error)
         if (error.response) {
           // Handle 422 validation errors
           if (error.response.status === 422) {

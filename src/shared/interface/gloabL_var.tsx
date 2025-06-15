@@ -6,7 +6,23 @@ interface GlobalStoreType {
   setUser: (user: User ) => void;
 }
 
-export const GlobalStore = createContext<GlobalStoreType>()
+const initialUser: User = {
+  email: "",
+  username: "",
+  avatar: "/placeholder.svg?height=100&width=100",
+  rank: 1,
+  winRate: 0,
+  totalBattles: 0,
+  wins: 0,
+  streak: 0,
+  favoritesSport: "Football",
+  password: "",
+}
+
+export const GlobalStore = createContext<GlobalStoreType>({
+  user:initialUser,
+  setUser: () => {}
+})
 
 export const useGlobalStore = () => {
     const context = useContext(GlobalStore)

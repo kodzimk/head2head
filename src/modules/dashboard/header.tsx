@@ -40,37 +40,37 @@ export default function Header({ user }: { user: User }) {
       <nav className="flex items-center gap-4">
         {/* Desktop Navigation */}
         <div className="hidden lg:flex gap-6 items-center">
-        <Link to="/dashboard">
+        <Link to={`/${user.username}`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <Home className="mr-2 h-4 w-4" />
               <span>Home</span>
             </Button>
           </Link>
-        <Link to="/battle">
+        <Link to={`/${user.username}/battle`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <Play className="mr-2 h-4 w-4" />
               <span>Battle</span>
             </Button>
           </Link>
-          <Link to="/selection">
+          <Link to={`/selection`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <List className="mr-2 h-4 w-4" />
               <span>Selection</span>
             </Button>
           </Link>
-          <Link to="/leaderboard">
+          <Link to={`/leaderboard`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <Trophy className="mr-2 h-4 w-4" />
               <span>Leaderboard</span>
             </Button>
           </Link>
-          <Link to="/trainings">
+          <Link to={`/${user.username}/trainings`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <BookOpen className="mr-2 h-4 w-4" />
               <span>Trainings</span>
             </Button>
           </Link>
-          <Link to="/friend">
+          <Link to={`/${user.username}/friends`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <Users className="mr-2 h-4 w-4" />
               <span>Friends</span>
@@ -109,37 +109,37 @@ export default function Header({ user }: { user: User }) {
             
             {/* Mobile Navigation Links */}
             <div className="lg:hidden">
-            <Link to="/dashboard">
+            <Link to={`/${user.username}`}>
             <DropdownMenuItem className="cursor-pointer">
               <Home className="mr-2 h-4 w-4" />
               <span>Home</span>
             </DropdownMenuItem>
           </Link>
-            <Link to="/battle">
+            <Link to={`/${user.username}/battle`}>
                 <DropdownMenuItem className="cursor-pointer">
                   <Play className="mr-2 h-4 w-4" />
                   <span>Battle</span>
                 </DropdownMenuItem>
               </Link>
-              <Link to="/selection">
+              <Link to={`/selection`}>
                 <DropdownMenuItem className="cursor-pointer">
                   <List className="mr-2 h-4 w-4" />
                   <span>Selection</span>
                 </DropdownMenuItem>
               </Link>
-              <Link to="/leaderboard">
+              <Link to={`/leaderboard`}>
                 <DropdownMenuItem className="cursor-pointer">
                   <Trophy className="mr-2 h-4 w-4" />
                   <span>Leaderboard</span>
                 </DropdownMenuItem>
               </Link>
-              <Link to="/trainings">
+              <Link to={`/${user.username}/trainings`}>
                 <DropdownMenuItem className="cursor-pointer">
                   <BookOpen className="mr-2 h-4 w-4" />
                   <span>Trainings</span>
                 </DropdownMenuItem>
               </Link>
-              <Link to="/friend">
+              <Link to={`/${user.username}/friends`}>
                 <DropdownMenuItem className="cursor-pointer">
                   <Users className="mr-2 h-4 w-4" />
                   <span>Friends</span>
@@ -149,7 +149,7 @@ export default function Header({ user }: { user: User }) {
             </div>
             
 
-            <Link to="/profile">
+            <Link to={`/${user.username}/profile`}>
               <DropdownMenuItem className="cursor-pointer">
                 <UserIcon className="mr-2 h-4 w-4" />
                 <span>Manage Profile</span>

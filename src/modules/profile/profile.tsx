@@ -19,6 +19,7 @@ import {
   Save,
   Camera,
   Loader2,
+  X,
 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../../shared/ui/dropdown-menu"
@@ -40,6 +41,8 @@ export default function ProfileSettingsPage(  ) {
     return savedTheme === 'dark';
   });
   const [isLoading, setIsLoading] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null)
 
   useEffect(() => {
     if (user?.favoritesSport) {
@@ -63,22 +66,37 @@ export default function ProfileSettingsPage(  ) {
     setUser(user)
     setIsLoading(true)
     try {
+      let avatarBase64: string | null = null
+      if (avatarBlob) {
+        // Convert blob to base64
+        const reader = new FileReader()
+        avatarBase64 = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.readAsDataURL(avatarBlob)
+        })
+      }
+
       await axios.post('http://localhost:8000/db/update-user', {
-      username: user.username,
-      email: user.email,
-      favourite: user.favoritesSport,
-      winBattle: user.wins,
-      totalBattle: user.totalBattles,
-      winRate: user.winRate,
-      ranking: user.rank,
-      streak: user.streak,
-      password: user.password,
+        username: user.username,
+        email: user.email,
+        favourite: user.favoritesSport,
+        winBattle: user.wins,
+        totalBattle: user.totalBattles,
+        winRate: user.winRate,
+        ranking: user.rank,
+        streak: user.streak,
+        password: user.password,
       })
 
       const updatedUser = { ...user }
       updatedUser.username = username
       updatedUser.favoritesSport = favourite
+      if (avatarBase64) {
+        updatedUser.avatar = avatarBase64
+      }
       setUser(updatedUser)
+      setAvatarPreview(null)
+      setAvatarBlob(null)
     } catch (error) {
       console.error('Error updating profile:', error)
     } finally {
@@ -130,6 +148,21 @@ const handleDelete = async () => {
   }
 }
 
+const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  // Save the blob
+  setAvatarBlob(file)
+
+  // Create preview
+  const reader = new FileReader()
+  reader.onloadend = () => {
+    setAvatarPreview(reader.result as string)
+  }
+  reader.readAsDataURL(file)
+}
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Header */}
@@ -164,30 +197,28 @@ const handleDelete = async () => {
                 {/* Profile Picture */}
                 <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
                   <div className="relative">
-                    <Avatar className="w-24 h-24">
-                      <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.username} />
-                      <AvatarFallback>AJ</AvatarFallback>
-                    </Avatar>
-                    <label 
-                      htmlFor="avatar-upload" 
-                      className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-md cursor-pointer hover:bg-gray-50 transition-colors"
-                    >
-                      <Camera className="w-4 h-4 text-gray-600" />
-                      <input
-                        id="avatar-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          // Handle file upload here
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            // Add your file upload logic here
-                            console.log('Selected file:', file);
-                          }
-                        }}
+                    <div className="relative w-24 h-24">
+                      <img
+                        src={avatarPreview || user?.avatar || "/placeholder.svg?height=100&width=100"}
+                        alt="Profile"
+                        className="w-24 h-24 rounded-full object-cover border-4 border-orange-500"
                       />
-                    </label>
+                    </div>
+                    <button
+                      onClick={() => document.getElementById('avatar-upload')?.click()}
+                      disabled={isLoading}
+                      className="absolute bottom-0 right-0 bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarChange}
+                      disabled={isLoading}
+                    />
                   </div>
                   <div className="space-y-2">
                     <h3 className="font-medium">Profile Picture</h3>

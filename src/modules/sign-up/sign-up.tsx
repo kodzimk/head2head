@@ -81,7 +81,7 @@ export default function SignUpPage() {
                               winBattle: 0,
                               ranking: 1,
                               favourite: "Football",
-                              streak: 0,
+                              streak: 0,                      
                             },
                             {
                               headers: {
@@ -92,6 +92,7 @@ export default function SignUpPage() {
                           )
                           .then(async (response) => {
                             if (response.data) {
+                           
                               user.email = response.data.email
                               user.username = response.data.username
                               user.avatar = ""
@@ -101,27 +102,21 @@ export default function SignUpPage() {
                               user.winRate = response.data.winRate
                               user.totalBattles = response.data.totalBattle
                               user.streak = response.data.winBattle
+                         
                               setUser(user)
                               console.log(response.data);
                               localStorage.setItem(
                                 "user",
-                                JSON.stringify(decodedToken.email)
+                                JSON.stringify(response.data.email)
                               );
-                              navigate("/dashboard");
+                              navigate(`/${user.username}`);
                             } else {
                               const tempResponse = await axios.get(
                                 "http://127.0.0.1:8000/auth/signin",
                                 {
                                   params: {
                                     email: decodedToken.email,
-                                    password: credentialResponse.credential,
-                                    username: decodedToken.given_name,
-                                    winRate: 0,
-                                    totalBattle: 0,
-                                    winBattle: 0,
-                                    ranking: 1,
-                                    favourite: "Football",
-                                    streak: 0,
+                                    password: credentialResponse.credential, 
                                   },
                                   headers: {
                                     "Content-Type": "application/json",
@@ -140,13 +135,14 @@ export default function SignUpPage() {
                               user.winRate = tempResponse.data.winRate
                               user.totalBattles = tempResponse.data.totalBattle
                               user.streak = tempResponse.data.winBattle
-                              setUser(user)
+                        
+                                setUser(user)
                                 console.log(tempResponse.data);
                                 localStorage.setItem(
                                   "user",
-                                  JSON.stringify(decodedToken.email)
+                                  JSON.stringify(tempResponse.data.email)
                                 );
-                                navigate("/dashboard");
+                                navigate(`/${user.username}`);
                               }
                             }
                           });

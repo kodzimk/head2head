@@ -10,7 +10,7 @@ export default function EntryPage() {
   useEffect(() => {
     const userEmail = localStorage.getItem("user")?.replace(/"/g, ''); // Remove any quotation marks
     if(userEmail){
-      navigate("/dashboard");
+      navigate(`/${userEmail}`);
     }
   }, []);
 

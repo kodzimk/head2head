@@ -1,11 +1,11 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String 
 from pydantic import BaseModel, EmailStr
 from init import Base
 
 class UserData(Base):
     __tablename__ = "user_data"
-    username = Column(String, index=True,nullable=False)
-    email = Column(String, primary_key=True,index=True,nullable=False)
+    username = Column(String,  index=True,nullable=False)
+    email = Column(String,primary_key=True,index=True,nullable=False)
     winRate = Column(Integer, index=True,nullable=False)
     totalBattle = Column(Integer, index=True,nullable=False)
     winBattle = Column(Integer, index=True,nullable=False)

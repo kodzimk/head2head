@@ -1,8 +1,8 @@
 from models import UserData, UserDataCreate
-from init import SessionLocal, redis
+from init import SessionLocal, redis_email, redis_username
 from .init import db_router
-from pydantic import EmailStr
 import json
+from pydantic import EmailStr
 
 @db_router.post("/update-user",name="update user data")
 async def update_user_data(user: UserDataCreate):
@@ -17,13 +17,14 @@ async def update_user_data(user: UserDataCreate):
         db_user.favourite = user.favourite
         db_user.streak = user.streak
         db_user.password = user.password
-        
+
         await db.commit()
         await db.refresh(db_user)
 
         user_dict = db_user.__dict__
         user_dict.pop('_sa_instance_state', None)         
-        redis.set(user.email, json.dumps(user_dict))
+        redis_email.set(user.email, json.dumps(user_dict))
+        redis_username.set(user.username, json.dumps(user_dict))
         return True
     
 @db_router.delete("/delete-user",name="delete user")
@@ -32,24 +33,24 @@ async def delete_user_data(email: EmailStr):
         data = await db.get(UserData, email)
         await db.delete(data)
         await db.commit()
-        redis.delete(email)
+        redis_email.delete(email)
+        redis_username.delete(data.username)
         return True
     
 @db_router.on_event("shutdown")
 async def end_event():
-    redis.close()
+    redis_email.close()
+    redis_username.close()
 
 @db_router.get("/get-user")
 async def get_user_data(email: EmailStr):
-    data = redis.get(email)
-    if data is None:
-        async with SessionLocal() as db:
-            data = await db.get(UserData, email)
-            user_dict = data.__dict__
-            user_dict.pop('_sa_instance_state', None)         
-            await redis.set(email, json.dumps(user_dict))
-        return json.loads(data)
-    return json.loads(data)
+        redis_data = redis_email.get(email)
+        return json.loads(redis_data)
+
+@db_router.get("/get-user-by-username")
+async def get_user_by_username(username: str):
+        redis_data = redis_username.get(username)
+        return json.loads(redis_data)
 
 
 

@@ -62,42 +62,52 @@ export default function SignInPage() {
       return
     }
 
-    const tempResponse = await axios.get("http://127.0.0.1:8000/auth/signin", {
-      params: {
-        email: formData.email,
-        password: formData.password,
-        winRate: 0,
-        totalBattle: 0,
-        winBattle: 0,
-        ranking: 1,
-        favourite: "Football",
-        streak: 0,
-        username: "",
-      },
-      headers: {
-        'accept': 'application/json'
-      }
-    });
+    try {
+      const response = await axios.get(
+        "http://127.0.0.1:8000/auth/signin",
+        {
+          params: {
+            email: formData.email,
+            password: formData.password,
+          },
+          headers: {
+            "Content-Type": "application/json",
+            accept: "application/json",
+          },
+        }
+      );
 
-    if (tempResponse.data) {
-      user.email = tempResponse.data.email
-      user.username = tempResponse.data.username
-      user.avatar = ""
-      user.wins = tempResponse.data.winBattle
-      user.favoritesSport = tempResponse.data.favourite
-      user.rank = tempResponse.data.ranking
-      user.winRate = tempResponse.data.winRate
-      user.totalBattles = tempResponse.data.totalBattle
-      user.streak = tempResponse.data.winBattle
-      user.password = tempResponse.data.password
-      setUser(user)
-      localStorage.setItem("user", JSON.stringify(formData.email))
-      navigate("/dashboard");
-     }
-    else{
-      setValidationErrors({
-        submit: 'Invalid email or password'
-      })
+      if (response.data) {
+        user.email = response.data.email
+        user.username = response.data.username
+        user.avatar = response.data.avatar
+        user.wins = response.data.winBattle
+        user.favoritesSport = response.data.favourite
+        user.rank = response.data.ranking
+        user.winRate = response.data.winRate
+        user.totalBattles = response.data.totalBattle
+        user.streak = response.data.winBattle
+        user.password = response.data.password
+        user.avatar = response.data.avatar
+        setUser(user)
+        localStorage.setItem("user", JSON.stringify(user.email))
+        navigate(`/${user.username}`);
+      }
+    } catch (error: any) {
+      console.error('Sign in error:', error);
+      if (error.response?.status === 401) {
+        setValidationErrors({
+          submit: 'Invalid email or password'
+        });
+      } else if (error.response?.status === 404) {
+        setValidationErrors({
+          submit: 'User not found'
+        });
+      } else {
+        setValidationErrors({
+          submit: 'An error occurred. Please try again.'
+        });
+      }
     }
   }
 
@@ -136,7 +146,7 @@ export default function SignInPage() {
         if (response.data) {
           user.email = response.data.email
           user.username = response.data.username
-          user.avatar = ""
+          user.avatar = response.data.avatar
           user.wins = response.data.winBattle
           user.favoritesSport = response.data.favourite
           user.rank = response.data.ranking
@@ -147,9 +157,9 @@ export default function SignInPage() {
           console.log(response.data);
           localStorage.setItem(
             "user",
-            JSON.stringify(decodedToken.email)
+            JSON.stringify(response.data.email)
           );
-          navigate("/dashboard");
+          navigate(`/${user.username}`);
         } else {
           const tempResponse = await axios.get(
             "http://127.0.0.1:8000/auth/signin",
@@ -157,13 +167,6 @@ export default function SignInPage() {
               params: {
                 email: decodedToken.email,
                 password: credentialResponse.credential,
-                username: decodedToken.given_name,
-                winRate: 0,
-                totalBattle: 0,
-                winBattle: 0,
-                ranking: 1,
-                favourite: "Football",
-                streak: 0,
               },
               headers: {
                 "Content-Type": "application/json",
@@ -175,20 +178,21 @@ export default function SignInPage() {
           if (tempResponse.data) {
             user.email = tempResponse.data.email
           user.username = tempResponse.data.username
-          user.avatar = ""
+        user.avatar = tempResponse.data.avatar
           user.wins = tempResponse.data.winBattle
           user.favoritesSport = tempResponse.data.favourite
           user.rank = tempResponse.data.ranking
           user.winRate = tempResponse.data.winRate
           user.totalBattles = tempResponse.data.totalBattle
           user.streak = tempResponse.data.winBattle
+          user.avatar = tempResponse.data.avatar
           setUser(user)
             console.log(tempResponse.data);
             localStorage.setItem(
               "user",
-              JSON.stringify(decodedToken.email)
+              JSON.stringify(tempResponse.data.email)
             );
-            navigate("/dashboard");
+            navigate(`/${user.username}`);
           }
         }
       });

@@ -6,10 +6,12 @@ import EmailSignUpPage from '../modules/sign-up/signup-email'
 import SignInPage from '../modules/sign-in/sign-in'
 import DashboardPage from '../modules/dashboard/dashboard'
 import ProfilePage from '../modules/profile/profile'
+import FriendsPage from '../modules/friends/friends'
 import { useState, useEffect } from 'react'
 import type { User } from '../shared/interface/user'
 import { GlobalStore, ThemeStore } from '../shared/interface/gloabL_var'
 import axios from 'axios'
+import { ViewProfile } from '../modules/profile/view-profile'
 
 const initialUser: User = {
   email: "",
@@ -34,6 +36,7 @@ interface ApiUserData {
   favourite: string;
   streak: number;
   password: string;
+  avatar: string;
 }
 
 export default function App() {
@@ -93,8 +96,12 @@ export default function App() {
             <Route path="/sign-up" element={<SignUpPage />} />
             <Route path="/signup-email" element={<EmailSignUpPage />} />
             <Route path="/sign-in" element={<SignInPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/:username" element={<DashboardPage />} ></Route>
+            <Route path="/:username/profile" element={<ProfilePage />} />
+            <Route path="/:username/friends" element={<FriendsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/:username" element={<ViewProfile />} />
+            <Route path="/friends" element={<FriendsPage />} />
           </Routes>
         </div>
       </ThemeStore.Provider>

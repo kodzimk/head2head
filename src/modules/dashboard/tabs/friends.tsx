@@ -5,8 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/ui/avatar"
 import { Badge } from "../../../shared/ui/badge"
 import { Sword, Plus, ChevronRight, AlertTriangle } from "lucide-react"
 import type { Friend } from "../../../shared/interface/user"
+import { useNavigate } from "react-router-dom"
 
 export default function Friends({ friends }: { friends: Friend[] }) {
+    const navigate = useNavigate()
     return (
         <div>
             <TabsContent value="friends" className="space-y-6">
@@ -15,7 +17,7 @@ export default function Friends({ friends }: { friends: Friend[] }) {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     Friends ({friends.length})
-                    <Button variant="ghost" size="sm" className="w-32 h-8">
+                    <Button variant="ghost" size="sm" className="w-32 h-8" onClick={() => navigate("/friends")}>
                   View All <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
                   </CardTitle>
