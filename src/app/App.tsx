@@ -6,7 +6,7 @@ import EmailSignUpPage from '../modules/sign-up/signup-email'
 import SignInPage from '../modules/sign-in/sign-in'
 import DashboardPage from '../modules/dashboard/dashboard'
 import ProfilePage from '../modules/profile/profile'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { User } from '../shared/interface/user'
 import { GlobalStore, ThemeStore } from '../shared/interface/gloabL_var'
 
@@ -27,17 +27,28 @@ export default function App() {
   const [user, setUser] = useState<User>(initialUser)
   const [theme, setTheme] = useState<boolean>(false)
 
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [theme])
+
   return (
     <GlobalStore.Provider value={{user, setUser: (user: User) => setUser(user)}}>
       <ThemeStore.Provider value={{theme, setTheme: (theme: boolean) => setTheme(theme)}}>
-      <Routes>
-        <Route path="/" element={<EntryPage />} />
-        <Route path="/sign-up" element={<SignUpPage />} />
-        <Route path="/signup-email" element={<EmailSignUpPage />} />
-        <Route path="/sign-in" element={<SignInPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-      </Routes>
+        <div className={theme ? 'dark' : ''}>
+          <Routes>
+            <Route path="/" element={<EntryPage />} />
+            <Route path="/sign-up" element={<SignUpPage />} />
+            <Route path="/signup-email" element={<EmailSignUpPage />} />
+            <Route path="/sign-in" element={<SignInPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+          </Routes>
+        </div>
       </ThemeStore.Provider>
     </GlobalStore.Provider>
   )

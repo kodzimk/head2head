@@ -23,6 +23,7 @@ export default function Header({ user }: { user: User }) {
     navigate("/");
   }
 
+
   return (
     <header className="px-2 sm:px-4 lg:px-6 h-16 flex items-center justify-between bg-white/60 backdrop-blur border-b border-slate-200 w-full">
       <a href="#hero" className="flex items-center justify-center">
@@ -39,7 +40,12 @@ export default function Header({ user }: { user: User }) {
       <nav className="flex items-center gap-4">
         {/* Desktop Navigation */}
         <div className="hidden lg:flex gap-6 items-center">
-        
+        <Link to="/dashboard">
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <Home className="mr-2 h-4 w-4" />
+              <span>Home</span>
+            </Button>
+          </Link>
         <Link to="/battle">
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <Play className="mr-2 h-4 w-4" />

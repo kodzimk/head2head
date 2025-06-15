@@ -31,7 +31,7 @@ export default function DashboardPage() {
   const friends: Friend[] = [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Header */}
       <Header user={user} />
 
