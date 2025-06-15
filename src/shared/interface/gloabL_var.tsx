@@ -18,6 +18,7 @@ const initialUser: User = {
   favoritesSport: "Football",
   password: "",
   friends: [],
+  friendRequests: [],
 }
 
 export const GlobalStore = createContext<GlobalStoreType>({

@@ -14,6 +14,7 @@ class UserData(Base):
     streak = Column(Integer, index=True,nullable=False)
     password = Column(String, index=True,nullable=False)
     friends = Column(ARRAY(String), index=True,nullable=True)
+    friendRequests = Column(ARRAY(String), index=True,nullable=True)
 
 
 class UserDataCreate(BaseModel):
@@ -27,3 +28,4 @@ class UserDataCreate(BaseModel):
     streak: int
     password: str
     friends: list[str]
+    friendRequests: list[str]

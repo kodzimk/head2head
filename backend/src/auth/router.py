@@ -48,7 +48,8 @@ async def create_user_data(user: UserDataCreate):
                 favourite=user.favourite,
                 streak=user.streak,
                 password=hashed_password,
-                friends=[]
+                friends=[],
+                friendRequests=[]
             )
             db.add(db_user)
             await db.commit()

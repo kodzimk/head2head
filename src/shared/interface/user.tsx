@@ -10,6 +10,7 @@ export interface User {
     streak: number;
     password: string;
     friends: string[];
+    friendRequests: string[];
 }
 
 export interface RecentBattle {

@@ -91,6 +91,7 @@ export default function EmailSignUpPage() {
       favourite: "Football",
       streak: 0,
       friends: [],
+      friendRequests: [],
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -110,6 +111,7 @@ export default function EmailSignUpPage() {
           user.streak = response.data.winBattle
           user.password = response.data.password
           user.friends = response.data.friends          
+          user.friendRequests = response.data.friendRequests
           setUser(user)
           localStorage.setItem("user", JSON.stringify(response.data.email)) 
           navigate(`/${user.username}`)

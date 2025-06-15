@@ -90,6 +90,7 @@ export default function SignInPage() {
         user.password = response.data.password
         user.avatar = response.data.avatar
         user.friends = response.data.friends
+        user.friendRequests = response.data.friendRequests
         setUser(user)
         localStorage.setItem("user", JSON.stringify(user.email))
         navigate(`/${user.username}`);
@@ -148,6 +149,7 @@ export default function SignInPage() {
     user.streak = tempResponse.data.winBattle
     user.avatar = tempResponse.data.avatar
     user.friends = tempResponse.data.friends
+    user.friendRequests = tempResponse.data.friendRequests
     setUser(user)
       console.log(tempResponse.data);
       localStorage.setItem(
@@ -171,7 +173,7 @@ export default function SignInPage() {
           favourite: "Football",
           streak: 0,
           friends: [],
-        
+          friendRequests: [],
         },
         {
           headers: {
@@ -192,6 +194,7 @@ export default function SignInPage() {
           user.totalBattles = response.data.totalBattle
           user.streak = response.data.winBattle
           user.friends = response.data.friends
+          user.friendRequests = response.data.friendRequests
           setUser(user)
           console.log(response.data);
           localStorage.setItem(

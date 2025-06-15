@@ -15,6 +15,7 @@ import { ViewProfile } from '../modules/profile/view-profile'
 import LeaderboardPage from '../modules/leaderboard/leaderboard'
 import SelectionPage from '../modules/selection/selection'
 import TrainingsPage from '../modules/trainings/trainings'
+import NotificationsPage from '../modules/notifications/notifications'
 
 const initialUser: User = {
   email: "",
@@ -28,6 +29,7 @@ const initialUser: User = {
   favoritesSport: "Football",
   password: "",
   friends: [],
+  friendRequests: [],
 }
 
 interface ApiUserData {
@@ -110,6 +112,7 @@ export default function App() {
             <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/selection" element={<SelectionPage />} />
             <Route path="/:username/trainings" element={<TrainingsPage />} />
+            <Route path="/:username/notifications" element={<NotificationsPage />} />
           </Routes>
         </div>
       </ThemeStore.Provider>

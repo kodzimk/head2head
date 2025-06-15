@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { User } from '../../shared/interface/user'
 import axios from 'axios'
 import { Button } from '../../shared/ui/button'
@@ -25,15 +25,24 @@ export const ViewProfile = () => {
   const [error, setError] = useState<string | null>(null)
   const [requestSent, setRequestSent] = useState(false)
   const {user: currentUser} = useGlobalStore()  
-
+  const navigate = useNavigate()
+  
   const handleSendRequest = async () => {
-    setRequestSent(true)
-    console.log('send request')
+    try {
+      await axios.post(`http://localhost:8000/db/friend-requests?username=${user.username}&from_username=${currentUser.username}`)
+      setRequestSent(true)
+    } catch (error) {
+      console.error('Error sending friend request:', error)
+    }
   };
 
   const handleCancelRequest = async () => {
-    setRequestSent(false)
-    console.log('cancel request')
+    try {
+      await axios.post(`http://localhost:8000/db/cancel-friend-request?username=${user.username}&from_username=${currentUser.username}`)
+      setRequestSent(false)
+    } catch (error) {
+      console.error('Error canceling friend request:', error)
+    }
   };
 
   useEffect(() => {
@@ -99,12 +108,10 @@ export const ViewProfile = () => {
    <header className='bg-white dark:bg-gray-800 lg:px-12 p-4 py-4 flex items-center justify-between'>
     <div className="container mx-auto">
       <div className="flex items-center">
-      <Link to={`/${currentUser?.username}/friends`}>
-          <Button className='bg-transparent'>
+          <Button className='bg-transparent' onClick={() => navigate(-1)}>
             <ArrowLeft className='text-orange-500 hover:text-orange-600' />
            
           </Button>
-        </Link>
       </div>
     </div>
    </header>
