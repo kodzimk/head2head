@@ -90,7 +90,7 @@ export default function EmailSignUpPage() {
       ranking: 1,
       favourite: "Football",
       streak: 0,
-
+      friends: [],
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ export default function EmailSignUpPage() {
           user.totalBattles = response.data.totalBattle
           user.streak = response.data.winBattle
           user.password = response.data.password
-          
+          user.friends = response.data.friends          
           setUser(user)
           localStorage.setItem("user", JSON.stringify(response.data.email)) 
           navigate(`/${user.username}`)
@@ -131,7 +131,13 @@ export default function EmailSignUpPage() {
               password: errorData.detail?.password,
               submit: 'Please fix the errors above'
             }));
-          } else {
+          }
+          else if (error.response.status === 401) {
+            setValidationErrors({
+              submit: error.response.data.message || 'Signup failed. Username already exists.'
+            })
+          }
+          else {
             setValidationErrors({
               submit: error.response.data.message || 'Signup failed. Please try again.'
             })

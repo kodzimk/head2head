@@ -5,6 +5,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
+import { useState } from "react";
+
+interface ValidationErrors {
+  submit?: string;
+}
 
 
 export default function SignUpPage() {
@@ -81,7 +86,8 @@ export default function SignUpPage() {
                               winBattle: 0,
                               ranking: 1,
                               favourite: "Football",
-                              streak: 0,                      
+                              streak: 0,     
+                              friends: [],
                             },
                             {
                               headers: {
@@ -102,7 +108,7 @@ export default function SignUpPage() {
                               user.winRate = response.data.winRate
                               user.totalBattles = response.data.totalBattle
                               user.streak = response.data.winBattle
-                         
+                              user.friends = response.data.friends
                               setUser(user)
                               console.log(response.data);
                               localStorage.setItem(
@@ -110,7 +116,8 @@ export default function SignUpPage() {
                                 JSON.stringify(response.data.email)
                               );
                               navigate(`/${user.username}`);
-                            } else {
+                            } 
+                            else {
                               const tempResponse = await axios.get(
                                 "http://127.0.0.1:8000/auth/signin",
                                 {
@@ -127,7 +134,7 @@ export default function SignUpPage() {
 
                               if (tempResponse.data) {
                                 user.email = tempResponse.data.email
-                              user.username = tempResponse.data.username
+                                user.username = tempResponse.data.username
                               user.avatar = ""
                               user.wins = tempResponse.data.winBattle
                               user.favoritesSport = tempResponse.data.favourite
@@ -135,7 +142,7 @@ export default function SignUpPage() {
                               user.winRate = tempResponse.data.winRate
                               user.totalBattles = tempResponse.data.totalBattle
                               user.streak = tempResponse.data.winBattle
-                        
+                              user.friends = tempResponse.data.friends
                                 setUser(user)
                                 console.log(tempResponse.data);
                                 localStorage.setItem(

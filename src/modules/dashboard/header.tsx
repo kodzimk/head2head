@@ -12,9 +12,18 @@ import {
 } from "../../shared/ui/dropdown-menu";
 import { LogOut, User as UserIcon, BookOpen, Trophy, List, Users, Play, Home } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState } from "react";
 
 export default function Header({ user }: { user: User }) {
   const navigate = useNavigate();
+  const [showText, setShowText] = useState<string | null>(null);
+
+  const handleClick = (feature: string) => {
+    setShowText(feature);
+    setTimeout(() => {
+      setShowText(null);
+    }, 2000);
+  };
 
   function handleSignOut(){
     document.documentElement.classList.remove('dark');
@@ -53,22 +62,55 @@ export default function Header({ user }: { user: User }) {
             </Button>
           </Link>
           <Link to={`/selection`}>
-            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
-              <List className="mr-2 h-4 w-4" />
-              <span>Selection</span>
-            </Button>
+            <div className="relative">
+              {showText === 'selection' && (
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-orange-500 text-sm">
+                  Coming Soon
+                </div>
+              )}
+              <Button 
+                variant="ghost" 
+                className="text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+                onClick={() => handleClick('selection')}
+              >
+                <List className="mr-2 h-4 w-4" />
+                <span>Selection</span>
+              </Button>
+            </div>
           </Link>
           <Link to={`/leaderboard`}>
-            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
-              <Trophy className="mr-2 h-4 w-4" />
-              <span>Leaderboard</span>
-            </Button>
+            <div className="relative">
+              {showText === 'leaderboard' && (
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-orange-500 text-sm">
+                  Coming Soon
+                </div>
+              )}
+              <Button 
+                variant="ghost" 
+                className="text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+                onClick={() => handleClick('leaderboard')}
+              >
+                <Trophy className="mr-2 h-4 w-4" />
+                <span>Leaderboard</span>
+              </Button>
+            </div>
           </Link>
           <Link to={`/${user.username}/trainings`}>
-            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
-              <BookOpen className="mr-2 h-4 w-4" />
-              <span>Trainings</span>
-            </Button>
+            <div className="relative">
+              {showText === 'trainings' && (
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-orange-500 text-sm">
+                  Coming Soon
+                </div>
+              )}
+              <Button 
+                variant="ghost" 
+                className="text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+                onClick={() => handleClick('trainings')}
+              >
+                <BookOpen className="mr-2 h-4 w-4" />
+                <span>Trainings</span>
+              </Button>
+            </div>
           </Link>
           <Link to={`/${user.username}/friends`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
@@ -121,22 +163,26 @@ export default function Header({ user }: { user: User }) {
                   <span>Battle</span>
                 </DropdownMenuItem>
               </Link>
-              <Link to={`/selection`}>
+              <Link to={`/${user.username}
+              `}>
                 <DropdownMenuItem className="cursor-pointer">
                   <List className="mr-2 h-4 w-4" />
                   <span>Selection</span>
+                  <span className="ml-2 text-xs text-slate-500">(Coming Soon)</span>
                 </DropdownMenuItem>
               </Link>
-              <Link to={`/leaderboard`}>
+              <Link to={`/${user.username}`}>
                 <DropdownMenuItem className="cursor-pointer">
                   <Trophy className="mr-2 h-4 w-4" />
                   <span>Leaderboard</span>
+                  <span className="ml-2 text-xs text-slate-500">(Coming Soon)</span>
                 </DropdownMenuItem>
               </Link>
-              <Link to={`/${user.username}/trainings`}>
+              <Link to={`/${user.username}`}>
                 <DropdownMenuItem className="cursor-pointer">
                   <BookOpen className="mr-2 h-4 w-4" />
                   <span>Trainings</span>
+                  <span className="ml-2 text-xs text-slate-500">(Coming Soon)</span>
                 </DropdownMenuItem>
               </Link>
               <Link to={`/${user.username}/friends`}>

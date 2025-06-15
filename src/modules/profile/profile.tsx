@@ -1,6 +1,6 @@
 "use client"
 
-import { useContext, useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../shared/ui/card"
 import { Input } from "../../shared/ui/input"
@@ -8,26 +8,22 @@ import { Label } from "../../shared/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../shared/ui/tabs"
 import { Switch } from "../../shared/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../shared/ui/select"
-import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar"
 import { Separator } from "../../shared/ui/separator"
 import { Alert, AlertDescription } from "../../shared/ui/alert"
 import {
   Settings,
-  LogOut,
   AlertTriangle,
-  ChevronLeft,
   Save,
   Camera,
   Loader2,
-  X,
+  User,
 } from "lucide-react"
-import { Link } from "react-router-dom"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../../shared/ui/dropdown-menu"
-import { Play, List, Trophy, BookOpen, Users, UserIcon, User } from "lucide-react"
+
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
-import { useGlobalStore, useThemeStore } from "../../shared/interface/gloabL_var"
+import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import Header from "../dashboard/header"
+import { AxiosError } from "axios"
 
 
 export default function ProfileSettingsPage(  ) {
@@ -43,6 +39,7 @@ export default function ProfileSettingsPage(  ) {
   const [isLoading, setIsLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.favoritesSport) {
@@ -61,9 +58,7 @@ export default function ProfileSettingsPage(  ) {
   }, [isDarkMode]);
 
   const handleSave = async () => {
-    user.username = username
-    user.favoritesSport = favourite
-    setUser(user)
+ 
     setIsLoading(true)
     try {
       let avatarBase64: string | null = null
@@ -76,29 +71,40 @@ export default function ProfileSettingsPage(  ) {
         })
       }
 
-      await axios.post('http://localhost:8000/db/update-user', {
-        username: user.username,
+      const response = await axios.post('http://localhost:8000/db/update-user', {
+        username: username,
         email: user.email,
-        favourite: user.favoritesSport,
+        favourite: favourite,
         winBattle: user.wins,
         totalBattle: user.totalBattles,
         winRate: user.winRate,
         ranking: user.rank,
         streak: user.streak,
         password: user.password,
+        friends: user.friends,
       })
 
+      if (response.status === 200) {
       const updatedUser = { ...user }
       updatedUser.username = username
       updatedUser.favoritesSport = favourite
-      if (avatarBase64) {
-        updatedUser.avatar = avatarBase64
-      }
       setUser(updatedUser)
+      if (avatarBase64) {
+          updatedUser.avatar = avatarBase64
+        }       
+      }
+      else if(response.status === 401) {
+        setError('Username already exists')
+        console.log('username already exists')
+      }
       setAvatarPreview(null)
       setAvatarBlob(null)
     } catch (error) {
       console.error('Error updating profile:', error)
+      if(error instanceof AxiosError && error.response?.status === 401) {
+        setError('Username already exists')
+        console.log('username already exists')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -121,6 +127,7 @@ export default function ProfileSettingsPage(  ) {
       ranking: user.rank,
       streak: user.streak,
       password: user.password,
+      friends: user.friends,
     })
   
   }
@@ -232,7 +239,19 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
-                    <Input id="username" defaultValue={user.username} onChange={(e) => setUsername(e.target.value)} />
+                    <Input 
+                      id="username" 
+                      defaultValue={user.username} 
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        if (e.target.value.trim()) {
+                          setError(null);
+                        }
+                      }} 
+                    />
+                    {error && (
+                      <p className="text-sm text-red-500 mt-1">{error}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>

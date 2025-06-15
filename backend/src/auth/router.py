@@ -24,11 +24,18 @@ async def user_exists(db: AsyncSession, email: str) -> bool:
     user = result.scalar_one_or_none()
     return user is not None
 
+async def username_exists(db: AsyncSession, username: str) -> bool:
+    stmt = select(UserData).where(UserData.username == username)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    return user is not None
+
 @auth_router.post("/signup",name="signup")
 async def create_user_data(user: UserDataCreate):
     async with SessionLocal() as db:
+        if await username_exists(db, user.username):
+            raise HTTPException(status_code=401, detail="Username already exists")
         if not await user_exists(db, user.email):
-            # Hash the password before storing
             hashed_password = hash_password(user.password)
             
             db_user = UserData(
@@ -41,6 +48,7 @@ async def create_user_data(user: UserDataCreate):
                 favourite=user.favourite,
                 streak=user.streak,
                 password=hashed_password,
+                friends=[]
             )
             db.add(db_user)
             await db.commit()

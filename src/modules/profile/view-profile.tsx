@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import type { User } from '../../shared/interface/user'
 import axios from 'axios'
 import { Button } from '../../shared/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, UserPlus } from 'lucide-react'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
 
 
@@ -23,7 +23,18 @@ export const ViewProfile = () => {
 
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [requestSent, setRequestSent] = useState(false)
   const {user: currentUser} = useGlobalStore()  
+
+  const handleSendRequest = async () => {
+    setRequestSent(true)
+    console.log('send request')
+  };
+
+  const handleCancelRequest = async () => {
+    setRequestSent(false)
+    console.log('cancel request')
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -89,8 +100,8 @@ export const ViewProfile = () => {
     <div className="container mx-auto">
       <div className="flex items-center">
       <Link to={`/${currentUser?.username}/friends`}>
-          <Button className='bg-orange-500 text-white hover:bg-transparent hover:text-orange-500 hover:border-orange-500'>
-            <ArrowLeft />
+          <Button className='bg-transparent'>
+            <ArrowLeft className='text-orange-500 hover:text-orange-600' />
            
           </Button>
         </Link>
@@ -132,7 +143,7 @@ export const ViewProfile = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Wins</h3>
                   <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{user.wins}</p>
@@ -146,6 +157,28 @@ export const ViewProfile = () => {
                   <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{user.streak}</p>
                 </div>
               </div>
+
+              {currentUser.email !== user.email && (
+                <div className="flex justify-center gap-4 mt-6">
+                  {!requestSent ? (
+                    <Button 
+                      onClick={handleSendRequest}
+                      className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Send Request
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handleCancelRequest}
+                      variant="outline"
+                      className="w-full sm:w-auto border-orange-500 text-orange-500 hover:bg-orange-50 dark:text-orange-500 dark:border-orange-500"
+                    >
+                      Cancel Friend Request
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

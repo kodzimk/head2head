@@ -17,6 +17,7 @@ const initialUser: User = {
   streak: 0,
   favoritesSport: "Football",
   password: "",
+  friends: [],
 }
 
 export const GlobalStore = createContext<GlobalStoreType>({

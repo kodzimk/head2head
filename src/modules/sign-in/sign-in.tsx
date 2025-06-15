@@ -89,6 +89,7 @@ export default function SignInPage() {
         user.streak = response.data.winBattle
         user.password = response.data.password
         user.avatar = response.data.avatar
+        user.friends = response.data.friends
         setUser(user)
         localStorage.setItem("user", JSON.stringify(user.email))
         navigate(`/${user.username}`);
@@ -120,7 +121,42 @@ export default function SignInPage() {
     const decodedToken = JSON.parse(
       atob(credentialResponse.credential.split(".")[1])
     );
-    // Try to sign up first
+    
+    const tempResponse = await axios.get(
+      "http://127.0.0.1:8000/auth/signin",
+      {
+        params: {
+          email: decodedToken.email,
+          password: credentialResponse.credential,
+        },
+        headers: {
+          "Content-Type": "application/json",
+          accept: "application/json",
+        },
+      }
+    );
+
+    if (tempResponse.data) {
+      user.email = tempResponse.data.email
+    user.username = tempResponse.data.username
+  user.avatar = tempResponse.data.avatar
+    user.wins = tempResponse.data.winBattle
+    user.favoritesSport = tempResponse.data.favourite
+    user.rank = tempResponse.data.ranking
+    user.winRate = tempResponse.data.winRate
+    user.totalBattles = tempResponse.data.totalBattle
+    user.streak = tempResponse.data.winBattle
+    user.avatar = tempResponse.data.avatar
+    user.friends = tempResponse.data.friends
+    setUser(user)
+      console.log(tempResponse.data);
+      localStorage.setItem(
+        "user",
+        JSON.stringify(tempResponse.data.email)
+      );
+      navigate(`/${user.username}`);
+    }
+    else{
     axios
       .post(
         "http://127.0.0.1:8000/auth/signup",
@@ -134,6 +170,8 @@ export default function SignInPage() {
           ranking: 1,
           favourite: "Football",
           streak: 0,
+          friends: [],
+        
         },
         {
           headers: {
@@ -153,6 +191,7 @@ export default function SignInPage() {
           user.winRate = response.data.winRate
           user.totalBattles = response.data.totalBattle
           user.streak = response.data.winBattle
+          user.friends = response.data.friends
           setUser(user)
           console.log(response.data);
           localStorage.setItem(
@@ -160,42 +199,9 @@ export default function SignInPage() {
             JSON.stringify(response.data.email)
           );
           navigate(`/${user.username}`);
-        } else {
-          const tempResponse = await axios.get(
-            "http://127.0.0.1:8000/auth/signin",
-            {
-              params: {
-                email: decodedToken.email,
-                password: credentialResponse.credential,
-              },
-              headers: {
-                "Content-Type": "application/json",
-                accept: "application/json",
-              },
-            }
-          );
-
-          if (tempResponse.data) {
-            user.email = tempResponse.data.email
-          user.username = tempResponse.data.username
-        user.avatar = tempResponse.data.avatar
-          user.wins = tempResponse.data.winBattle
-          user.favoritesSport = tempResponse.data.favourite
-          user.rank = tempResponse.data.ranking
-          user.winRate = tempResponse.data.winRate
-          user.totalBattles = tempResponse.data.totalBattle
-          user.streak = tempResponse.data.winBattle
-          user.avatar = tempResponse.data.avatar
-          setUser(user)
-            console.log(tempResponse.data);
-            localStorage.setItem(
-              "user",
-              JSON.stringify(tempResponse.data.email)
-            );
-            navigate(`/${user.username}`);
-          }
-        }
+        } 
       });
+    }
   }
   
 

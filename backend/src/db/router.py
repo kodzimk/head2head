@@ -3,11 +3,16 @@ from init import SessionLocal, redis_email, redis_username
 from .init import db_router
 import json
 from pydantic import EmailStr
+from fastapi import HTTPException
+from auth.router import username_exists
 
 @db_router.post("/update-user",name="update user data")
 async def update_user_data(user: UserDataCreate):
     async with SessionLocal() as db:
         db_user = await db.get(UserData, user.email)
+        if await username_exists(db, user.username):
+            raise HTTPException(status_code=401, detail="Username already exists")
+       
         db_user.username = user.username
         db_user.email = user.email
         db_user.totalBattle = user.totalBattle
@@ -17,7 +22,9 @@ async def update_user_data(user: UserDataCreate):
         db_user.favourite = user.favourite
         db_user.streak = user.streak
         db_user.password = user.password
+        db_user.friends = user.friends
 
+        
         await db.commit()
         await db.refresh(db_user)
 

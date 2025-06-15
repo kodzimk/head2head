@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String 
+from sqlalchemy import Column, Integer, String, ARRAY
 from pydantic import BaseModel, EmailStr
 from init import Base
 
@@ -13,6 +13,7 @@ class UserData(Base):
     favourite = Column(String, index=True,nullable=False)
     streak = Column(Integer, index=True,nullable=False)
     password = Column(String, index=True,nullable=False)
+    friends = Column(ARRAY(String), index=True,nullable=True)
 
 
 class UserDataCreate(BaseModel):
@@ -25,3 +26,4 @@ class UserDataCreate(BaseModel):
     winBattle: int
     streak: int
     password: str
+    friends: list[str]

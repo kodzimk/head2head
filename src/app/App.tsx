@@ -12,6 +12,9 @@ import type { User } from '../shared/interface/user'
 import { GlobalStore, ThemeStore } from '../shared/interface/gloabL_var'
 import axios from 'axios'
 import { ViewProfile } from '../modules/profile/view-profile'
+import LeaderboardPage from '../modules/leaderboard/leaderboard'
+import SelectionPage from '../modules/selection/selection'
+import TrainingsPage from '../modules/trainings/trainings'
 
 const initialUser: User = {
   email: "",
@@ -24,6 +27,7 @@ const initialUser: User = {
   streak: 0,
   favoritesSport: "Football",
   password: "",
+  friends: [],
 }
 
 interface ApiUserData {
@@ -36,7 +40,7 @@ interface ApiUserData {
   favourite: string;
   streak: number;
   password: string;
-  avatar: string;
+  friends: string[];
 }
 
 export default function App() {
@@ -66,7 +70,8 @@ export default function App() {
             winRate: res.data.winRate,
             totalBattles: res.data.totalBattle,
             streak: res.data.streak,
-            password: res.data.password
+            password: res.data.password,
+            friends: res.data.friends,
           };
           setUser(userData);
       
@@ -102,6 +107,9 @@ export default function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/profile/:username" element={<ViewProfile />} />
             <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/selection" element={<SelectionPage />} />
+            <Route path="/:username/trainings" element={<TrainingsPage />} />
           </Routes>
         </div>
       </ThemeStore.Provider>
