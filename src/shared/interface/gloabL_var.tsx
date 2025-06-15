@@ -15,3 +15,21 @@ export const useGlobalStore = () => {
     }
     return context
 }
+
+interface ThemeStoreType {
+  theme: boolean;
+  setTheme: (theme: boolean) => void;
+}
+
+export const ThemeStore = createContext<ThemeStoreType>({
+  theme: false,
+  setTheme: () => {}
+})
+
+export const useThemeStore = () => {
+  const context = useContext(ThemeStore)
+  if (!context) {
+    throw new Error("useThemeStore must be used within a ThemeStoreProvider")
+  }
+  return context
+}

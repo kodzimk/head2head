@@ -8,25 +8,28 @@ import DashboardPage from '../modules/dashboard/dashboard'
 import ProfilePage from '../modules/profile/profile'
 import { useState } from 'react'
 import type { User } from '../shared/interface/user'
-import { GlobalStore } from '../shared/interface/gloabL_var'
+import { GlobalStore, ThemeStore } from '../shared/interface/gloabL_var'
 
 const initialUser: User = {
   email: "",
   username: "",
   avatar: "/placeholder.svg?height=100&width=100",
-  rank: "#1",
+  rank: 1,
   winRate: 0,
   totalBattles: 0,
   wins: 0,
   streak: 0,
   favoritesSport: "Football",
+  password: "",
 }
 
 export default function App() {
   const [user, setUser] = useState<User>(initialUser)
+  const [theme, setTheme] = useState<boolean>(false)
 
   return (
     <GlobalStore.Provider value={{user, setUser: (user: User) => setUser(user)}}>
+      <ThemeStore.Provider value={{theme, setTheme: (theme: boolean) => setTheme(theme)}}>
       <Routes>
         <Route path="/" element={<EntryPage />} />
         <Route path="/sign-up" element={<SignUpPage />} />
@@ -35,6 +38,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
+      </ThemeStore.Provider>
     </GlobalStore.Provider>
   )
 }

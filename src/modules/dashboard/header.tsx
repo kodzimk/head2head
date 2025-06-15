@@ -10,13 +10,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../shared/ui/dropdown-menu";
-import { LogOut, User as UserIcon, BookOpen, Trophy, List, Users, Play } from "lucide-react";
+import { LogOut, User as UserIcon, BookOpen, Trophy, List, Users, Play, Home } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Header({ user }: { user: User }) {
   const navigate = useNavigate();
 
   function handleSignOut(){
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
     localStorage.removeItem("user");
     navigate("/");
   }
@@ -37,6 +39,7 @@ export default function Header({ user }: { user: User }) {
       <nav className="flex items-center gap-4">
         {/* Desktop Navigation */}
         <div className="hidden lg:flex gap-6 items-center">
+        
         <Link to="/battle">
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <Play className="mr-2 h-4 w-4" />
@@ -100,6 +103,12 @@ export default function Header({ user }: { user: User }) {
             
             {/* Mobile Navigation Links */}
             <div className="lg:hidden">
+            <Link to="/dashboard">
+            <DropdownMenuItem className="cursor-pointer">
+              <Home className="mr-2 h-4 w-4" />
+              <span>Home</span>
+            </DropdownMenuItem>
+          </Link>
             <Link to="/battle">
                 <DropdownMenuItem className="cursor-pointer">
                   <Play className="mr-2 h-4 w-4" />

@@ -1,12 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useContext, useState, useEffect } from "react"
 import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../shared/ui/card"
 import { Input } from "../../shared/ui/input"
 import { Label } from "../../shared/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../shared/ui/tabs"
-import { Textarea } from "../../shared/ui/textarea"
 import { Switch } from "../../shared/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../shared/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar"
@@ -24,119 +23,110 @@ import { Link } from "react-router-dom"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../../shared/ui/dropdown-menu"
 import { Play, List, Trophy, BookOpen, Users, UserIcon, User } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import axios from "axios"
+import { useGlobalStore, useThemeStore } from "../../shared/interface/gloabL_var"
+import Header from "../dashboard/header"
+
 
 export default function ProfileSettingsPage(  ) {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState("profile")
+  const {user, setUser} = useGlobalStore()
+  const [username, setUsername] = useState(user.username) 
+  const [favourite, setFavourite] = useState(user.favoritesSport)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    return savedTheme === 'dark';
+  });
 
-  // Mock user data
-  const user = {
-    name: "Alex Johnson",
-    username: "sportsfan_alex",
-    email: "alex@example.com",
-    avatar: "/placeholder.svg?height=200&width=200",
-    favoritesSport: "Football",
-    rank: "#1247",
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  const handleSave = () => {
+    user.username = username
+    user.favoritesSport = favourite
+    setUser(user)
+
+    const response = axios.post("http://127.0.0.1:8000/db/update-user", {
+      username: user.username,
+      email: user.email,
+      favourite: user.favoritesSport,
+      winBattle: user.wins,
+      totalBattle: user.totalBattles,
+      winRate: user.winRate,
+      ranking: user.rank,
+      streak: user.streak,
+      password: user.password,
+    })
+
   }
 
+  const handleReset = () => {
+    user.wins = 0
+    user.totalBattles = 0
+    user.winRate = 0
+    user.rank = 0
+    user.streak = 0
+    setUser(user)
+    const response = axios.post("http://127.0.0.1:8000/db/update-user", {
+      username: user.username,
+      email: user.email,
+      favourite: user.favoritesSport,
+      winBattle: user.wins,
+      totalBattle: user.totalBattles,
+      winRate: user.winRate,
+      ranking: user.rank,
+      streak: user.streak,
+      password: user.password,
+    })
+  
+  }
+
+const handleDelete = async () => {
+  try {
+    console.log('Attempting to delete user:', user.email);
+    const url = `http://localhost:8000/db/delete-user?email=${encodeURIComponent(user.email)}`;
+    console.log('Request URL:', url);
+    
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    });
+    
+
+    const data = await response.text();
+  
+    
+    if (response.ok) {
+      localStorage.removeItem("theme");
+      localStorage.removeItem("user");
+      navigate("/sign-up");
+    }
+  } catch (error) {
+
+  }
+}
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <header className="px-4 lg:px-6 h-16 flex items-center bg-white/80 backdrop-blur-sm border-b border-orange-200 sticky top-0 z-50">
-        <div className="ml-2 flex items-center">
-          <ChevronLeft className="w-4 h-4" />
-          <Link to="/dashboard" className="text-sm text-gray-600 hover:text-orange-600">
-            Back to Dashboard
-          </Link>
-        </div>
-
-        <div className="ml-auto flex items-center gap-4 sm:hidden block">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100"
-            >
-              <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                <AvatarImage
-                  src={user.avatar || "/placeholder.svg"}
-                  alt={user.username}
-                />
-                <AvatarFallback>AJ</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none text-slate-900">
-                  {user.username}
-                </p>
-                <p className="text-xs leading-none text-slate-500">
-                  {user.rank}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            
-            {/* Mobile Navigation Links */}
-            <div className="md:hidden">
-            <Link to="/battle">
-                <DropdownMenuItem className="cursor-pointer">
-                  <Play className="mr-2 h-4 w-4" />
-                  <span>Battle</span>
-                </DropdownMenuItem>
-              </Link>
-              <Link to="/selection">
-                <DropdownMenuItem className="cursor-pointer">
-                  <List className="mr-2 h-4 w-4" />
-                  <span>Selection</span>
-                </DropdownMenuItem>
-              </Link>
-              <Link to="/leaderboard">
-                <DropdownMenuItem className="cursor-pointer">
-                  <Trophy className="mr-2 h-4 w-4" />
-                  <span>Leaderboard</span>
-                </DropdownMenuItem>
-              </Link>
-              <Link to="/trainings">
-                <DropdownMenuItem className="cursor-pointer">
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  <span>Trainings</span>
-                </DropdownMenuItem>
-              </Link>
-              <Link to="/friend">
-                <DropdownMenuItem className="cursor-pointer">
-                  <Users className="mr-2 h-4 w-4" />
-                  <span>Friends</span>
-                </DropdownMenuItem>
-              </Link>
-              <DropdownMenuSeparator />
-            </div>
-            
-
-            <Link to="/profile">
-              <DropdownMenuItem className="cursor-pointer">
-                <UserIcon className="mr-2 h-4 w-4" />
-                <span>Manage Profile</span>
-              </DropdownMenuItem>
-            </Link>
-            <DropdownMenuItem
-              onClick={() => navigate("/sign-in")}
-              className="cursor-pointer"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Sign Out</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        </div>
-      </header>
+      <Header user={user} />  
 
       <main className="container mx-auto px-4 py-8 max-w-5xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
-          <p className="text-gray-600 mt-1">Manage your account and preferences</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Profile Settings</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your account and preferences</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -163,7 +153,7 @@ export default function ProfileSettingsPage(  ) {
                 <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
                   <div className="relative">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+                      <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.username} />
                       <AvatarFallback>AJ</AvatarFallback>
                     </Avatar>
                     <label 
@@ -199,7 +189,7 @@ export default function ProfileSettingsPage(  ) {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
-                    <Input id="username" defaultValue={user.username} />
+                    <Input id="username" defaultValue={user.username} onChange={(e) => setUsername(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address</Label>
@@ -207,7 +197,7 @@ export default function ProfileSettingsPage(  ) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="favoriteSport">Favorite Sport</Label>
-                    <Select defaultValue={user.favoritesSport}>
+                    <Select defaultValue={favourite} onValueChange={(value) => setFavourite(value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a sport" />
                       </SelectTrigger>
@@ -225,43 +215,17 @@ export default function ProfileSettingsPage(  ) {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline">Cancel</Button>
-                <Button>
+                <Button onClick={handleSave}>
                   <Save className="w-4 h-4 mr-2" />
                   Save Changes
                 </Button>
               </CardFooter>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Visibility</CardTitle>
-                <CardDescription>Control what information is visible to other users</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Show Battle History</Label>
-                    <p className="text-sm text-gray-500">Make your battle history visible to others</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Show Stats & Achievements</Label>
-                    <p className="text-sm text-gray-500">Display your stats and achievements on your profile</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button>Save Privacy Settings</Button>
-              </CardFooter>
-            </Card>
           </TabsContent>
 
           {/* Account Tab */}
-          <TabsContent value="account" className="space-y-6">
+          <TabsContent value="account" className="space-y-6 ">
             <Card>
               <CardHeader>
                 <CardTitle>Account Preferences</CardTitle>
@@ -284,31 +248,18 @@ export default function ProfileSettingsPage(  ) {
                   </Select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="timezone">Time Zone</Label>
-                  <Select defaultValue="est">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select time zone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pst">Pacific Time (PT)</SelectItem>
-                      <SelectItem value="mst">Mountain Time (MT)</SelectItem>
-                      <SelectItem value="cst">Central Time (CT)</SelectItem>
-                      <SelectItem value="est">Eastern Time (ET)</SelectItem>
-                      <SelectItem value="gmt">Greenwich Mean Time (GMT)</SelectItem>
-                      <SelectItem value="cet">Central European Time (CET)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <Separator />
 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Dark Mode</Label>
-                    <p className="text-sm text-gray-500">Switch between light and dark themes</p>
+                    <Label className="dark:text-white">Dark Mode</Label>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Switch between light and dark themes</p>
                   </div>
-                  <Switch />
+                  <Switch 
+                    checked={isDarkMode}
+                    onCheckedChange={setIsDarkMode}
+                    className="data-[state=checked]:bg-orange-500"
+                  />
                 </div>
 
                 <Separator />
@@ -340,7 +291,7 @@ export default function ProfileSettingsPage(  ) {
                         Reset all your battle statistics, achievements, and history
                       </p>
                     </div>
-                    <Button variant="outline" className="text-amber-600 border-amber-200">
+                    <Button variant="outline" className="text-amber-600 border-amber-200" onClick={handleReset}>
                       Reset Statistics
                     </Button>
                   </div>
@@ -352,7 +303,7 @@ export default function ProfileSettingsPage(  ) {
                       <h4 className="font-medium">Delete Account</h4>
                       <p className="text-sm text-gray-500">Permanently delete your account and all associated data</p>
                     </div>
-                    <Button variant="destructive">Delete Account</Button>
+                    <Button variant="destructive" onClick={handleDelete}>Delete Account</Button>
                   </div>
                 </div>
               </CardContent>

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/car
 import { Button } from "../../../shared/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/ui/avatar"
 import { Badge } from "../../../shared/ui/badge"
-import { Sword, Trophy, Share2, MessageCircle, Plus, ChevronRight } from "lucide-react"
+import { Sword, Plus, ChevronRight, AlertTriangle } from "lucide-react"
 import type { Friend } from "../../../shared/interface/user"
 
 export default function Friends({ friends }: { friends: Friend[] }) {
@@ -83,31 +83,15 @@ export default function Friends({ friends }: { friends: Friend[] }) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <MessageCircle className="w-5 h-5 text-blue-500" />
-                      <div>
-                        <p className="text-sm">
-                          <strong>Mike Sports</strong> challenged you to a Football battle
-                        </p>
-                        <p className="text-xs text-gray-600">2 hours ago</p>
+                    <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <div className="p-3 bg-orange-100 dark:bg-orange-800/30 rounded-full">
+                        <AlertTriangle className="w-8 h-8 text-orange-500 dark:text-orange-400" />
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Trophy className="w-5 h-5 text-yellow-500" />
-                      <div>
-                        <p className="text-sm">
-                          <strong>Sarah Trivia</strong> won a tournament
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-semibold text-orange-800 dark:text-orange-300">Coming Soon!</h3>
+                        <p className="text-orange-600 dark:text-orange-400 max-w-md">
+                          The Friends feature is currently under development. We're working hard to bring you an amazing social experience!
                         </p>
-                        <p className="text-xs text-gray-600">5 hours ago</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Share2 className="w-5 h-5 text-green-500" />
-                      <div>
-                        <p className="text-sm">
-                          <strong>Quiz Master</strong> shared an achievement
-                        </p>
-                        <p className="text-xs text-gray-600">1 day ago</p>
                       </div>
                     </div>
                   </div>

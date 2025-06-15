@@ -15,7 +15,7 @@ import Overview from "./tabs/overview";
 import Battles from "./tabs/battles";
 import Friends from "./tabs/friends";
 import Header from "./header";
-import type { RecentBattle, Friend, User } from "../../shared/interface/user";
+import type { RecentBattle, Friend } from "../../shared/interface/user";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
 
 export default function DashboardPage() {
@@ -24,7 +24,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     document.title = "Dashboard";
-    console.log(user)
   }, []);
 
 
@@ -32,30 +31,30 @@ export default function DashboardPage() {
   const friends: Friend[] = [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <Header user = {user} />
+      <Header user={user} />
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Welcome Section */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-[25px] md:text-3xl font-bold text-gray-900">
+              <h1 className="text-[25px] md:text-3xl font-bold text-gray-900 dark:text-white">
                 Welcome back, {user.username}! 👋
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
                 Ready to dominate the sports trivia world?
               </p>
             </div>
             <div className="flex gap-3">
-              <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white">
+              <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white dark:from-orange-600 dark:to-red-600 dark:hover:from-orange-700 dark:hover:to-red-700">
                 <Play className="w-4 h-4 mr-2" />
                 Quick Battle
               </Button>
               <Button
                 variant="outline"
-                className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-500 dark:text-orange-400 dark:hover:bg-orange-900/20"
               >
                 <Users className="w-4 h-4 mr-2" />
                 Challenge Friends
@@ -66,50 +65,50 @@ export default function DashboardPage() {
 
         {/* Stats Overview */}
         <div className="hidden xl:grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 md:hidden lg:block">
+          <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 md:hidden lg:block dark:from-orange-600 dark:to-red-600 hover:shadow-lg transition-shadow duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-orange-100 text-sm py-2">Current Rank</p>
+                  <p className="text-orange-100 dark:text-orange-200 text-sm py-2">Current Rank</p>
                   <p className="text-2xl font-bold">{user.rank}</p>
                 </div>
-                <Crown className="w-8 h-8 text-orange-200" />
+                <Crown className="w-8 h-8 text-orange-200 dark:text-orange-300" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-emerald-500 text-white border-0 md:hidden lg:block">
+          <Card className="bg-gradient-to-br from-green-500 to-emerald-500 text-white border-0 md:hidden lg:block dark:from-green-600 dark:to-emerald-600 hover:shadow-lg transition-shadow duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-green-100 text-sm py-2">Win Rate</p>
+                  <p className="text-green-100 dark:text-green-200 text-sm py-2">Win Rate</p>
                   <p className="text-2xl font-bold">{user.winRate}%</p>
                 </div>
-                <Target className="w-8 h-8 text-green-200" />
+                <Target className="w-8 h-8 text-green-200 dark:text-green-300" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-0 md:hidden lg:block">
+          <Card className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-0 md:hidden lg:block dark:from-blue-600 dark:to-cyan-600 hover:shadow-lg transition-shadow duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-blue-100 text-sm py-2">Win Streak</p>
+                  <p className="text-blue-100 dark:text-blue-200 text-sm py-2">Win Streak</p>
                   <p className="text-2xl font-bold">{user.streak}</p>
                 </div>
-                <Fire className="w-8 h-8 text-blue-200" />
+                <Fire className="w-8 h-8 text-blue-200 dark:text-blue-300" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0 md:hidden lg:block">
+          <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0 md:hidden lg:block dark:from-purple-600 dark:to-pink-600 hover:shadow-lg transition-shadow duration-300">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-purple-100 text-sm py-2">Total Battles</p>
+                  <p className="text-purple-100 dark:text-purple-200 text-sm py-2">Total Battles</p>
                   <p className="text-2xl font-bold">{user.totalBattles}</p>
                 </div>
-                <Sword className="w-8 h-8 text-purple-200" />
+                <Sword className="w-8 h-8 text-purple-200 dark:text-purple-300" />
               </div>
             </CardContent>
           </Card>
@@ -121,10 +120,10 @@ export default function DashboardPage() {
           onValueChange={setActiveTab}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-3">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="battles">Battles</TabsTrigger>
-            <TabsTrigger value="friends">Friends</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-3 bg-gray-100 dark:bg-gray-800">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400">Overview</TabsTrigger>
+            <TabsTrigger value="battles" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400">Battles</TabsTrigger>
+            <TabsTrigger value="friends" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400">Friends</TabsTrigger>
           </TabsList>
 
           <Overview user={user} recentBattles={recentBattles} />

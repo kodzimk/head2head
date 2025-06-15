@@ -25,6 +25,7 @@ async def create_user_data(user: UserDataCreate):
                 winBattle=user.winBattle,
                 favourite=user.favourite,
                 streak=user.streak,
+                password=user.password,
             )
             db.add(db_user)
             await db.commit()

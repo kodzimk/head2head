@@ -12,6 +12,7 @@ class UserData(Base):
     ranking = Column(Integer, index=True,nullable=False)
     favourite = Column(String, index=True,nullable=False)
     streak = Column(Integer, index=True,nullable=False)
+    password = Column(String, index=True,nullable=False)
 
 
 class UserDataCreate(BaseModel):
@@ -23,3 +24,4 @@ class UserDataCreate(BaseModel):
     favourite:str
     winBattle: int
     streak: int
+    password: str

@@ -89,6 +89,7 @@ export default function SignInPage() {
       user.winRate = tempResponse.data.winRate
       user.totalBattles = tempResponse.data.totalBattle
       user.streak = tempResponse.data.winBattle
+      user.password = tempResponse.data.password
       setUser(user)
       localStorage.setItem("user", JSON.stringify(formData.email))
       navigate("/dashboard");
@@ -127,6 +128,7 @@ export default function SignInPage() {
       })
       .then(async (response) => {
        if(response.data){
+        user.password = credentialResponse.credential
         user.email = decodedToken.email
         user.username = decodedToken.given_name
         user.avatar = ""
@@ -159,6 +161,7 @@ export default function SignInPage() {
         });
   
         if (tempResponse.data) {
+          user.password = credentialResponse.credential
           user.email = decodedToken.email
           user.username = decodedToken.given_name
           user.avatar = ""

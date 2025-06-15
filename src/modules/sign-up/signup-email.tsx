@@ -107,6 +107,7 @@ export default function EmailSignUpPage() {
           user.winRate = response.data.winRate
           user.totalBattles = response.data.totalBattle
           user.streak = response.data.winBattle
+          user.password = response.data.password
           setUser(user)
           localStorage.setItem("user", JSON.stringify(response.data.email)) 
           navigate("/dashboard")
@@ -162,7 +163,7 @@ export default function EmailSignUpPage() {
       <header className="px-4 lg:px-6 h-16 flex items-center justify-between bg-white/80 backdrop-blur-sm border-b border-orange-200">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/sign-up")}
             className="flex items-center text-gray-600 hover:text-orange-600 transition-colors"
           >
             <ArrowLeft className="w-5 h-5 mr-1" />

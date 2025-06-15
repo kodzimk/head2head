@@ -5,6 +5,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
+
+
 export default function SignUpPage() {
   const navigate = useNavigate();
   const { user, setUser } = useGlobalStore();
@@ -80,7 +82,6 @@ export default function SignUpPage() {
                               ranking: 1,
                               favourite: "Football",
                               streak: 0,
-
                             },
                             {
                               headers: {

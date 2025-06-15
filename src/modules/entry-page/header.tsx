@@ -16,7 +16,10 @@ export default function Header() {
         </div>
       </a>
       <nav className="ml-auto hidden md:flex gap-6 items-center mr-10">
-        <Button className="max-w-72 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => navigate("/sign-up")}>
+        <Button className="max-w-72 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => {
+         
+          navigate("/sign-up")
+        }}>
           Start Now!
         </Button>
       </nav>

@@ -16,6 +16,8 @@ async def update_user_data(user: UserDataCreate):
         db_user.winBattle = user.winBattle
         db_user.favourite = user.favourite
         db_user.streak = user.streak
+        db_user.password = user.password
+        
         await db.commit()
         await db.refresh(db_user)
 

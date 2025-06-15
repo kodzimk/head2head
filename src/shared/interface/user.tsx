@@ -8,6 +8,7 @@ export interface User {
     winRate: number;
     totalBattles: number;
     streak: number;
+    password: string;
 }
 
 export interface RecentBattle {

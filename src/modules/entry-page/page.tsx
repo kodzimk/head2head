@@ -16,6 +16,7 @@ interface ApiUserData {
   winBattle: number;
   favourite: string;
   streak: number;
+  password: string;
 }
 
 export default function EntryPage() {
@@ -44,16 +45,14 @@ export default function EntryPage() {
             rank: res.data.ranking,
             winRate: res.data.winRate,
             totalBattles: res.data.totalBattle,
-            streak: res.data.streak
+            streak: res.data.streak,
+            password: res.data.password
           };
-          console.log('User data:', userData);
           setUser(userData);
           navigate("/dashboard");
         }
       })
       .catch((error) => {
-        console.error('Error fetching user data:', error);
-        // Handle error appropriately
       });
     }
   }, [navigate, setUser]);
