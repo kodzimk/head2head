@@ -38,7 +38,7 @@ export default function Friends() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-4 w-full">
                     {friends.length === 0 ? (
                       <div className="text-center py-8">
                         <p className="text-gray-500 text-lg mb-4">You don't have any friends yet</p>
@@ -48,28 +48,36 @@ export default function Friends() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 gap-4 w-full max-w-full">
                         {friends.map((friend) => (
                           <div
                             key={friend.username}
-                            className="cursor-pointer border rounded-lg p-4 flex items-center gap-4 hover:shadow-lg transition"
+                            className="w-full cursor-pointer p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex flex-col sm:flex-row items-center gap-4 hover:shadow-lg"
                             onClick={() => navigate(`/profile/${friend.username}`)}
                           >
-                            <img
-                              src={friend.avatar}
-                              alt={friend.username}
-                              className="w-12 h-12 rounded-full object-cover"
-                            />
-                            <div>
-                              <p className="font-semibold">{friend.username}</p>
-                              <p className="text-sm text-gray-500">Rank: {friend.rank}</p>
-                              <span className={`inline-block w-2 h-2 rounded-full ${friend.status === "online" ? "bg-green-500" : "bg-gray-400"}`}></span>
-                              <span className="ml-2 text-xs">{friend.status}</span>
+                            <div className="flex items-center gap-4 w-full">
+                              <img
+                                src={friend.avatar}
+                                alt={friend.username}
+                                className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+                              />
+                              <div className="flex-grow min-w-0">
+                                <h3 className="font-medium text-gray-900 dark:text-white truncate text-lg">
+                                  {friend.username}
+                                </h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                  Rank: #{friend.rank}
+                                </p>
+                                <div className="flex items-center mt-1">
+                                  <span className={`inline-block w-2 h-2 rounded-full ${friend.status === "online" ? "bg-green-500" : "bg-gray-400"}`}></span>
+                                  <span className="ml-2 text-xs text-gray-500">{friend.status}</span>
+                                </div>
+                              </div>
                             </div>
                             <Button
                               variant="outline"
-                              size="sm"
-                              className="ml-auto"
+                              size="default"
+                              className="sm:flex-shrink-0 w-full sm:w-auto min-w-[120px]"
                               onClick={e => {
                                 e.stopPropagation();
                                 navigate(`/profile/${friend.username}`);
@@ -95,7 +103,7 @@ export default function Friends() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-4 w-full">
                     <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
                       <div className="p-3 bg-orange-100 dark:bg-orange-800/30 rounded-full">
                         <AlertTriangle className="w-8 h-8 text-orange-500 dark:text-orange-400" />

@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import {  useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { Button } from '../../shared/ui/button'
-import { ArrowLeft, UserPlus } from 'lucide-react'
-
+import { UserPlus, Home, Play, List, Trophy, BookOpen, Users, Bell, UserIcon, LogOut, ArrowLeft } from 'lucide-react'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
+import { Link } from 'react-router-dom'
+import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../shared/ui/dropdown-menu'
 
 export const ViewProfile = () => {
   const { username } = useParams<{ username: string }>()
@@ -59,8 +61,9 @@ export const ViewProfile = () => {
         user.totalBattle = response.data.totalBattle
         user.friendRequests = response.data.friendRequests
         user.friends = response.data.friends
+        const response2 = await axios.get(`http://localhost:8000/db/get-user?email=${localStorage.getItem("user")?.replace(/"/g, '')}`)
 
-        if(response.data.friendRequests.includes(currentUser.username) && currentUser.username !== '') {
+        if(response.data.friendRequests.includes(response2.data.username) && response2.data.username !== '') {
           setRequestSent(true)
         }  
         
@@ -109,14 +112,149 @@ export const ViewProfile = () => {
     
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
    <header className='bg-white dark:bg-gray-800 lg:px-12 p-4 py-4 flex items-center justify-between'>
-    <div className="container mx-auto">
-      <div className="flex items-center">
-          <Button className='bg-transparent' onClick={() => navigate(-1)}>
-            <ArrowLeft className='text-orange-500 hover:text-orange-600' />
-           
-          </Button>
-      </div>
-    </div>
+  <ArrowLeft className='w-4 h-4' onClick={() => navigate(-1)} />
+   <nav className="flex items-center gap-4">
+        {/* Desktop Navigation */}
+        <div className="hidden lg:flex gap-6 items-center">
+        <Link to={`/${user.username}`}>
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <Home className="mr-2 h-4 w-4" />
+              <span>Home</span>
+            </Button>
+          </Link>
+        <Link to={`/${user.username}/battle`}>
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <Play className="mr-2 h-4 w-4" />
+              <span>Battle</span>
+            </Button>
+          </Link>
+          <Link to={`/selection`}>
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <List className="mr-2 h-4 w-4" />
+              <span>Selection</span>
+             
+            </Button>
+          </Link>
+          <Link to={`/leaderboard`}>
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <Trophy className="mr-2 h-4 w-4" />
+              <span>Leaderboard</span>
+             
+            </Button>
+          </Link>
+          <Link to={`/${user.username}/trainings`}>
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <BookOpen className="mr-2 h-4 w-4" />
+              <span>Trainings</span>
+          
+            </Button>
+          </Link>
+          <Link to={`/${user.username}/friends`}>
+            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+              <Users className="mr-2 h-4 w-4" />
+              <span>Friends</span>
+            </Button>
+          </Link>
+        </div>
+
+        {/* Mobile Navigation (in dropdown) and Profile Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100"
+            >
+              <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+                <AvatarImage
+                  src={"/placeholder.svg"}
+                  alt={user.username}
+                />
+                <AvatarFallback>AJ</AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none text-slate-900">
+                  {user.username}
+                </p>
+                <p className="text-xs leading-none text-slate-500">
+                  #{user.rank}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            
+            {/* Mobile Navigation Links */}
+            <div className="lg:hidden">
+            <Link to={`/${user.username}`}>
+            <DropdownMenuItem className="cursor-pointer">
+              <Home className="mr-2 h-4 w-4" />
+              <span>Home</span>
+            </DropdownMenuItem>
+          </Link>
+            <Link to={`/${user.username}/battle`}>
+                <DropdownMenuItem className="cursor-pointer">
+                  <Play className="mr-2 h-4 w-4" />
+                  <span>Battle</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to={`/selection`}>
+                <DropdownMenuItem className="cursor-pointer">
+                  <List className="mr-2 h-4 w-4" />
+                  <span>Selection</span>
+                  <span className="ml-2 text-xs text-slate-500">(Coming Soon)</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to={`/leaderboard`}>
+                <DropdownMenuItem className="cursor-pointer">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  <span>Leaderboard</span>
+                  <span className="ml-2 text-xs text-slate-500">(Coming Soon)</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to={`/${user.username}/trainings`}>
+                <DropdownMenuItem className="cursor-pointer">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  <span>Trainings</span>
+                  <span className="ml-2 text-xs text-slate-500">(Coming Soon)</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link to={`/${user.username}/friends`}>
+                <DropdownMenuItem className="cursor-pointer">
+                  <Users className="mr-2 h-4 w-4" />
+                  <span>Friends</span>
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuSeparator />
+            </div>
+
+            <Link to={`/${user.username}/notifications`}>
+              <DropdownMenuItem className="cursor-pointer">
+                <Bell className="mr-2 h-4 w-4" />
+                <span>Notifications</span>
+              </DropdownMenuItem>
+            </Link>
+            <Link to={`/${user.username}/profile`}>
+              <DropdownMenuItem className="cursor-pointer">
+                <UserIcon className="mr-2 h-4 w-4" />
+                <span>Manage Profile</span>
+              </DropdownMenuItem>
+            </Link>
+            <DropdownMenuItem
+              onClick={() => {
+                localStorage.removeItem("user")
+                navigate("/")
+              }}
+              className="cursor-pointer"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sign Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </nav>  
    </header>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">

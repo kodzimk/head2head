@@ -38,7 +38,6 @@ export default function ProfileSettingsPage(  ) {
   });
   const [isLoading, setIsLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [avatarBlob, setAvatarBlob] = useState<Blob | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -148,8 +147,6 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
   const file = event.target.files?.[0]
   if (!file) return
 
-  // Save the blob
-  setAvatarBlob(file)
 
   // Create preview
   const reader = new FileReader()

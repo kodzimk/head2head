@@ -9,12 +9,14 @@ import { Search, UserMinus} from 'lucide-react'
 import axios from 'axios'
 import Header from '../dashboard/header'
 import type { Friend } from "../../shared/interface/user"
+import { useNavigate } from 'react-router-dom'
 
 
 export default function FriendsPage() {
   const { user } = useContext(GlobalStore)
   const [friends, setFriends] = useState<Friend[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  const navigate = useNavigate()
 
   useEffect(() => {
     const userEmail = localStorage.getItem("user")?.replace(/"/g, ''); 
@@ -31,7 +33,7 @@ export default function FriendsPage() {
   }, [])
 
   const handleRemoveFriend = async (username: string) => {
-    await axios.post(`http://localhost:8000/friends/remove-friend?username=${username}&email=${user.email}`)
+    await axios.post(`http://localhost:8000/friends/remove-friend?username=${username}&from_username=${user.username}`)
     setFriends(friends.filter(friend => friend.username !== username))
   }
 
@@ -78,31 +80,40 @@ export default function FriendsPage() {
                       No friends found
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4 w-full max-w-full">
                       {filteredFriends.map((friend) => (
                         <div
-                          
-                          className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                          key={friend.username}
+                          className="w-full cursor-pointer p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex flex-col sm:flex-row items-center gap-4 hover:shadow-lg"
+                          onClick={() => navigate(`/profile/${friend.username}`)}
                         >
-                          <div className="flex items-center space-x-4">
+                          <div className="flex items-center gap-4 w-full">
                             <img
                               src={friend.avatar}
                               alt={friend.username}
-                              className="w-10 h-10 rounded-full"
+                              className="w-14 h-14 rounded-full object-cover flex-shrink-0"
                             />
-                            <div>
-                              <h3 className="font-medium text-gray-900 dark:text-white">
+                            <div className="flex-grow min-w-0">
+                              <h3 className="font-medium text-gray-900 dark:text-white truncate text-lg">
                                 {friend.username}
                               </h3>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {friend.status === 'online' ? 'Online' : 'Offline'}
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Rank: #{friend.rank}
                               </p>
+                              <div className="flex items-center mt-1">
+                                <span className={`inline-block w-2 h-2 rounded-full ${friend.status === 'online' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                <span className="ml-2 text-xs text-gray-500">{friend.status}</span>
+                              </div>
                             </div>
                           </div>
                           <Button
                             variant="destructive"
-                            size="sm"
-                            onClick={() => handleRemoveFriend(friend.username)}
+                            size="default"
+                            className="sm:flex-shrink-0 w-full sm:w-auto min-w-[120px]"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveFriend(friend.username);
+                            }}
                           >
                             <UserMinus className="w-4 h-4 mr-2" />
                             Remove

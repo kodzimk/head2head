@@ -12,18 +12,10 @@ import {
 } from "../../shared/ui/dropdown-menu";
 import { LogOut, User as UserIcon, BookOpen, Trophy, List, Users, Play, Home, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+
 
 export default function Header({ user }: { user: User }) {
   const navigate = useNavigate();
-  const [showText, setShowText] = useState<string | null>(null);
-
-  const handleClick = (feature: string) => {
-    setShowText(feature);
-    setTimeout(() => {
-      setShowText(null);
-    }, 2000);
-  };
 
   function handleSignOut(){
     document.documentElement.classList.remove('dark');
@@ -31,7 +23,6 @@ export default function Header({ user }: { user: User }) {
     localStorage.removeItem("user");
     navigate("/");
   }
-
 
   return (
     <header className="px-2 sm:px-4 lg:px-6 h-16 flex items-center justify-between bg-white/60 backdrop-blur border-b border-slate-200 w-full">
@@ -99,7 +90,7 @@ export default function Header({ user }: { user: User }) {
             >
               <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                 <AvatarImage
-                  src={user.avatar || "/placeholder.svg"}
+                  src={"/placeholder.svg"}
                   alt={user.username}
                 />
                 <AvatarFallback>AJ</AvatarFallback>
