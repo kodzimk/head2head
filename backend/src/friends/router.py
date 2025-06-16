@@ -93,3 +93,9 @@ async def remove_friend(username: str, from_username: str):
     await update_data(UserDataCreate(**friend_model))
 
     return True 
+
+@router_friend.get("/search-user")
+async def search_user(username: str):
+    user_model = redis_username.get(username)
+    user_model = json.loads(user_model)
+    return user_model
