@@ -34,11 +34,9 @@ async def create_user_data(user: UserDataCreate):
         if await username_exists(user.username):
             raise HTTPException(status_code=401, detail="Username already exists")
         
-        print('sdasasakjvhdfbvjbdsfh')
         if await user_exists(user.email):
-            raise HTTPException(status_code=401, detail="Email already exists")
+            raise HTTPException(status_code=404, detail="Email already exists")
         
-        print('asdasdasd')
         hashed_password = hash_password(user.password)
         db_user = UserData(
                 username=user.username,

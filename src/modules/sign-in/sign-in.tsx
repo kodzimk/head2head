@@ -121,84 +121,52 @@ export default function SignInPage() {
       atob(credentialResponse.credential.split(".")[1])
     );
     
-    const tempResponse = await axios.get(
-      "http://127.0.0.1:8000/auth/signin",
-      {
-        params: {
-          email: decodedToken.email,
-          password: credentialResponse.credential,
-        },
-        headers: {
-          "Content-Type": "application/json",
-          accept: "application/json",
-        },
-      }
-    );
-
-    if (tempResponse.data) {
-      user.email = tempResponse.data.email
-    user.username = tempResponse.data.username
-    user.wins = tempResponse.data.winBattle
-    user.favoritesSport = tempResponse.data.favourite
-    user.rank = tempResponse.data.ranking
-    user.winRate = tempResponse.data.winRate
-    user.totalBattles = tempResponse.data.totalBattle
-    user.streak = tempResponse.data.winBattle
-    user.friends = tempResponse.data.friends
-    user.friendRequests = tempResponse.data.friendRequests
-    setUser(user)
-      console.log(tempResponse.data);
-      localStorage.setItem(
-        "user",
-        JSON.stringify(tempResponse.data.email)
-      );
-      navigate(`/${user.username}`);
-    }
-    else{
-    axios
-      .post(
-        "http://127.0.0.1:8000/auth/signup",
+    try {
+      const response = await axios.get(
+        "http://127.0.0.1:8000/auth/signin",
         {
-          email: decodedToken.email,
-          password: credentialResponse.credential,
-          username: decodedToken.given_name,
-          winRate: 0,
-          totalBattle: 0,
-          winBattle: 0,
-          ranking: 1,
-          favourite: "Football",
-          streak: 0,
-          friends: [],
-          friendRequests: [],
-        },
-        {
+          params: {
+            email: decodedToken.email,
+            password: credentialResponse.credential,
+          },
           headers: {
             "Content-Type": "application/json",
             accept: "application/json",
           },
         }
-      )
-      .then(async (response) => {
-        if (response.data) {
-          user.email = response.data.email
-          user.username = response.data.username
-          user.wins = response.data.winBattle
-          user.favoritesSport = response.data.favourite
-          user.rank = response.data.ranking
-          user.winRate = response.data.winRate
-          user.totalBattles = response.data.totalBattle
-          user.streak = response.data.winBattle
-          user.friends = response.data.friends
-          user.friendRequests = response.data.friendRequests
-          setUser(user)
-          console.log(response.data);
-          localStorage.setItem(
-            "user",
-            JSON.stringify(response.data.email)
-          );
-          navigate(`/${user.username}`);
-        } 
-      });
+      );
+
+      if (response.data) {
+        user.email = response.data.email
+        user.username = response.data.username
+        user.wins = response.data.winBattle
+        user.favoritesSport = response.data.favourite
+        user.rank = response.data.ranking
+        user.winRate = response.data.winRate
+        user.totalBattles = response.data.totalBattle
+        user.streak = response.data.winBattle
+        user.password = response.data.password
+        user.friends = response.data.friends
+        user.friendRequests = response.data.friendRequests
+        setUser(user)
+        localStorage.setItem("user", JSON.stringify(user.email))
+        navigate(`/${user.username}`);
+      }
+    } catch (error: any) {
+      console.error('Sign in error:', error);
+      if (error.response?.status === 401) {
+        setValidationErrors({
+          submit: 'Invalid email or password'
+        });
+      } else if (error.response?.status === 404) {
+        setValidationErrors({
+          submit: 'User not found'
+        });
+      } else {
+        setValidationErrors({
+          submit: 'An error occurred. Please try again.'
+        });
+      }
     }
   }
   

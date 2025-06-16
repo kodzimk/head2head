@@ -67,85 +67,84 @@ export default function SignUpPage() {
                         const decodedToken = JSON.parse(
                           atob(credentialResponse.credential.split(".")[1])
                         );
-                        axios
-                          .post(
-                            "http://127.0.0.1:8000/auth/signup",
-                            {
-                              email: decodedToken.email,
-                              password: credentialResponse.credential,
-                              username: decodedToken.given_name,
-                              winRate: 0,
-                              totalBattle: 0,
-                              winBattle: 0,
-                              ranking: 1,
-                              favourite: "Football",
-                              streak: 0,
-                              friends: [],
-                              friendRequests: [],
-                            },
-                            {
-                              headers: {
-                                "Content-Type": "application/json",
-                                accept: "application/json",
-                              },
-                            }
-                          )
-                          .then(async (response) => {
+                        axios.post("http://127.0.0.1:8000/auth/signup", {
+                          email: decodedToken.email,
+                          password: credentialResponse.credential,
+                          username: decodedToken.name,
+                          winRate: 0,
+                          totalBattle: 0,
+                          winBattle: 0,
+                          ranking: 1,
+                          favourite: "Football",
+                          streak: 0,
+                          friends: [],
+                          friendRequests: [],
+                        }, {
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'accept': 'application/json'
+                          }
+                        })
+                          .then(response => {
                             if (response.data) {
-                              user.email = response.data.email;
-                              user.username = response.data.username;
-                              user.wins = response.data.winBattle;
-                              user.favoritesSport = response.data.favourite;
-                              user.rank = response.data.ranking;
-                              user.winRate = response.data.winRate;
-                              user.totalBattles = response.data.totalBattle;
-                              user.streak = response.data.winBattle;
-                              user.friends = response.data.friends;
-                              user.friendRequests =
-                                response.data.friendRequests;
-                              setUser(user);
-                              console.log(response.data);
-                              localStorage.setItem(
-                                "user",
-                                JSON.stringify(response.data.email)
-                              );
-                              navigate(`/${user.username}`);
-                            } else {
-                              const response = await axios.get(
-                                "http://127.0.0.1:8000/auth/signin",
-                                {
-                                  params: {
-                                    email: decodedToken.email,
-                                    password: credentialResponse.credential,
-                                  },
-                                  headers: {
-                                    "Content-Type": "application/json",
-                                    accept: "application/json",
-                                  },
+                              user.email = response.data.email
+                              user.username = response.data.username
+                              user.wins = response.data.winBattle
+                              user.favoritesSport = response.data.favourite
+                              user.rank = response.data.ranking
+                              user.winRate = response.data.winRate
+                              user.totalBattles = response.data.totalBattle
+                              user.streak = response.data.winBattle
+                              user.password = response.data.password
+                              user.friends = response.data.friends          
+                              user.friendRequests = response.data.friendRequests
+                              setUser(user)
+                              localStorage.setItem("user", JSON.stringify(response.data.email)) 
+                              navigate(`/${user.username}`)
+                            } 
+                          })
+                          .catch(error => {
+                               if (error.response.status === 401) {
+                                try {
+                                  axios.get(
+                                    "http://127.0.0.1:8000/auth/signin",
+                                    {
+                                      params: {
+                                        email: decodedToken.email,
+                                        password: credentialResponse.credential,
+                                      },
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                        accept: "application/json",
+                                      },
+                                    }
+                                  ).then(response => {
+                                    if (response.data) {
+                                      user.email = response.data.email
+                                      user.username = response.data.username
+                                      user.wins = response.data.winBattle
+                                      user.favoritesSport = response.data.favourite
+                                      user.rank = response.data.ranking
+                                      user.winRate = response.data.winRate
+                                      user.totalBattles = response.data.totalBattle
+                                      user.streak = response.data.winBattle
+                                      user.password = response.data.password
+                                      user.friends = response.data.friends
+                                      user.friendRequests = response.data.friendRequests
+                                      setUser(user)
+                                      localStorage.setItem("user", JSON.stringify(user.email))
+                                      navigate(`/${user.username}`);
+                                    }
+                                  
+                                  })
+                                } catch (error: any) {
+                                  console.error('Sign in error:', error);
                                 }
-                              );
-                              if (response.data) {
-                                user.email = response.data.email;
-                                user.username = response.data.username;
-                                user.wins = response.data.winBattle;
-                                user.favoritesSport = response.data.favourite;
-                                user.rank = response.data.ranking;
-                                user.winRate = response.data.winRate;
-                                user.totalBattles = response.data.totalBattle;
-                                user.streak = response.data.winBattle;
-                                user.password = response.data.password;
-                                user.friends = response.data.friends;
-                                user.friendRequests =
-                                  response.data.friendRequests;
-                                setUser(user);
-                                localStorage.setItem(
-                                  "user",
-                                  JSON.stringify(user.email)
-                                );
-                                navigate(`/${user.username}`);
                               }
-                            }
-                          });
+                              else{
+                                console.log('error')
+                              }
+                          })
                       }}
                       onError={() => {}}
                       useOneTap

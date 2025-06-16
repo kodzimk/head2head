@@ -5,7 +5,9 @@ import json
 from pydantic import EmailStr
 from fastapi import HTTPException
 from auth.router import username_exists
-from sqlalchemy import select
+import websockets
+
+websocket_connections = set("localhost:8000")
 
 @db_router.post("/update-user",name="update user data")
 async def update_user_data(user: UserDataCreate):
@@ -48,6 +50,7 @@ async def update_data(user: UserDataCreate):
         if user_model is None:
             raise HTTPException(status_code=404, detail="User not found")
 
+        temp = user_model.username
         user_model.username = user.username
         user_model.email = user.email
         user_model.totalBattle = user.totalBattle
@@ -59,6 +62,36 @@ async def update_data(user: UserDataCreate):
         user_model.password = user.password
         user_model.friends = user.friends
         user_model.friendRequests = user.friendRequests
+
+        # Only update friends' arrays if username has changed
+        if temp != user.username:
+            for friend in user_model.friends:
+                try:
+                    friend_data = redis_username.get(friend)
+                    if not friend_data:
+                        raise HTTPException(status_code=404, detail=f"Friend {friend} not found in cache")
+                    
+                    friend_model = json.loads(friend_data)
+                    if temp in friend_model['friends']:
+                        # Update the old username to new username in friend's array
+                        friend_model['friends'][friend_model['friends'].index(temp)] = user.username
+                        # Update both Redis caches
+                        redis_username.set(friend, json.dumps(friend_model))
+                        redis_email.set(friend_model['email'], json.dumps(friend_model))
+                        
+                        # Update the database
+                        friend_update = UserDataCreate(**friend_model)
+                        async with SessionLocal() as friend_db:
+                            db_friend = await friend_db.get(UserData, friend_model['email'])
+                            if db_friend:
+                                db_friend.friends = friend_model['friends']
+                                await friend_db.commit()
+                except json.JSONDecodeError:
+                    print(f"Error decoding friend data for {friend}")
+                    continue
+                except Exception as e:
+                    print(f"Error updating friend {friend}: {str(e)}")
+                    continue
 
         await db.commit()
         await db.refresh(user_model)
