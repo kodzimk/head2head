@@ -1,0 +1,79 @@
+from .init import router_friend
+from init import redis_username, redis_email
+from models import UserDataCreate
+from init import SessionLocal
+from db.router import update_data
+from fastapi import HTTPException
+import json
+
+@router_friend.post("/cancel-friend-request")
+async def cancel_friend_request(username: str, from_username: str):
+    async with SessionLocal() as db:
+        user_model = redis_username.get(username)
+        user_model = json.loads(user_model)
+       
+        if from_username in user_model['friendRequests']:
+            user_model['friendRequests'].remove(from_username)
+
+        redis_username.set(username, json.dumps(user_model))
+        redis_email.set(user_model['email'], json.dumps(user_model))
+        await update_data(UserDataCreate(**user_model)) 
+        return True
+
+@router_friend.post("/add-friend")
+async def add_friend(username: str, friend_username: str):
+    async with SessionLocal() as db:
+        user_model = redis_username.get(username)
+        friend_model = redis_username.get(friend_username)
+        
+        user_model = json.loads(user_model)
+        friend_model = json.loads(friend_model)
+        
+        if not user_model or not friend_model:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if friend_username in user_model['friendRequests']:
+            user_model['friendRequests'].remove(friend_username)
+        
+        if username in friend_model['friendRequests']:
+            friend_model['friendRequests'].remove(username)
+
+        if friend_username not in user_model['friends']:
+            user_model['friends'].append(friend_username)
+        if username not in friend_model['friends']:
+            friend_model['friends'].append(username)
+
+        redis_username.set(username, json.dumps(user_model))
+        redis_username.set(friend_username, json.dumps(friend_model))
+        redis_email.set(user_model['email'], json.dumps(user_model))
+        redis_email.set(friend_model['email'], json.dumps(friend_model))
+        await update_data(UserDataCreate(**user_model))
+        await update_data(UserDataCreate(**friend_model))
+        
+        return True
+
+@router_friend.post("/friend-requests")
+async def send_friend_request(username: str, from_username: str):
+    async with SessionLocal() as db:
+        user_model = redis_username.get(username)
+        user_model = json.loads(user_model)
+       
+        if from_username not in user_model['friendRequests']:
+            user_model['friendRequests'].append(from_username)
+        
+        redis_username.set(username, json.dumps(user_model))
+        redis_email.set(user_model['email'], json.dumps(user_model))
+        await update_data(UserDataCreate(**user_model))
+        return True
+
+@router_friend.get("/check-friend-request")
+async def check_friend_request(username: str, from_username: str) -> bool:
+    user_model = redis_username.get(username)
+    user_model = json.loads(user_model)
+    return from_username in user_model['friendRequests']
+
+@router_friend.get("/get-friends")
+async def get_friends(email: str):
+    user_model = redis_email.get(email)
+    user_model = json.loads(user_model)
+    return user_model['friends']

@@ -181,7 +181,7 @@ export default function SignInPage() {
       .then(async (response) => {
         if (response.data) {
           user.email = response.data.email
-          user.username = response.data.username  
+          user.username = response.data.username
           user.wins = response.data.winBattle
           user.favoritesSport = response.data.favourite
           user.rank = response.data.ranking

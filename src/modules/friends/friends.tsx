@@ -1,111 +1,42 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { Input } from '../../shared/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../shared/ui/tabs'
 import { GlobalStore } from '../../shared/interface/gloabL_var'
 import { useContext } from 'react'
-import { Search, UserMinus, UserCheck, UserX } from 'lucide-react'
+import { Search, UserMinus} from 'lucide-react'
 import axios from 'axios'
 import Header from '../dashboard/header'
+import type { Friend } from "../../shared/interface/user"
 
-interface Friend {
-  id: string
-  username: string
-  email: string
-  avatar: string
-  status: 'online' | 'offline'
-  lastSeen?: string
-}
-
-interface FriendRequest {
-  id: string
-  username: string
-  email: string
-  avatar: string
-  sentAt: string
-}
 
 export default function FriendsPage() {
   const { user } = useContext(GlobalStore)
   const [friends, setFriends] = useState<Friend[]>([])
-  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-   
+    const userEmail = localStorage.getItem("user")?.replace(/"/g, ''); 
+  
+    axios.get(`http://localhost:8000/friends/get-friends?email=${userEmail}`).then((response) => {
+      const friendsArray = response.data.map((friend: string) => ({
+        username: friend,
+        status: "online",
+        avatar: "https://github.com/shadcn.png",
+        rank: "1"
+      }));
+      setFriends(friendsArray);
+    })
   }, [])
 
-  const fetchFriends = async () => {
-    try {
-      const response = await axios.get(`http://localhost:8000/db/get-friends?email=${user.email}`)
-      setFriends(response.data)
-    } catch (error) {
-      console.error('Error fetching friends:', error)
-    } finally {
-      setIsLoading(false)
-    }
+  const handleRemoveFriend = async (username: string) => {
+    await axios.post(`http://localhost:8000/friends/remove-friend?username=${username}&email=${user.email}`)
+    setFriends(friends.filter(friend => friend.username !== username))
   }
 
-  const fetchFriendRequests = async () => {
-    try {
-      const response = await axios.get(`http://localhost:8000/db/get-friend-requests?email=${user.email}`)
-      setFriendRequests(response.data)
-    } catch (error) {
-      console.error('Error fetching friend requests:', error)
-    }
-  }
 
-  const handleAddFriend = async (email: string) => {
-    try {
-      await axios.post('http://localhost:8000/db/send-friend-request', {
-        senderEmail: user.email,
-        receiverEmail: email
-      })
-      // Show success message or update UI
-    } catch (error) {
-      console.error('Error sending friend request:', error)
-    }
-  }
 
-  const handleAcceptRequest = async (requestId: string) => {
-    try {
-      await axios.post('http://localhost:8000/db/accept-friend-request', {
-        requestId,
-        userEmail: user.email
-      })
-      fetchFriends()
-      fetchFriendRequests()
-    } catch (error) {
-      console.error('Error accepting friend request:', error)
-    }
-  }
-
-  const handleRejectRequest = async (requestId: string) => {
-    try {
-      await axios.post('http://localhost:8000/db/reject-friend-request', {
-        requestId,
-        userEmail: user.email
-      })
-      fetchFriendRequests()
-    } catch (error) {
-      console.error('Error rejecting friend request:', error)
-    }
-  }
-
-  const handleRemoveFriend = async (friendId: string) => {
-    try {
-      await axios.post('http://localhost:8000/db/remove-friend', {
-        userEmail: user.email,
-        friendId
-      })
-      fetchFriends()
-    } catch (error) {
-      console.error('Error removing friend:', error)
-    }
-  }
 
   const filteredFriends = friends.filter(friend =>
     friend.username.toLowerCase().includes(searchQuery.toLowerCase())
@@ -133,7 +64,7 @@ export default function FriendsPage() {
           <Tabs defaultValue="friends" className="space-y-4">
             <TabsList>
               <TabsTrigger value="friends">Friends</TabsTrigger>
-              <TabsTrigger value="requests">Friend Requests</TabsTrigger>
+             
             </TabsList>
 
             <TabsContent value="friends">
@@ -142,9 +73,7 @@ export default function FriendsPage() {
                   <CardTitle>Your Friends</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {isLoading ? (
-                    <div className="text-center py-4">Loading...</div>
-                  ) : filteredFriends.length === 0 ? (
+                  {filteredFriends.length === 0 ? (
                     <div className="text-center py-4 text-gray-500 dark:text-gray-400">
                       No friends found
                     </div>
@@ -152,7 +81,7 @@ export default function FriendsPage() {
                     <div className="space-y-4">
                       {filteredFriends.map((friend) => (
                         <div
-                          key={friend.id}
+                          
                           className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
                         >
                           <div className="flex items-center space-x-4">
@@ -173,7 +102,7 @@ export default function FriendsPage() {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleRemoveFriend(friend.id)}
+                            onClick={() => handleRemoveFriend(friend.username)}
                           >
                             <UserMinus className="w-4 h-4 mr-2" />
                             Remove
@@ -186,63 +115,7 @@ export default function FriendsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="requests">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Friend Requests</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {friendRequests.length === 0 ? (
-                    <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                      No pending friend requests
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {friendRequests.map((request) => (
-                        <div
-                          key={request.id}
-                          className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <img
-                              src={request.avatar}
-                              alt={request.username}
-                              className="w-10 h-10 rounded-full"
-                            />
-                            <div>
-                              <h3 className="font-medium text-gray-900 dark:text-white">
-                                {request.username}
-                              </h3>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Sent {new Date(request.sentAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => handleAcceptRequest(request.id)}
-                            >
-                              <UserCheck className="w-4 h-4 mr-2" />
-                              Accept
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleRejectRequest(request.id)}
-                            >
-                              <UserX className="w-4 h-4 mr-2" />
-                              Reject
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+            
           </Tabs>
         </div>
       </main>

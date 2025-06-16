@@ -1,13 +1,28 @@
 import { TabsContent } from "../../../shared/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card"
 import { Button } from "../../../shared/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/ui/avatar"
-import { Badge } from "../../../shared/ui/badge"
-import { Sword, Plus, ChevronRight, AlertTriangle } from "lucide-react"
+import { Plus, ChevronRight, AlertTriangle } from "lucide-react"
 import type { Friend } from "../../../shared/interface/user"
 import { useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+import axios from "axios"
 
-export default function Friends({ friends }: { friends: Friend[] }) {
+export default function Friends() {
+  const [friends,SetFriends] = useState<Friend[]>([])
+  useEffect(() => {
+    const userEmail = localStorage.getItem("user")?.replace(/"/g, ''); 
+  
+    axios.get(`http://localhost:8000/friends/get-friends?email=${userEmail}`).then((response) => {
+      const friendsArray = response.data.map((friend: string) => ({
+        username: friend,
+        status: "online",
+        avatar: "https://github.com/shadcn.png",
+        rank: "1"
+      }));
+      SetFriends(friendsArray);
+    })
+  },[])
+
     const navigate = useNavigate()
     return (
         <div>
@@ -33,42 +48,38 @@ export default function Friends({ friends }: { friends: Friend[] }) {
                         </Button>
                       </div>
                     ) : (
-                      friends.map((friend) => (
-                        <div key={friend.id} className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-10 h-10">
-                              <AvatarImage src={friend.avatar || "/placeholder.svg"} alt={friend.username} />
-                              <AvatarFallback>
-                                {friend.username
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")}
-                              </AvatarFallback>
-                            </Avatar>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {friends.map((friend) => (
+                          <div
+                            key={friend.username}
+                            className="cursor-pointer border rounded-lg p-4 flex items-center gap-4 hover:shadow-lg transition"
+                            onClick={() => navigate(`/profile/${friend.username}`)}
+                          >
+                            <img
+                              src={friend.avatar}
+                              alt={friend.username}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
                             <div>
-                              <p className="font-medium">{friend.username}</p>
-                              <p className="text-sm text-gray-600">Rank: {friend.rank}</p>
+                              <p className="font-semibold">{friend.username}</p>
+                              <p className="text-sm text-gray-500">Rank: {friend.rank}</p>
+                              <span className={`inline-block w-2 h-2 rounded-full ${friend.status === "online" ? "bg-green-500" : "bg-gray-400"}`}></span>
+                              <span className="ml-2 text-xs">{friend.status}</span>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant={
-                                friend.status === "online"
-                                  ? "default"
-                                  : friend.status === "in-battle"
-                                    ? "secondary"
-                                    : "outline"
-                              }
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="ml-auto"
+                              onClick={e => {
+                                e.stopPropagation();
+                                navigate(`/profile/${friend.username}`);
+                              }}
                             >
-                              {friend.status}
-                            </Badge>
-                            <Button size="sm" variant="outline" className="w-32 h-8">
-                              <Sword className="w-3 h-4 ml-3 " />
-                              Challenge
+                              View Profile
                             </Button>
                           </div>
-                        </div>
-                      ))
+                        ))}
+                      </div>
                     )}
                   </div>
                 </CardContent>

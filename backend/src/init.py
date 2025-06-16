@@ -12,6 +12,7 @@ Base = declarative_base()
 redis_email = Redis(host='localhost', port=6379, db=0)
 redis_username = Redis(host='localhost', port=6379, db=1)
 
+
 # Create FastAPI app
 app = FastAPI()
 

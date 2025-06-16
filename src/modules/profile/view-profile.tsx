@@ -30,7 +30,7 @@ export const ViewProfile = () => {
 
   const handleSendRequest = async () => {
     try {
-      await axios.post(`http://localhost:8000/db/friend-requests?username=${user.username}&from_username=${currentUser.username}`)
+      await axios.post(`http://localhost:8000/friends/friend-requests?username=${user.username}&from_username=${currentUser.username}`)
       setRequestSent(true)
     } catch (error) {
       console.error('Error sending friend request:', error)
@@ -39,7 +39,7 @@ export const ViewProfile = () => {
 
   const handleCancelRequest = async () => {
     try {
-      await axios.post(`http://localhost:8000/db/cancel-friend-request?username=${user.username}&from_username=${currentUser.username}`)
+      await axios.post(`http://localhost:8000/friends/cancel-friend-request?username=${user.username}&from_username=${currentUser.username}`)
       setRequestSent(false)
     } catch (error) {
       console.error('Error canceling friend request:', error)
@@ -170,7 +170,14 @@ export const ViewProfile = () => {
 
               {currentUser.email !== user.email && (
                 <div className="flex justify-center gap-4 mt-6">
-                  {!requestSent ? (
+                  {currentUser.friends && currentUser.friends.includes(user.username) ? (
+                    <Button 
+                      className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
+                      onClick={() => navigate(`/battle/${user.username}`)}
+                    >
+                      Battle
+                    </Button>
+                  ) : !requestSent ? (
                     <Button 
                       onClick={handleSendRequest}
                       className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"

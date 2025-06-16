@@ -22,7 +22,6 @@ export interface RecentBattle {
 }
 
 export interface Friend {
-    id: number,
     username: string,
     status: string,
     avatar: string,

@@ -15,7 +15,7 @@ import Overview from "./tabs/overview";
 import Battles from "./tabs/battles";
 import Friends from "./tabs/friends";
 import Header from "./header";
-import type { RecentBattle, Friend } from "../../shared/interface/user";
+import type { RecentBattle } from "../../shared/interface/user";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
 
 export default function DashboardPage() {
@@ -28,7 +28,6 @@ export default function DashboardPage() {
 
 
   const recentBattles: RecentBattle[] = [];
-  const friends: Friend[] = [];
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -132,7 +131,7 @@ export default function DashboardPage() {
           <Battles user={user} recentBattles={recentBattles} />
 
           {/* Friends Tab */}
-          <Friends friends={friends} />
+          <Friends />
         </Tabs>
       </main>
     </div>

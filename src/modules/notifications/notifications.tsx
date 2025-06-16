@@ -41,7 +41,7 @@ export default function NotificationsPage() {
       const request = friendRequests.find(request => request.sender.username === username)
       if (!request) return
 
-      const response = await axios.post(`http://localhost:8000/db/add-friend?username=${user.username}&friend_username=${request.sender.username}`)
+      const response = await axios.post(`http://localhost:8000/friends/add-friend?username=${user.username}&friend_username=${request.sender.username}`)
       if (response.data) {
         setFriendRequests(prev => prev.filter(request => request.sender.username !== username))
       }
@@ -54,7 +54,7 @@ export default function NotificationsPage() {
       const request = friendRequests.find(request => request.sender.username === username)
       if (!request) return
 
-      const response = await axios.post(`http://localhost:8000/db/cancel-friend-request?username=${user.username}&from_username=${request.sender.username}`)
+      const response = await axios.post(`http://localhost:8000/friends/cancel-friend-request?username=${user.username}&from_username=${request.sender.username}`)
       if (response.data) {
         setFriendRequests(prev => prev.filter(request => request.sender.username !== username))
       } 

@@ -1,10 +1,14 @@
 from auth.router import auth_router
 from db.router import db_router
+from friends.router import router_friend
 from fastapi.middleware.cors import CORSMiddleware
 from init import app
 
-app.include_router(auth_router,prefix='/auth')
-app.include_router(db_router,prefix='/db')
+
+
+app.include_router(auth_router,prefix="/auth",tags=["auth"])
+app.include_router(db_router)
+app.include_router(router_friend)
 
 origins = [
     "http://127.0.0.1:5173",
