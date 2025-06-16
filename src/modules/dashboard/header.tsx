@@ -115,10 +115,12 @@ export default function Header({ user }: { user: User }) {
             >
               <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                 <AvatarImage
-                  src={"/placeholder.svg"}
+                  src={user.avatar ? `http://localhost:8000${user.avatar}` : "/placeholder.svg"}
                   alt={user.username}
                 />
-                <AvatarFallback>AJ</AvatarFallback>
+                <AvatarFallback className="bg-orange-500 text-white">
+                  {user.username.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
               {friendRequests.length > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">

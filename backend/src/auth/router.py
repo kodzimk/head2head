@@ -49,14 +49,27 @@ async def create_user_data(user: UserDataCreate):
                 streak=user.streak,
                 password=hashed_password,
                 friends=[],
-                friendRequests=[]
+                friendRequests=[],
+                avatar=user.avatar
             )
         db.add(db_user)
         await db.commit()
         await db.refresh(db_user)
 
-        user_dict = db_user.__dict__
-        user_dict.pop('_sa_instance_state', None)         
+        user_dict = {
+            'username': db_user.username,
+            'email': db_user.email,
+            'totalBattle': db_user.totalBattle,
+            'winRate': db_user.winRate,
+            'ranking': db_user.ranking,
+            'winBattle': db_user.winBattle,
+            'favourite': db_user.favourite,
+            'streak': db_user.streak,
+            'password': db_user.password,
+            'friends': db_user.friends,
+            'friendRequests': db_user.friendRequests,
+            'avatar': db_user.avatar
+        }
         redis_email.set(user.email, json.dumps(user_dict))
         redis_username.set(user.username, json.dumps(user_dict))
         return db_user

@@ -2,9 +2,12 @@ from auth.router import auth_router
 from db.router import db_router
 from friends.router import router_friend
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from init import app
+import os
 
-
+os.makedirs("avatars", exist_ok=True)
+app.mount("/avatars", StaticFiles(directory="avatars"), name="avatars")
 
 app.include_router(auth_router,prefix="/auth",tags=["auth"])
 app.include_router(db_router)

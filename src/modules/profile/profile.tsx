@@ -73,6 +73,7 @@ export default function ProfileSettingsPage(  ) {
         password: user.password,
         friends: user.friends,
         friendRequests: user.friendRequests,
+        avatar: user.avatar,
       })
 
       if (response.status === 200) {
@@ -116,6 +117,7 @@ export default function ProfileSettingsPage(  ) {
       password: user.password,
       friends: user.friends,
       friendRequests: user.friendRequests,
+      avatar: user.avatar,
     })
   
   }
@@ -147,13 +149,39 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
   const file = event.target.files?.[0]
   if (!file) return
 
-
   // Create preview
   const reader = new FileReader()
   reader.onloadend = () => {
     setAvatarPreview(reader.result as string)
   }
   reader.readAsDataURL(file)
+
+  // Upload to backend
+  try {
+    setIsLoading(true)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await axios.post(
+      `http://localhost:8000/db/upload-avatar?email=${encodeURIComponent(user.email)}`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    )
+
+    if (response.status === 200) {
+      const updatedUser = { ...user, avatar: response.data.avatar_path }
+      setUser(updatedUser)
+    }
+  } catch (error) {
+    console.error('Error uploading avatar:', error)
+    setError('Failed to upload avatar')
+  } finally {
+    setIsLoading(false)
+  }
 }
 
   return (
@@ -192,7 +220,7 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
                   <div className="relative">
                     <div className="relative w-24 h-24">
                       <img
-                        src={avatarPreview || "/placeholder.svg?height=100&width=100"}
+                        src={avatarPreview || (user.avatar ? `http://localhost:8000${user.avatar}` : "/placeholder.svg?height=100&width=100")}
                         alt="Profile"
                         className="w-24 h-24 rounded-full object-cover border-4 border-orange-500"
                       />

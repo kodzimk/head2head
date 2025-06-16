@@ -47,20 +47,29 @@ export default function App() {
         responseType: 'json'
       })
       .then((res) => {
-        setUser({
-          email: res.data.email,
-          username: res.data.username,
-          favoritesSport: res.data.favourite,
-          rank: res.data.ranking,
-          wins: res.data.winBattle,
-          winRate: res.data.winRate,
-          totalBattles: res.data.totalBattle,
-          friendRequests: res.data.friendRequests,
-          streak: res.data.streak,
-          password: res.data.password,
-          friends: res.data.friends
-        });
+        if (res.data) {
+          setUser({
+            email: res.data.email,
+            username: res.data.username,
+            favoritesSport: res.data.favourite,
+            rank: res.data.ranking,
+            wins: res.data.winBattle,
+            winRate: res.data.winRate,
+            totalBattles: res.data.totalBattle,
+            friendRequests: res.data.friendRequests,
+            streak: res.data.streak,
+            password: res.data.password,
+            friends: res.data.friends,
+            avatar: res.data.avatar
+          });
+        }
       })
+      .catch((error) => {
+        console.error('Error fetching user data:', error);
+        // Clear invalid user data
+        localStorage.removeItem("user");
+        setUser(initialUser);
+      });
     }
   }, [])
 

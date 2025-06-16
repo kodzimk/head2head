@@ -67,86 +67,98 @@ export default function SignUpPage() {
                         const decodedToken = JSON.parse(
                           atob(credentialResponse.credential.split(".")[1])
                         );
-                        axios.post("http://127.0.0.1:8000/auth/signup", {
-                          email: decodedToken.email,
-                          password: credentialResponse.credential,
-                          username: decodedToken.name,
-                          winRate: 0,
-                          totalBattle: 0,
-                          winBattle: 0,
-                          ranking: 1,
-                          favourite: "Football",
-                          streak: 0,
-                          friends: [],
-                          friendRequests: [],
-                        }, {
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'accept': 'application/json'
+                        
+                        try {
+                          const response = await axios.post("http://127.0.0.1:8000/auth/signup", {
+                            email: decodedToken.email,
+                            password: credentialResponse.credential,
+                            username: decodedToken.name,
+                            winRate: 0,
+                            totalBattle: 0,
+                            winBattle: 0,
+                            ranking: 1,
+                            favourite: "Football",
+                            streak: 0,
+                            friends: [],
+                            friendRequests: [],
+                          }, {
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'accept': 'application/json'
+                            }
+                          });
+
+                          if (response.data) {
+                            const updatedUser = {
+                              ...user,
+                              email: response.data.email,
+                              username: response.data.username,
+                              wins: response.data.winBattle,
+                              favoritesSport: response.data.favourite,
+                              rank: response.data.ranking,
+                              winRate: response.data.winRate,
+                              totalBattles: response.data.totalBattle,
+                              streak: response.data.winBattle,
+                              password: response.data.password,
+                              avatar: response.data.avatar,
+                              friends: response.data.friends,
+                              friendRequests: response.data.friendRequests
+                            };
+                            setUser(updatedUser);
+                            localStorage.setItem("user", JSON.stringify(response.data.email));
+                            navigate(`/${response.data.username}`);
                           }
-                        })
-                          .then(response => {
-                            if (response.data) {
-                              user.email = response.data.email
-                              user.username = response.data.username
-                              user.wins = response.data.winBattle
-                              user.favoritesSport = response.data.favourite
-                              user.rank = response.data.ranking
-                              user.winRate = response.data.winRate
-                              user.totalBattles = response.data.totalBattle
-                              user.streak = response.data.winBattle
-                              user.password = response.data.password
-                              user.friends = response.data.friends          
-                              user.friendRequests = response.data.friendRequests
-                              setUser(user)
-                              localStorage.setItem("user", JSON.stringify(response.data.email)) 
-                              navigate(`/${user.username}`)
-                            } 
-                          })
-                          .catch(error => {
-                               if (error.response.status === 401) {
-                                try {
-                                  axios.get(
-                                    "http://127.0.0.1:8000/auth/signin",
-                                    {
-                                      params: {
-                                        email: decodedToken.email,
-                                        password: credentialResponse.credential,
-                                      },
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                        accept: "application/json",
-                                      },
-                                    }
-                                  ).then(response => {
-                                    if (response.data) {
-                                      user.email = response.data.email
-                                      user.username = response.data.username
-                                      user.wins = response.data.winBattle
-                                      user.favoritesSport = response.data.favourite
-                                      user.rank = response.data.ranking
-                                      user.winRate = response.data.winRate
-                                      user.totalBattles = response.data.totalBattle
-                                      user.streak = response.data.winBattle
-                                      user.password = response.data.password
-                                      user.friends = response.data.friends
-                                      user.friendRequests = response.data.friendRequests
-                                      setUser(user)
-                                      localStorage.setItem("user", JSON.stringify(user.email))
-                                      navigate(`/${user.username}`);
-                                    }
-                                  
-                                  })
-                                } catch (error: any) {
-                                  console.error('Sign in error:', error);
+                        } catch (error: any) {
+                          if (error.response?.status === 401) {
+                            // User already exists, try to sign in
+                            try {
+                              const signInResponse = await axios.get(
+                                "http://127.0.0.1:8000/auth/signin",
+                                {
+                                  params: {
+                                    email: decodedToken.email,
+                                    password: credentialResponse.credential,
+                                  },
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                    accept: "application/json",
+                                  },
                                 }
+                              );
+
+                              if (signInResponse.data) {
+                                const updatedUser = {
+                                  ...user,
+                                  email: signInResponse.data.email,
+                                  username: signInResponse.data.username,
+                                  wins: signInResponse.data.winBattle,
+                                  favoritesSport: signInResponse.data.favourite,
+                                  rank: signInResponse.data.ranking,
+                                  winRate: signInResponse.data.winRate,
+                                  totalBattles: signInResponse.data.totalBattle,
+                                  streak: signInResponse.data.winBattle,
+                                  password: signInResponse.data.password,
+                                  avatar: signInResponse.data.avatar,
+                                  friends: signInResponse.data.friends,
+                                  friendRequests: signInResponse.data.friendRequests
+                                };
+                                setUser(updatedUser);
+                                localStorage.setItem("user", JSON.stringify(signInResponse.data.email));
+                                navigate(`/${signInResponse.data.username}`);
                               }
-                              else{
-                                console.log('error')
-                              }
-                          })
+                            } catch (signInError: any) {
+                              console.error('Sign in error:', signInError);
+                              // Handle sign-in error appropriately
+                            }
+                          } else {
+                            console.error('Sign up error:', error);
+                            // Handle other errors appropriately
+                          }
+                        }
                       }}
-                      onError={() => {}}
+                      onError={() => {
+                        console.error('Google sign in failed');
+                      }}
                       useOneTap
                       theme="filled_blue"
                       shape="rectangular"

@@ -10,6 +10,7 @@ export interface User {
     password: string;
     friends: string[];
     friendRequests: string[];
+    avatar?: string;
 }
 
 export interface RecentBattle {
@@ -24,6 +25,6 @@ export interface RecentBattle {
 export interface Friend {
     username: string,
     status: string,
-    avatar: string,
+    avatar: string | null,
     rank: string,
 }

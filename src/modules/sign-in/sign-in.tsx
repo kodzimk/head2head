@@ -78,20 +78,24 @@ export default function SignInPage() {
       );
 
       if (response.data) {
-        user.email = response.data.email
-        user.username = response.data.username
-        user.wins = response.data.winBattle
-        user.favoritesSport = response.data.favourite
-        user.rank = response.data.ranking
-        user.winRate = response.data.winRate
-        user.totalBattles = response.data.totalBattle
-        user.streak = response.data.winBattle
-        user.password = response.data.password
-        user.friends = response.data.friends
-        user.friendRequests = response.data.friendRequests
-        setUser(user)
-        localStorage.setItem("user", JSON.stringify(user.email))
-        navigate(`/${user.username}`);
+        const updatedUser = {
+          ...user,
+          email: response.data.email,
+          username: response.data.username,
+          wins: response.data.winBattle,
+          favoritesSport: response.data.favourite,
+          rank: response.data.ranking,
+          winRate: response.data.winRate,
+          totalBattles: response.data.totalBattle,
+          streak: response.data.winBattle,
+          password: response.data.password,
+          avatar: response.data.avatar,
+          friends: response.data.friends,
+          friendRequests: response.data.friendRequests
+        };
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(response.data.email));
+        navigate(`/${response.data.username}`);
       }
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -137,20 +141,24 @@ export default function SignInPage() {
       );
 
       if (response.data) {
-        user.email = response.data.email
-        user.username = response.data.username
-        user.wins = response.data.winBattle
-        user.favoritesSport = response.data.favourite
-        user.rank = response.data.ranking
-        user.winRate = response.data.winRate
-        user.totalBattles = response.data.totalBattle
-        user.streak = response.data.winBattle
-        user.password = response.data.password
-        user.friends = response.data.friends
-        user.friendRequests = response.data.friendRequests
-        setUser(user)
-        localStorage.setItem("user", JSON.stringify(user.email))
-        navigate(`/${user.username}`);
+        const updatedUser = {
+          ...user,
+          email: response.data.email,
+          username: response.data.username,
+          wins: response.data.winBattle,
+          favoritesSport: response.data.favourite,
+          rank: response.data.ranking,
+          winRate: response.data.winRate,
+          totalBattles: response.data.totalBattle,
+          streak: response.data.winBattle,
+          password: response.data.password,
+          avatar: response.data.avatar,
+          friends: response.data.friends,
+          friendRequests: response.data.friendRequests
+        };
+        setUser(updatedUser);
+        localStorage.setItem("user", JSON.stringify(response.data.email));
+        navigate(`/${response.data.username}`);
       }
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -159,9 +167,53 @@ export default function SignInPage() {
           submit: 'Invalid email or password'
         });
       } else if (error.response?.status === 404) {
-        setValidationErrors({
-          submit: 'User not found'
-        });
+        // If user doesn't exist, try to sign them up
+        try {
+          const signUpResponse = await axios.post("http://127.0.0.1:8000/auth/signup", {
+            email: decodedToken.email,
+            password: credentialResponse.credential,
+            username: decodedToken.name,
+            winRate: 0,
+            totalBattle: 0,
+            winBattle: 0,
+            ranking: 1,
+            favourite: "Football",
+            streak: 0,
+            friends: [],
+            friendRequests: [],
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'accept': 'application/json'
+            }
+          });
+
+          if (signUpResponse.data) {
+            const updatedUser = {
+              ...user,
+              email: signUpResponse.data.email,
+              username: signUpResponse.data.username,
+              wins: signUpResponse.data.winBattle,
+              favoritesSport: signUpResponse.data.favourite,
+              rank: signUpResponse.data.ranking,
+              winRate: signUpResponse.data.winRate,
+              totalBattles: signUpResponse.data.totalBattle,
+              streak: signUpResponse.data.winBattle,
+              password: signUpResponse.data.password,
+              avatar: signUpResponse.data.avatar,
+              friends: signUpResponse.data.friends,
+              friendRequests: signUpResponse.data.friendRequests
+            };
+            setUser(updatedUser);
+            localStorage.setItem("user", JSON.stringify(signUpResponse.data.email));
+            navigate(`/${signUpResponse.data.username}`);
+          }
+        } catch (signUpError: any) {
+          console.error('Sign up error:', signUpError);
+          setValidationErrors({
+            submit: 'Failed to create account. Please try again.'
+          });
+        }
       } else {
         setValidationErrors({
           submit: 'An error occurred. Please try again.'

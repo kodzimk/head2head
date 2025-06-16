@@ -13,7 +13,7 @@ export const ViewProfile = () => {
   const [user, setUser] = useState({
     username: '',
     email: '',
-    avatar: '',
+    avatar: null as string | null,
     favoritesSport: '',
     rank: 0,
     wins: 0,
@@ -61,6 +61,7 @@ export const ViewProfile = () => {
         user.totalBattle = response.data.totalBattle
         user.friendRequests = response.data.friendRequests
         user.friends = response.data.friends
+        user.avatar = response.data.avatar ? `http://localhost:8000${response.data.avatar}` : null
         const response2 = await axios.get(`http://localhost:8000/db/get-user?email=${localStorage.getItem("user")?.replace(/"/g, '')}`)
 
         if(response.data.friendRequests.includes(response2.data.username) && response2.data.username !== '') {
@@ -166,10 +167,12 @@ export const ViewProfile = () => {
             >
               <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                 <AvatarImage
-                  src={"/placeholder.svg"}
+                  src={user.avatar || "/placeholder.svg"}
                   alt={user.username}
                 />
-                <AvatarFallback>AJ</AvatarFallback>
+                <AvatarFallback className="bg-orange-500 text-white">
+                  {user.username.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -269,8 +272,8 @@ export const ViewProfile = () => {
                       className="w-24 h-24 rounded-full object-cover border-4 border-orange-500"
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
-                      {user.username.charAt(0).toUpperCase()}
+                    <div className="w-24 h-24 rounded-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold border-4 border-orange-500">
+                      {user.username.slice(0, 2).toUpperCase()}
                     </div>
                   )}
                 </div>

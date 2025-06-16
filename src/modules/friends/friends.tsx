@@ -23,12 +23,25 @@ export default function FriendsPage() {
   useEffect(() => {
     const userEmail = localStorage.getItem("user")?.replace(/"/g, ''); 
   
-    axios.get(`http://localhost:8000/friends/get-friends?email=${userEmail}`).then((response) => {
-      const friendsArray = response.data.map((friend: string) => ({
-        username: friend,
-        status: "online",
-        avatar: "https://github.com/shadcn.png",
-        rank: "1"
+    axios.get(`http://localhost:8000/friends/get-friends?email=${userEmail}`).then(async (response) => {
+      const friendsArray = await Promise.all(response.data.map(async (friend: string) => {
+        try {
+          const friendData = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${friend}`);
+          return {
+            username: friend,
+            status: "online",
+            avatar: friendData.data.avatar ? `http://localhost:8000${friendData.data.avatar}` : null,
+            rank: friendData.data.ranking
+          };
+        } catch (error) {
+          console.error(`Error fetching data for friend ${friend}:`, error);
+          return {
+            username: friend,
+            status: "online",
+            avatar: null,
+            rank: "1"
+          };
+        }
       }));
       setFriends(friendsArray);
     })
@@ -42,13 +55,19 @@ export default function FriendsPage() {
   const handleSearch = async () => {
     if (searchQuery.trim()) {
       setIsSearching(true)
-      const response = await axios.get(`http://localhost:8000/friends/search-user?username=${searchQuery}`)
-      setSearchResults([{
-        username: response.data.username,
-        status: "online",
-        avatar: "https://github.com/shadcn.png",
-        rank: "1"
-      }])
+      try {
+        const response = await axios.get(`http://localhost:8000/friends/search-user?username=${searchQuery}`)
+        const userData = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${response.data.username}`)
+        setSearchResults([{
+          username: response.data.username,
+          status: "online",
+          avatar: userData.data.avatar ? `http://localhost:8000${userData.data.avatar}` : null,
+          rank: userData.data.ranking
+        }])
+      } catch (error) {
+        console.error('Error searching user:', error);
+        setSearchResults([])
+      }
     } else {
       setIsSearching(false)
       setSearchResults([])
@@ -111,11 +130,17 @@ export default function FriendsPage() {
                       onClick={() => navigate(`/profile/${item.username}`)}
                     >
                       <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
-                        <img
-                          src={item.avatar}
-                          alt={item.username}
-                          className="w-20 h-20 sm:w-14 sm:h-14 rounded-full object-cover flex-shrink-0"
-                        />
+                        {item.avatar ? (
+                          <img
+                            src={item.avatar}
+                            alt={item.username}
+                            className="w-20 h-20 sm:w-14 sm:h-14 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-20 h-20 sm:w-14 sm:h-14 rounded-full bg-orange-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                            {item.username.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
                         <div className="flex-grow min-w-0 text-center sm:text-left">
                           <h3 className="font-medium text-gray-900 dark:text-white truncate text-lg">
                             {item.username}

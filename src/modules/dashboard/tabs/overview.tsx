@@ -17,8 +17,10 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Avatar className="w-12 h-12">
-                  <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.username} />
-                  <AvatarFallback>AJ</AvatarFallback>
+                  <AvatarImage src={user.avatar ? `http://localhost:8000${user.avatar}` : "/placeholder.svg"} alt={user.username} />
+                  <AvatarFallback className="bg-orange-500 text-white">
+                    {user.username.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
                   <h3 className="font-bold">{user.username}</h3>
