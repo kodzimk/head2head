@@ -1,7 +1,6 @@
 export interface User {
     email: string;
     username: string;
-    avatar: string;
     wins: number;
     favoritesSport: string;
     rank: number;

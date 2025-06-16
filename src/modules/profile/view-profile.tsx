@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import type { User } from '../../shared/interface/user'
+import {  useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { Button } from '../../shared/ui/button'
 import { ArrowLeft, UserPlus } from 'lucide-react'
-import { useGlobalStore } from '../../shared/interface/gloabL_var'
 
+import { useGlobalStore } from '../../shared/interface/gloabL_var'
 
 export const ViewProfile = () => {
   const { username } = useParams<{ username: string }>()
@@ -19,14 +18,16 @@ export const ViewProfile = () => {
     winRate: 0,
     streak: 0,
     totalBattle: 0,
+    friends: [],
+    friendRequests: [],
   }) 
 
+  const {user: currentUser} = useGlobalStore()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [requestSent, setRequestSent] = useState(false)
-  const {user: currentUser} = useGlobalStore()  
   const navigate = useNavigate()
-  
+
   const handleSendRequest = async () => {
     try {
       await axios.post(`http://localhost:8000/db/friend-requests?username=${user.username}&from_username=${currentUser.username}`)
@@ -49,29 +50,31 @@ export const ViewProfile = () => {
     const fetchUser = async () => {
       try {
         const response = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${username}`)
-        console.log(response.data)
         user.username = response.data.username
         user.email = response.data.email
-
         user.favoritesSport = response.data.favourite
         user.rank = response.data.ranking
         user.wins = response.data.winBattle
         user.winRate = response.data.winRate
         user.totalBattle = response.data.totalBattle
+        user.friendRequests = response.data.friendRequests
+        user.friends = response.data.friends
+
+        if(response.data.friendRequests.includes(currentUser.username) && currentUser.username !== '') {
+          setRequestSent(true)
+        }  
+        
         setUser(user)
       } catch (err) {
         setError('Failed to load user profile')
-        console.error('Error fetching user:', err)
+        
       } finally {
         setIsLoading(false)
       }
     }
+    fetchUser() 
+  }, [])
 
-    if (username) {
-      fetchUser()
-    }
-   
-  }, [username])
 
   if (isLoading) {
     return (

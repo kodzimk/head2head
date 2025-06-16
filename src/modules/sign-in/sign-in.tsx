@@ -80,7 +80,6 @@ export default function SignInPage() {
       if (response.data) {
         user.email = response.data.email
         user.username = response.data.username
-        user.avatar = response.data.avatar
         user.wins = response.data.winBattle
         user.favoritesSport = response.data.favourite
         user.rank = response.data.ranking
@@ -88,7 +87,6 @@ export default function SignInPage() {
         user.totalBattles = response.data.totalBattle
         user.streak = response.data.winBattle
         user.password = response.data.password
-        user.avatar = response.data.avatar
         user.friends = response.data.friends
         user.friendRequests = response.data.friendRequests
         setUser(user)
@@ -140,14 +138,12 @@ export default function SignInPage() {
     if (tempResponse.data) {
       user.email = tempResponse.data.email
     user.username = tempResponse.data.username
-  user.avatar = tempResponse.data.avatar
     user.wins = tempResponse.data.winBattle
     user.favoritesSport = tempResponse.data.favourite
     user.rank = tempResponse.data.ranking
     user.winRate = tempResponse.data.winRate
     user.totalBattles = tempResponse.data.totalBattle
     user.streak = tempResponse.data.winBattle
-    user.avatar = tempResponse.data.avatar
     user.friends = tempResponse.data.friends
     user.friendRequests = tempResponse.data.friendRequests
     setUser(user)
@@ -185,8 +181,7 @@ export default function SignInPage() {
       .then(async (response) => {
         if (response.data) {
           user.email = response.data.email
-          user.username = response.data.username
-          user.avatar = response.data.avatar
+          user.username = response.data.username  
           user.wins = response.data.winBattle
           user.favoritesSport = response.data.favourite
           user.rank = response.data.ranking

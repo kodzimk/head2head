@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import Header from "../dashboard/header"
 import { Button } from "../../shared/ui/button"
@@ -11,7 +11,6 @@ import axios from "axios"
 interface FriendRequest {
   sender: {
     username: string
-   
     avatar: string
   }
   status: 'pending' | 'accepted' | 'rejected'
@@ -19,46 +18,30 @@ interface FriendRequest {
 
 export default function NotificationsPage() {
   const { user } = useGlobalStore()
-  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([
-    {
-      sender: {
-        username: "kodzimk",
-       
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John"
-      },
-      status: 'pending',
-      
-    },
-    {
-      
-      sender: {
-        username: "SarahSmith",
-       
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah"
-      },
-      status: 'pending',
-
-    },
-    {
-
-      sender: {
-        username: "Game",
-   
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike"
-      },
-      status: 'pending',
-    
-    }
-  ])
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+
+     user.friendRequests.forEach((request) => {
+      console.log(request)
+      setFriendRequests(prev => [...prev, {
+        sender: {
+          username: request,
+          avatar: ''       
+        },
+        status: 'pending'
+      }])
+     })
+  }, [])
 
   const handleAcceptRequest = async (username: string) => {
     try {
       const request = friendRequests.find(request => request.sender.username === username)
       if (!request) return
 
-      const response = await axios.get(`http://localhost:8000/db/add-friend?username=${user?.username}&friend_username=${request.sender.username}`)
+      const response = await axios.post(`http://localhost:8000/db/add-friend?username=${user.username}&friend_username=${request.sender.username}`)
       if (response.data) {
         setFriendRequests(prev => prev.filter(request => request.sender.username !== username))
       }
@@ -68,7 +51,13 @@ export default function NotificationsPage() {
   }
 
   const handleRejectRequest = async (username: string) => {
-    setFriendRequests(prev => prev.filter(request => request.sender.username !== username))
+      const request = friendRequests.find(request => request.sender.username === username)
+      if (!request) return
+
+      const response = await axios.post(`http://localhost:8000/db/cancel-friend-request?username=${user.username}&from_username=${request.sender.username}`)
+      if (response.data) {
+        setFriendRequests(prev => prev.filter(request => request.sender.username !== username))
+      } 
   }
 
   const handleViewProfile = (username: string) => {
@@ -96,7 +85,7 @@ export default function NotificationsPage() {
                       onClick={() => handleViewProfile(request.sender.username)}
                     >
                       <AvatarImage src={request.sender.avatar} alt={request.sender.username} />
-                      <AvatarFallback>{request.sender.username[0].toUpperCase()}</AvatarFallback>
+                      <AvatarFallback>{'A'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <CardTitle className="text-lg cursor-pointer hover:text-orange-500 transition-colors" 

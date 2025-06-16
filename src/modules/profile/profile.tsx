@@ -61,15 +61,6 @@ export default function ProfileSettingsPage(  ) {
  
     setIsLoading(true)
     try {
-      let avatarBase64: string | null = null
-      if (avatarBlob) {
-        // Convert blob to base64
-        const reader = new FileReader()
-        avatarBase64 = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve(reader.result as string)
-          reader.readAsDataURL(avatarBlob)
-        })
-      }
 
       const response = await axios.post('http://localhost:8000/db/update-user', {
         username: username,
@@ -82,6 +73,7 @@ export default function ProfileSettingsPage(  ) {
         streak: user.streak,
         password: user.password,
         friends: user.friends,
+        friendRequests: user.friendRequests,
       })
 
       if (response.status === 200) {
@@ -89,16 +81,12 @@ export default function ProfileSettingsPage(  ) {
       updatedUser.username = username
       updatedUser.favoritesSport = favourite
       setUser(updatedUser)
-      if (avatarBase64) {
-          updatedUser.avatar = avatarBase64
-        }       
+        
       }
       else if(response.status === 401) {
         setError('Username already exists')
         console.log('username already exists')
       }
-      setAvatarPreview(null)
-      setAvatarBlob(null)
     } catch (error) {
       console.error('Error updating profile:', error)
       if(error instanceof AxiosError && error.response?.status === 401) {
@@ -128,6 +116,7 @@ export default function ProfileSettingsPage(  ) {
       streak: user.streak,
       password: user.password,
       friends: user.friends,
+      friendRequests: user.friendRequests,
     })
   
   }
@@ -206,7 +195,7 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
                   <div className="relative">
                     <div className="relative w-24 h-24">
                       <img
-                        src={avatarPreview || user?.avatar || "/placeholder.svg?height=100&width=100"}
+                        src={avatarPreview || "/placeholder.svg?height=100&width=100"}
                         alt="Profile"
                         className="w-24 h-24 rounded-full object-cover border-4 border-orange-500"
                       />
