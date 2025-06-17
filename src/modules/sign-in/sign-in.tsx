@@ -90,7 +90,8 @@ export default function SignInPage() {
           password: response.data.password,
           avatar: response.data.avatar,
           friends: response.data.friends,
-          friendRequests: response.data.friendRequests
+          friendRequests: response.data.friendRequests,
+          battles: response.data.battles
         };
         setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(response.data.email));
@@ -152,7 +153,8 @@ export default function SignInPage() {
           password: response.data.password,
           avatar: response.data.avatar,
           friends: response.data.friends,
-          friendRequests: response.data.friendRequests
+          friendRequests: response.data.friendRequests,
+          battles: response.data.battles
         };
         setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(response.data.email));
@@ -179,7 +181,8 @@ export default function SignInPage() {
             streak: 0,
             friends: [],
             friendRequests: [],
-            avatar: ''
+            avatar: '',
+            battles: []
           }, {
             headers: {
               'Content-Type': 'application/json',
@@ -201,7 +204,8 @@ export default function SignInPage() {
               password: signUpResponse.data.password,
               avatar: signUpResponse.data.avatar,
               friends: signUpResponse.data.friends,
-              friendRequests: signUpResponse.data.friendRequests
+              friendRequests: signUpResponse.data.friendRequests,
+              battles: signUpResponse.data.battles
             };
             setUser(updatedUser);
             localStorage.setItem("user", JSON.stringify(signUpResponse.data.email));

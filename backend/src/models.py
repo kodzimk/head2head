@@ -16,7 +16,7 @@ class UserData(Base):
     friends = Column(ARRAY(String), index=True,nullable=True)
     friendRequests = Column(ARRAY(String), index=True,nullable=True)
     avatar = Column(String, nullable=True)  # Store the avatar URL/path
-
+    battles = Column(ARRAY(String), index=True,nullable=True)
 
 class UserDataCreate(BaseModel):
     username: str
@@ -31,3 +31,27 @@ class UserDataCreate(BaseModel):
     friends: list[str]
     friendRequests: list[str]
     avatar: str | None = None  # Optional avatar field
+    battles: list[str]
+
+
+
+class BattleModel(Base):
+    __tablename__ = "battles"
+    id = Column(String, primary_key=True, index=True)
+    sport = Column(String, index=True)
+    duration = Column(Integer, index=True)
+    first_opponent = Column(String, index=True)
+    second_opponent = Column(String, index=True)
+    first_opponent_score = Column(Integer, index=True)
+    second_opponent_score = Column(Integer, index=True)
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "sport": self.sport,
+            "duration": self.duration,
+            "first_opponent": self.first_opponent,
+            "second_opponent": self.second_opponent,
+            "first_opponent_score": self.first_opponent_score,
+            "second_opponent_score": self.second_opponent_score
+        }

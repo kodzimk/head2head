@@ -50,7 +50,8 @@ async def create_user_data(user: UserDataCreate):
                 password=hashed_password,
                 friends=[],
                 friendRequests=[],
-                avatar=user.avatar
+                avatar=user.avatar,
+                battles=[]
             )
         db.add(db_user)
         await db.commit()
@@ -68,14 +69,12 @@ async def create_user_data(user: UserDataCreate):
             'password': db_user.password,
             'friends': db_user.friends,
             'friendRequests': db_user.friendRequests,
-            'avatar': db_user.avatar
+            'avatar': db_user.avatar,
+            'battles': db_user.battles
         }
         redis_email.set(user.email, json.dumps(user_dict))
         redis_username.set(user.username, json.dumps(user_dict))
         return db_user
-
-
-
     
 @auth_router.get("/signin",name="signin")
 async def get_user_data(email: EmailStr,password: str):

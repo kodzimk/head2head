@@ -81,7 +81,8 @@ export default function SignUpPage() {
                             streak: 0,
                             friends: [],
                             friendRequests: [],
-                            avatar: ''
+                            avatar: '',
+                            battles: []
                           }, {
                             headers: {
                               'Content-Type': 'application/json',
@@ -103,10 +104,12 @@ export default function SignUpPage() {
                               password: response.data.password,
                               avatar: response.data.avatar,
                               friends: response.data.friends,
-                              friendRequests: response.data.friendRequests
+                              friendRequests: response.data.friendRequests,
+                              battles: response.data.battles
                             };
                             setUser(updatedUser);
                             localStorage.setItem("user", JSON.stringify(response.data.email));
+                            console.log(updatedUser)
                             navigate(`/${response.data.username}`);
                           }
                         } catch (error: any) {
@@ -141,7 +144,8 @@ export default function SignUpPage() {
                                   password: signInResponse.data.password,
                                   avatar: signInResponse.data.avatar,
                                   friends: signInResponse.data.friends,
-                                  friendRequests: signInResponse.data.friendRequests
+                                  friendRequests: signInResponse.data.friendRequests,
+                                  battles: signInResponse.data.battles
                                 };
                                 setUser(updatedUser);
                                 localStorage.setItem("user", JSON.stringify(signInResponse.data.email));

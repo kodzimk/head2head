@@ -24,7 +24,6 @@ if(type === "user_update"){
       }))
 }
 else if(type === "get_email"){
-
   const user = localStorage.getItem("user")?.replace(/"/g, '')
   if(user){
   websocket.send(JSON.stringify({
@@ -51,10 +50,10 @@ export const rejectFriendRequest = (user: User, friend_username: string) => {
   }))
 }
 
-export const sendFriendRequest = (user: User, friend_username: string) => {
+export const sendFriendRequest = (user: string, friend_username: string) => {
   websocket.send(JSON.stringify({
     type: "send_friend_request",
-    username: user.username,
+    username: user,
     friend_username: friend_username
   }))
 }

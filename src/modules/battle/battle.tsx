@@ -10,7 +10,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
 
 import { Label } from '../../shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../shared/ui/select'
-
 interface Battle {
   id: string
   opponent: {
@@ -28,34 +27,14 @@ export default function BattlePage() {
   const [battles, setBattles] = useState<Battle[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedSport, setSelectedSport] = useState('')
-  const [selectedDuration, setSelectedDuration] = useState('')
+  const [selectedDuration, setSelectedDuration] = useState<number>(0)
   const navigate = useNavigate()
-
-  useEffect(() => {
-    fetchBattles()
-  }, [])
-
-  const fetchBattles = async () => {
-    try {
-      const response = await axios.get(`http://localhost:8000/battles/get-battles?username=${user.username}`)
-      setBattles(response.data)
-    } catch (error) {
-      console.error('Error fetching battles:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleCreateBattle = async () => {
     try {
-      const response = await axios.post('http://localhost:8000/battles/create', {
-        username: user.username,
-        sport: selectedSport,
-        duration: selectedDuration
-      })
-      if (response.data) {
-        fetchBattles() // Refresh battles list
-      }
+      const response = await axios.post(`http://localhost:8000/create?first_opponent=${user.username}&sport=${selectedSport}&duration=${selectedDuration}`)
+      console.log(response.data)
+      navigate(`/waiting/${response.data.id}`)
     } catch (error) {
       console.error('Error creating battle:', error)
     }
@@ -63,9 +42,9 @@ export default function BattlePage() {
 
   const handleJoinBattle = async (battleId: string) => {
     try {
-      const response = await axios.post(`http://localhost:8000/battles/join`, {
-        battleId,
-        username: user.username
+      const response = await axios.post(`http://localhost:8000/join`, {
+        second_opponent: user.username,
+        battle_id: battleId
       })
       if (response.data) {
         navigate(`/battle/${battleId}`)
@@ -102,15 +81,19 @@ export default function BattlePage() {
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="duration">Battle Duration</Label>
-                  <Select value={selectedDuration} onValueChange={setSelectedDuration}>
+                  <Label htmlFor="duration">Battle Duration (minutes)</Label>
+                  <Select
+                    value={selectedDuration.toString()}
+                    onValueChange={(value) => setSelectedDuration(parseInt(value))}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Choose duration" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="quick">Quick (5 min)</SelectItem>
-                      <SelectItem value="standard">Standard (10 min)</SelectItem>
-                      <SelectItem value="extended">Extended (15 min)</SelectItem>
+                      <SelectItem value="1">1 minute</SelectItem>
+                      <SelectItem value="3">3 minutes</SelectItem>
+                      <SelectItem value="5">5 minutes</SelectItem>
+                      <SelectItem value="10">10 minutes</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

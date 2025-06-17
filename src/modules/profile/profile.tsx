@@ -73,6 +73,8 @@ export default function ProfileSettingsPage(  ) {
     user.winRate = 0
     user.rank = 0
     user.streak = 0
+    user.favoritesSport = 'Football'
+    user.battles = []
     sendMessage(user, "user_update")
   }
 

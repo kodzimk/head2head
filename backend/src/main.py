@@ -1,6 +1,7 @@
 from auth.router import auth_router
 from db.router import db_router
 from friends.router import router_friend
+from battle.router import battle_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from websocket import app
@@ -12,9 +13,10 @@ app.mount("/avatars", StaticFiles(directory="avatars"), name="avatars")
 app.include_router(auth_router,prefix="/auth",tags=["auth"])
 app.include_router(db_router)
 app.include_router(router_friend)
+app.include_router(battle_router)   
 
 origins = [
-    "http://127.0.0.1:5173",
+    "https://127.0.0.1:5173",
     "http://localhost:5173",
 ]
 

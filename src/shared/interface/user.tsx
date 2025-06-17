@@ -11,6 +11,7 @@ export interface User {
     friends: string[];
     friendRequests: string[];
     avatar?: string;
+    battles: string[];
 }
 
 export const initialUser: User = {
@@ -26,6 +27,7 @@ export const initialUser: User = {
     password: "",
     friends: [],
     friendRequests: [],
+    battles: [],
   }
 
 export interface RecentBattle {

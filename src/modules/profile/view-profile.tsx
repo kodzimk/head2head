@@ -20,7 +20,7 @@ export const ViewProfile = ({user}: {user: User}) => {
   const [viewUser, setViewUser] = useState<User>(initialUser)
 
   const handleSendRequest = async () => {
-      sendFriendRequest(viewUser, user.username)
+      sendFriendRequest(viewUser.username, user.username)
       setRequestSent(true)
   };
 

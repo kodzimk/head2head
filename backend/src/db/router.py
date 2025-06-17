@@ -42,14 +42,14 @@ async def get_user_by_username(username: str):
 @db_router.post("/upload-avatar")
 async def upload_avatar(email: EmailStr, file: UploadFile = File(...)):
     try:
-        # Create avatars directory if it doesn't exist
-        os.makedirs("avatars", exist_ok=True)
+        avatar_dir = "avatars"
+        os.makedirs(avatar_dir, exist_ok=True)
         
         # Generate unique filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_extension = os.path.splitext(file.filename)[1]
         filename = f"{email}_{timestamp}{file_extension}"
-        file_path = os.path.join("avatars", filename)
+        file_path = os.path.join(avatar_dir, filename)
         
         # Save the file
         async with aiofiles.open(file_path, 'wb') as out_file:
@@ -62,9 +62,12 @@ async def upload_avatar(email: EmailStr, file: UploadFile = File(...)):
             if user_model is None:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Delete old avatar if exists
-            if user_model.avatar and os.path.exists(user_model.avatar):
-                os.remove(user_model.avatar)
+            # Delete old avatar if exists and it's not the default avatar
+            if user_model.avatar and os.path.exists(os.path.join(avatar_dir, os.path.basename(user_model.avatar))):
+                try:
+                    os.remove(os.path.join(avatar_dir, os.path.basename(user_model.avatar)))
+                except Exception as e:
+                    print(f"Error deleting old avatar: {e}")
             
             # Store relative path for serving
             relative_path = f"/avatars/{filename}"
@@ -84,13 +87,16 @@ async def upload_avatar(email: EmailStr, file: UploadFile = File(...)):
                 'password': user_model.password,
                 'friends': user_model.friends,
                 'friendRequests': user_model.friendRequests,
-                'avatar': relative_path
+                'avatar': relative_path,
+                'battles': user_model.battles
             }
+            print(user_dict)
             redis_email.set(email, json.dumps(user_dict))
             redis_username.set(user_model.username, json.dumps(user_dict))
             
         return {"message": "Avatar uploaded successfully", "avatar_path": relative_path}
     except Exception as e:
+        print(f"Avatar upload error: {str(e)}")  # Add detailed error logging
         raise HTTPException(status_code=500, detail=str(e))
 
 async def update_data(user: UserDataCreate):
@@ -112,6 +118,7 @@ async def update_data(user: UserDataCreate):
         user_model.password = user.password
         user_model.friends = user.friends
         user_model.friendRequests = user.friendRequests
+        user_model.battles = user.battles
         if user.avatar:
             user_model.avatar = user.avatar
 
@@ -160,7 +167,8 @@ async def update_data(user: UserDataCreate):
             'password': user_model.password,
             'friends': user_model.friends,
             'friendRequests': user_model.friendRequests,
-            'avatar': user_model.avatar
+            'avatar': user_model.avatar,
+            'battles': user_model.battles
         }
         redis_email.set(user_model.email, json.dumps(user_dict))
         redis_username.set(user_model.username, json.dumps(user_dict))

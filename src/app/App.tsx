@@ -8,6 +8,7 @@ import DashboardPage from '../modules/dashboard/dashboard'
 import ProfilePage from '../modules/profile/profile'
 import FriendsPage from '../modules/friends/friends'
 import BattlesPage from '../modules/battle/battle'
+import WaitingPage from '../modules/battle/waiting-room'
 import { useState, useEffect } from 'react'
 
 import { GlobalStore, ThemeStore } from '../shared/interface/gloabL_var'
@@ -39,6 +40,14 @@ export default function App() {
       websocket.close()
     }
   }, []) 
+  useEffect(() => {
+    return () => {
+      console.log("WebSocket connection closed")
+      setTimeout(() => {
+        websocket.close()
+      }, 1000)
+    }
+  }, [])
 
   websocket.onmessage = (event) => {
       const data = JSON.parse(event.data)    
@@ -55,7 +64,8 @@ export default function App() {
         user.friends = data.data.friends
         user.friendRequests = data.data.friendRequests
         user.avatar = data.data.avatar
-
+        user.battles = data.data.battles
+        
         setUser({
           email: data.data.email,
           username: data.data.username,
@@ -68,11 +78,11 @@ export default function App() {
           password: data.data.password,
           friends: data.data.friends,
           friendRequests: data.data.friendRequests,
-          avatar: data.data.avatar
+          avatar: data.data.avatar,
+          battles: data.data.battles
         })
       } 
   }
-
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -103,6 +113,7 @@ export default function App() {
             <Route path="/:username/trainings" element={<TrainingsPage />} />
             <Route path="/:username/notifications" element={<NotificationsPage />} />
             <Route path="/battles" element={<BattlesPage />} />
+            <Route path="/waiting/:id" element={<WaitingPage />} />
           </Routes>
         </div>
       </ThemeStore.Provider>
