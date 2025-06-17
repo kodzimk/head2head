@@ -82,7 +82,8 @@ export default function SignUpPage() {
                             friends: [],
                             friendRequests: [],
                             avatar: '',
-                            battles: []
+                            battles: [],
+                            invitations: []
                           }, {
                             headers: {
                               'Content-Type': 'application/json',
@@ -105,7 +106,8 @@ export default function SignUpPage() {
                               avatar: response.data.avatar,
                               friends: response.data.friends,
                               friendRequests: response.data.friendRequests,
-                              battles: response.data.battles
+                              battles: response.data.battles,
+                              invitations: response.data.invitations
                             };
                             setUser(updatedUser);
                             localStorage.setItem("user", JSON.stringify(response.data.email));
@@ -145,7 +147,8 @@ export default function SignUpPage() {
                                   avatar: signInResponse.data.avatar,
                                   friends: signInResponse.data.friends,
                                   friendRequests: signInResponse.data.friendRequests,
-                                  battles: signInResponse.data.battles
+                                  battles: signInResponse.data.battles,
+                                  invitations: signInResponse.data.invitations
                                 };
                                 setUser(updatedUser);
                                 localStorage.setItem("user", JSON.stringify(signInResponse.data.email));

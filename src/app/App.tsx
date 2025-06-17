@@ -65,7 +65,7 @@ export default function App() {
         user.friendRequests = data.data.friendRequests
         user.avatar = data.data.avatar
         user.battles = data.data.battles
-        
+        user.invitations = data.data.invitations
         setUser({
           email: data.data.email,
           username: data.data.username,
@@ -79,7 +79,8 @@ export default function App() {
           friends: data.data.friends,
           friendRequests: data.data.friendRequests,
           avatar: data.data.avatar,
-          battles: data.data.battles
+          battles: data.data.battles,
+          invitations: data.data.invitations
         })
       } 
   }

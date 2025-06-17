@@ -70,7 +70,7 @@ export default function BattlePage() {
                   <Label htmlFor="sport">Select Sport</Label>
                   <Select value={selectedSport} onValueChange={setSelectedSport}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Choose a sport" />
+                      <SelectValue placeholder="" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="football">Football</SelectItem>
@@ -89,11 +89,10 @@ export default function BattlePage() {
                     <SelectTrigger>
                       <SelectValue placeholder="Choose duration" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent defaultValue="1">
                       <SelectItem value="1">1 minute</SelectItem>
                       <SelectItem value="3">3 minutes</SelectItem>
-                      <SelectItem value="5">5 minutes</SelectItem>
-                      <SelectItem value="10">10 minutes</SelectItem>
+                      <SelectItem value="5">5 minutes</SelectItem>      
                     </SelectContent>
                   </Select>
                 </div>

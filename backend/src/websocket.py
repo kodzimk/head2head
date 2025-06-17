@@ -59,7 +59,9 @@ async def websocket_endpoint(websocket: WebSocket):
                         password=message["password"],
                         friends=message["friends"],
                         friendRequests=message["friendRequests"],
-                        avatar=message["avatar"]
+                        avatar=message["avatar"],
+                        battles=message["battles"],
+                        invitations=message["invitations"]
                     )
                  
                     updated_user = await update_user_data(user_data)
@@ -77,7 +79,8 @@ async def websocket_endpoint(websocket: WebSocket):
                         "friends": updated_user.friends,
                         "friendRequests": updated_user.friendRequests,
                         "avatar": updated_user.avatar,
-                        "battles": updated_user.battles 
+                        "battles": updated_user.battles,
+                        "invitations": updated_user.invitations
                     }
                     
                     await websocket.send_text(json.dumps({

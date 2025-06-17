@@ -88,7 +88,8 @@ async def upload_avatar(email: EmailStr, file: UploadFile = File(...)):
                 'friends': user_model.friends,
                 'friendRequests': user_model.friendRequests,
                 'avatar': relative_path,
-                'battles': user_model.battles
+                'battles': user_model.battles,
+                'invitations': user_model.invitations
             }
             print(user_dict)
             redis_email.set(email, json.dumps(user_dict))
@@ -168,7 +169,8 @@ async def update_data(user: UserDataCreate):
             'friends': user_model.friends,
             'friendRequests': user_model.friendRequests,
             'avatar': user_model.avatar,
-            'battles': user_model.battles
+            'battles': user_model.battles,
+            'invitations': user_model.invitations
         }
         redis_email.set(user_model.email, json.dumps(user_dict))
         redis_username.set(user_model.username, json.dumps(user_dict))

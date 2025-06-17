@@ -93,7 +93,8 @@ export default function EmailSignUpPage() {
       friends: [],
       friendRequests: [],
       avatar: '',
-      battles: []
+      battles: [],
+      invitations: []
     }, {
       headers: {
         'Content-Type': 'application/json',
@@ -115,6 +116,7 @@ export default function EmailSignUpPage() {
           user.friends = response.data.friends          
           user.friendRequests = response.data.friendRequests
           user.battles = response.data.battles
+          user.invitations = response.data.invitations
           setUser(user)
           localStorage.setItem("user", JSON.stringify(response.data.email)) 
           navigate(`/${user.username}`)

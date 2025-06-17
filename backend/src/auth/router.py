@@ -51,7 +51,8 @@ async def create_user_data(user: UserDataCreate):
                 friends=[],
                 friendRequests=[],
                 avatar=user.avatar,
-                battles=[]
+                battles=[],
+                invitations=[]
             )
         db.add(db_user)
         await db.commit()
@@ -70,7 +71,8 @@ async def create_user_data(user: UserDataCreate):
             'friends': db_user.friends,
             'friendRequests': db_user.friendRequests,
             'avatar': db_user.avatar,
-            'battles': db_user.battles
+            'battles': db_user.battles,
+            'invitations': db_user.invitations
         }
         redis_email.set(user.email, json.dumps(user_dict))
         redis_username.set(user.username, json.dumps(user_dict))

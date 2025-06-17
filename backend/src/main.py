@@ -16,6 +16,7 @@ app.include_router(router_friend)
 app.include_router(battle_router)   
 
 origins = [
+    "https://head2head-psi.vercel.app",
     "https://127.0.0.1:5173",
     "http://localhost:5173",
 ]

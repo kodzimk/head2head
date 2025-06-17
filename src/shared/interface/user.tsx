@@ -12,6 +12,7 @@ export interface User {
     friendRequests: string[];
     avatar?: string;
     battles: string[];
+    invitations: string[];
 }
 
 export const initialUser: User = {
@@ -28,6 +29,7 @@ export const initialUser: User = {
     friends: [],
     friendRequests: [],
     battles: [],
+    invitations: [],
   }
 
 export interface RecentBattle {

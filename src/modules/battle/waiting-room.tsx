@@ -54,14 +54,13 @@ export default function WaitingRoom() {
   const quitBattle = async () => {
     try {
       await axios.delete(`http://localhost:8000/delete?battle_id=${id}`)
-      navigate('/battle')
+      navigate('/battles')
     } catch (error) {
       console.error('Error deleting battle:', error)
     }
   }
 
   const inviteFriend = async (friendUsername: string) => {
-    
     sendFriendRequest(friendUsername , user.username)
     setInvitedFriends(prev => [...prev, friendUsername])
   }
