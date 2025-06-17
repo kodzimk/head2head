@@ -3,81 +3,59 @@ import {  useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { Button } from '../../shared/ui/button'
 import { UserPlus, Home, Play, List, Trophy, BookOpen, Users, Bell, UserIcon, LogOut, ArrowLeft } from 'lucide-react'
-import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { Link } from 'react-router-dom'
 import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../shared/ui/dropdown-menu'
+import type { User } from '../../shared/interface/user'
+import { initialUser } from '../../shared/interface/user'
+import { sendFriendRequest } from '../../shared/websockets/websocket'
+import { cancelFriendRequest } from '../../shared/websockets/websocket'
 
-export const ViewProfile = () => {
+export const ViewProfile = ({user}: {user: User}) => {
   const { username } = useParams<{ username: string }>()
-  const [user, setUser] = useState({
-    username: '',
-    email: '',
-    avatar: null as string | null,
-    favoritesSport: '',
-    rank: 0,
-    wins: 0,
-    winRate: 0,
-    streak: 0,
-    totalBattle: 0,
-    friends: [],
-    friendRequests: [],
-  }) 
-
-  const {user: currentUser} = useGlobalStore()
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error] = useState<string | null>(null)
   const [requestSent, setRequestSent] = useState(false)
   const navigate = useNavigate()
+  const [viewUser, setViewUser] = useState<User>(initialUser)
 
   const handleSendRequest = async () => {
-    try {
-      await axios.post(`http://localhost:8000/friends/friend-requests?username=${user.username}&from_username=${currentUser.username}`)
+      sendFriendRequest(viewUser, user.username)
       setRequestSent(true)
-    } catch (error) {
-      console.error('Error sending friend request:', error)
-    }
   };
 
   const handleCancelRequest = async () => {
-    try {
-      await axios.post(`http://localhost:8000/friends/cancel-friend-request?username=${user.username}&from_username=${currentUser.username}`)
-      setRequestSent(false)
-    } catch (error) {
-      console.error('Error canceling friend request:', error)
-    }
+    cancelFriendRequest(viewUser, user.username)
+    setRequestSent(false)
   };
 
   useEffect(() => {
     const fetchUser = async () => {
-      try {
         const response = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${username}`)
-        user.username = response.data.username
-        user.email = response.data.email
-        user.favoritesSport = response.data.favourite
-        user.rank = response.data.ranking
-        user.wins = response.data.winBattle
-        user.winRate = response.data.winRate
-        user.totalBattle = response.data.totalBattle
-        user.friendRequests = response.data.friendRequests
-        user.friends = response.data.friends
-        user.avatar = response.data.avatar ? `http://localhost:8000${response.data.avatar}` : null
-        const response2 = await axios.get(`http://localhost:8000/db/get-user?email=${localStorage.getItem("user")?.replace(/"/g, '')}`)
+        viewUser.username = response.data.username
+        viewUser.email = response.data.email
+        viewUser.favoritesSport = response.data.favourite
+        viewUser.rank = response.data.ranking
+        viewUser.wins = response.data.winBattle
+        viewUser.winRate = response.data.winRate
+        viewUser.totalBattles = response.data.totalBattle
+        viewUser.friendRequests = response.data.friendRequests
+        viewUser.friends = response.data.friends
+        viewUser.avatar = response.data.avatar ? `http://localhost:8000${response.data.avatar}` : undefined
 
-        if(response.data.friendRequests.includes(response2.data.username) && response2.data.username !== '') {
-          setRequestSent(true)
-        }  
-        
-        setUser(user)
-      } catch (err) {
-        setError('Failed to load user profile')
-        
-      } finally {
-        setIsLoading(false)
-      }
+        setTimeout(() => {
+          if(response.data.friendRequests.includes(user.username)) {
+            setRequestSent(true)
+          }  
+          setIsLoading(false)
+          setViewUser(viewUser)
+        }, 100)
+       
     }
+
+    console.log(localStorage.getItem("user")?.replace(/"/g, ''))
     fetchUser() 
-  }, [])
+  }, [user.username])
 
 
   if (isLoading) {
@@ -94,7 +72,6 @@ export const ViewProfile = () => {
       </div>
     )
   }
-
   if (error || !user) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -180,10 +157,10 @@ export const ViewProfile = () => {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none text-slate-900">
-                  {user.username}
+                  {viewUser.username}
                 </p>
                 <p className="text-xs leading-none text-slate-500">
-                  #{user.rank}
+                  #{viewUser.rank}
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -265,56 +242,56 @@ export const ViewProfile = () => {
             <div className="p-6">
               <div className="flex items-center space-x-4 mb-6">
                 <div className="relative">
-                  {user.avatar ? (
+                  {viewUser.avatar ? (
                     <img
-                      src={user.avatar}
-                      alt={`${user.username}'s avatar`}
+                      src={viewUser.avatar}
+                      alt={`${viewUser.username}'s avatar`}
                       className="w-24 h-24 rounded-full object-cover border-4 border-orange-500"
                     />
                   ) : (
                     <div className="w-24 h-24 rounded-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold border-4 border-orange-500">
-                      {user.username.slice(0, 2).toUpperCase()}
+                      {viewUser.username.slice(0, 2).toUpperCase()}
                     </div>
                   )}
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{user.username}</h1>
-                  <p className="text-gray-600 dark:text-gray-300">{user.email}</p>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{viewUser.username}</h1>
+                  <p className="text-gray-600 dark:text-gray-300">{viewUser.email}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Favorite Sport</h3>
-                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{user.favoritesSport}</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{viewUser.favoritesSport}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Rank</h3>
-                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">#{user.rank}</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">#{viewUser.rank}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Wins</h3>
-                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{user.wins}</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{viewUser.wins}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Win Rate</h3>
-                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{user.winRate}%</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{viewUser.winRate}%</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Streak</h3>
-                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{user.streak}</p>
+                    <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{viewUser.streak}</p>
                 </div>
               </div>
 
-              {currentUser.email !== user.email && (
+              {viewUser.email !== user.email && (
                 <div className="flex justify-center gap-4 mt-6">
-                  {currentUser.friends && currentUser.friends.includes(user.username) ? (
+                  {viewUser.friends && viewUser.friends.includes(user.username) ? (
                     <Button 
                       className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
-                      onClick={() => navigate(`/battle/${user.username}`)}
+                      onClick={() => navigate(`/battle/${viewUser.username}`)}
                     >
                       Battle
                     </Button>

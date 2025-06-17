@@ -1,25 +1,13 @@
 import { createContext, useContext } from "react"
 import type { User } from "./user"
+import { initialUser } from "./user"
 
 interface GlobalStoreType {
   user: User ;
   setUser: (user: User ) => void;
 }
 
-const initialUser: User = {
-  email: "",
-  username: "",
-  avatar: "/placeholder.svg?height=100&width=100",
-  rank: 1,
-  winRate: 0,
-  totalBattles: 0,
-  wins: 0,
-  streak: 0,
-  favoritesSport: "Football",
-  password: "",
-  friends: [],
-  friendRequests: [],
-}
+
 
 export const GlobalStore = createContext<GlobalStoreType>({
   user:initialUser,

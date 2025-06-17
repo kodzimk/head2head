@@ -147,18 +147,11 @@ export default function SignUpPage() {
                                 navigate(`/${signInResponse.data.username}`);
                               }
                             } catch (signInError: any) {
-                              console.error('Sign in error:', signInError);
-                              // Handle sign-in error appropriately
                             }
-                          } else {
-                            console.error('Sign up error:', error);
-                            // Handle other errors appropriately
                           }
                         }
                       }}
-                      onError={() => {
-                        console.error('Google sign in failed');
-                      }}
+                      onError={() => {}}
                       useOneTap
                       theme="filled_blue"
                       shape="rectangular"

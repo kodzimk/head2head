@@ -20,7 +20,7 @@ import { useGlobalStore } from "../../shared/interface/gloabL_var";
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
-  const {user, setUser} = useGlobalStore()
+  const {user} = useGlobalStore()
 
   useEffect(() => {
     document.title = "Dashboard";

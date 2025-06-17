@@ -3,21 +3,18 @@ import Hero from "./hero"
 import Footer from "./footer"
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import axios from "axios"
+import type { User } from "../../shared/interface/user"
 
-export default function EntryPage() {
+export default function EntryPage({user}: {user: User}) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userEmail = localStorage.getItem("user")?.replace(/"/g, '');
-    axios.get(`http://localhost:8000/db/get-user?email=${userEmail}`).then(
-      (response) => {
-        const userUsername = response.data.username;
-        if(userUsername){
-          navigate(`/${userUsername}`);
-        }
-      }
-    )
+    const email = localStorage.getItem("user")?.replace(/"/g, '');
+    if(email){
+      setTimeout(() => {
+        navigate(`/${user.username}`);
+      }, 100)
+    }
   }, []);
 
   return (

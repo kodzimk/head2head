@@ -18,12 +18,12 @@ import {
   Loader2,
   User,
 } from "lucide-react"
+import axios from "axios"
 
 import { useNavigate } from "react-router-dom"
-import axios from "axios"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import Header from "../dashboard/header"
-import { AxiosError } from "axios"
+import { sendMessage } from "../../shared/websockets/websocket"
 
 
 export default function ProfileSettingsPage(  ) {
@@ -57,45 +57,8 @@ export default function ProfileSettingsPage(  ) {
   }, [isDarkMode]);
 
   const handleSave = async () => {
- 
     setIsLoading(true)
-    try {
-
-      const response = await axios.post('http://localhost:8000/db/update-user', {
-        username: username,
-        email: user.email,
-        favourite: favourite,
-        winBattle: user.wins,
-        totalBattle: user.totalBattles,
-        winRate: user.winRate,
-        ranking: user.rank,
-        streak: user.streak,
-        password: user.password,
-        friends: user.friends,
-        friendRequests: user.friendRequests,
-        avatar: user.avatar,
-      })
-
-      if (response.status === 200) {
-      const updatedUser = { ...user }
-      updatedUser.username = username
-      updatedUser.favoritesSport = favourite
-      setUser(updatedUser)
-        
-      }
-      else if(response.status === 401) {
-        setError('Username already exists')
-        console.log('username already exists')
-      }
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      if(error instanceof AxiosError && error.response?.status === 401) {
-        setError('Username already exists')
-        console.log('username already exists')
-      }
-    } finally {
-      setIsLoading(false)
-    }
+    sendMessage(user)
   }
 
   const handleReset = () => {
@@ -104,22 +67,7 @@ export default function ProfileSettingsPage(  ) {
     user.winRate = 0
     user.rank = 0
     user.streak = 0
-    setUser(user)
-     axios.post("http://127.0.0.1:8000/db/update-user", {
-      username: user.username,
-      email: user.email,
-      favourite: user.favoritesSport,
-      winBattle: user.wins,
-      totalBattle: user.totalBattles,
-      winRate: user.winRate,
-      ranking: user.rank,
-      streak: user.streak,
-      password: user.password,
-      friends: user.friends,
-      friendRequests: user.friendRequests,
-      avatar: user.avatar,
-    })
-  
+    sendMessage(user)
   }
 
 const handleDelete = async () => {

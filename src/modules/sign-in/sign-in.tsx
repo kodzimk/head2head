@@ -55,7 +55,6 @@ export default function SignInPage() {
     const hasAllFields = formData.email && formData.password;
     return hasValidEmail && hasAllFields;
   }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSubmit()) {
@@ -114,7 +113,6 @@ export default function SignInPage() {
       }
     }
   }
-
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     if (!credentialResponse.credential) {
@@ -181,6 +179,7 @@ export default function SignInPage() {
             streak: 0,
             friends: [],
             friendRequests: [],
+            avatar: null
           }, {
             headers: {
               'Content-Type': 'application/json',

@@ -3,7 +3,7 @@ from db.router import db_router
 from friends.router import router_friend
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from init import app
+from websocket import app
 import os
 
 os.makedirs("avatars", exist_ok=True)

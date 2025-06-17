@@ -13,6 +13,21 @@ export interface User {
     avatar?: string;
 }
 
+export const initialUser: User = {
+    email: "",
+    username: "",
+    avatar: "/placeholder.svg?height=100&width=100",
+    rank: 1,
+    winRate: 0,
+    totalBattles: 0,
+    wins: 0,
+    streak: 0,
+    favoritesSport: "Football",
+    password: "",
+    friends: [],
+    friendRequests: [],
+  }
+
 export interface RecentBattle {
     id: number,
     opponent: string,

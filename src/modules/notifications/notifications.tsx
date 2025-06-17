@@ -6,7 +6,7 @@ import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "../../
 import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar"
 import { Check, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import axios from "axios"
+import { acceptFriendRequest, rejectFriendRequest } from "../../shared/websockets/websocket"
 
 interface FriendRequest {
   sender: {
@@ -19,7 +19,7 @@ interface FriendRequest {
 export default function NotificationsPage() {
   const { user } = useGlobalStore()
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -41,10 +41,8 @@ export default function NotificationsPage() {
       const request = friendRequests.find(request => request.sender.username === username)
       if (!request) return
 
-      const response = await axios.post(`http://localhost:8000/friends/add-friend?username=${user.username}&friend_username=${request.sender.username}`)
-      if (response.data) {
-        setFriendRequests(prev => prev.filter(request => request.sender.username !== username))
-      }
+      acceptFriendRequest(user, request.sender.username)
+      setFriendRequests(prev => prev.filter(request => request.sender.username !== username))
     } catch (error) {
       console.error('Error accepting friend request:', error)
     }
@@ -54,10 +52,8 @@ export default function NotificationsPage() {
       const request = friendRequests.find(request => request.sender.username === username)
       if (!request) return
 
-      const response = await axios.post(`http://localhost:8000/friends/cancel-friend-request?username=${user.username}&from_username=${request.sender.username}`)
-      if (response.data) {
-        setFriendRequests(prev => prev.filter(request => request.sender.username !== username))
-      } 
+      rejectFriendRequest(user, request.sender.username)
+      setFriendRequests(prev => prev.filter(request => request.sender.username !== username))
   }
 
   const handleViewProfile = (username: string) => {

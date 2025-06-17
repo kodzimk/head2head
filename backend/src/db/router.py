@@ -11,7 +11,7 @@ from datetime import datetime
 @db_router.post("/update-user",name="update user data")
 async def update_user_data(user: UserDataCreate):
     await update_data(user)
-    return True
+    return user
     
 @db_router.delete("/delete-user",name="delete user")
 async def delete_user_data(email: EmailStr):

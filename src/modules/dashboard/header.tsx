@@ -12,38 +12,16 @@ import {
 } from "../../shared/ui/dropdown-menu";
 import { LogOut, User as UserIcon, BookOpen, Trophy, List, Users, Play, Home, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useEffect, useState, useCallback } from "react";
-import axios from "axios";
+import { useEffect, useState } from "react";
 
 
 export default function Header({ user }: { user: User }) {
   const navigate = useNavigate();
   const [friendRequests, setFriendRequests] = useState<string[]>([]);
 
-  const fetchFriendRequests = useCallback(async () => {
-    try {
-      const response = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${user.username}`);
-      const newRequests = response.data.friendRequests || [];
-      
-      // Only update state if the requests have changed
-      if (JSON.stringify(newRequests) !== JSON.stringify(friendRequests)) {
-        setFriendRequests(newRequests);
-      }
-    } catch (error) {
-      console.error('Error fetching friend requests:', error);
-    }
-  }, [user.username, friendRequests]);
-
   useEffect(() => {
-    // Initial fetch
-    fetchFriendRequests();
-
-    // Set up polling every 2 seconds
-    const intervalId = setInterval(fetchFriendRequests, 2000);
-
-    // Cleanup interval on unmount
-    return () => clearInterval(intervalId);
-  }, [fetchFriendRequests]);
+      setFriendRequests(user.friendRequests)
+  }, [user]);
 
   function handleSignOut(){
     document.documentElement.classList.remove('dark');
@@ -74,7 +52,7 @@ export default function Header({ user }: { user: User }) {
               <span>Home</span>
             </Button>
           </Link>
-          <Link to={`/${user.username}/battle`}>
+          <Link to={`/battles`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <Play className="mr-2 h-4 w-4" />
               <span>Battle</span>
@@ -150,7 +128,7 @@ export default function Header({ user }: { user: User }) {
                   <span>Home</span>
                 </DropdownMenuItem>
               </Link>
-              <Link to={`/${user.username}/battle`}>
+              <Link to={`/battles`}>
                 <DropdownMenuItem className="cursor-pointer">
                   <Play className="mr-2 h-4 w-4" />
                   <span>Battle</span>

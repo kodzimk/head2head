@@ -14,7 +14,6 @@ export default function Friends() {
   
     axios.get(`http://localhost:8000/friends/get-friends?email=${userEmail}`).then(async (response) => {
       const friendsArray = await Promise.all(response.data.map(async (friend: string) => {
-        try {
           const friendData = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${friend}`);
           return {
             username: friend,
@@ -22,15 +21,6 @@ export default function Friends() {
             avatar: friendData.data.avatar ? `http://localhost:8000${friendData.data.avatar}` : null,
             rank: friendData.data.ranking
           };
-        } catch (error) {
-          console.error(`Error fetching data for friend ${friend}:`, error);
-          return {
-            username: friend,
-            status: "online",
-            avatar: null,
-            rank: "1"
-          };
-        }
       }));
       setFriends(friendsArray);
     })

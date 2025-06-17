@@ -1,28 +1,25 @@
 from .init import router_friend
 from init import redis_username, redis_email
 from models import UserDataCreate
-from init import SessionLocal
 from db.router import update_data
 from fastapi import HTTPException
 import json
 
 @router_friend.post("/cancel-friend-request")
 async def cancel_friend_request(username: str, from_username: str):
-    async with SessionLocal() as db:
         user_model = redis_username.get(username)
         user_model = json.loads(user_model)
-       
+           
         if from_username in user_model['friendRequests']:
             user_model['friendRequests'].remove(from_username)
 
         redis_username.set(username, json.dumps(user_model))
         redis_email.set(user_model['email'], json.dumps(user_model))
         await update_data(UserDataCreate(**user_model)) 
-        return True
+        return user_model
 
 @router_friend.post("/add-friend")
 async def add_friend(username: str, friend_username: str):
-    async with SessionLocal() as db:
         user_model = redis_username.get(username)
         friend_model = redis_username.get(friend_username)
         
@@ -50,11 +47,10 @@ async def add_friend(username: str, friend_username: str):
         await update_data(UserDataCreate(**user_model))
         await update_data(UserDataCreate(**friend_model))
         
-        return True
+        return user_model
 
 @router_friend.post("/friend-requests")
 async def send_friend_request(username: str, from_username: str):
-    async with SessionLocal() as db:
         user_model = redis_username.get(username)
         user_model = json.loads(user_model)
        
@@ -92,7 +88,7 @@ async def remove_friend(username: str, from_username: str):
     redis_username.set(from_username, json.dumps(friend_model))
     await update_data(UserDataCreate(**friend_model))
 
-    return True 
+    return True
 
 @router_friend.get("/search-user")
 async def search_user(username: str):

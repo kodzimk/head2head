@@ -11,12 +11,6 @@ export default function Footer() {
         </div>
             <nav className="flex flex-wrap justify-center gap-4 md:gap-6">
               <a href="#" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
-                Terms of Service
-              </a>
-              <a href="#" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
-                Privacy Policy
-              </a>
-              <a href="#" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
                 Support
               </a>
               <a href="#" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
