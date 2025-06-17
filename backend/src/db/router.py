@@ -10,8 +10,7 @@ from datetime import datetime
 
 @db_router.post("/update-user",name="update user data")
 async def update_user_data(user: UserDataCreate):
-    await update_data(user)
-    return user
+    return await update_data(user)
     
 @db_router.delete("/delete-user",name="delete user")
 async def delete_user_data(email: EmailStr):
@@ -126,19 +125,19 @@ async def update_data(user: UserDataCreate):
                     
                     friend_model = json.loads(friend_data)
                     if temp in friend_model['friends']:
-                        # Update the old username to new username in friend's array
                         friend_model['friends'][friend_model['friends'].index(temp)] = user.username
-                        # Update both Redis caches
+                        
                         redis_username.set(friend, json.dumps(friend_model))
                         redis_email.set(friend_model['email'], json.dumps(friend_model))
                         
-                        # Update the database
-                        friend_update = UserDataCreate(**friend_model)
                         async with SessionLocal() as friend_db:
                             db_friend = await friend_db.get(UserData, friend_model['email'])
                             if db_friend:
                                 db_friend.friends = friend_model['friends']
                                 await friend_db.commit()
+                                await friend_db.refresh(db_friend)
+
+
                 except json.JSONDecodeError:
                     print(f"Error decoding friend data for {friend}")
                     continue
@@ -165,5 +164,5 @@ async def update_data(user: UserDataCreate):
         }
         redis_email.set(user_model.email, json.dumps(user_dict))
         redis_username.set(user_model.username, json.dumps(user_dict))
-        return True
+        return user_model
 

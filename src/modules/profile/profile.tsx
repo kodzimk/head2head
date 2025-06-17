@@ -57,8 +57,14 @@ export default function ProfileSettingsPage(  ) {
   }, [isDarkMode]);
 
   const handleSave = async () => {
+    user.favoritesSport = favourite
+    user.username = username
     setIsLoading(true)
-    sendMessage(user)
+    sendMessage(user, "user_update")
+
+    setTimeout(() => {
+      setIsLoading(false)
+    }, 1000)
   }
 
   const handleReset = () => {
@@ -67,7 +73,7 @@ export default function ProfileSettingsPage(  ) {
     user.winRate = 0
     user.rank = 0
     user.streak = 0
-    sendMessage(user)
+    sendMessage(user, "user_update")
   }
 
 const handleDelete = async () => {

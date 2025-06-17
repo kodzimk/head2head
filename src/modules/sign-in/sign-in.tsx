@@ -179,7 +179,7 @@ export default function SignInPage() {
             streak: 0,
             friends: [],
             friendRequests: [],
-            avatar: null
+            avatar: ''
           }, {
             headers: {
               'Content-Type': 'application/json',

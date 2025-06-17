@@ -93,7 +93,7 @@ export default function Header({ user }: { user: User }) {
             >
               <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                 <AvatarImage
-                  src={user.avatar ? `http://localhost:8000${user.avatar}` : "/placeholder.svg"}
+                  src={user.avatar ? `http://localhost:8000${user.avatar}`: ''}
                   alt={user.username}
                 />
                 <AvatarFallback className="bg-orange-500 text-white">

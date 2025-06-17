@@ -92,6 +92,7 @@ export default function EmailSignUpPage() {
       streak: 0,
       friends: [],
       friendRequests: [],
+      avatar: ''
     }, {
       headers: {
         'Content-Type': 'application/json',

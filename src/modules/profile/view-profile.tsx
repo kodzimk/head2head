@@ -42,6 +42,7 @@ export const ViewProfile = ({user}: {user: User}) => {
         viewUser.friendRequests = response.data.friendRequests
         viewUser.friends = response.data.friends
         viewUser.avatar = response.data.avatar ? `http://localhost:8000${response.data.avatar}` : undefined
+        console.log(viewUser.friends)
 
         setTimeout(() => {
           if(response.data.friendRequests.includes(user.username)) {
@@ -288,7 +289,7 @@ export const ViewProfile = ({user}: {user: User}) => {
 
               {viewUser.email !== user.email && (
                 <div className="flex justify-center gap-4 mt-6">
-                  {viewUser.friends && viewUser.friends.includes(user.username) ? (
+                  {viewUser.friends && viewUser.friends.includes(user.username) && user.username !== '' ? (
                     <Button 
                       className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
                       onClick={() => navigate(`/battle/${viewUser.username}`)}

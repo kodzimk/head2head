@@ -61,9 +61,9 @@ async def websocket_endpoint(websocket: WebSocket):
                         friendRequests=message["friendRequests"],
                         avatar=message["avatar"]
                     )
-                    
+                    print('aduahsugdas')
                     updated_user = await update_user_data(user_data)
-                    
+                    print(updated_user)
                     user_dict = {
                         "email": updated_user.email,
                         "username": updated_user.username,

@@ -81,6 +81,7 @@ export default function SignUpPage() {
                             streak: 0,
                             friends: [],
                             friendRequests: [],
+                            avatar: ''
                           }, {
                             headers: {
                               'Content-Type': 'application/json',
