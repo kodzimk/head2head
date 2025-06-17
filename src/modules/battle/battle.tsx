@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
@@ -24,8 +24,8 @@ interface Battle {
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
-  const [battles, setBattles] = useState<Battle[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [battles] = useState<Battle[]>([])
+  const [isLoading] = useState(true)
   const [selectedSport, setSelectedSport] = useState('')
   const [selectedDuration, setSelectedDuration] = useState<number>(0)
   const navigate = useNavigate()

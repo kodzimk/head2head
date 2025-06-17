@@ -1,8 +1,7 @@
 from .init import battle_router,redis_battle
-from models import BattleModel, UserDataCreate
+from models import BattleModel
 from init import SessionLocal
-from fastapi import HTTPException, Query
-from db.router import update_data, get_user_by_username
+from fastapi import  Query
 import json
 import uuid
 
