@@ -102,6 +102,7 @@ export default function App() {
             battles: data.data.battles,
             invitations: data.data.invitations
           };
+
           setUser(updatedUser);          
         } else if (data.type === 'battle_started') {
           navigate(`/battle/${data.data.battle_id}/countdown`);

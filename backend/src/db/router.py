@@ -173,6 +173,7 @@ async def update_data(user: UserDataCreate):
             'battles': user_model.battles,
             'invitations': user_model.invitations
         }
+        
         redis_email.set(user_model.email, json.dumps(user_dict))
         redis_username.set(user_model.username, json.dumps(user_dict))
         return user_model

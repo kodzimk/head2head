@@ -59,13 +59,14 @@ export default function ProfileSettingsPage(  ) {
   const handleSave = async () => {
     user.favoritesSport = favourite
     user.username = username
+
     setIsLoading(true)
     sendMessage(user, "user_update")
-    
+    localStorage.setItem('username', username);
 
     setTimeout(() => {
       setIsLoading(false)
-    }, 1000)
+    }, 500)
   }
 
   const handleReset = () => {
