@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../shared/ui/dropdown-menu'
 import type { User } from '../../shared/interface/user'
 import { initialUser } from '../../shared/interface/user'
-import { sendFriendRequest, sendMessage } from '../../shared/websockets/websocket'
+import { invitebattleFriend,sendFriendRequest, sendMessage } from '../../shared/websockets/websocket'
 import { cancelFriendRequest } from '../../shared/websockets/websocket'
 import { refreshView } from '../../app/App'
 
@@ -29,6 +29,10 @@ export const ViewProfile = ({user}: {user: User}) => {
     cancelFriendRequest(viewUser, user.username)
     setRequestSent(false)
   };
+
+  const handleBattle = async () => {
+    navigate(`/battles`)
+  }
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -299,7 +303,7 @@ export const ViewProfile = ({user}: {user: User}) => {
                   {viewUser.friends && viewUser.friends.includes(user.username) && user.username !== '' ? (
                     <Button 
                       className="w-full sm:w-auto bg-orange-500 text-white  dark:text-black hover:bg-orange-600"
-                      onClick={() => navigate(`/battle/${viewUser.username}`)}
+                      onClick={handleBattle}
                     >
                       Battle
                     </Button>

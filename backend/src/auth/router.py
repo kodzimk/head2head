@@ -22,6 +22,7 @@ async def user_exists(email: str) -> bool:
         return False
     return True
 
+@auth_router.get("/username-user",name="username-user")
 async def username_exists(username: str) -> bool:
     user = redis_username.get(username)
     if user is None:
@@ -39,7 +40,7 @@ async def create_user_data(user: UserDataCreate):
         
         hashed_password = hash_password(user.password)
         db_user = UserData(
-                username=user.username,
+                username= user.username.strip(),
                 email=user.email,
                 totalBattle=user.totalBattle,
                 winRate=user.winRate,

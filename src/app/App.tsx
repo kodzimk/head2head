@@ -26,7 +26,7 @@ import BattleCountdown from '../modules/battle/countdown'
 
 export let newSocket: WebSocket | null = null;
 
-const createWebSocket = (username: string | null) => {
+export const createWebSocket = (username: string | null) => {
   if (!username) return null;
   
   const ws = new WebSocket(`ws://127.0.0.1:8000/ws?username=${encodeURIComponent(username)}`);
@@ -45,30 +45,20 @@ export default function App() {
   const [theme, setTheme] = useState<boolean>(false)
   const navigate = useNavigate()
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  newSocket = createWebSocket(localStorage.getItem('username')?.replace(/"/g, '') || null); 
+   
 
   useEffect(() => {
-    const storedUsername = localStorage.getItem('username')?.replace(/"/g, '');
-    if (storedUsername) {
-      newSocket = createWebSocket(storedUsername);
+    if(localStorage.getItem('username')) {
+      newSocket = createWebSocket(localStorage.getItem('username')?.replace(/"/g, '') || null);
     }
-
-    return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (newSocket) {
-        newSocket.close();
-        newSocket = null;
-      }
-    };
-  }, []);
+  }, [user.username]);
 
   useEffect(() => {
     if (!newSocket) return;
-
     newSocket.onopen = () => {
-      console.log("WebSocket connection established");
-      sendMessage(user, "get_email");
+        console.log("WebSocket connection established");
+        sendMessage(user, "get_email");
     };
 
     newSocket.onclose = () => {
@@ -83,55 +73,104 @@ export default function App() {
     };
 
     newSocket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'user_updated') {
-          const updatedUser = {
-            email: data.data.email,
-            username: data.data.username,
-            wins: data.data.winBattle,
-            favoritesSport: data.data.favourite,
-            rank: data.data.ranking,
-            winRate: data.data.winRate,
-            totalBattles: data.data.totalBattle,
-            streak: data.data.streak,
-            password: data.data.password,
-            friends: data.data.friends,
-            friendRequests: data.data.friendRequests,
-            avatar: data.data.avatar,
-            battles: data.data.battles,
-            invitations: data.data.invitations
-          };
+      console.log(event.data)
+       const data = JSON.parse(event.data);
+       if (data.type === 'user_updated') {
+         const updatedUser = {
+           email: data.data.email,
+           username: data.data.username,
+           wins: data.data.winBattle,
+           favoritesSport: data.data.favourite,
+           rank: data.data.ranking,
+           winRate: data.data.winRate,
+           totalBattles: data.data.totalBattle,
+           streak: data.data.streak,
+           password: data.data.password,
+           friends: data.data.friends,
+           friendRequests: data.data.friendRequests,
+           avatar: data.data.avatar,
+           battles: data.data.battles,
+           invitations: data.data.invitations
+         };
+         setUser(updatedUser);   
+         localStorage.setItem('username', updatedUser.username);
+         console.log(updatedUser)
+       } else if (data.type === 'battle_started') {
+         navigate(`/battle/${data.data.battle_id}/countdown`);
+       }
+       else if(data.type === 'friend_request_updated'){
+         const updatedUser = {
+           email: data.data.email,
+           username: data.data.username,
+           wins: data.data.winBattle,
+           favoritesSport: data.data.favourite,
+           rank: data.data.ranking,
+           winRate: data.data.winRate,
+           totalBattles: data.data.totalBattle,
+           streak: data.data.streak,
+           password: data.data.password,
+           friends: data.data.friends,
+           friendRequests: data.data.friendRequests,
+           avatar: data.data.avatar,
+           battles: data.data.battles,
+           invitations: data.data.invitations
+         };
+         setUser(updatedUser); 
+         refreshView = !refreshView;
+       }
+   }
 
-          setUser(updatedUser);          
-        } else if (data.type === 'battle_started') {
-          navigate(`/battle/${data.data.battle_id}/countdown`);
-        }
-        else if(data.type === 'friend_request_updated'){
-          const updatedUser = {
-            email: data.data.email,
-            username: data.data.username,
-            wins: data.data.winBattle,
-            favoritesSport: data.data.favourite,
-            rank: data.data.ranking,
-            winRate: data.data.winRate,
-            totalBattles: data.data.totalBattle,
-            streak: data.data.streak,
-            password: data.data.password,
-            friends: data.data.friends,
-            friendRequests: data.data.friendRequests,
-            avatar: data.data.avatar,
-            battles: data.data.battles,
-            invitations: data.data.invitations
-          };
-          setUser(updatedUser); 
-          refreshView = !refreshView;
-        }
-      } catch (error) {
-        console.error("Error processing message:", error);
-      }
-    };
-  }, [newSocket]);
+  }, []);
+
+  newSocket && (newSocket.onmessage = (event) => {
+    console.log(event.data)
+     const data = JSON.parse(event.data);
+     if (data.type === 'user_updated') {
+       const updatedUser = {
+         email: data.data.email,
+         username: data.data.username,
+         wins: data.data.winBattle,
+         favoritesSport: data.data.favourite,
+         rank: data.data.ranking,
+         winRate: data.data.winRate,
+         totalBattles: data.data.totalBattle,
+         streak: data.data.streak,
+         password: data.data.password,
+         friends: data.data.friends,
+         friendRequests: data.data.friendRequests,
+         avatar: data.data.avatar,
+         battles: data.data.battles,
+         invitations: data.data.invitations
+       };
+       setUser(updatedUser);   
+       localStorage.setItem('username', updatedUser.username);
+       console.log(updatedUser)
+     } else if (data.type === 'battle_started') {
+       navigate(`/battle/${data.data.battle_id}/countdown`);
+     }
+     else if(data.type === 'friend_request_updated'){
+       const updatedUser = {
+         email: data.data.email,
+         username: data.data.username,
+         wins: data.data.winBattle,
+         favoritesSport: data.data.favourite,
+         rank: data.data.ranking,
+         winRate: data.data.winRate,
+         totalBattles: data.data.totalBattle,
+         streak: data.data.streak,
+         password: data.data.password,
+         friends: data.data.friends,
+         friendRequests: data.data.friendRequests,
+         avatar: data.data.avatar,
+         battles: data.data.battles,
+         invitations: data.data.invitations
+       };
+       setUser(updatedUser); 
+       refreshView = !refreshView;
+     }
+ });
+
+
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');

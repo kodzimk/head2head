@@ -73,20 +73,15 @@ export default function WaitingRoom() {
   }
 
   const undoInvite = async (friendUsername: string) => {
-    try {
-      // First send the websocket message
-      await cancelInvitation(friendUsername, id)
+
+      cancelInvitation(friendUsername, id)
       
-      // Then update the state using the callback form to ensure we have the latest state
       setInvitedFriends(prev => {
         const newInvitedFriends = prev.filter(username => username !== friendUsername)
-        // Update localStorage after state is updated
         localStorage.setItem(`invitedFriends_${id}`, JSON.stringify(newInvitedFriends))
         return newInvitedFriends
       })
-    } catch (error) {
-      console.error('Error canceling invitation:', error)
-    }
+    
   }
 
   return (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../shared/ui/card"
 import { Input } from "../../shared/ui/input"
@@ -23,8 +23,8 @@ import axios from "axios"
 import { useNavigate } from "react-router-dom"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import Header from "../dashboard/header"
-import { sendMessage } from "../../shared/websockets/websocket"
-
+import { deleteUser, sendMessage } from "../../shared/websockets/websocket"
+import { createWebSocket, newSocket } from "../../app/App"
 
 export default function ProfileSettingsPage(  ) {
   const navigate = useNavigate()
@@ -57,14 +57,21 @@ export default function ProfileSettingsPage(  ) {
   }, [isDarkMode]);
 
   const handleSave = async () => {
+    const response = await axios.get(`http://localhost:8000/auth/username-user?username=${username}`)
+    if (response.data === true && username !== user.username && username !== '') {
+      setError("Username already exists")
+      return
+    }
+    
     user.favoritesSport = favourite
     user.username = username
-
+    setUser(user)
     setIsLoading(true)
+    localStorage.setItem('username', username)
     sendMessage(user, "user_update")
-    localStorage.setItem('username', username);
 
     setTimeout(() => {
+      
       setIsLoading(false)
     }, 500)
   }
@@ -81,26 +88,10 @@ export default function ProfileSettingsPage(  ) {
   }
 
 const handleDelete = async () => {
-  try {
-
-    const url = `http://localhost:8000/db/delete-user?email=${encodeURIComponent(user.email)}`;    
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include'
-    });
-    
-    if (response.ok) {
-      localStorage.removeItem("theme");
-      localStorage.removeItem("user");
-      navigate("/sign-up");
-    }
-  } catch (error) {
-
-  }
+   deleteUser(user)
+   localStorage.removeItem("theme")
+   localStorage.removeItem("user")
+   navigate("/sign-up")  
 }
 
 const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {

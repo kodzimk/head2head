@@ -2,7 +2,7 @@ from fastapi import WebSocket, FastAPI, WebSocketDisconnect
 import json
 import logging
 from typing import Dict
-from db.router import get_user_data, update_user_data, get_user_by_username
+from db.router import delete_user_data, get_user_data, update_user_data, get_user_by_username
 from friends.router import add_friend, cancel_friend_request, send_friend_request
 from battle.router import invite_friend, cancel_invitation, accept_invitation
 from battle.init import redis_battle
@@ -48,6 +48,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                 try:
                     message = json.loads(data)          
                     if message.get("type") == "user_update":
+                        temp = message["username"]
                         user_data = UserDataCreate(
                             username=message["username"],
                             email=message["email"],
@@ -63,8 +64,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             avatar=message["avatar"],
                             battles=message["battles"],
                             invitations=message["invitations"]
-                        )
-                     
+                        )                     
                         updated_user = await update_user_data(user_data)
 
                         user_dict = {
@@ -83,11 +83,14 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "battles": updated_user.battles,
                             "invitations": updated_user.invitations
                         }
-                        
+
                         await manager.send_message(json.dumps({
                             "type": "user_updated",
                             "data": user_dict
-                        }), message["username"])
+                        }), temp)
+                        manager.active_connections[message['username']] = websocket
+                      
+
                     elif message.get("type") == "get_email":
                         user_data = await get_user_data(message["email"])
                         if user_data:
@@ -149,18 +152,24 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 "type": "user_updated",
                                 "data": user_data
                             }), message["friend_username"])
+                            await manager.send_message(json.dumps({
+                                "type": "user_updated",
+                                "data": await get_user_by_username(message["username"])
+                            }), message["username"])
                     elif message.get("type") == "invite_friend":
                         await invite_friend(message["battle_id"], message["friend_username"])
+                        await manager.send_message(json.dumps({
+                            "type": "user_updated",
+                            "data": await get_user_by_username(message["friend_username"])
+                        }), message["friend_username"])
                     elif message.get("type") == "cancel_invitation":
                         await cancel_invitation(message["friend_username"], message["battle_id"])
                         await manager.send_message(json.dumps({
-                            "type": "battle_cancelled",
-                            "data": {
-                                "battle_id": message["battle_id"]
-                            }
-                        }), username)
-                    elif message.get("type") == "accept_invitation":
+                            "type": "user_updated",
+                            "data": await get_user_by_username(message["friend_username"])
+                        }), message["friend_username"])
 
+                    elif message.get("type") == "accept_invitation":
                         try:
                             success = await accept_invitation(message["friend_username"], message["battle_id"])
                             if success:
@@ -178,6 +187,15 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 "type": "error",
                                 "message": "Failed to accept invitation"
                             }), username)
+                                
+                    elif message.get("type") == "delete_user":
+                       friends =  await delete_user_data(message["email"])
+                       for friend in friends:
+                           await manager.send_message(json.dumps({
+                               "type": "user_updated",
+                               "data": await get_user_by_username(friend)
+                           }), friend)
+        
                 except json.JSONDecodeError:
                     logger.error(f"Invalid JSON received from client {username}")
                     await manager.send_message(json.dumps({

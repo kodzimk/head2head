@@ -10,9 +10,11 @@ export default function EntryPage({user}: {user: User}) {
 
   useEffect(() => {
     const email = localStorage.getItem("user")?.replace(/"/g, '');
-    if(email){
+    const username = localStorage.getItem("username")?.replace(/"/g, '');
+    
+    if(email && username){
       setTimeout(() => {
-        navigate(`/${user.username}`);
+        navigate(`/${username}`);
       }, 100)
     }
   }, []);

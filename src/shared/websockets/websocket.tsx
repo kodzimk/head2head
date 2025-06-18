@@ -95,3 +95,10 @@ export const removeFriend = (user: User, friend_username: string) => {
     friend_username: friend_username
   }))
 }
+
+export const deleteUser = (user: User) => {
+  newSocket?.send(JSON.stringify({
+    type: "delete_user",
+    email: user.email
+  }))
+}

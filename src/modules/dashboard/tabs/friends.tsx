@@ -32,7 +32,7 @@ export default function Friends({user}: {user: User}) {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     Friends ({friends.length})
-                    <Button variant="ghost" size="sm" className="w-32 h-8" onClick={() => navigate("/friends")}>
+                    <Button variant="ghost" size="sm" className="w-32 h-8" onClick={() => navigate(`/${user.username}/friends`)}>
                   View All <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
                   </CardTitle>
@@ -42,7 +42,7 @@ export default function Friends({user}: {user: User}) {
                     {friends.length === 0 ? (
                       <div className="text-center py-8">
                         <p className="text-gray-500 text-lg mb-4">You don't have any friends yet</p>
-                        <Button variant="outline" className="gap-2">
+                        <Button variant="outline" className="gap-2" onClick={() => navigate(`/${user.username}/friends`)}>
                           <Plus className="w-4 h-4" />
                           Add Friends
                         </Button>

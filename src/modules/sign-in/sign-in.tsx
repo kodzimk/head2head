@@ -63,7 +63,7 @@ export default function SignInPage() {
 
     try {
       const response = await axios.get(
-        "http://0.0.0.0:8000/auth/signin",
+        "http://127.0.0.1:8000/auth/signin",
         {
           params: {
             email: formData.email,
@@ -128,7 +128,7 @@ export default function SignInPage() {
     
     try {
       const response = await axios.get(
-        "http://0.0.0.0:8000/auth/signin",
+        "http://127.0.0.1:8000/auth/signin",
         {
           params: {
             email: decodedToken.email,
@@ -173,7 +173,7 @@ export default function SignInPage() {
       } else if (error.response?.status === 404) {
         // If user doesn't exist, try to sign them up
         try {
-          const signUpResponse = await axios.post("http://0.0.0.0:8000/auth/signup", {
+          const signUpResponse = await axios.post("http://127.0.0.1:8000/auth/signup", {
             email: decodedToken.email,
             password: credentialResponse.credential,
             username: decodedToken.name,
@@ -214,6 +214,7 @@ export default function SignInPage() {
               invitations: signUpResponse.data.invitations
             };
             setUser(updatedUser);
+            localStorage.setItem('username', signUpResponse.data.username);
             localStorage.setItem("user", JSON.stringify(signUpResponse.data.email));
             navigate(`/${signUpResponse.data.username}`);
           }
