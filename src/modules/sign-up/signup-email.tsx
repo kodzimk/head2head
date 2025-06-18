@@ -9,6 +9,7 @@ import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle, Info, X } from "
 import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
+import { sendMessage } from "../../shared/websockets/websocket"
 
 interface ValidationErrors {
   email?: string;
@@ -105,7 +106,6 @@ export default function EmailSignUpPage() {
         if (response.data) {
           user.email = response.data.email
           user.username = response.data.username
-
           user.wins = response.data.winBattle
           user.favoritesSport = response.data.favourite
           user.rank = response.data.ranking
@@ -119,7 +119,11 @@ export default function EmailSignUpPage() {
           user.invitations = response.data.invitations
           setUser(user)
           localStorage.setItem("user", JSON.stringify(response.data.email)) 
-          navigate(`/${user.username}`)
+          sendMessage(user, "user_update")
+
+          setTimeout(() => {
+            navigate(`/${user.username}`)
+          }, 100)
         } else {
           setValidationErrors({
             submit: 'Signup failed. Account already exists.'

@@ -61,6 +61,7 @@ export default function ProfileSettingsPage(  ) {
     user.username = username
     setIsLoading(true)
     sendMessage(user, "user_update")
+    
 
     setTimeout(() => {
       setIsLoading(false)

@@ -21,6 +21,7 @@ import { initialUser } from '../shared/interface/user'
 
 import type { User } from '../shared/interface/user'
 import { sendMessage, websocket } from '../shared/websockets/websocket'
+import QuizQuestionPage from '../modules/battle/quiz-question'
 
 export default function App() {
   const [user, setUser] = useState<User>(initialUser)
@@ -115,6 +116,7 @@ export default function App() {
             <Route path="/:username/notifications" element={<NotificationsPage />} />
             <Route path="/battles" element={<BattlesPage />} />
             <Route path="/waiting/:id" element={<WaitingPage />} />
+            <Route path="/battle/:id/quiz" element={<QuizQuestionPage />} />
           </Routes>
         </div>
       </ThemeStore.Provider>

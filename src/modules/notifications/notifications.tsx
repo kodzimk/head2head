@@ -6,7 +6,7 @@ import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "../../
 import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar"
 import { Check, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { acceptFriendRequest, rejectFriendRequest } from "../../shared/websockets/websocket"
+import { acceptFriendRequest, rejectFriendRequest, sendMessage } from "../../shared/websockets/websocket"
 
 interface FriendRequest {
   sender: {
@@ -16,25 +16,37 @@ interface FriendRequest {
   status: 'pending' | 'accepted' | 'rejected'
 }
 
+interface Invitation {
+  battle_id: string
+  sport: string
+  duration: number
+}
+
 export default function NotificationsPage() {
   const { user } = useGlobalStore()
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
+  const [invitations, setInvitations] = useState<Invitation[]>([])
   const [isLoading] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
+    const newFriendRequests = user.friendRequests.map(request => ({
+      sender: {
+        username: request,
+        avatar: ''       
+      },
+      status: 'pending' as const
+    }))
+    setFriendRequests(newFriendRequests)
 
-     user.friendRequests.forEach((request) => {
-      console.log(request)
-      setFriendRequests(prev => [...prev, {
-        sender: {
-          username: request,
-          avatar: ''       
-        },
-        status: 'pending'
-      }])
-     })
-  }, [])
+    const newInvitations = user.invitations.map(invitation => ({
+      battle_id: invitation,
+      sport: '',
+      duration: 0
+    }))
+    setInvitations(newInvitations)
+    
+  }, [user.friendRequests, user.invitations])
 
   const handleAcceptRequest = async (username: string) => {
     try {
@@ -60,6 +72,24 @@ export default function NotificationsPage() {
     navigate(`/profile/${username}`)
   }
 
+  const handleAcceptInvitation = async (battle_id: string) => {
+    try {
+      setInvitations(prev => prev.filter(invitation => invitation.battle_id !== battle_id))
+    } catch (error) {
+      console.error('Error accepting invitation:', error)
+    }
+  }
+
+  const handleRejectInvitation = async (battle_id: string) => {
+    try {
+      setInvitations(prev => prev.filter(invitation => invitation.battle_id !== battle_id))
+      user.invitations = user.invitations.filter(invitation => invitation !== battle_id)
+      sendMessage(user, "user_update")
+    } catch (error) {
+      console.error('Error rejecting invitation:', error)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <Header user={user} />
@@ -69,9 +99,10 @@ export default function NotificationsPage() {
           
           {isLoading ? (
             <div className="text-center text-gray-500">Loading...</div>
-          ) : friendRequests.length === 0 ? (
+          ) : friendRequests.length === 0 && invitations.length === 0 ? (
             <div className="text-center text-gray-500">No new notifications</div>
-          ) : (
+          ) : 
+          (
             <div className="space-y-4">
               {friendRequests.map((request) => (
                 <Card key={request.sender.username} className="bg-white dark:bg-gray-800">
@@ -123,6 +154,35 @@ export default function NotificationsPage() {
                   </CardFooter>
                 </Card>
               ))}
+
+              {invitations.length > 0 && (
+                <div className="mt-6">
+                  <h2 className="text-xl font-semibold mb-4">Battle Invitations</h2>
+                  {invitations.map((invitation, index) => (
+                    <Card key={`${invitation.battle_id}-${index}`} className="bg-white dark:bg-gray-800 mb-4">
+                      <CardHeader className="flex flex-row items-center gap-4">
+                        <CardTitle>Battle Invitation</CardTitle>
+                      </CardHeader>
+                      <CardFooter className="flex justify-end gap-2">
+                        <Button 
+                          size="sm" 
+                          className="bg-orange-500 text-white dark:text-black hover:bg-orange-600" 
+                          onClick={() => handleAcceptInvitation(invitation.battle_id)}
+                        >
+                          Accept
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="bg-red-500 text-white dark:text-black hover:bg-red-600" 
+                          onClick={() => handleRejectInvitation(invitation.battle_id)}
+                        >
+                          Reject
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

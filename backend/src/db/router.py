@@ -120,6 +120,7 @@ async def update_data(user: UserDataCreate):
         user_model.friends = user.friends
         user_model.friendRequests = user.friendRequests
         user_model.battles = user.battles
+        user_model.invitations = user.invitations
         if user.avatar:
             user_model.avatar = user.avatar
 

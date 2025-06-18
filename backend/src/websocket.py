@@ -4,6 +4,7 @@ import logging
 from typing import Dict
 from db.router import get_user_data, update_user_data
 from friends.router import add_friend, cancel_friend_request, send_friend_request
+from battle.router import invite_friend, cancel_invitation
 from models import UserDataCreate
 from init import init_models
 
@@ -43,9 +44,7 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             try:
-                message = json.loads(data)
-                logger.info(f"Received message from client {client_id}: {message}")
-                
+                message = json.loads(data)          
                 if message.get("type") == "user_update":
                     user_data = UserDataCreate(
                         username=message["username"],
@@ -65,7 +64,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     )
                  
                     updated_user = await update_user_data(user_data)
-            
+
                     user_dict = {
                         "email": updated_user.email,
                         "username": updated_user.username,
@@ -101,7 +100,6 @@ async def websocket_endpoint(websocket: WebSocket):
                             "type": "user_updated",
                             "data": user_data
                         }))
-
                 elif message.get("type") == "reject_friend_request":
                     user_data = await cancel_friend_request(message["username"], message["friend_username"])
                     if user_data:
@@ -117,7 +115,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             "type": "user_updated",
                             "data": user_data
                         }))
-                elif message.get("type") == "cancel_friend_request":
+                elif message.get("type") == "cancel_friend_request":               
                     user_data = await cancel_friend_request(message["username"], message["friend_username"])
                     user_data = await get_user_data(message["friend_username"])
                     if user_data:
@@ -125,7 +123,10 @@ async def websocket_endpoint(websocket: WebSocket):
                             "type": "user_updated",
                             "data": user_data
                         }))
-
+                elif message.get("type") == "invite_friend":
+                    await invite_friend(message["battle_id"], message["friend_username"])
+                elif message.get("type") == "cancel_invitation":
+                    await cancel_invitation(message["friend_username"], message["battle_id"])
 
             except json.JSONDecodeError:
                 logger.error(f"Invalid JSON received from client {client_id}")

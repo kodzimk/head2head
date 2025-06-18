@@ -100,9 +100,9 @@ export default function Header({ user }: { user: User }) {
                   {user.username.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              {friendRequests.length > 0 && (
+              {(friendRequests.length > 0 || user.invitations.length > 0) && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                  {friendRequests.length}
+                  {friendRequests.length + user.invitations.length}
                 </span>
               )}
             </Button>
@@ -168,9 +168,9 @@ export default function Header({ user }: { user: User }) {
               <DropdownMenuItem className="cursor-pointer relative">
                 <Bell className="mr-2 h-4 w-4" />
                 <span>Notifications</span>
-                {friendRequests.length > 0 && (
+                {(friendRequests.length > 0 || user.invitations.length > 0) && (
                   <span className="ml-2 px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
-                    {friendRequests.length}
+                    {friendRequests.length + user.invitations.length}
                   </span>
                 )}
               </DropdownMenuItem>

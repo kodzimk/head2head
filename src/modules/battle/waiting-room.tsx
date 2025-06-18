@@ -14,16 +14,20 @@ import {
   SheetTrigger,
 } from "../../shared/ui/sheet"
 import { Avatar, AvatarFallback } from '../../shared/ui/avatar'
-import { sendFriendRequest } from '../../shared/websockets/websocket'
+import { cancelInvitation, invitebattleFriend } from '../../shared/websockets/websocket'
 
 export default function WaitingRoom() {
   const { user } = useGlobalStore()
-  const { id } = useParams()
+  const { id } = useParams() as { id: string }
   const navigate = useNavigate()
   const [waitingTime, setWaitingTime] = useState(0)
   const [invitedFriends, setInvitedFriends] = useState<string[]>([])
 
   useEffect(() => {
+    const savedInvitedFriends = localStorage.getItem(`invitedFriends_${id}`)
+    if (savedInvitedFriends) {
+      setInvitedFriends(JSON.parse(savedInvitedFriends))
+    }
     const interval = setInterval(() => {
       setWaitingTime(prev => prev + 1)
     }, 1000)
@@ -54,19 +58,25 @@ export default function WaitingRoom() {
   const quitBattle = async () => {
     try {
       await axios.delete(`http://localhost:8000/delete?battle_id=${id}`)
+      invitedFriends.forEach(friend => cancelInvitation(friend, id))
+      localStorage.removeItem(`invitedFriends_${id}`)
       navigate('/battles')
+
     } catch (error) {
       console.error('Error deleting battle:', error)
     }
-  }
+  } 
 
   const inviteFriend = async (friendUsername: string) => {
-    sendFriendRequest(friendUsername , user.username)
+    invitebattleFriend(friendUsername, id)
     setInvitedFriends(prev => [...prev, friendUsername])
+    localStorage.setItem(`invitedFriends_${id}`, JSON.stringify([...invitedFriends, friendUsername]))
   }
 
   const undoInvite = async (friendUsername: string) => {
+    cancelInvitation(friendUsername, id)
     setInvitedFriends(prev => prev.filter(username => username !== friendUsername))
+    localStorage.setItem(`invitedFriends_${id}`, JSON.stringify(invitedFriends.filter(username => username !== friendUsername)))
   }
 
   return (

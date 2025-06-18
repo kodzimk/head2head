@@ -4,8 +4,6 @@ export const websocket = new WebSocket("ws://127.0.0.1:8000/ws")
 
 
 export const sendMessage = (user: User,type: string) => {
-    console.log("Sending message")
-
 if(type === "user_update"){
       websocket.send(JSON.stringify({
         type: "user_update",
@@ -20,7 +18,9 @@ if(type === "user_update"){
         password: user.password,
         friends: user.friends,
         friendRequests: user.friendRequests,
-        avatar: user.avatar
+        avatar: user.avatar,
+        invitations: user.invitations,
+        battles: user.battles,
       }))
 }
 else if(type === "get_email"){
@@ -63,5 +63,21 @@ export const cancelFriendRequest = (user: User, friend_username: string) => {
     type: "cancel_friend_request",
     username: user.username,
     friend_username: friend_username
+  }))
+}
+
+export const invitebattleFriend = (friend_username: string, battle_id: string) => {
+  websocket.send(JSON.stringify({
+    type: "invite_friend",
+    friend_username: friend_username,
+    battle_id: battle_id
+  }))
+}
+
+export const cancelInvitation = (friend_username: string, battle_id: string) => {
+  websocket.send(JSON.stringify({
+    type: "cancel_invitation",
+    friend_username: friend_username,
+    battle_id: battle_id
   }))
 }

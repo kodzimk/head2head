@@ -1,9 +1,17 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
-WORKDIR /app
+# Set the working directory inside the container
+WORKDIR /app/backend/src
 
-COPY backend/src/ /app
+# Copy the backend folder contents into the container
+COPY backend/ /app/backend/
 
-RUN pip install -r requirements.txt
+# Install Python dependencies
+RUN pip install --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
+# Expose the port FastAPI will run on
+EXPOSE 8000
+
+# Run the FastAPI app with uvicorn
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
