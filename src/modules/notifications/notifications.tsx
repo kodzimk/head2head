@@ -73,8 +73,9 @@ export default function NotificationsPage() {
   }
 
   const handleAcceptInvitation = async (battle_id: string) => {
-    try {
+    try {  
       setInvitations(prev => prev.filter(invitation => invitation.battle_id !== battle_id))
+      user.invitations = user.invitations.filter(invitation => invitation !== battle_id)
       acceptInvitation(user.username, battle_id)
     } catch (error) {
       console.error('Error accepting invitation:', error)
@@ -85,9 +86,12 @@ export default function NotificationsPage() {
     try {
       setInvitations(prev => prev.filter(invitation => invitation.battle_id !== battle_id))
       user.invitations = user.invitations.filter(invitation => invitation !== battle_id)
-      sendMessage(user, "user_update")
+      await sendMessage(user, "user_update")
     } catch (error) {
       console.error('Error rejecting invitation:', error)
+      // Revert the state changes if there was an error
+      setInvitations(prev => [...prev, { battle_id, sport: '', duration: 0 }])
+      user.invitations.push(battle_id)
     }
   }
 

@@ -2,17 +2,16 @@ import { useState, useEffect } from 'react'
 import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { Input } from '../../shared/ui/input'
-import { GlobalStore } from '../../shared/interface/gloabL_var'
-import { useContext } from 'react'
 import { Search, UserMinus} from 'lucide-react'
 import axios from 'axios'
 import Header from '../dashboard/header'
-import type { Friend } from "../../shared/interface/user"
+import type { Friend, User } from "../../shared/interface/user"
 import { useNavigate } from 'react-router-dom'
+import { removeFriend } from '../../shared/websockets/websocket'
+import { refreshView } from '../../app/App'
 
 
-export default function FriendsPage() {
-  const { user } = useContext(GlobalStore)
+export default function FriendsPage({user}: {user: User}) {
   const [friends, setFriends] = useState<Friend[]>([])
   const [searchResults, setSearchResults] = useState<Friend[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -20,35 +19,32 @@ export default function FriendsPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const userEmail = localStorage.getItem("user")?.replace(/"/g, ''); 
-  
-    axios.get(`http://localhost:8000/friends/get-friends?email=${userEmail}`).then(async (response) => {
-      const friendsArray = await Promise.all(response.data.map(async (friend: string) => {
+    setFriends([])
+      user.friends.map(async (friend: string) => {
         try {
           const friendData = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${friend}`);
-          return {
+          setFriends(prev => [...prev, {
             username: friend,
             status: "online",
             avatar: friendData.data.avatar ? `http://localhost:8000${friendData.data.avatar}` : null,
             rank: friendData.data.ranking
-          };
+          }])
         } catch (error) {
           console.error(`Error fetching data for friend ${friend}:`, error);
-          return {
+          setFriends(prev => [...prev, {
             username: friend,
             status: "online",
             avatar: null,
             rank: "1"
-          };
+          }])
         }
-      }));
-      setFriends(friendsArray);
-    })
-  }, [])
+      });
+  }, [user,refreshView])
 
   const handleRemoveFriend = async (username: string) => {
-    await axios.post(`http://localhost:8000/friends/remove-friend?username=${username}&from_username=${user.username}`)
+    removeFriend(user, username)
     setFriends(friends.filter(friend => friend.username !== username))
+    user.friends = user.friends.filter(friend => friend !== username)
   }
 
   const handleSearch = async () => {

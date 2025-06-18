@@ -73,6 +73,8 @@ async def cancel_invitation(friend_username: str, battle_id: str):
         raise HTTPException(status_code=401, detail="Friend not found")
     
     friend_user = json.loads(friend_user)
+    if battle_id not in friend_user['invitations']:
+        return False
     friend_user['invitations'].remove(battle_id)
     redis_username.set(friend_username, json.dumps(friend_user))        
     user_data = UserDataCreate(
@@ -128,6 +130,7 @@ async def accept_invitation(friend_username: str, battle_id: str):
     battle = redis_battle.get(battle_id)
     if not battle:
         raise HTTPException(status_code=401, detail="Battle not found")
+    
     battle = json.loads(battle)
     battle['second_opponent'] = friend_username
     redis_battle.set(battle_id, json.dumps(battle))

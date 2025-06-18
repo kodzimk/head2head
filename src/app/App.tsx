@@ -9,7 +9,7 @@ import ProfilePage from '../modules/profile/profile'
 import FriendsPage from '../modules/friends/friends'
 import BattlesPage from '../modules/battle/battle'
 import WaitingPage from '../modules/battle/waiting-room'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 import { GlobalStore, ThemeStore } from '../shared/interface/gloabL_var'
 import { ViewProfile } from '../modules/profile/view-profile'
@@ -20,76 +20,117 @@ import NotificationsPage from '../modules/notifications/notifications'
 import { initialUser } from '../shared/interface/user'
 
 import type { User } from '../shared/interface/user'
-import { sendMessage, websocket } from '../shared/websockets/websocket'
+import { sendMessage } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
 import BattleCountdown from '../modules/battle/countdown'
+
+export let newSocket: WebSocket | null = null;
+
+const createWebSocket = (username: string | null) => {
+  if (!username) return null;
+  
+  const ws = new WebSocket(`ws://127.0.0.1:8000/ws?username=${encodeURIComponent(username)}`);
+  
+  ws.onerror = (event: WebSocketEventMap['error']) => {
+    console.error("WebSocket error:", event);
+  };
+  
+  return ws;
+};
+
+export let refreshView = false;
 
 export default function App() {
   const [user, setUser] = useState<User>(initialUser)
   const [theme, setTheme] = useState<boolean>(false)
   const navigate = useNavigate()
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-   
-    websocket.onopen = () => {
-      console.log("WebSocket connection established")
-      sendMessage(user, "get_email")
-    }
-    websocket.onclose = () => {
-       console.log("WebSocket connection closed")    
+    const storedUsername = localStorage.getItem('username')?.replace(/"/g, '');
+    if (storedUsername) {
+      newSocket = createWebSocket(storedUsername);
     }
 
     return () => {
-      websocket.close()
-    }
-  }, []) 
-  useEffect(() => {
-    return () => {
-      console.log("WebSocket connection closed")
-      setTimeout(() => {
-        websocket.close()
-      }, 1000)
-    }
-  }, [])
-
-  websocket.onmessage = (event) => {
-      const data = JSON.parse(event.data)    
-      if (data.type === 'user_updated') {
-        user.email = data.data.email
-        user.username = data.data.username
-        user.wins = data.data.winBattle
-        user.favoritesSport = data.data.favourite
-        user.rank = data.data.ranking
-        user.winRate = data.data.winRate
-        user.totalBattles = data.data.totalBattle
-        user.streak = data.data.streak
-        user.password = data.data.password
-        user.friends = data.data.friends
-        user.friendRequests = data.data.friendRequests
-        user.avatar = data.data.avatar
-        user.battles = data.data.battles
-        user.invitations = data.data.invitations
-        setUser({
-          email: data.data.email,
-          username: data.data.username,
-          wins: data.data.winBattle,
-          favoritesSport: data.data.favourite,
-          rank: data.data.ranking,
-          winRate: data.data.winRate,
-          totalBattles: data.data.totalBattle,
-          streak: data.data.streak,
-          password: data.data.password,
-          friends: data.data.friends,
-          friendRequests: data.data.friendRequests,
-          avatar: data.data.avatar,
-          battles: data.data.battles,
-          invitations: data.data.invitations
-        })
-      } 
-      else if(data.type === 'battle_started'){
-        navigate(`/battle/${data.data.battle_id}/countdown`)
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
       }
-  }
+      if (newSocket) {
+        newSocket.close();
+        newSocket = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!newSocket) return;
+
+    newSocket.onopen = () => {
+      console.log("WebSocket connection established");
+      sendMessage(user, "get_email");
+    };
+
+    newSocket.onclose = () => {
+      console.log("WebSocket connection closed");
+      reconnectTimeoutRef.current = setTimeout(() => {
+        const username = localStorage.getItem('username')?.replace(/"/g, '');
+        if (username) {
+          console.log("Attempting to reconnect...");
+          newSocket = createWebSocket(username);
+        }
+      }, 3000);
+    };
+
+    newSocket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'user_updated') {
+          const updatedUser = {
+            email: data.data.email,
+            username: data.data.username,
+            wins: data.data.winBattle,
+            favoritesSport: data.data.favourite,
+            rank: data.data.ranking,
+            winRate: data.data.winRate,
+            totalBattles: data.data.totalBattle,
+            streak: data.data.streak,
+            password: data.data.password,
+            friends: data.data.friends,
+            friendRequests: data.data.friendRequests,
+            avatar: data.data.avatar,
+            battles: data.data.battles,
+            invitations: data.data.invitations
+          };
+          setUser(updatedUser);          
+        } else if (data.type === 'battle_started') {
+          navigate(`/battle/${data.data.battle_id}/countdown`);
+        }
+        else if(data.type === 'friend_request_updated'){
+          const updatedUser = {
+            email: data.data.email,
+            username: data.data.username,
+            wins: data.data.winBattle,
+            favoritesSport: data.data.favourite,
+            rank: data.data.ranking,
+            winRate: data.data.winRate,
+            totalBattles: data.data.totalBattle,
+            streak: data.data.streak,
+            password: data.data.password,
+            friends: data.data.friends,
+            friendRequests: data.data.friendRequests,
+            avatar: data.data.avatar,
+            battles: data.data.battles,
+            invitations: data.data.invitations
+          };
+          setUser(updatedUser); 
+          refreshView = !refreshView;
+        }
+      } catch (error) {
+        console.error("Error processing message:", error);
+      }
+    };
+  }, [newSocket]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -101,31 +142,30 @@ export default function App() {
   }, [theme])
 
   return (
-    <GlobalStore.Provider value={{user, setUser: (user: User) => setUser(user)}}>
-      <ThemeStore.Provider value={{theme, setTheme: (theme: boolean) => setTheme(theme)}}>
-        <div className={theme ? 'dark' : ''}>
-          <Routes>
-            <Route path="/" element={<EntryPage user={user} />} />
-            <Route path="/sign-up" element={<SignUpPage />} />
-            <Route path="/signup-email" element={<EmailSignUpPage />} />
-            <Route path="/sign-in" element={<SignInPage />} />
-            <Route path="/:username" element={<DashboardPage />} ></Route>
-            <Route path="/:username/profile" element={<ProfilePage />} />
-            <Route path="/:username/friends" element={<FriendsPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/profile/:username" element={<ViewProfile user={user} />} />
-            <Route path="/friends" element={<FriendsPage />} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/selection" element={<SelectionPage />} />
-            <Route path="/:username/trainings" element={<TrainingsPage />} />
-            <Route path="/:username/notifications" element={<NotificationsPage />} />
-            <Route path="/battles" element={<BattlesPage />} />
-            <Route path="/waiting/:id" element={<WaitingPage />} />
-            <Route path="/battle/:id/quiz" element={<QuizQuestionPage />} />
-            <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
-          </Routes>
-        </div>
-      </ThemeStore.Provider>
-    </GlobalStore.Provider>
+      <GlobalStore.Provider value={{user, setUser: (user: User) => setUser(user)}}>
+        <ThemeStore.Provider value={{theme, setTheme: (theme: boolean) => setTheme(theme)}}>
+          <div className={theme ? 'dark' : ''}>
+            <Routes>
+              <Route path="/" element={<EntryPage user={user} />} />
+              <Route path="/sign-up" element={<SignUpPage />} />
+              <Route path="/signup-email" element={<EmailSignUpPage />} />
+              <Route path="/sign-in" element={<SignInPage />} />
+              <Route path="/:username" element={<DashboardPage />} ></Route>
+              <Route path="/:username/profile" element={<ProfilePage />} />
+              <Route path="/:username/friends" element={<FriendsPage user={user} />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile/:username" element={<ViewProfile user={user} />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/selection" element={<SelectionPage />} />
+              <Route path="/:username/trainings" element={<TrainingsPage />} />
+              <Route path="/:username/notifications" element={<NotificationsPage />} />
+              <Route path="/battles" element={<BattlesPage />} />
+              <Route path="/waiting/:id" element={<WaitingPage />} />
+              <Route path="/battle/:id/quiz" element={<QuizQuestionPage />} />
+              <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
+            </Routes>
+          </div>
+        </ThemeStore.Provider>
+      </GlobalStore.Provider>
   )
 }

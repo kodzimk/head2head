@@ -95,7 +95,8 @@ export default function SignInPage() {
           invitations: response.data.invitations
         };
         setUser(updatedUser);
-        localStorage.setItem("user", JSON.stringify(response.data.email));
+        localStorage.setItem('username', response.data.username);
+          localStorage.setItem("user", JSON.stringify(response.data.email));
         navigate(`/${response.data.username}`);
       }
     } catch (error: any) {
@@ -159,6 +160,7 @@ export default function SignInPage() {
           invitations: response.data.invitations
         };
         setUser(updatedUser);
+        localStorage.setItem('username', response.data.username);
         localStorage.setItem("user", JSON.stringify(response.data.email));
         navigate(`/${response.data.username}`);
       }

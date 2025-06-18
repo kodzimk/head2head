@@ -2,29 +2,26 @@ import { TabsContent } from "../../../shared/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card"
 import { Button } from "../../../shared/ui/button"
 import { Plus, ChevronRight, AlertTriangle } from "lucide-react"
-import type { Friend } from "../../../shared/interface/user"
+import type { Friend, User } from "../../../shared/interface/user"
 import { useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
 import axios from "axios"
+import { refreshView } from "../../../app/App"
 
-export default function Friends() {
+export default function Friends({user}: {user: User}) {
   const [friends, setFriends] = useState<Friend[]>([])
   useEffect(() => {
-    const userEmail = localStorage.getItem("user")?.replace(/"/g, ''); 
-  
-    axios.get(`http://localhost:8000/friends/get-friends?email=${userEmail}`).then(async (response) => {
-      const friendsArray = await Promise.all(response.data.map(async (friend: string) => {
+    setFriends([])
+    user.friends.map(async (friend: string) => {
           const friendData = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${friend}`);
-          return {
+          setFriends(prev => [...prev, {
             username: friend,
             status: "online",
             avatar: friendData.data.avatar ? `http://localhost:8000${friendData.data.avatar}` : null,
             rank: friendData.data.ranking
-          };
-      }));
-      setFriends(friendsArray);
-    })
-  }, [])
+          }]);
+      });
+  }, [user,refreshView])
 
     const navigate = useNavigate()
     return (

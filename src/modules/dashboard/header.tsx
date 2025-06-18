@@ -27,6 +27,7 @@ export default function Header({ user }: { user: User }) {
     document.documentElement.classList.remove('dark');
     localStorage.setItem('theme', 'light');
     localStorage.removeItem("user");
+    localStorage.removeItem('username');
     navigate("/");
   }
 

@@ -110,6 +110,7 @@ export default function SignUpPage() {
                               invitations: response.data.invitations
                             };
                             setUser(updatedUser);
+                            localStorage.setItem('username', response.data.username);
                             localStorage.setItem("user", JSON.stringify(response.data.email));
                             console.log(updatedUser)
                             navigate(`/${response.data.username}`);
@@ -151,6 +152,7 @@ export default function SignUpPage() {
                                   invitations: signInResponse.data.invitations
                                 };
                                 setUser(updatedUser);
+                                localStorage.setItem('username', signInResponse.data.username);
                                 localStorage.setItem("user", JSON.stringify(signInResponse.data.email));
                                 navigate(`/${signInResponse.data.username}`);
                               }

@@ -118,6 +118,7 @@ export default function EmailSignUpPage() {
           user.battles = response.data.battles
           user.invitations = response.data.invitations
           setUser(user)
+          localStorage.setItem('username', response.data.username);
           localStorage.setItem("user", JSON.stringify(response.data.email)) 
           sendMessage(user, "user_update")
 

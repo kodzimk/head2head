@@ -10,6 +10,7 @@ import type { User } from '../../shared/interface/user'
 import { initialUser } from '../../shared/interface/user'
 import { sendFriendRequest, sendMessage } from '../../shared/websockets/websocket'
 import { cancelFriendRequest } from '../../shared/websockets/websocket'
+import { refreshView } from '../../app/App'
 
 export const ViewProfile = ({user}: {user: User}) => {
   const { username } = useParams<{ username: string }>()
@@ -62,7 +63,7 @@ export const ViewProfile = ({user}: {user: User}) => {
         fetchUser()
       }, 100)
     }
-  }, [username, user.username])
+  }, [username, user.username, refreshView])
 
 
   if (isLoading) {

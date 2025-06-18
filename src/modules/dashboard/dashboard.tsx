@@ -131,7 +131,7 @@ export default function DashboardPage() {
           <Battles user={user} recentBattles={recentBattles} />
 
           {/* Friends Tab */}
-          <Friends />
+          <Friends user={user}/>
         </Tabs>
       </main>
     </div>

@@ -79,13 +79,13 @@ async def remove_friend(username: str, from_username: str):
     user_model = redis_username.get(username)
     user_model = json.loads(user_model)
     user_model['friends'].remove(from_username)
-    redis_username.delete(username)
+    redis_username.set(username, json.dumps(user_model))
     await update_data(UserDataCreate(**user_model))
 
     friend_model = redis_username.get(from_username)
     friend_model = json.loads(friend_model)
     friend_model['friends'].remove(username)
-    redis_username.delete(from_username)
+    redis_username.set(from_username, json.dumps(friend_model))
     await update_data(UserDataCreate(**friend_model))
 
     return True
