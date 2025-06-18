@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 from db.router import get_user_data, update_user_data
 from friends.router import add_friend, cancel_friend_request, send_friend_request
-from battle.router import invite_friend, cancel_invitation
+from battle.router import invite_friend, cancel_invitation, accept_invitation
 from models import UserDataCreate
 from init import init_models
 
@@ -39,9 +39,8 @@ manager = ConnectionManager()
 async def websocket_endpoint(websocket: WebSocket):
     client_id = id(websocket)
     await manager.connect(websocket, client_id)
-    
-    try:        
-        while True:
+
+    while True:
             data = await websocket.receive_text()
             try:
                 message = json.loads(data)          
@@ -127,6 +126,16 @@ async def websocket_endpoint(websocket: WebSocket):
                     await invite_friend(message["battle_id"], message["friend_username"])
                 elif message.get("type") == "cancel_invitation":
                     await cancel_invitation(message["friend_username"], message["battle_id"])
+                elif message.get("type") == "accept_invitation":
+                    await accept_invitation(message["friend_username"], message["battle_id"])
+                    while manager.active_connections[client_id]:
+                        await websocket.send_text(json.dumps({
+                            "type": "battle_started",
+                            "data": {
+                                "battle_id": message["battle_id"]
+                            }
+                        }))
+                    break
 
             except json.JSONDecodeError:
                 logger.error(f"Invalid JSON received from client {client_id}")
@@ -134,17 +143,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     "type": "error",
                     "message": "Invalid JSON format"
                 }))
-            except Exception as e:
-                logger.error(f"Error processing message from client {client_id}: {str(e)}")
-                await websocket.send_text(json.dumps({
-                    "type": "error",
-                    "message": f"Error processing message: {str(e)}"
-                }))
-                
-    except Exception as e:
-        logger.error(f"WebSocket error for client {client_id}: {str(e)}")
-    finally:
-        manager.disconnect(client_id)
+
 
 @app.on_event("startup")
 async def startup_event():

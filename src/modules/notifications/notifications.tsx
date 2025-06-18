@@ -6,7 +6,7 @@ import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "../../
 import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar"
 import { Check, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { acceptFriendRequest, rejectFriendRequest, sendMessage } from "../../shared/websockets/websocket"
+import { acceptFriendRequest, acceptInvitation, rejectFriendRequest, sendMessage } from "../../shared/websockets/websocket"
 
 interface FriendRequest {
   sender: {
@@ -75,6 +75,7 @@ export default function NotificationsPage() {
   const handleAcceptInvitation = async (battle_id: string) => {
     try {
       setInvitations(prev => prev.filter(invitation => invitation.battle_id !== battle_id))
+      acceptInvitation(user.username, battle_id)
     } catch (error) {
       console.error('Error accepting invitation:', error)
     }

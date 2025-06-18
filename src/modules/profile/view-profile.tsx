@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../shared/ui/dropdown-menu'
 import type { User } from '../../shared/interface/user'
 import { initialUser } from '../../shared/interface/user'
-import { sendFriendRequest } from '../../shared/websockets/websocket'
+import { sendFriendRequest, sendMessage } from '../../shared/websockets/websocket'
 import { cancelFriendRequest } from '../../shared/websockets/websocket'
 
 export const ViewProfile = ({user}: {user: User}) => {
@@ -31,32 +31,38 @@ export const ViewProfile = ({user}: {user: User}) => {
 
   useEffect(() => {
     const fetchUser = async () => {
+      try {
         const response = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${username}`)
-        viewUser.username = response.data.username
-        viewUser.email = response.data.email
-        viewUser.favoritesSport = response.data.favourite
-        viewUser.rank = response.data.ranking
-        viewUser.wins = response.data.winBattle
-        viewUser.winRate = response.data.winRate
-        viewUser.totalBattles = response.data.totalBattle
-        viewUser.friendRequests = response.data.friendRequests
-        viewUser.friends = response.data.friends
-        viewUser.avatar = response.data.avatar ? `http://localhost:8000${response.data.avatar}` : undefined
-        console.log(viewUser.friends)
+        const userData = {
+          ...initialUser,
+          username: response.data.username,
+          email: response.data.email,
+          favoritesSport: response.data.favourite,
+          rank: response.data.ranking,
+          wins: response.data.winBattle,
+          winRate: response.data.winRate,
+          totalBattles: response.data.totalBattle,
+          friendRequests: response.data.friendRequests,
+          friends: response.data.friends,
+          avatar: response.data.avatar ? `http://localhost:8000${response.data.avatar}` : undefined
+        }
+        
+        setViewUser(userData)
+        setRequestSent(response.data.friendRequests.includes(user.username))
+        setIsLoading(false)
+      } catch (error) {
 
-        setTimeout(() => {
-          if(response.data.friendRequests.includes(user.username)) {
-            setRequestSent(true)
-          }  
-          setIsLoading(false)
-          setViewUser(viewUser)
-        }, 100)
-       
+        setIsLoading(false)
+      }
     }
-
-    console.log(localStorage.getItem("user")?.replace(/"/g, ''))
-    fetchUser() 
-  }, [user.username])
+    
+    if (username) {
+      setTimeout(() => {
+        sendMessage(user, "get_email")
+        fetchUser()
+      }, 100)
+    }
+  }, [username, user.username])
 
 
   if (isLoading) {
@@ -101,7 +107,7 @@ export const ViewProfile = ({user}: {user: User}) => {
               <span>Home</span>
             </Button>
           </Link>
-        <Link to={`/${user.username}/battle`}>
+        <Link to={`/battles`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
               <Play className="mr-2 h-4 w-4" />
               <span>Battle</span>
@@ -175,7 +181,7 @@ export const ViewProfile = ({user}: {user: User}) => {
               <span>Home</span>
             </DropdownMenuItem>
           </Link>
-            <Link to={`/${user.username}/battle`}>
+            <Link to={`/battles`}>
                 <DropdownMenuItem className="cursor-pointer">
                   <Play className="mr-2 h-4 w-4" />
                   <span>Battle</span>
@@ -291,7 +297,7 @@ export const ViewProfile = ({user}: {user: User}) => {
                 <div className="flex justify-center gap-4 mt-6">
                   {viewUser.friends && viewUser.friends.includes(user.username) && user.username !== '' ? (
                     <Button 
-                      className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
+                      className="w-full sm:w-auto bg-orange-500 text-white  dark:text-black hover:bg-orange-600"
                       onClick={() => navigate(`/battle/${viewUser.username}`)}
                     >
                       Battle

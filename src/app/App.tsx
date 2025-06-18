@@ -1,5 +1,5 @@
 import './globals.css'
-import {Routes, Route} from 'react-router-dom'
+import {Routes, Route, useNavigate} from 'react-router-dom'
 import EntryPage from '../modules/entry-page/page'
 import SignUpPage from '../modules/sign-up/sign-up'
 import EmailSignUpPage from '../modules/sign-up/signup-email'
@@ -22,10 +22,12 @@ import { initialUser } from '../shared/interface/user'
 import type { User } from '../shared/interface/user'
 import { sendMessage, websocket } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
+import BattleCountdown from '../modules/battle/countdown'
 
 export default function App() {
   const [user, setUser] = useState<User>(initialUser)
   const [theme, setTheme] = useState<boolean>(false)
+  const navigate = useNavigate()
 
   useEffect(() => {
    
@@ -84,6 +86,9 @@ export default function App() {
           invitations: data.data.invitations
         })
       } 
+      else if(data.type === 'battle_started'){
+        navigate(`/battle/${data.data.battle_id}/countdown`)
+      }
   }
 
   useEffect(() => {
@@ -117,6 +122,7 @@ export default function App() {
             <Route path="/battles" element={<BattlesPage />} />
             <Route path="/waiting/:id" element={<WaitingPage />} />
             <Route path="/battle/:id/quiz" element={<QuizQuestionPage />} />
+            <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
           </Routes>
         </div>
       </ThemeStore.Provider>

@@ -81,3 +81,11 @@ export const cancelInvitation = (friend_username: string, battle_id: string) => 
     battle_id: battle_id
   }))
 }
+
+export const acceptInvitation = (friend_username: string, battle_id: string) => {
+  websocket.send(JSON.stringify({
+    type: "accept_invitation",
+    friend_username: friend_username,
+    battle_id: battle_id
+  }))
+}
