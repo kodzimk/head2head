@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Button } from '../../shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
-import { useParams } from 'react-router-dom';
-
 const sampleQuestion = {
   question: 'What is the capital of France?',
   answers: [
@@ -14,7 +12,6 @@ const sampleQuestion = {
 };
 
 export default function QuizQuestionPage() {
-  const { id } = useParams();
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
