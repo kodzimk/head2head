@@ -151,7 +151,7 @@ async def update_data(user: UserDataCreate):
         await db.refresh(user_model)
 
 
-  
+        friend_list = user.friends
         if temp != user.username:
             for friend in user_model.friends:
                 try:
@@ -202,5 +202,5 @@ async def update_data(user: UserDataCreate):
         redis_username.delete(temp)
         redis_email.set(user_model.email, json.dumps(user_dict))
         redis_username.set(user_model.username, json.dumps(user_dict))
-        return user_model
+        return friend_list
 

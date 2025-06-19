@@ -49,10 +49,10 @@ export default function App() {
    
 
   useEffect(() => {
-    if(localStorage.getItem('username')) {
+    
       newSocket = createWebSocket(localStorage.getItem('username')?.replace(/"/g, '') || null);
-    }
-  }, [user.username]);
+    
+  }, []);
 
   useEffect(() => {
     if (!newSocket) return;

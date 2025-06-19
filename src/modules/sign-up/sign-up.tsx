@@ -116,7 +116,7 @@ export default function SignUpPage() {
                             navigate(`/${response.data.username}`);
                           }
                         } catch (error: any) {
-                          if (error.response?.status === 401) {
+                          if (error.response?.status === 401 || error.response?.status === 404) {
                             // User already exists, try to sign in
                             try {
                               const signInResponse = await axios.get(

@@ -65,24 +65,31 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             battles=message["battles"],
                             invitations=message["invitations"]
                         )                     
-                        updated_user = await update_user_data(user_data)
-
+                        await update_user_data(user_data)
+                        updated_user = await get_user_by_username(message["username"])
                         user_dict = {
-                            "email": updated_user.email,
-                            "username": updated_user.username,
-                            "totalBattle": updated_user.totalBattle,
-                            "winRate": updated_user.winRate,
-                            "ranking": updated_user.ranking,
-                            "winBattle": updated_user.winBattle,
-                            "favourite": updated_user.favourite,
-                            "streak": updated_user.streak,
-                            "password": updated_user.password,
-                            "friends": updated_user.friends,
-                            "friendRequests": updated_user.friendRequests,
-                            "avatar": updated_user.avatar,
-                            "battles": updated_user.battles,
-                            "invitations": updated_user.invitations
+                            "email": updated_user['email'],
+                            "username": updated_user['username'],
+                            "totalBattle": updated_user['totalBattle'],
+                            "winRate": updated_user['winRate'],
+                            "ranking": updated_user['ranking'],
+                            "winBattle": updated_user['winBattle'],
+                            "favourite": updated_user['favourite'],
+                            "streak": updated_user['streak'],
+                            "password": updated_user['password'],
+                            "friends": updated_user['friends'],
+                            "friendRequests": updated_user['friendRequests'],
+                            "avatar": updated_user['avatar'],
+                            "battles": updated_user['battles'],
+                            "invitations": updated_user['invitations']
                         }
+
+                        for friend in updated_user['friends']:
+                            await manager.send_message(json.dumps({
+                                "type": "user_updated",
+                                "data": await get_user_by_username(friend)
+                            }), friend)
+
 
                         await manager.send_message(json.dumps({
                             "type": "user_updated",
