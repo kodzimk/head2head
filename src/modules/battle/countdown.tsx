@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { startBattle } from '../../shared/websockets/websocket';
 
 export default function BattleCountdown() {
   const { id } = useParams() as { id: string };
@@ -8,7 +9,11 @@ export default function BattleCountdown() {
 
   useEffect(() => {
     if (count === 0) {
-      navigate(`/battle/${id}/quiz`);
+      startBattle(id);
+      setTimeout(() => {
+        navigate(`/battle/${id}/quiz`);
+      }, 100);
+     
       return;
     }
     const timer = setTimeout(() => setCount(count - 1), 1000);

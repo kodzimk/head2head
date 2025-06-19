@@ -102,3 +102,19 @@ export const deleteUser = (user: User) => {
     email: user.email
   }))
 }
+
+export const startBattle = (battle_id: string) => {
+  newSocket?.send(JSON.stringify({
+    type: "start_battle",
+    battle_id: battle_id
+  }))
+}
+
+export const submitAnswer = (battle_id: string, answer: string, username: string) => {
+  newSocket?.send(JSON.stringify({
+    type: "submit_answer",
+    battle_id: battle_id,
+    answer: answer,
+    username: username
+  }))
+}

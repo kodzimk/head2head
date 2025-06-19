@@ -39,3 +39,43 @@ export const useThemeStore = () => {
   }
   return context
 }
+
+interface CurrentQuestionStoreType {
+  currentQuestion: any;
+  setCurrentQuestion: (currentQuestion: any) => void;
+}
+
+export const CurrentQuestionStore = createContext<CurrentQuestionStoreType>({
+  currentQuestion: null,
+  setCurrentQuestion: () => {}
+})
+
+export const useCurrentQuestionStore = () => {
+  const context = useContext(CurrentQuestionStore)
+  if (!context) {
+    throw new Error("useCurrentQuestionStore must be used within a CurrentQuestionStoreProvider")
+  }
+  return context
+}
+
+interface ScoreStoreType {
+  firstOpponentScore: number;
+  secondOpponentScore: number;
+  setFirstOpponentScore: (firstOpponentScore: number) => void;
+  setSecondOpponentScore: (secondOpponentScore: number) => void;
+}
+
+export const ScoreStore = createContext<ScoreStoreType>({
+  firstOpponentScore: 0,
+  secondOpponentScore: 0,
+  setFirstOpponentScore: () => {},
+  setSecondOpponentScore: () => {}
+})
+
+export const useScoreStore = () => {
+  const context = useContext(ScoreStore)
+  if (!context) {
+    throw new Error("useScoreStore must be used within a ScoreStoreProvider")
+  }
+  return context
+}

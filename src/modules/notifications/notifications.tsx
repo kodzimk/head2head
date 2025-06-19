@@ -86,7 +86,7 @@ export default function NotificationsPage() {
     try {
       setInvitations(prev => prev.filter(invitation => invitation.battle_id !== battle_id))
       user.invitations = user.invitations.filter(invitation => invitation !== battle_id)
-      await sendMessage(user, "user_update")
+      sendMessage(user, "user_update")
     } catch (error) {
       console.error('Error rejecting invitation:', error)
       // Revert the state changes if there was an error

@@ -11,7 +11,7 @@ import BattlesPage from '../modules/battle/battle'
 import WaitingPage from '../modules/battle/waiting-room'
 import { useState, useEffect, useRef } from 'react'
 
-import { GlobalStore, ThemeStore } from '../shared/interface/gloabL_var'
+import { CurrentQuestionStore, GlobalStore, ScoreStore, ThemeStore } from '../shared/interface/gloabL_var'
 import { ViewProfile } from '../modules/profile/view-profile'
 import LeaderboardPage from '../modules/leaderboard/leaderboard'
 import SelectionPage from '../modules/selection/selection'
@@ -43,15 +43,16 @@ export let refreshView = false;
 export default function App() {
   const [user, setUser] = useState<User>(initialUser)
   const [theme, setTheme] = useState<boolean>(false)
+  const [currentQuestion, setCurrentQuestion] = useState<any>(null);
+  const [firstOpponentScore, setFirstOpponentScore] = useState<number>(0);
+  const [secondOpponentScore, setSecondOpponentScore] = useState<number>(0);
   const navigate = useNavigate()
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   newSocket = createWebSocket(localStorage.getItem('username')?.replace(/"/g, '') || null); 
-   
+  
 
   useEffect(() => {
-    
-      newSocket = createWebSocket(localStorage.getItem('username')?.replace(/"/g, '') || null);
-    
+      newSocket = createWebSocket(localStorage.getItem('username')?.replace(/"/g, '') || null); 
   }, []);
 
   useEffect(() => {
@@ -94,7 +95,6 @@ export default function App() {
          };
          setUser(updatedUser);   
          localStorage.setItem('username', updatedUser.username);
-         console.log(updatedUser)
        } else if (data.type === 'battle_started') {
          navigate(`/battle/${data.data.battle_id}/countdown`);
        }
@@ -123,7 +123,6 @@ export default function App() {
   }, []);
 
   newSocket && (newSocket.onmessage = (event) => {
-    console.log(event.data)
      const data = JSON.parse(event.data);
      if (data.type === 'user_updated') {
        const updatedUser = {
@@ -144,9 +143,9 @@ export default function App() {
        };
        setUser(updatedUser);   
        localStorage.setItem('username', updatedUser.username);
-       console.log(updatedUser)
+
      } else if (data.type === 'battle_started') {
-       navigate(`/battle/${data.data.battle_id}/countdown`);
+       navigate(`/battle/${data.data}/countdown`);
      }
      else if(data.type === 'friend_request_updated'){
        const updatedUser = {
@@ -168,6 +167,20 @@ export default function App() {
        setUser(updatedUser); 
        refreshView = !refreshView;
      }
+     else if(data.type === 'battle_start'){
+      setCurrentQuestion(data.data);
+     }
+     else if(data.type === 'next_question'){
+      setCurrentQuestion(data.data.question);
+      setFirstOpponentScore(data.data.first_opponent);
+      setSecondOpponentScore(data.data.second_opponent);
+    
+     }
+     else if(data.type === 'score_updated'){
+      setFirstOpponentScore(data.data.first_opponent);
+      setSecondOpponentScore(data.data.second_opponent);
+  
+     }
  });
 
 
@@ -182,9 +195,12 @@ export default function App() {
   }, [theme])
 
   return (
+
       <GlobalStore.Provider value={{user, setUser: (user: User) => setUser(user)}}>
         <ThemeStore.Provider value={{theme, setTheme: (theme: boolean) => setTheme(theme)}}>
-          <div className={theme ? 'dark' : ''}>
+          <CurrentQuestionStore.Provider value={{currentQuestion, setCurrentQuestion: (currentQuestion: any) => setCurrentQuestion(currentQuestion)}}>
+          <ScoreStore.Provider value={{firstOpponentScore: firstOpponentScore, secondOpponentScore: secondOpponentScore, setFirstOpponentScore: (firstOpponentScore: number) => setFirstOpponentScore(firstOpponentScore), setSecondOpponentScore: (secondOpponentScore: number) => setSecondOpponentScore(secondOpponentScore)}}>
+            <div className={theme ? 'dark' : ''}>
             <Routes>
               <Route path="/" element={<EntryPage user={user} />} />
               <Route path="/sign-up" element={<SignUpPage />} />
@@ -205,6 +221,8 @@ export default function App() {
               <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
             </Routes>
           </div>
+          </ScoreStore.Provider>
+          </CurrentQuestionStore.Provider>
         </ThemeStore.Provider>
       </GlobalStore.Provider>
   )
