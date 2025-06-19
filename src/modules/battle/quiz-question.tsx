@@ -69,8 +69,8 @@ export default function QuizQuestionPage() {
   };
 
   useEffect(() => {
-    // Stop timer if quiz is finished
-    if (isQuizFinished) {
+    // Stop timer if quiz is finished or during next question countdown
+    if (isQuizFinished || showNextQuestion) {
       return;
     }
     if (timeLeft > 0) {
@@ -79,16 +79,16 @@ export default function QuizQuestionPage() {
       }, 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0) {
-      const handleTimeUp = () => {  
-        submitAnswer(id, '',user.username); 
+      const handleTimeUp = () => {   
         setSelected(null);
+        submitAnswer(id, '',user.username);
         setShowNextQuestion(true);
         setCountdown(NEXT_QUESTION_DELAY);
         checkForWinner(id);
       };
       handleTimeUp();
     }
-  }, [timeLeft, currentQuestion, isQuizFinished]);
+  }, [timeLeft, currentQuestion, isQuizFinished, showNextQuestion]);
 
   // Poll for result when finished
   useEffect(() => {

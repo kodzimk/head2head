@@ -134,7 +134,12 @@ async def battle_result(battle_id: str, winner: str, loser: str,result:str):
             user['winBattle'] += 1
 
         user['totalBattle'] += 1
-        user['streak'] += 1
+
+        if result == 'win':
+            user['streak'] += 1
+        else:
+            user['streak'] = 0
+            
         user['battles'].append(battle_id)
 
         if user['winBattle'] > 0:

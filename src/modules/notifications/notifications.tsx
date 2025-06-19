@@ -165,10 +165,10 @@ export default function NotificationsPage() {
                   <h2 className="text-xl font-semibold mb-4">Battle Invitations</h2>
                   {invitations.map((invitation, index) => (
                     <Card key={`${invitation.battle_id}-${index}`} className="bg-white dark:bg-gray-800 mb-4">
-                      <CardHeader className="flex flex-row items-center gap-4">
+                      <CardHeader className="flex flex-row justify-center items-center gap-4">
                         <CardTitle>Battle Invitation</CardTitle>
                       </CardHeader>
-                      <CardFooter className="flex justify-end gap-2">
+                      <CardFooter className="flex justify-center gap-2">
                         <Button 
                           size="sm" 
                           className="bg-orange-500 text-white dark:text-black hover:bg-orange-600" 
