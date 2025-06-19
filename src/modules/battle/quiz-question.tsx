@@ -11,7 +11,7 @@ const NEXT_QUESTION_DELAY = 3; // 3 seconds delay
 
 export default function QuizQuestionPage() {
   const {id} = useParams() as {id: string};
-  const {currentQuestion, setCurrentQuestion} = useCurrentQuestionStore();
+  const {currentQuestion} = useCurrentQuestionStore();
   const [selected, setSelected] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
   const {firstOpponentScore, secondOpponentScore} = useScoreStore();
@@ -19,7 +19,7 @@ export default function QuizQuestionPage() {
   const [showNextQuestion, setShowNextQuestion] = useState(false);
   const [countdown, setCountdown] = useState(NEXT_QUESTION_DELAY);
 
-  // Get motivational/mocking text based on score difference
+
   const getBattleMessage = () => {
     const scoreDiff = firstOpponentScore - secondOpponentScore;
     
@@ -37,12 +37,13 @@ export default function QuizQuestionPage() {
   };
 
   const handleSelect = (label: string) => {
+    submitAnswer(id, label,user.username);
     setSelected(label);
     setShowNextQuestion(true);
     setCountdown(NEXT_QUESTION_DELAY);
   };
 
-  // Countdown for next question
+
   useEffect(() => {
     if (showNextQuestion && countdown > 0) {
       const timer = setTimeout(() => {
@@ -58,7 +59,6 @@ export default function QuizQuestionPage() {
   const moveToNextQuestion = () => {
     setSelected(null);
     setCountdown(NEXT_QUESTION_DELAY);
-    // ... any other logic to load the next question ...
   };
 
   useEffect(() => {
@@ -68,11 +68,9 @@ export default function QuizQuestionPage() {
       }, 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0) {
-      const handleTimeUp = () => {
-      
+      const handleTimeUp = () => {   
         setSelected(null);
         submitAnswer(id, '',user.username);
-
       };
       handleTimeUp();
     }

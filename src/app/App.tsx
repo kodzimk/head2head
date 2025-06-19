@@ -174,12 +174,10 @@ export default function App() {
       setCurrentQuestion(data.data.question);
       setFirstOpponentScore(data.data.first_opponent);
       setSecondOpponentScore(data.data.second_opponent);
-    
      }
      else if(data.type === 'score_updated'){
       setFirstOpponentScore(data.data.first_opponent);
       setSecondOpponentScore(data.data.second_opponent);
-  
      }
  });
 

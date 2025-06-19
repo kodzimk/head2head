@@ -12,7 +12,7 @@ export default function BattleCountdown() {
       startBattle(id);
       setTimeout(() => {
         navigate(`/battle/${id}/quiz`);
-      }, 100);
+      }, 500);
      
       return;
     }
