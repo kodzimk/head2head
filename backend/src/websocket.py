@@ -203,19 +203,19 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
 
                     elif message.get("type") == "start_battle":
 
-                        await manager.send_message(json.dumps({
+                        if battles[message["battle_id"]].first_opponent == username:
+                         await manager.send_message(json.dumps({
                             "type": "battle_start",
                             "data": battles[message["battle_id"]].get_question(0)
                         }), battles[message["battle_id"]].first_opponent)
-                        
-                        await manager.send_message(json.dumps({
+                        else:
+                            await manager.send_message(json.dumps({
                             "type": "battle_start",
                             "data": battles[message["battle_id"]].get_question(1)
                         }), battles[message["battle_id"]].second_opponent)
 
                     elif message.get("type") == "submit_answer":
                         index = battles[message["battle_id"]].check_for_answer(message["username"],message["answer"])
-                        
                         battle = battles[message["battle_id"]]
                         
                         if index == 0:
@@ -223,7 +223,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "type": "score_updated",
                             "data": {
                                 "first_opponent": battle.first_opponent_score,
-                                "second_opponent": battle.second_opponent_score
+                                "second_opponent": battle.second_opponent_score,
+                                "first_opponent_name": battle.first_opponent,
                             }
                         }), battle.second_opponent)
                             await manager.send_message(json.dumps({
@@ -231,25 +232,87 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 "data": {
                                     "question": battles[message["battle_id"]].get_question(0),
                                     "first_opponent": battle.first_opponent_score,
-                                    "second_opponent": battle.second_opponent_score
+                                    "second_opponent": battle.second_opponent_score,
+                                    "first_opponent_name": battle.first_opponent,
                                 }
                             }), battle.first_opponent)
                         elif index == 1:
                             await manager.send_message(json.dumps({
                             "type": "score_updated",
                             "data": {
-                                "first_opponent": battle.first_opponent_score,
-                                "second_opponent": battle.second_opponent_score
+                                    "first_opponent": battle.first_opponent_score,
+                                "second_opponent": battle.second_opponent_score,
+                                "first_opponent_name": battle.first_opponent,
                             }
                         }), battle.first_opponent)
                             await manager.send_message(json.dumps({
                                 "type": "next_question",
                                 "data": {
                                     "question": battles[message["battle_id"]].get_question(1),
-                                        "first_opponent": battle.first_opponent_score,
-                                    "second_opponent": battle.second_opponent_score
+                                    "first_opponent": battle.first_opponent_score,
+                                    "second_opponent": battle.second_opponent_score,
+                                    "first_opponent_name": battle.first_opponent,
                                 }
                             }), battle.second_opponent)
+
+                    elif message.get("type") == "check_for_winner":
+                        battle = battles[message["battle_id"]]
+                        result = battle.check_for_winner()
+     
+                        if result == "draw":
+                            await manager.send_message(json.dumps({
+                                "type": "battle_finished",
+                                "data": {
+                                    "battle_id": message["battle_id"],
+                                    "winner": "draw",
+                                    "questions": f"{battle.first_opponent} and {battle.second_opponent} was good enough and it is a draw",
+                                }
+                            }), battle.first_opponent)
+                            await manager.send_message(json.dumps({
+                                "type": "battle_finished",
+                                "data": {
+                                    "battle_id": message["battle_id"],
+                                    "winner": "draw",   
+                                    "questions": f"{battle.first_opponent} and {battle.second_opponent} was good enough and it is a draw",
+                                }
+                            }), battle.second_opponent)
+                            continue
+                        elif result == battle.first_opponent:
+                            await manager.send_message(json.dumps({
+                                "type": "battle_finished",
+                                "data": {
+                                    "battle_id": message["battle_id"],
+                                    "winner": "Winner is " + battle.first_opponent,
+                                    "questions": f"{battle.first_opponent} is owned and kicked ass from {battle.second_opponent}",
+                                }
+                            }), battle.first_opponent)
+                            await manager.send_message(json.dumps({
+                                "type": "battle_finished",
+                                "data": {
+                                    "battle_id": message["battle_id"],
+                                    "winner": "Winner is " + battle.second_opponent,
+                                    "questions": f"{battle.second_opponent} was owned and kicked by {battle.first_opponent}",
+                                }
+                            }), battle.second_opponent)
+                            continue
+                        elif result == battle.second_opponent:
+                            await manager.send_message(json.dumps({
+                                "type": "battle_finished",
+                                "data": {
+                                    "battle_id": message["battle_id"],
+                                        "winner": "Winner is " + battle.second_opponent,
+                                        "questions": f"{battle.second_opponent} is owned and kicked ass from {battle.first_opponent}",
+                                    }
+                            }), battle.second_opponent)
+                            await manager.send_message(json.dumps({
+                                "type": "battle_finished",
+                                "data": {
+                                    "battle_id": message["battle_id"],
+                                    "winner": "Winner is " + battle.second_opponent,
+                                    "questions": f"{battle.first_opponent} was owned and kicked by {battle.second_opponent}",
+                                }
+                            }), battle.first_opponent)
+                            continue
 
                 except json.JSONDecodeError:
                     logger.error(f"Invalid JSON received from client {username}")

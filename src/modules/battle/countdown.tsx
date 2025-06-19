@@ -10,9 +10,10 @@ export default function BattleCountdown() {
   useEffect(() => {
     if (count === 0) {
       startBattle(id);
+
       setTimeout(() => {
         navigate(`/battle/${id}/quiz`);
-      }, 500);
+      }, 1000);
      
       return;
     }

@@ -18,10 +18,7 @@ async def create_battle(first_opponent: str, sport: str = Query(...), duration: 
 
 @battle_router.delete("/delete")
 async def delete_battle(battle_id: str):
-    battle = battles.get(battle_id)
-    if not battle:
-        raise HTTPException(status_code=401, detail="Battle not found")
-    battle.remove(battle_id)
+    battles.pop(battle_id)
     return {"message": "Battle deleted successfully"}
 
 

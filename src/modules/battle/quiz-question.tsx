@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../../shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useCurrentQuestionStore, useGlobalStore, useScoreStore } from '../../shared/interface/gloabL_var';
-import { submitAnswer } from '../../shared/websockets/websocket';
+import { checkForWinner, submitAnswer } from '../../shared/websockets/websocket';
 
 
 const QUESTION_TIME_LIMIT = 10; // 30 seconds per question
@@ -18,7 +18,10 @@ export default function QuizQuestionPage() {
   const {user} = useGlobalStore();  
   const [showNextQuestion, setShowNextQuestion] = useState(false);
   const [countdown, setCountdown] = useState(NEXT_QUESTION_DELAY);
+  const navigate = useNavigate();
 
+  // Helper to check if quiz is finished
+  const isQuizFinished = currentQuestion && currentQuestion['question'] === 'No more questions';
 
   const getBattleMessage = () => {
     const scoreDiff = firstOpponentScore - secondOpponentScore;
@@ -41,6 +44,7 @@ export default function QuizQuestionPage() {
     setSelected(label);
     setShowNextQuestion(true);
     setCountdown(NEXT_QUESTION_DELAY);
+    checkForWinner(id);
   };
 
 
@@ -51,8 +55,11 @@ export default function QuizQuestionPage() {
       }, 1000);
       return () => clearTimeout(timer);
     } else if (showNextQuestion && countdown === 0) {
+      
       moveToNextQuestion();
       setShowNextQuestion(false);
+      setTimeLeft(QUESTION_TIME_LIMIT);
+      checkForWinner(id);
     }
   }, [showNextQuestion, countdown]);
 
@@ -62,25 +69,46 @@ export default function QuizQuestionPage() {
   };
 
   useEffect(() => {
+    // Stop timer if quiz is finished
+    if (isQuizFinished) {
+      return;
+    }
     if (timeLeft > 0) {
       const timer = setTimeout(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0) {
-      const handleTimeUp = () => {   
+      const handleTimeUp = () => {  
+        submitAnswer(id, '',user.username); 
         setSelected(null);
-        submitAnswer(id, '',user.username);
+        setShowNextQuestion(true);
+        setCountdown(NEXT_QUESTION_DELAY);
+        checkForWinner(id);
       };
       handleTimeUp();
     }
-  }, [timeLeft]);
+  }, [timeLeft, currentQuestion, isQuizFinished]);
 
+  // Poll for result when finished
   useEffect(() => {
-    if (currentQuestion) {
-      setTimeLeft(QUESTION_TIME_LIMIT);
+    let interval: NodeJS.Timeout;
+    if (isQuizFinished) {
+      interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/battle/result?battle_id=${id}`);
+          const data = await res.json();
+          if (data.status === 'finished' || data.status === 'draw') {
+            clearInterval(interval);
+            navigate(`/battle/${id}/result`);
+          }
+        } catch (e) {
+          // handle error
+        }
+      }, 2000);
     }
-  }, [currentQuestion]);
+    return () => clearInterval(interval);
+  }, [isQuizFinished, id, navigate]);
 
   return (
     <div 
@@ -118,23 +146,39 @@ export default function QuizQuestionPage() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>Compete for GOATNESS</CardTitle>
-              <div className={`text-lg font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-gray-600'}`}>{timeLeft}s</div>
+              {/* Hide timer if quiz is finished */}
+              {!isQuizFinished && (
+                <div className={`text-lg font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-gray-600'}`}>{timeLeft}s</div>
+              )}
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-semibold mb-2">{currentQuestion['question']}</div>
-            {showNextQuestion && (
-              <div className="mb-4 text-center text-yellow-600 font-semibold">
-                Next question in {countdown} second{countdown !== 1 ? 's' : ''}...
+            {isQuizFinished ? (
+              <div className="text-center py-8">
+                <div className="text-2xl font-bold mb-4">You finished your quiz, wait for opponent.</div>
+                {showNextQuestion && (
+                  <div className="mb-4 text-center text-yellow-600 font-semibold">
+                    Next question in {countdown} second{countdown !== 1 ? 's' : ''}...
+                  </div>
+                )}
               </div>
+            ) : (
+              <>
+                <div className="text-lg font-semibold mb-2">{currentQuestion['question']}</div>
+                {showNextQuestion && (
+                  <div className="mb-4 text-center text-yellow-600 font-semibold">
+                    Next question in {countdown} second{countdown !== 1 ? 's' : ''}...
+                  </div>
+                )}
+                <div className="grid gap-3 mb-6">
+                  {currentQuestion['answers'].map((ans: any) => (
+                    <Button key={ans.label} variant={selected === ans.label ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelect(ans.label)} disabled={showNextQuestion}>
+                      <span className="font-bold mr-2">{ans.label}.</span> {ans.text}
+                    </Button>
+                  ))}
+                </div>
+              </>
             )}
-            <div className="grid gap-3 mb-6">
-              {currentQuestion['answers'].map((ans: any) => (
-                <Button key={ans.label} variant={selected === ans.label ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelect(ans.label)} disabled={showNextQuestion}>
-                  <span className="font-bold mr-2">{ans.label}.</span> {ans.text}
-                </Button>
-              ))}
-            </div>
           </CardContent>
         </Card>
       </div>

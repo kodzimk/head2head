@@ -118,3 +118,10 @@ export const submitAnswer = (battle_id: string, answer: string, username: string
     username: username
   }))
 }
+
+export const checkForWinner = (battle_id: string) => {
+  newSocket?.send(JSON.stringify({
+    type: "check_for_winner",
+    battle_id: battle_id
+  }))
+}

@@ -23,6 +23,7 @@ import type { User } from '../shared/interface/user'
 import { sendMessage } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
 import BattleCountdown from '../modules/battle/countdown'
+import BattleResultPage from '../modules/battle/result'
 
 export let newSocket: WebSocket | null = null;
 
@@ -118,6 +119,34 @@ export default function App() {
          setUser(updatedUser); 
          refreshView = !refreshView;
        }
+       else if(data.type === 'battle_start'){
+        setCurrentQuestion(data.data);
+       }
+       else if(data.type === 'next_question'){
+        setCurrentQuestion(data.data.question);
+  
+        if(data.data.first_opponent_name === user.username){
+          setFirstOpponentScore(data.data.first_opponent);
+          setSecondOpponentScore(data.data.second_opponent);
+        }
+        else{
+          setFirstOpponentScore(data.data.second_opponent);
+          setSecondOpponentScore(data.data.first_opponent);
+        }
+       }
+       else if(data.type === 'score_updated'){
+        if(data.data.first_opponent_name === user.username){
+          setFirstOpponentScore(data.data.first_opponent);
+          setSecondOpponentScore(data.data.second_opponent);
+        }
+        else{
+          setFirstOpponentScore(data.data.second_opponent);
+          setSecondOpponentScore(data.data.first_opponent);
+        }
+       }
+       else if(data.type === 'battle_finished'){
+        navigate(`/battle/${data.data.battle_id}/result`);
+       }
    }
 
   }, []);
@@ -172,12 +201,28 @@ export default function App() {
      }
      else if(data.type === 'next_question'){
       setCurrentQuestion(data.data.question);
-      setFirstOpponentScore(data.data.first_opponent);
-      setSecondOpponentScore(data.data.second_opponent);
+
+      if(data.data.first_opponent_name === user.username){
+        setFirstOpponentScore(data.data.first_opponent);
+        setSecondOpponentScore(data.data.second_opponent);
+      }
+      else{
+        setFirstOpponentScore(data.data.second_opponent);
+        setSecondOpponentScore(data.data.first_opponent);
+      }
      }
      else if(data.type === 'score_updated'){
-      setFirstOpponentScore(data.data.first_opponent);
-      setSecondOpponentScore(data.data.second_opponent);
+      if(data.data.first_opponent_name === user.username){
+        setFirstOpponentScore(data.data.first_opponent);
+        setSecondOpponentScore(data.data.second_opponent);
+      }
+      else{
+        setFirstOpponentScore(data.data.second_opponent);
+        setSecondOpponentScore(data.data.first_opponent);
+      }
+     }
+     else if(data.type === 'battle_finished'){
+      navigate(`/battle/${data.data.battle_id}/result`);
      }
  });
 
@@ -217,6 +262,7 @@ export default function App() {
               <Route path="/waiting/:id" element={<WaitingPage />} />
               <Route path="/battle/:id/quiz" element={<QuizQuestionPage />} />
               <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
+              <Route path="/battle/:id/result" element={<BattleResultPage />} />
             </Routes>
           </div>
           </ScoreStore.Provider>

@@ -104,13 +104,6 @@ export default function BattlePage() {
                   <Play className="w-4 h-4 mr-2" />
                   Create Battle
                 </Button>
-                {/* Dev: Go to Quiz Page */}
-                <Button 
-                  onClick={() => navigate('/battle/dev-quiz/quiz')}
-                  className="bg-blue-500 hover:bg-blue-600 mt-2"
-                >
-                  Go to Quiz (Dev)
-                </Button>
               </div>
             </CardContent>
           </Card>
