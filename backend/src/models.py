@@ -41,7 +41,7 @@ class BattleModel(Base):
     __tablename__ = "battles"
     id = Column(String, primary_key=True, index=True)
     sport = Column(String, index=True)
-    duration = Column(Integer, index=True)
+    level = Column(String, index=True)
     first_opponent = Column(String, index=True)
     second_opponent = Column(String, index=True)
     first_opponent_score = Column(Integer, index=True)
@@ -51,7 +51,7 @@ class BattleModel(Base):
         return {
             "id": self.id,
             "sport": self.sport,
-            "duration": self.duration,
+            "level": self.level,
             "first_opponent": self.first_opponent,
             "second_opponent": self.second_opponent,
             "first_opponent_score": self.first_opponent_score,

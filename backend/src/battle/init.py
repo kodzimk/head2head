@@ -41,7 +41,7 @@ sampleQuestions = [
 
 
 class Battle:
-    def __init__(self, id: str,first_opponent: str,sport: str,duration: int):
+    def __init__(self, id: str,first_opponent: str,sport: str,level: str):
         self.id = id
         self.questions = sampleQuestions
         self.current_question = 0
@@ -52,7 +52,7 @@ class Battle:
         self.first_opponent = first_opponent
         self.second_opponent = ''
         self.sport = sport
-        self.duration = duration
+        self.level = level
         self.first_opponent_finished = False
         self.second_opponent_finished = False
         

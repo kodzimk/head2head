@@ -79,3 +79,77 @@ export const useScoreStore = () => {
   }
   return context
 }
+
+interface TextStoreType {
+  text: string ;
+  setText: (text: string) => void;
+}
+
+
+export const TextStore = createContext<TextStoreType>({
+  text: '',
+  setText: () => {}
+})
+
+export const useTextStore = () => {
+  const context = useContext(TextStore)
+  if (!context) {
+    throw new Error("useTextStore must be used within a TextStoreProvider")
+  } 
+  return context
+}
+
+interface LoserStoreType {
+  loser: string;
+  setLoser: (loser: string) => void;
+}
+
+export const LoserStore = createContext<LoserStoreType>({
+  loser: '',
+  setLoser: () => {}
+})
+
+export const useLoserStore = () => {
+  const context = useContext(LoserStore)
+  if (!context) {
+    throw new Error("useLoserStore must be used within a LoserStoreProvider")
+  }
+  return context
+}
+
+interface WinnerStoreType {
+  winner: string;
+  setWinner: (winner: string) => void;
+}
+
+export const WinnerStore = createContext<WinnerStoreType>({
+  winner: '',
+  setWinner: () => {}
+})
+
+export const useWinnerStore = () => {
+  const context = useContext(WinnerStore)
+  if (!context) {
+    throw new Error("useWinnerStore must be used within a WinnerStoreProvider")
+  }
+  return context
+}
+
+export const ResultStore = createContext<ResultStoreType>({
+  result: '',
+  setResult: () => {}
+})
+
+export const useResultStore = () => {
+  const context = useContext(ResultStore)
+  if (!context) {
+    throw new Error("useResultStore must be used within a ResultStoreProvider")   
+  }
+  return context
+}
+
+interface ResultStoreType {
+  result: string;
+  setResult: (result: string) => void;
+}
+

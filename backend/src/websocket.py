@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 from db.router import delete_user_data, get_user_data, update_user_data, get_user_by_username
 from friends.router import add_friend, cancel_friend_request, send_friend_request
-from battle.router import invite_friend, cancel_invitation, accept_invitation
+from battle.router import invite_friend, cancel_invitation, accept_invitation, battle_result
 from battle.init import battles
 from models import UserDataCreate
 from init import init_models
@@ -264,16 +264,20 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 "type": "battle_finished",
                                 "data": {
                                     "battle_id": message["battle_id"],
-                                    "winner": "draw",
+                                    "text": "draw",
                                     "questions": f"{battle.first_opponent} and {battle.second_opponent} was good enough and it is a draw",
+                                    "loser": battle.first_opponent,
+                                    "winner": battle.second_opponent,
                                 }
                             }), battle.first_opponent)
                             await manager.send_message(json.dumps({
                                 "type": "battle_finished",
                                 "data": {
                                     "battle_id": message["battle_id"],
-                                    "winner": "draw",   
+                                    "text": "draw",   
                                     "questions": f"{battle.first_opponent} and {battle.second_opponent} was good enough and it is a draw",
+                                    "loser": battle.second_opponent,
+                                    "winner": battle.first_opponent,
                                 }
                             }), battle.second_opponent)
                             continue
@@ -282,16 +286,21 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 "type": "battle_finished",
                                 "data": {
                                     "battle_id": message["battle_id"],
-                                    "winner": "Winner is " + battle.first_opponent,
-                                    "questions": f"{battle.first_opponent} is owned and kicked ass from {battle.second_opponent}",
+                                    "text": f"{battle.first_opponent} is owned and kicked ass from {battle.second_opponent}",
+                                    "questions": f"{battle.first_opponent} become a father of {battle.second_opponent}",
+                                    "loser": battle.second_opponent,
+                                    "winner": battle.first_opponent,
+                                    "loser": battle.second_opponent,
                                 }
                             }), battle.first_opponent)
                             await manager.send_message(json.dumps({
                                 "type": "battle_finished",
                                 "data": {
                                     "battle_id": message["battle_id"],
-                                    "winner": "Winner is " + battle.second_opponent,
-                                    "questions": f"{battle.second_opponent} was owned and kicked by {battle.first_opponent}",
+                                    "text": f"{battle.second_opponent} was owned and kicked by {battle.first_opponent}",
+                                    "questions": f"{battle.second_opponent} become a son of {battle.first_opponent}",
+                                    "loser": battle.second_opponent,
+                                    "winner": battle.first_opponent,
                                 }
                             }), battle.second_opponent)
                             continue
@@ -300,19 +309,35 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 "type": "battle_finished",
                                 "data": {
                                     "battle_id": message["battle_id"],
-                                        "winner": "Winner is " + battle.second_opponent,
-                                        "questions": f"{battle.second_opponent} is owned and kicked ass from {battle.first_opponent}",
+                                    "text": f"{battle.second_opponent} is owned and kicked ass from {battle.first_opponent}",
+                                        "questions": f"{battle.second_opponent} become a father of {battle.first_opponent}",
+                                        "loser": battle.first_opponent,
+                                        "winner": battle.second_opponent,
                                     }
                             }), battle.second_opponent)
                             await manager.send_message(json.dumps({
                                 "type": "battle_finished",
                                 "data": {
                                     "battle_id": message["battle_id"],
-                                    "winner": "Winner is " + battle.second_opponent,
-                                    "questions": f"{battle.first_opponent} was owned and kicked by {battle.second_opponent}",
+                                    "text": f"{battle.first_opponent} was owned and kicked by {battle.second_opponent}",
+                                    "questions": f"{battle.first_opponent} become a son of {battle.second_opponent}",
+                                    "loser": battle.first_opponent,
+                                    "winner": battle.second_opponent,
                                 }
                             }), battle.first_opponent)
                             continue
+
+                    elif message.get("type") == "battle_result":
+                        await battle_result(message["battle_id"], message["winner"], message["loser"], message["result"])
+                        await manager.send_message(json.dumps({
+                            "type": "user_updated",
+                            "data": await get_user_by_username(message["winner"])
+                        }), message["winner"])
+                        await manager.send_message(json.dumps({
+                            "type": "user_updated",
+                            "data": await get_user_by_username(message["loser"])
+                        }), message["loser"])
+
 
                 except json.JSONDecodeError:
                     logger.error(f"Invalid JSON received from client {username}")

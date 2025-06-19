@@ -1,53 +1,75 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
 import { Button } from '../../shared/ui/button';
-
-// For now, use mock data. Replace with props or state as needed.
-const mockResult = {
-  winner: {
-    username: 'Alice',
-    score: 8,
-    isOwner: true,
-  },
-  loser: {
-    username: 'Bob',
-    score: 5,
-    isOwner: false,
-  },
-};
-
+import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, useTextStore, useWinnerStore } from '../../shared/interface/gloabL_var';
+import { useNavigate, useParams } from 'react-router-dom';
+import { battleResult } from '../../shared/websockets/websocket';
 export default function BattleResultPage() {
-  const { winner, loser } = mockResult;
+  const { text, setText } = useTextStore();
+  const { setFirstOpponentScore, setSecondOpponentScore } = useScoreStore();
+  const { winner, setWinner } = useWinnerStore();
+  const { loser, setLoser } = useLoserStore();
+  const { currentQuestion } = useCurrentQuestionStore();
+  const [showResult, setShowResult] = useState(false);
+  const navigate = useNavigate();
+  const { id } = useParams() as { id: string };
+  const { result, setResult } = useResultStore();
+
+  useEffect(() => {
+    console.log(id)
+    setTimeout(() => {
+      setShowResult(true); 
+      if(text !== ''){
+        battleResult(id, winner, loser,result);
+      }
+    }, 3000);
+  }, []);
+
+  const handleBackToDashboard = () => {
+    setResult('');
+    setFirstOpponentScore(0);
+    setSecondOpponentScore(0);
+    setWinner('');
+    setLoser('');
+    setText('');
+    navigate(`/`);
+  }
+
+  if (!showResult) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-orange-100 p-4">
+        <Card className="w-full max-w-md shadow-xl animate-pulse">
+          <CardHeader>
+            <CardTitle className="text-center text-2xl font-bold mb-2">
+              Calculating results...
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center gap-6 py-12">
+              <div className="text-4xl">⏳</div>
+              <div className="text-lg text-gray-600">Please wait while we determine the winner.</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-orange-100 p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader>
           <CardTitle className="text-center text-3xl font-bold mb-2">
-            {winner.username} is the Winner! 🏆
+            {text !== '' ? text : 'The battle was finished'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-6">
-            <div className="w-full flex justify-between items-center">
-              <div className="text-center flex-1">
-                <div className="text-lg font-semibold text-gray-700">{winner.username}</div>
-                <div className="text-2xl font-bold text-green-600">{winner.score}</div>
-                <div className="mt-1 text-xs text-blue-500 font-semibold">{winner.isOwner ? 'Owner' : 'Opponent'}</div>
-                <div className="mt-2 text-green-500 font-bold">Winner</div>
-              </div>
-              <div className="text-center flex-1">
-                <div className="text-lg font-semibold text-gray-700">{loser.username}</div>
-                <div className="text-2xl font-bold text-red-600">{loser.score}</div>
-                <div className="mt-1 text-xs text-blue-500 font-semibold">{loser.isOwner ? 'Owner' : 'Opponent'}</div>
-                <div className="mt-2 text-red-500 font-bold">Loser</div>
-              </div>
-            </div>
             <div className="mt-6 text-center">
               <div className="text-xl font-semibold text-gray-800 mb-2">
-                {winner.username} becomes the Owner of the Battle!
+                {currentQuestion}
               </div>
-              <Button className="mt-2 bg-orange-500 hover:bg-orange-600 w-full">Back to Dashboard</Button>
+              <Button className="mt-2 bg-orange-500 hover:bg-orange-600 w-full" onClick={handleBackToDashboard}>Back to Dashboard</Button>
             </div>
           </div>
         </CardContent>

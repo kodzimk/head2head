@@ -17,7 +17,7 @@ interface Battle {
     avatar: string | null
   }
   sport: string
-  duration: string
+  level: string
   status: 'pending' | 'active' | 'completed'
   createdAt: string
 }
@@ -27,12 +27,12 @@ export default function BattlePage() {
   const [battles] = useState<Battle[]>([])
   const [isLoading] = useState(true)
   const [selectedSport, setSelectedSport] = useState('')
-  const [selectedDuration, setSelectedDuration] = useState<number>(0)
+  const [selectedLevel, setSelectedLevel] = useState<string>('')
   const navigate = useNavigate()
 
   const handleCreateBattle = async () => {
     try {
-      const response = await axios.post(`http://localhost:8000/create?first_opponent=${user.username}&sport=${selectedSport}&duration=${selectedDuration}`)
+      const response = await axios.post(`http://localhost:8000/create?first_opponent=${user.username}&sport=${selectedSport}&level=${selectedLevel}`)
       console.log(response.data)
       navigate(`/waiting/${response.data.id}`)
     } catch (error) {
@@ -70,7 +70,7 @@ export default function BattlePage() {
                   <Label htmlFor="sport">Select Sport</Label>
                   <Select value={selectedSport} onValueChange={setSelectedSport}>
                     <SelectTrigger>
-                      <SelectValue placeholder="" />
+                      <SelectValue placeholder="Choose sport" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="football">Football</SelectItem>
@@ -81,24 +81,24 @@ export default function BattlePage() {
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="duration">Battle Duration (minutes)</Label>
+                  <Label htmlFor="duration">Battle Level</Label>
                   <Select
-                    value={selectedDuration.toString()}
-                    onValueChange={(value) => setSelectedDuration(parseInt(value))}
+                    value={selectedLevel.toString()}
+                    onValueChange={(value) => setSelectedLevel(value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Choose duration" />
+                      <SelectValue placeholder="Choose level" />
                     </SelectTrigger>
                     <SelectContent defaultValue="1">
-                      <SelectItem value="1">1 minute</SelectItem>
-                      <SelectItem value="3">3 minutes</SelectItem>
-                      <SelectItem value="5">5 minutes</SelectItem>      
+                      <SelectItem value="easy">easy</SelectItem>
+                      <SelectItem value="medium">medium</SelectItem>
+                      <SelectItem value="hard">hard</SelectItem>      
                     </SelectContent>
                   </Select>
                 </div>
                 <Button 
                   onClick={handleCreateBattle}
-                  disabled={!selectedSport || !selectedDuration}
+                  disabled={!selectedSport || !selectedLevel}
                   className="bg-orange-500 hover:bg-orange-600"
                 >
                   <Play className="w-4 h-4 mr-2" />
@@ -145,7 +145,7 @@ export default function BattlePage() {
                             <Trophy className="w-4 h-4" />
                             <span>{battle.sport}</span>
                             <Clock className="w-4 h-4 ml-2" />
-                            <span>{battle.duration}</span>
+                            <span>{battle.level}</span>
                           </div>
                         </div>
                       </div>

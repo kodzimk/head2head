@@ -11,7 +11,7 @@ import BattlesPage from '../modules/battle/battle'
 import WaitingPage from '../modules/battle/waiting-room'
 import { useState, useEffect, useRef } from 'react'
 
-import { CurrentQuestionStore, GlobalStore, ScoreStore, ThemeStore } from '../shared/interface/gloabL_var'
+import { CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore } from '../shared/interface/gloabL_var'
 import { ViewProfile } from '../modules/profile/view-profile'
 import LeaderboardPage from '../modules/leaderboard/leaderboard'
 import SelectionPage from '../modules/selection/selection'
@@ -47,6 +47,10 @@ export default function App() {
   const [currentQuestion, setCurrentQuestion] = useState<any>(null);
   const [firstOpponentScore, setFirstOpponentScore] = useState<number>(0);
   const [secondOpponentScore, setSecondOpponentScore] = useState<number>(0);
+  const [winner, setWinner] = useState<string>('');
+  const [text, setText] = useState<string>('');
+  const [loser, setLoser] = useState<string>('');
+  const [result, setResult] = useState<string>('');
   const navigate = useNavigate()
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   newSocket = createWebSocket(localStorage.getItem('username')?.replace(/"/g, '') || null); 
@@ -222,9 +226,21 @@ export default function App() {
       }
      }
      else if(data.type === 'battle_finished'){
+      if(data.data.text === 'draw'){
+        setResult('draw');
+      }
+      else{
+      setResult('win');
+      }
+
+      setCurrentQuestion(data.data.questions);
+      setLoser(data.data.loser);
+      setWinner(data.data.winner);
+      setText(data.data.text);
       navigate(`/battle/${data.data.battle_id}/result`);
-     }
- });
+      
+    }
+  });
 
 
 
@@ -243,6 +259,10 @@ export default function App() {
         <ThemeStore.Provider value={{theme, setTheme: (theme: boolean) => setTheme(theme)}}>
           <CurrentQuestionStore.Provider value={{currentQuestion, setCurrentQuestion: (currentQuestion: any) => setCurrentQuestion(currentQuestion)}}>
           <ScoreStore.Provider value={{firstOpponentScore: firstOpponentScore, secondOpponentScore: secondOpponentScore, setFirstOpponentScore: (firstOpponentScore: number) => setFirstOpponentScore(firstOpponentScore), setSecondOpponentScore: (secondOpponentScore: number) => setSecondOpponentScore(secondOpponentScore)}}>
+          <WinnerStore.Provider value={{winner, setWinner: (winner: string) => setWinner(winner)}}>
+          <TextStore.Provider value={{text, setText: (text: string) => setText(text)}}>
+          <LoserStore.Provider value={{loser, setLoser: (loser: string) => setLoser(loser)}}>
+          <ResultStore.Provider value={{result, setResult: (result: string) => setResult(result)}}>
             <div className={theme ? 'dark' : ''}>
             <Routes>
               <Route path="/" element={<EntryPage user={user} />} />
@@ -265,6 +285,10 @@ export default function App() {
               <Route path="/battle/:id/result" element={<BattleResultPage />} />
             </Routes>
           </div>
+          </ResultStore.Provider>
+          </LoserStore.Provider>
+          </TextStore.Provider>
+          </WinnerStore.Provider>
           </ScoreStore.Provider>
           </CurrentQuestionStore.Provider>
         </ThemeStore.Provider>

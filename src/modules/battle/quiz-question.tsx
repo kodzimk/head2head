@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '../../shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCurrentQuestionStore, useGlobalStore, useScoreStore } from '../../shared/interface/gloabL_var';
-import { checkForWinner, submitAnswer } from '../../shared/websockets/websocket';
+import { useCurrentQuestionStore, useGlobalStore, useLoserStore, useScoreStore, useTextStore, useWinnerStore } from '../../shared/interface/gloabL_var';
+import { battleResult, checkForWinner, submitAnswer } from '../../shared/websockets/websocket';
 
 
 const QUESTION_TIME_LIMIT = 10; // 30 seconds per question
@@ -19,7 +19,7 @@ export default function QuizQuestionPage() {
   const [showNextQuestion, setShowNextQuestion] = useState(false);
   const [countdown, setCountdown] = useState(NEXT_QUESTION_DELAY);
   const navigate = useNavigate();
-
+  const {text} = useTextStore();
   // Helper to check if quiz is finished
   const isQuizFinished = currentQuestion && currentQuestion['question'] === 'No more questions';
 
@@ -92,23 +92,11 @@ export default function QuizQuestionPage() {
 
   // Poll for result when finished
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isQuizFinished) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/battle/result?battle_id=${id}`);
-          const data = await res.json();
-          if (data.status === 'finished' || data.status === 'draw') {
-            clearInterval(interval);
-            navigate(`/battle/${id}/result`);
-          }
-        } catch (e) {
-          // handle error
-        }
-      }, 2000);
+    if (text !== '') {
+       
+        navigate(`/battle/${id}/result`);
     }
-    return () => clearInterval(interval);
-  }, [isQuizFinished, id, navigate]);
+  }, [text]);
 
   return (
     <div 
