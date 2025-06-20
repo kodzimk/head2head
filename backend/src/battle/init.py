@@ -5,7 +5,7 @@ battle_router = APIRouter()
 
 sampleQuestions = [
   {
-    "id": 1,
+
     "question": "What is the capital of France?",
     "answers": [
       { "label": 'A', "text": 'Berlin' },
@@ -16,7 +16,7 @@ sampleQuestions = [
     "correctAnswer": 'C',
   },
   {
-    "id": 2,
+    
     "question": 'Which planet is known as the Red Planet?',
     "answers": [
       { "label": 'A', "text": 'Venus' },
@@ -27,7 +27,7 @@ sampleQuestions = [
     "correctAnswer": 'B',
   },
   {
-    "id": 3,
+  
     "question": 'What is the largest ocean on Earth?',
     "answers": [
       { "label": 'A', "text": 'Atlantic Ocean' },
@@ -43,7 +43,7 @@ sampleQuestions = [
 class Battle:
     def __init__(self, id: str,first_opponent: str,sport: str,level: str):
         self.id = id
-        self.questions = sampleQuestions
+        self.questions = []
         self.current_question = 0
         self.first_opponent_answers = 0
         self.second_opponent_answers = 0

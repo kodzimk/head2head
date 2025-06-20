@@ -5,7 +5,7 @@ import { startBattle } from '../../shared/websockets/websocket';
 export default function BattleCountdown() {
   const { id } = useParams() as { id: string };
   const navigate = useNavigate();
-  const [count, setCount] = useState(3);
+  const [count, setCount] = useState(10);
 
   useEffect(() => {
     if (count === 0) {

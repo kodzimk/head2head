@@ -79,7 +79,6 @@ export default function App() {
     };
 
     newSocket.onmessage = (event) => {
-      console.log(event.data)
        const data = JSON.parse(event.data);
        if (data.type === 'user_updated') {
          const updatedUser = {

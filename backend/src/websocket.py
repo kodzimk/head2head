@@ -9,6 +9,9 @@ from battle.init import battles
 from models import UserDataCreate
 from init import init_models
 from friends.router import remove_friend
+from aiquiz.router import ai_quiz
+import re
+from fastapi import HTTPException
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -186,6 +189,11 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 })
                                 await manager.send_message(battle_started_message, battle.first_opponent)
                                 await manager.send_message(battle_started_message, battle.second_opponent)
+                                battle.questions = await ai_quiz(f"make a quiz for {battle.sport} for level {battle.level}")
+
+                               
+
+
                         except Exception as e:
                             logger.error(f"Error in accept_invitation: {str(e)}")
                             await manager.send_message(json.dumps({
@@ -202,7 +210,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
         
 
                     elif message.get("type") == "start_battle":
-
+                    
+                        
                         if battles[message["battle_id"]].first_opponent == username:
                          await manager.send_message(json.dumps({
                             "type": "battle_start",
