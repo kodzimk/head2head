@@ -21,13 +21,51 @@ import { useGlobalStore } from "../../shared/interface/gloabL_var";
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const {user} = useGlobalStore()
+  const [recentBattles, setRecentBattles] = useState<RecentBattle[]>([]);
 
   useEffect(() => {
     document.title = "Dashboard";
   }, []);
 
-
-  const recentBattles: RecentBattle[] = [];
+  useEffect(() => {
+    const fetchBattles = async () => {
+      if (!user.username) return;
+      const response = await fetch(
+        `http://localhost:8000/battle/get_battles?username=${user.username}`,
+        {
+          headers: {
+            "accept": "application/json",
+          },
+        }
+      );
+      const data = await response.json();
+      // Map backend battles to RecentBattle type
+      const mapped: RecentBattle[] = data.slice(-5).reverse().map((battle: any) => {
+        // Determine opponent
+        let opponent = battle.first_opponent === user.username ? battle.second_opponent : battle.first_opponent;
+        // Determine result
+        let result = "draw";
+        if (battle.first_opponent === user.username) {
+          result = battle.first_opponent_score > battle.second_opponent_score ? "win" : (battle.first_opponent_score < battle.second_opponent_score ? "lose" : "draw");
+        } else if (battle.second_opponent === user.username) {
+          result = battle.second_opponent_score > battle.first_opponent_score ? "win" : (battle.second_opponent_score < battle.first_opponent_score ? "lose" : "draw");
+        }
+        // Score string
+        const score = `${battle.first_opponent_score} : ${battle.second_opponent_score}`;
+        // No time field in backend, so use id as fallback
+        return {
+          id: battle.id,
+          opponent: opponent || "-",
+          sport: battle.sport,
+          result,
+          score,
+          time: battle.id.slice(0, 8), // fallback, ideally use a real timestamp
+        };
+      });
+      setRecentBattles(mapped);
+    };
+    fetchBattles();
+  }, [user.username]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">

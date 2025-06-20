@@ -264,7 +264,7 @@ export default function App() {
           <ResultStore.Provider value={{result, setResult: (result: string) => setResult(result)}}>
             <div className={theme ? 'dark' : ''}>
             <Routes>
-              <Route path="/" element={<EntryPage user={user} />} />
+              <Route path="/" element={<EntryPage />} />
               <Route path="/sign-up" element={<SignUpPage />} />
               <Route path="/signup-email" element={<EmailSignUpPage />} />
               <Route path="/sign-in" element={<SignInPage />} />

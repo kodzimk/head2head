@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '../../shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCurrentQuestionStore, useGlobalStore, useLoserStore, useScoreStore, useTextStore, useWinnerStore } from '../../shared/interface/gloabL_var';
-import { battleResult, checkForWinner, submitAnswer } from '../../shared/websockets/websocket';
+import { useCurrentQuestionStore, useGlobalStore, useScoreStore, useTextStore } from '../../shared/interface/gloabL_var';
+import { checkForWinner, submitAnswer } from '../../shared/websockets/websocket';
 
 
 const QUESTION_TIME_LIMIT = 10; // 30 seconds per question

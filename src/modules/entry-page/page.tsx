@@ -3,9 +3,8 @@ import Hero from "./hero"
 import Footer from "./footer"
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import type { User } from "../../shared/interface/user"
 
-export default function EntryPage({user}: {user: User}) {
+export default function EntryPage() {
   const navigate = useNavigate();
 
   useEffect(() => {

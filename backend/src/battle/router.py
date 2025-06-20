@@ -203,3 +203,17 @@ async def battle_result(battle_id: str, winner: str, loser: str,result:str):
         del battles[battle_id]
 
     return True
+
+@battle_router.get("/get_battles")
+async def get_battles(username: str):
+    user = await get_user_by_username(username)
+
+    battles_user = user['battles']
+    battles_list = []
+
+    async with SessionLocal() as session:
+        for battle_id in battles_user:
+            battle_data = await session.get(BattleModel, battle_id)
+            if battle_data:
+                battles_list.append(battle_data.to_json())
+    return battles_list

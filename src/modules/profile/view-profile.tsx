@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../shared/ui/dropdown-menu'
 import type { User } from '../../shared/interface/user'
 import { initialUser } from '../../shared/interface/user'
-import { invitebattleFriend,sendFriendRequest, sendMessage } from '../../shared/websockets/websocket'
+import { sendFriendRequest, sendMessage } from '../../shared/websockets/websocket'
 import { cancelFriendRequest } from '../../shared/websockets/websocket'
 import { refreshView } from '../../app/App'
 

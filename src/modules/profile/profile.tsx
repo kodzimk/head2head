@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useContext } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../shared/ui/card"
 import { Input } from "../../shared/ui/input"
@@ -24,7 +24,6 @@ import { useNavigate } from "react-router-dom"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import Header from "../dashboard/header"
 import { deleteUser, sendMessage } from "../../shared/websockets/websocket"
-import { createWebSocket, newSocket } from "../../app/App"
 
 export default function ProfileSettingsPage(  ) {
   const navigate = useNavigate()
