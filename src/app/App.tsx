@@ -281,7 +281,7 @@ export default function App() {
               <Route path="/waiting/:id" element={<WaitingPage />} />
               <Route path="/battle/:id/quiz" element={<QuizQuestionPage />} />
               <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
-              <Route path="/battle/:id/result" element={<BattleResultPage />} />
+              <Route path="/battle/:id/result" element={<BattleResultPage user={user} />} />
             </Routes>
           </div>
           </ResultStore.Provider>

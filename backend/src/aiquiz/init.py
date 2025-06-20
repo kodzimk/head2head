@@ -7,7 +7,7 @@ genai.configure(api_key="AIzaSyDKqLaMMoPBqKVkEIqK3q1ZIZU-q-m75HI")
 
 # Define the system instruction
 system_instruction = """
-         You are ambassador of sport and creative and know everything about sport.
+         You are ambassador of sport and creative and dont use the same question twice and know everything about sport.
          Yiu will create a quesiton based on sport and level.
          create 10 questions and 4 options for each question.
          You will give answers like this:

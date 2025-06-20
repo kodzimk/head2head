@@ -4,7 +4,10 @@ import { Button } from '../../shared/ui/button';
 import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, useTextStore, useWinnerStore } from '../../shared/interface/gloabL_var';
 import { useNavigate, useParams } from 'react-router-dom';
 import { battleResult } from '../../shared/websockets/websocket';
-export default function BattleResultPage() {
+import type { User } from '../../shared/interface/user';
+
+export default function BattleResultPage({user}: {user: User}) {
+
   const { text, setText } = useTextStore();
   const { setFirstOpponentScore, setSecondOpponentScore } = useScoreStore();
   const { winner, setWinner } = useWinnerStore();
@@ -32,7 +35,7 @@ export default function BattleResultPage() {
     setWinner('');
     setLoser('');
     setText('');
-    navigate(`/`);
+    navigate(`/${user.username}`);
   }
 
   if (!showResult) {

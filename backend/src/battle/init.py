@@ -2,44 +2,6 @@ from fastapi import APIRouter
 
 battle_router = APIRouter()
 
-
-sampleQuestions = [
-  {
-
-    "question": "What is the capital of France?",
-    "answers": [
-      { "label": 'A', "text": 'Berlin' },
-      { "label": 'B', "text": 'Madrid' },
-      { "label": 'C', "text": 'Paris' },
-      { "label": 'D', "text": 'Rome' },
-    ],
-    "correctAnswer": 'C',
-  },
-  {
-    
-    "question": 'Which planet is known as the Red Planet?',
-    "answers": [
-      { "label": 'A', "text": 'Venus' },
-      { "label": 'B', "text": 'Mars' },
-      { "label": 'C', "text": 'Jupiter' },
-      { "label": 'D', "text": 'Saturn' },
-    ],
-    "correctAnswer": 'B',
-  },
-  {
-  
-    "question": 'What is the largest ocean on Earth?',
-    "answers": [
-      { "label": 'A', "text": 'Atlantic Ocean' },
-      { "label": 'B', "text": 'Indian Ocean' },
-      { "label": 'C', "text": 'Arctic Ocean' },
-      { "label": 'D', "text": 'Pacific Ocean' },
-    ],
-    "correctAnswer": 'D',
-  },
-];
-
-
 class Battle:
     def __init__(self, id: str,first_opponent: str,sport: str,level: str):
         self.id = id
