@@ -1,34 +1,46 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { useNavigate } from 'react-router-dom'
-import { Play, Clock, Trophy } from 'lucide-react'
+import { Play, Clock, Trophy, RefreshCw } from 'lucide-react'
 import axios from 'axios'
 import Header from '../dashboard/header'
-import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
-
+import { Avatar, AvatarFallback } from '../../shared/ui/avatar'
+import { joinBattle } from '../../shared/websockets/websocket'
 import { Label } from '../../shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../shared/ui/select'
 interface Battle {
   id: string
-  opponent: {
-    username: string
-    avatar: string | null
-  }
+  first_opponent: string
   sport: string
   level: string
-  status: 'pending' | 'active' | 'completed'
-  createdAt: string
+  created_at: string
 }
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
-  const [battles] = useState<Battle[]>([])
-  const [isLoading] = useState(true)
+  const [battles, setBattles] = useState<Battle[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [selectedSport, setSelectedSport] = useState('')
   const [selectedLevel, setSelectedLevel] = useState<string>('')
   const navigate = useNavigate()
+
+  useEffect(() => {
+    fetchWaitingBattles()
+  }, [])
+
+  const fetchWaitingBattles = async () => {
+    try {
+      setIsLoading(true)
+      const response = await axios.get('http://localhost:8000/get_waiting_battles')
+      setBattles(response.data)
+    } catch (error) {
+      console.error('Error fetching waiting battles:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleCreateBattle = async () => {
     try {
@@ -40,19 +52,10 @@ export default function BattlePage() {
     }
   }
 
-  const handleJoinBattle = async (battleId: string) => {
-    try {
-      const response = await axios.post(`http://localhost:8000/join`, {
-        second_opponent: user.username,
-        battle_id: battleId
-      })
-      if (response.data) {
-        navigate(`/battle/${battleId}/quiz`)
-      }
-    } catch (error) {
-      console.error('Error joining battle:', error)
-    }
+  const handleJoinBattle = async (battle_id: string) => {
+      joinBattle(user.username, battle_id)
   }
+
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -108,17 +111,28 @@ export default function BattlePage() {
             </CardContent>
           </Card>
 
-          {/* Active Battles Section */}
+          {/* Waiting Battles Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Active Battles</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Waiting Battles</CardTitle>
+                <Button
+                  onClick={fetchWaitingBattles}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {isLoading ? (
                 <div className="text-center py-4">Loading battles...</div>
               ) : battles.length === 0 ? (
                 <div className="text-center py-4 text-gray-500">
-                  No active battles found
+                  No waiting battles found
                 </div>
               ) : (
                 <div className="grid gap-4">
@@ -129,17 +143,13 @@ export default function BattlePage() {
                     >
                       <div className="flex items-center gap-4">
                         <Avatar className="w-12 h-12">
-                          <AvatarImage
-                            src={battle.opponent.avatar ? `http://localhost:8000${battle.opponent.avatar}` : undefined}
-                            alt={battle.opponent.username}
-                          />
                           <AvatarFallback className="bg-orange-500 text-white">
-                            {battle.opponent.username.slice(0, 2).toUpperCase()}
+                            {battle.first_opponent.slice(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
                           <h3 className="font-semibold text-gray-900 dark:text-white">
-                            {battle.opponent.username}
+                            {battle.first_opponent}
                           </h3>
                           <div className="flex items-center gap-2 text-sm text-gray-500">
                             <Trophy className="w-4 h-4" />

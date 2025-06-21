@@ -15,6 +15,7 @@ import {
 } from "../../shared/ui/sheet"
 import { Avatar, AvatarFallback } from '../../shared/ui/avatar'
 import { cancelInvitation, invitebattleFriend } from '../../shared/websockets/websocket'
+import { newSocket } from '../../app/App'
 
 export default function WaitingRoom() {
   const { user } = useGlobalStore()
@@ -31,10 +32,32 @@ export default function WaitingRoom() {
     const interval = setInterval(() => {
       setWaitingTime(prev => prev + 1)
     }, 1000)
+
+    // Handle websocket messages for battle_started
+    const handleWebSocketMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data)
+        console.log("Waiting room received message:", data)
+        if (data.type === 'battle_started') {
+          console.log("Battle started, navigating to countdown from waiting room")
+          navigate(`/battle/${data.data}/countdown`)
+        }
+      } catch (error) {
+        console.error("Error parsing websocket message:", error)
+      }
+    }
+
+    if (newSocket) {
+      newSocket.addEventListener('message', handleWebSocketMessage)
+    }
+
     return () => {
       clearInterval(interval)
+      if (newSocket) {
+        newSocket.removeEventListener('message', handleWebSocketMessage)
+      }
     }
-  }, [id])
+  }, [id, navigate])
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)

@@ -309,6 +309,20 @@ async def get_battles(username: str):
                 battles_list.append(battle_data.to_json())
     return battles_list
 
+@battle_router.get("/get_waiting_battles")
+async def get_waiting_battles():
+    waiting_battles = []
+    for battle_id, battle in battles.items():
+        if not battle.second_opponent:  # Only battles waiting for second opponent
+            waiting_battles.append({
+                "id": battle.id,
+                "first_opponent": battle.first_opponent,
+                "sport": battle.sport,
+                "level": battle.level,
+                "created_at": battle_id  # Using battle_id as created_at for now
+            })
+    return waiting_battles
+
 @battle_router.get("/get-redis")
 async def get_redis():
     for key in redis_username.keys():

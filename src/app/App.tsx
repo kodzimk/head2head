@@ -54,12 +54,11 @@ export default function App() {
   const [result, setResult] = useState<string>('');
   const navigate = useNavigate()
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  newSocket = createWebSocket(localStorage.getItem('username')?.replace(/"/g, '') || null); 
-  
 
   useEffect(() => {
     const username = localStorage.getItem('username')?.replace(/"/g, '')
-    if(username){
+    if(username && !newSocket){
+      console.log("Creating new WebSocket connection for:", username);
       newSocket = createWebSocket(username); 
     }
   }, [localStorage.getItem('username')?.replace(/"/g, '')]);
@@ -67,23 +66,30 @@ export default function App() {
   useEffect(() => {
     if (!newSocket) return;
         newSocket.onopen = () => {
-        console.log("WebSocket connection established");
+        console.log("WebSocket connection established for user:", user.username);
         sendMessage(user, "get_email");
     };
 
     newSocket.onclose = () => {
-      console.log("WebSocket connection closed");
+      console.log("WebSocket connection closed for user:", user.username);
       reconnectTimeoutRef.current = setTimeout(() => {
         const username = localStorage.getItem('username')?.replace(/"/g, '');
         if (username) {
-          console.log("Attempting to reconnect...");
+          console.log("Attempting to reconnect for user:", username);
           newSocket = createWebSocket(username);
         }
       }, 3000);
     };
 
+    newSocket.onerror = (error) => {
+      console.error("WebSocket error for user:", user.username, error);
+    };
+
     newSocket.onmessage = (event) => {
+       console.log("WebSocket message received:", event.data);
        const data = JSON.parse(event.data);
+       console.log("Parsed data:", data);
+       
        if (data.type === 'user_updated') {
          const updatedUser = {
            email: data.data.email,
@@ -104,7 +110,8 @@ export default function App() {
          setUser(updatedUser);   
          localStorage.setItem('username', updatedUser.username);
        } else if (data.type === 'battle_started') {
-         navigate(`/battle/${data.data.battle_id}/countdown`);
+         console.log("Battle started, navigating to countdown with battle ID:", data.data);
+         navigate(`/battle/${data.data}/countdown`);
        }
        else if(data.type === 'friend_request_updated'){
          const updatedUser = {
@@ -152,98 +159,22 @@ export default function App() {
         }
        }
        else if(data.type === 'battle_finished'){
+        if(data.data.text === 'draw'){
+          setResult('draw');
+        }
+        else{
+          setResult('win');
+        }
+
+        setCurrentQuestion(data.data.questions);
+        setLoser(data.data.loser);
+        setWinner(data.data.winner);
+        setText(data.data.text);
         navigate(`/battle/${data.data.battle_id}/result`);
        }
    }
 
-  }, [localStorage.getItem('username')?.replace(/"/g, '')]);
-
-  newSocket && (newSocket.onmessage = (event) => {
-     const data = JSON.parse(event.data);
-     if (data.type === 'user_updated') {
-       const updatedUser = {
-         email: data.data.email,
-         username: data.data.username,
-         wins: data.data.winBattle,
-         favoritesSport: data.data.favourite,
-         rank: data.data.ranking,
-         winRate: data.data.winRate,
-         totalBattles: data.data.totalBattle,
-         streak: data.data.streak,
-         password: data.data.password,
-         friends: data.data.friends,
-         friendRequests: data.data.friendRequests,
-         avatar: data.data.avatar,
-         battles: data.data.battles,
-         invitations: data.data.invitations
-       };
-       setUser(updatedUser);   
-       localStorage.setItem('username', updatedUser.username);
-
-     } else if (data.type === 'battle_started') {
-       navigate(`/battle/${data.data}/countdown`);
-     }
-     else if(data.type === 'friend_request_updated'){
-       const updatedUser = {
-         email: data.data.email,
-         username: data.data.username,
-         wins: data.data.winBattle,
-         favoritesSport: data.data.favourite,
-         rank: data.data.ranking,
-         winRate: data.data.winRate,
-         totalBattles: data.data.totalBattle,
-         streak: data.data.streak,
-         password: data.data.password,
-         friends: data.data.friends,
-         friendRequests: data.data.friendRequests,
-         avatar: data.data.avatar,
-         battles: data.data.battles,
-         invitations: data.data.invitations
-       };
-       setUser(updatedUser); 
-       refreshView = !refreshView;
-     }
-     else if(data.type === 'battle_start'){
-      setCurrentQuestion(data.data);
-     }
-     else if(data.type === 'next_question'){
-      setCurrentQuestion(data.data.question);
-
-      if(data.data.first_opponent_name === user.username){
-        setFirstOpponentScore(data.data.first_opponent);
-        setSecondOpponentScore(data.data.second_opponent);
-      }
-      else{
-        setFirstOpponentScore(data.data.second_opponent);
-        setSecondOpponentScore(data.data.first_opponent);
-      }
-     }
-     else if(data.type === 'score_updated'){
-      if(data.data.first_opponent_name === user.username){
-        setFirstOpponentScore(data.data.first_opponent);
-        setSecondOpponentScore(data.data.second_opponent);
-      }
-      else{
-        setFirstOpponentScore(data.data.second_opponent);
-        setSecondOpponentScore(data.data.first_opponent);
-      }
-     }
-     else if(data.type === 'battle_finished'){
-      if(data.data.text === 'draw'){
-        setResult('draw');
-      }
-      else{
-      setResult('win');
-      }
-
-      setCurrentQuestion(data.data.questions);
-      setLoser(data.data.loser);
-      setWinner(data.data.winner);
-      setText(data.data.text);
-      navigate(`/battle/${data.data.battle_id}/result`);
-      
-    }
-  });
+  }, [newSocket, navigate]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');

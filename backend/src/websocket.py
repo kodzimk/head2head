@@ -34,9 +34,13 @@ class ConnectionManager:
             logger.info(f"Client {username} disconnected. Total connections: {len(self.active_connections)}")
 
     async def send_message(self, message: str, username: str):
+        print(f"Attempting to send message to {username}. Active connections: {list(self.active_connections.keys())}")
         if username in self.active_connections:
             await self.active_connections[username].send_text(message)
             logger.info(f"Message sent to client {username}")
+        else:
+            print(f"User {username} not found in active connections!")
+            logger.warning(f"User {username} not found in active connections")
 
 manager = ConnectionManager()
 
@@ -190,16 +194,37 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 await manager.send_message(battle_started_message, battle.first_opponent)
                                 await manager.send_message(battle_started_message, battle.second_opponent)
                                 battle.questions = await ai_quiz(f"make a quiz for {battle.sport} for level {battle.level}")
-
-                               
-
-
                         except Exception as e:
                             logger.error(f"Error in accept_invitation: {str(e)}")
                             await manager.send_message(json.dumps({
                                 "type": "error",
                                 "message": "Failed to accept invitation"
-                            }), username)                              
+                            }), username)
+                    elif message.get("type") == "join_battle":
+                        try:
+                            battle = battles.get(message["battle_id"])
+                            if battle and not battle.second_opponent:
+                                battle.second_opponent = message["username"]
+                                battle_started_message = json.dumps({
+                                    "type": "battle_started",
+                                    "data": battle.id
+                                })
+                                print(f"Sending battle_started to first_opponent: {battle.first_opponent}")
+                                await manager.send_message(battle_started_message, battle.first_opponent)
+                                print(f"Sending battle_started to second_opponent: {battle.second_opponent}")
+                                await manager.send_message(battle_started_message, battle.second_opponent)
+                                battle.questions = await ai_quiz(f"make a quiz for {battle.sport} for level {battle.level}")
+                            else:
+                                await manager.send_message(json.dumps({
+                                    "type": "error",
+                                    "message": "Battle not found or already full"
+                                }), username)
+                        except Exception as e:
+                            logger.error(f"Error in join_battle: {str(e)}")
+                            await manager.send_message(json.dumps({
+                                "type": "error",
+                                "message": "Failed to join battle"
+                            }), username)
                     elif message.get("type") == "delete_user":
                        friends =  await delete_user_data(message["email"])
                        for friend in friends:
