@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { Play, Clock, Trophy } from 'lucide-react'
 import Header from '../dashboard/header'
 import { Avatar, AvatarFallback } from '../../shared/ui/avatar'
-import { joinBattle, notifyBattleCreated } from '../../shared/websockets/websocket'
+import { joinBattle, notifyBattleCreated, sendMessage } from '../../shared/websockets/websocket'
 import { newSocket, reconnectWebSocket } from '../../app/App'
 import { Label } from '../../shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../shared/ui/select'
@@ -19,6 +19,12 @@ export default function BattlePage() {
   const [selectedLevel, setSelectedLevel] = useState<string>('')
   const { battle } = useBattleStore()
 
+  useEffect(() => {
+    if (user.username) {
+      sendMessage(user, "get_waiting_battles");
+    }
+  }, [user.username]);
+  
   const handleCreateBattle = async () => {
       notifyBattleCreated(user.username, selectedSport, selectedLevel)
   }
@@ -89,12 +95,23 @@ export default function BattlePage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Waiting Battles</CardTitle>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <CardTitle>Waiting Battles</CardTitle>
+                  <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                    {battle.length}
+                  </span>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {battle.length === 0 ? (
-                <div className="text-center py-4 text-gray-500">
-                  No waiting battles found
+                <div className="text-center py-8 text-gray-500">
+                  <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-lg font-medium mb-2">No waiting battles</p>
+                  <p className="text-sm">Create a new battle or wait for others to join</p>
                 </div>
               ) : (
                 <div className="grid gap-4">

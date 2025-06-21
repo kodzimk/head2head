@@ -106,12 +106,13 @@ export default function App() {
     }
   }, [localStorage.getItem('username')?.replace(/"/g, '')]);
 
+
   useEffect(() => {
     if (!newSocket) return;
 
         newSocket.onopen = () => {
         console.log("WebSocket connection established");
-        sendMessage(user, "get_email");
+        sendMessage(user, "get_email");    
     };
 
     newSocket.onclose = () => {
@@ -125,7 +126,7 @@ export default function App() {
 
     newSocket.onmessage = (event) => {
        try {
-         console.log("WebSocket message received:", event.data);
+       
          const data = JSON.parse(event.data);
          
          if (data.type === 'user_updated') {
@@ -234,6 +235,10 @@ export default function App() {
           setWinner(data.data.winner);
           setText(data.data.text);
           navigate(`/battle/${data.data.battle_id}/result`);
+         }
+         else if(data.type === 'waiting_battles'){
+           console.log('Received waiting battles:', data.data);
+           setBattle(data.data);
          }
        } catch (error) {
          console.error("Error processing websocket message:", error);

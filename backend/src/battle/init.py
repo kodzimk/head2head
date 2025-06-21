@@ -16,8 +16,7 @@ class Battle:
         self.sport = sport
         self.level = level
         self.first_opponent_finished = False
-        self.second_opponent_finished = False
-        
+        self.second_opponent_finished = False       
 
     def get_question(self,index: int):
        

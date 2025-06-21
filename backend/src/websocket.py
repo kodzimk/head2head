@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 from db.router import delete_user_data, get_user_data, update_user_data, get_user_by_username
 from friends.router import add_friend, cancel_friend_request, send_friend_request
-from battle.router import invite_friend, cancel_invitation, accept_invitation, battle_result, battle_draw_result, create_battle
+from battle.router import invite_friend, cancel_invitation, accept_invitation, battle_result, battle_draw_result, create_battle, get_waiting_battles
 from battle.init import battles
 from models import UserDataCreate
 from init import init_models
@@ -126,6 +126,16 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
         await manager.connect(websocket, username)
         
         user_last_activity[username] = asyncio.get_event_loop().time()
+
+        # Send waiting battles to the user when they connect
+        try:
+            waiting_battles = await get_waiting_battles()
+            await manager.send_message(json.dumps({
+                "type": "waiting_battles",
+                "data": waiting_battles
+            }), username)
+        except Exception as e:
+            logger.error(f"Error sending waiting battles to {username}: {str(e)}")
 
         while True:
             try:
@@ -513,7 +523,6 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "type": "battle_started",
                             "data": message["battle_id"]
                         }), message["second_opponent"])
-
                 except Exception as e:
                     logger.error(f"Error in battle_draw_result: {str(e)}")
 

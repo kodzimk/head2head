@@ -30,6 +30,13 @@ export const sendMessage = (user: User, type: string) => {
           }))
         }
       }
+      else if(type === "get_waiting_battles"){
+        console.log('Sending get_waiting_battles message for user:', user.username);
+        newSocket?.send(JSON.stringify({
+          type: "get_waiting_battles",
+          username: user.username
+        }))
+      }
 }
 
 export const acceptFriendRequest = (user: User, friend_username: string) => {

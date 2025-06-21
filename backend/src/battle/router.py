@@ -26,7 +26,6 @@ async def delete_battle(battle_id: str):
     if battle_id in battles:
         battles.pop(battle_id)
 
-
         from websocket import manager
         for connected_user in manager.active_connections.keys():
             await manager.send_message(json.dumps({
@@ -111,7 +110,6 @@ async def accept_invitation(friend_username: str, battle_id: str):
          invitations=friend_user['invitations']
         )
     await update_user_data(user_data)
-
     battle = battles.get(battle_id)
     if not battle:
         raise HTTPException(status_code=401, detail="Battle not found")
@@ -311,13 +309,12 @@ async def get_battles(username: str):
 @battle_router.get("/get_waiting_battles")
 async def get_waiting_battles():
     waiting_battles = []
-    for battle_id, battle in battles.items():
-        if not battle.second_opponent:  
+    for battle in battles.values():
+        if  battle.second_opponent == '':  
             waiting_battles.append({
                 "id": battle.id,
                 "first_opponent": battle.first_opponent,
                 "sport": battle.sport,
-                "level": battle.level,
-                "created_at": battle_id  
+                "level": battle.level, 
             })
     return waiting_battles

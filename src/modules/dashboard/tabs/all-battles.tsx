@@ -173,9 +173,6 @@ export default function AllBattles() {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">All Battles</h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            Showing {sortedBattles.length} of {allBattles.length} battles
-          </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
           <Users className="w-4 h-4" />
@@ -291,10 +288,7 @@ export default function AllBattles() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing {startIndex + 1} to {Math.min(endIndex, filteredBattles.length)} of {filteredBattles.length} battles
-          </div>
+        <div className="flex items-center justify-center">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
