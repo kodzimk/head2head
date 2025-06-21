@@ -14,7 +14,7 @@ import {
   SheetTrigger,
 } from "../../shared/ui/sheet"
 import { Avatar, AvatarFallback } from '../../shared/ui/avatar'
-import { cancelInvitation, invitebattleFriend } from '../../shared/websockets/websocket'
+import { cancelInvitation, invitebattleFriend, notifyBattleDeleted } from '../../shared/websockets/websocket'
 import { newSocket } from '../../app/App'
 
 export default function WaitingRoom() {
@@ -83,6 +83,7 @@ export default function WaitingRoom() {
       await axios.delete(`http://localhost:8000/delete?battle_id=${id}`)
       invitedFriends.forEach(friend => cancelInvitation(friend, id))
       localStorage.removeItem(`invitedFriends_${id}`)
+      
       navigate('/battles')
     } catch (error) {
       console.error('Error deleting battle:', error)

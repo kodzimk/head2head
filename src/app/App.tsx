@@ -40,6 +40,49 @@ export const createWebSocket = (username: string | null) => {
   return ws;
 };
 
+export const reconnectWebSocket = () => {
+  console.log("Reconnecting websocket...");
+  const username = localStorage.getItem('username')?.replace(/"/g, '');
+  if (username) {
+    // Close existing connection if it exists
+    if (newSocket) {
+      newSocket.close();
+    }
+    // Create new connection
+    newSocket = createWebSocket(username);
+    if (newSocket) {
+      newSocket.onopen = () => {
+        console.log("WebSocket reconnected successfully");
+        // Send initial message to get user data
+        const user = {
+          username: username,
+          email: '',
+          wins: 0,
+          favoritesSport: '',
+          rank: 0,
+          winRate: 0,
+          totalBattles: 0,
+          streak: 0,
+          password: '',
+          friends: [],
+          friendRequests: [],
+          avatar: '',
+          battles: [],
+          invitations: []
+        };
+        sendMessage(user, "get_email");
+      };
+      newSocket.onerror = (error) => {
+        console.error("WebSocket reconnection error:", error);
+      };
+      newSocket.onclose = (event) => {
+        console.log("Reconnected WebSocket closed:", event.code, event.reason);
+      };
+    }
+  }
+  return newSocket;
+};
+
 export let refreshView = false;
 
 export default function App() {
@@ -54,6 +97,18 @@ export default function App() {
   const [result, setResult] = useState<string>('');
   const navigate = useNavigate()
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetBattleStates = () => {
+    console.log("Resetting all battle states...");
+    // Reset all battle-related states
+    setCurrentQuestion(null);
+    setFirstOpponentScore(0);
+    setSecondOpponentScore(0);
+    setWinner('');
+    setLoser('');
+    setText('');
+    setResult('');
+  };
 
   useEffect(() => {
     const username = localStorage.getItem('username')?.replace(/"/g, '')
@@ -70,8 +125,8 @@ export default function App() {
         sendMessage(user, "get_email");
     };
 
-    newSocket.onclose = () => {
-      console.log("WebSocket connection closed for user:", user.username);
+    newSocket.onclose = (event) => {
+      console.log("WebSocket connection closed for user:", user.username, "Code:", event.code, "Reason:", event.reason);
       reconnectTimeoutRef.current = setTimeout(() => {
         const username = localStorage.getItem('username')?.replace(/"/g, '');
         if (username) {
@@ -86,95 +141,103 @@ export default function App() {
     };
 
     newSocket.onmessage = (event) => {
-       console.log("WebSocket message received:", event.data);
-       const data = JSON.parse(event.data);
-       console.log("Parsed data:", data);
-       
-       if (data.type === 'user_updated') {
-         const updatedUser = {
-           email: data.data.email,
-           username: data.data.username,
-           wins: data.data.winBattle,
-           favoritesSport: data.data.favourite,
-           rank: data.data.ranking,
-           winRate: data.data.winRate,
-           totalBattles: data.data.totalBattle,
-           streak: data.data.streak,
-           password: data.data.password,
-           friends: data.data.friends,
-           friendRequests: data.data.friendRequests,
-           avatar: data.data.avatar,
-           battles: data.data.battles,
-           invitations: data.data.invitations
-         };
-         setUser(updatedUser);   
-         localStorage.setItem('username', updatedUser.username);
-       } else if (data.type === 'battle_started') {
-         console.log("Battle started, navigating to countdown with battle ID:", data.data);
-         navigate(`/battle/${data.data}/countdown`);
-       }
-       else if(data.type === 'friend_request_updated'){
-         const updatedUser = {
-           email: data.data.email,
-           username: data.data.username,
-           wins: data.data.winBattle,
-           favoritesSport: data.data.favourite,
-           rank: data.data.ranking,
-           winRate: data.data.winRate,
-           totalBattles: data.data.totalBattle,
-           streak: data.data.streak,
-           password: data.data.password,
-           friends: data.data.friends,
-           friendRequests: data.data.friendRequests,
-           avatar: data.data.avatar,
-           battles: data.data.battles,
-           invitations: data.data.invitations
-         };
-         setUser(updatedUser); 
-         refreshView = !refreshView;
-       }
-       else if(data.type === 'battle_start'){
-        setCurrentQuestion(data.data);
-       }
-       else if(data.type === 'next_question'){
-        setCurrentQuestion(data.data.question);
-  
-        if(data.data.first_opponent_name === user.username){
-          setFirstOpponentScore(data.data.first_opponent);
-          setSecondOpponentScore(data.data.second_opponent);
-        }
-        else{
-          setFirstOpponentScore(data.data.second_opponent);
-          setSecondOpponentScore(data.data.first_opponent);
-        }
-       }
-       else if(data.type === 'score_updated'){
-        if(data.data.first_opponent_name === user.username){
-          setFirstOpponentScore(data.data.first_opponent);
-          setSecondOpponentScore(data.data.second_opponent);
-        }
-        else{
-          setFirstOpponentScore(data.data.second_opponent);
-          setSecondOpponentScore(data.data.first_opponent);
-        }
-       }
-       else if(data.type === 'battle_finished'){
-        if(data.data.text === 'draw'){
-          setResult('draw');
-        }
-        else{
-          setResult('win');
-        }
+       try {
+         console.log("WebSocket message received:", event.data);
+         const data = JSON.parse(event.data);
+         console.log("Parsed data:", data);
+         
+         if (data.type === 'user_updated') {
+           const updatedUser = {
+             email: data.data.email,
+             username: data.data.username,
+             wins: data.data.winBattle,
+             favoritesSport: data.data.favourite,
+             rank: data.data.ranking,
+             winRate: data.data.winRate,
+             totalBattles: data.data.totalBattle,
+             streak: data.data.streak,
+             password: data.data.password,
+             friends: data.data.friends,
+             friendRequests: data.data.friendRequests,
+             avatar: data.data.avatar,
+             battles: data.data.battles,
+             invitations: data.data.invitations
+           };
+           setUser(updatedUser);   
+           localStorage.setItem('username', updatedUser.username);
+         } else if (data.type === 'battle_started') {
+           console.log("Battle started, navigating to countdown with battle ID:", data.data);
+           console.log("Current user:", user.username);
+           console.log("WebSocket state:", newSocket?.readyState);
+           navigate(`/battle/${data.data}/countdown`);
+         }
+         else if(data.type === 'friend_request_updated'){
+           const updatedUser = {
+             email: data.data.email,
+             username: data.data.username,
+             wins: data.data.winBattle,
+             favoritesSport: data.data.favourite,
+             rank: data.data.ranking,
+             winRate: data.data.winRate,
+             totalBattles: data.data.totalBattle,
+             streak: data.data.streak,
+             password: data.data.password,
+             friends: data.data.friends,
+             friendRequests: data.data.friendRequests,
+             avatar: data.data.avatar,
+             battles: data.data.battles,
+             invitations: data.data.invitations
+           };
+           setUser(updatedUser); 
+           refreshView = !refreshView;
+         }
+         else if(data.type === 'battle_start'){
+          console.log("Battle start message received, setting current question");
+          setCurrentQuestion(data.data);
+         }
+         else if(data.type === 'next_question'){
+          console.log("Next question message received");
+          setCurrentQuestion(data.data.question);
+    
+          if(data.data.first_opponent_name === user.username){
+            setFirstOpponentScore(data.data.first_opponent);
+            setSecondOpponentScore(data.data.second_opponent);
+          }
+          else{
+            setFirstOpponentScore(data.data.second_opponent);
+            setSecondOpponentScore(data.data.first_opponent);
+          }
+         }
+         else if(data.type === 'score_updated'){
+          if(data.data.first_opponent_name === user.username){
+            setFirstOpponentScore(data.data.first_opponent);
+            setSecondOpponentScore(data.data.second_opponent);
+          }
+          else{
+            setFirstOpponentScore(data.data.second_opponent);
+            setSecondOpponentScore(data.data.first_opponent);
+          }
+         }
+         else if(data.type === 'battle_finished'){
+          if(data.data.text === 'draw'){
+            setResult('draw');
+          }
+          else{
+            setResult('win');
+          }
 
-        setCurrentQuestion(data.data.questions);
-        setLoser(data.data.loser);
-        setWinner(data.data.winner);
-        setText(data.data.text);
-        navigate(`/battle/${data.data.battle_id}/result`);
+          setCurrentQuestion(data.data.questions);
+          setLoser(data.data.loser);
+          setWinner(data.data.winner);
+          setText(data.data.text);
+          navigate(`/battle/${data.data.battle_id}/result`);
+         }
+       } catch (error) {
+         console.error("Error processing websocket message:", error);
        }
    }
 
-  }, [newSocket, navigate]);
+  }, [newSocket, navigate, user.username]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');

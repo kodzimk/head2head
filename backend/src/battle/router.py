@@ -19,11 +19,57 @@ async def create_battle(first_opponent: str, sport: str = Query(...), level: str
         sport=sport,
         level=level,
     )
+    
+    # Broadcast battle creation to all connected users via websocket
+    try:
+        from websocket import manager
+        import json
+        
+        battle_created_message = json.dumps({
+            "type": "battle_created",
+            "data": {
+                "id": battle_id,
+                "first_opponent": first_opponent,
+                "sport": sport,
+                "level": level,
+                "created_at": battle_id
+            }
+        })
+        
+        print(f"Broadcasting battle_created for battle {battle_id}")
+        # Send to all users except the creator
+        for connected_user in manager.active_connections.keys():
+            if connected_user != first_opponent:
+                await manager.send_message(battle_created_message, connected_user)
+                print(f"Sent battle_created to {connected_user}")
+    except Exception as e:
+        print(f"Error broadcasting battle_created: {e}")
+    
     return battles[battle_id]
 
 @battle_router.delete("/delete")
 async def delete_battle(battle_id: str):
-    battles.pop(battle_id)
+    if battle_id in battles:
+        battle = battles[battle_id]
+        battles.pop(battle_id)
+        
+        # Broadcast battle deletion to all connected users
+        try:
+            from websocket import manager
+            import json
+            
+            battle_removed_message = json.dumps({
+                "type": "battle_removed",
+                "data": battle_id
+            })
+            
+            print(f"Broadcasting battle_removed for battle {battle_id}")
+            for connected_user in manager.active_connections.keys():
+                await manager.send_message(battle_removed_message, connected_user)
+                print(f"Sent battle_removed to {connected_user}")
+        except Exception as e:
+            print(f"Error broadcasting battle_removed: {e}")
+    
     return {"message": "Battle deleted successfully"}
 
 

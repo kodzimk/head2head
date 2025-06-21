@@ -3,13 +3,15 @@ import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { useNavigate } from 'react-router-dom'
-import { Play, Clock, Trophy, RefreshCw } from 'lucide-react'
+import { Play, Clock, Trophy } from 'lucide-react'
 import axios from 'axios'
 import Header from '../dashboard/header'
 import { Avatar, AvatarFallback } from '../../shared/ui/avatar'
-import { joinBattle } from '../../shared/websockets/websocket'
+import { joinBattle, notifyBattleCreated } from '../../shared/websockets/websocket'
+import { newSocket, reconnectWebSocket } from '../../app/App'
 import { Label } from '../../shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../shared/ui/select'
+
 interface Battle {
   id: string
   first_opponent: string
@@ -28,6 +30,63 @@ export default function BattlePage() {
 
   useEffect(() => {
     fetchWaitingBattles()
+
+    // Set up polling as fallback for real-time updates
+    const pollInterval = setInterval(() => {
+      fetchWaitingBattles()
+    }, 3000) // Poll every 3 seconds
+
+    // Handle websocket messages for real-time updates
+    const handleWebSocketMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data)
+        console.log("Battle page received message:", data)
+        
+        if (data.type === 'battle_created') {
+          // Add new battle to the list
+          console.log("New battle created, adding to list:", data.data)
+          setBattles(prevBattles => {
+            // Check if battle already exists to avoid duplicates
+            const exists = prevBattles.find(battle => battle.id === data.data.id)
+            if (!exists) {
+              console.log("Adding new battle to list:", data.data)
+              return [...prevBattles, data.data]
+            }
+            console.log("Battle already exists in list, not adding")
+            return prevBattles
+          })
+        } else if (data.type === 'battle_started') {
+          // Remove battle from the list when it starts
+          console.log("Battle started, removing from list:", data.data)
+          setBattles(prevBattles => {
+            const filtered = prevBattles.filter(battle => battle.id !== data.data)
+            console.log("Removed battle, new list length:", filtered.length)
+            return filtered
+          })
+        } else if (data.type === 'battle_removed') {
+          // Remove battle from the list when it's deleted
+          console.log("Battle removed, removing from list:", data.data)
+          setBattles(prevBattles => {
+            const filtered = prevBattles.filter(battle => battle.id !== data.data)
+            console.log("Removed battle, new list length:", filtered.length)
+            return filtered
+          })
+        }
+      } catch (error) {
+        console.error("Error parsing websocket message:", error)
+      }
+    }
+
+    if (newSocket) {
+      newSocket.addEventListener('message', handleWebSocketMessage)
+    }
+
+    return () => {
+      clearInterval(pollInterval)
+      if (newSocket) {
+        newSocket.removeEventListener('message', handleWebSocketMessage)
+      }
+    }
   }, [])
 
   const fetchWaitingBattles = async () => {
@@ -45,7 +104,8 @@ export default function BattlePage() {
   const handleCreateBattle = async () => {
     try {
       const response = await axios.post(`http://localhost:8000/create?first_opponent=${user.username}&sport=${selectedSport}&level=${selectedLevel}`)
-      console.log(response.data)
+      console.log("Battle created:", response.data)
+      
       navigate(`/waiting/${response.data.id}`)
     } catch (error) {
       console.error('Error creating battle:', error)
@@ -53,9 +113,26 @@ export default function BattlePage() {
   }
 
   const handleJoinBattle = async (battle_id: string) => {
-      joinBattle(user.username, battle_id)
+    console.log("Attempting to join battle:", battle_id);
+    console.log("WebSocket state:", newSocket?.readyState);
+    
+    if (!newSocket || newSocket.readyState !== WebSocket.OPEN) {
+      console.log("WebSocket not connected, attempting to reconnect...");
+      reconnectWebSocket();
+      // Wait a bit for reconnection
+      setTimeout(() => {
+        if (newSocket && newSocket.readyState === WebSocket.OPEN) {
+          console.log("WebSocket reconnected, joining battle...");
+          joinBattle(user.username, battle_id);
+        } else {
+          console.error("Failed to reconnect websocket");
+        }
+      }, 1000);
+    } else {
+      console.log("WebSocket connected, joining battle...");
+      joinBattle(user.username, battle_id);
+    }
   }
-
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -114,18 +191,7 @@ export default function BattlePage() {
           {/* Waiting Battles Section */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Waiting Battles</CardTitle>
-                <Button
-                  onClick={fetchWaitingBattles}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Refresh
-                </Button>
-              </div>
+              <CardTitle>Waiting Battles</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (

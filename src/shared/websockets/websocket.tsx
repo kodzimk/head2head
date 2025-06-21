@@ -96,6 +96,62 @@ export const joinBattle = (username: string, battle_id: string) => {
   }))
 }
 
+export const startBattle = (battle_id: string) => {
+  console.log("startBattle called with battle_id:", battle_id);
+  
+  if (!newSocket || newSocket.readyState !== WebSocket.OPEN) {
+    console.error("WebSocket not connected, cannot start battle");
+    // Retry after a short delay
+    setTimeout(() => {
+      if (newSocket && newSocket.readyState === WebSocket.OPEN) {
+        console.log("Retrying startBattle...");
+        newSocket.send(JSON.stringify({
+          type: "start_battle",
+          battle_id: battle_id
+        }));
+      } else {
+        console.error("WebSocket still not connected after retry");
+      }
+    }, 1000);
+    return;
+  }
+  
+  newSocket.send(JSON.stringify({
+    type: "start_battle",
+    battle_id: battle_id
+  }));
+  console.log("startBattle message sent");
+}
+
+export const notifyBattleCreated = (battle_id: string, first_opponent: string, sport: string, level: string) => {
+  console.log("notifyBattleCreated called with:", { battle_id, first_opponent, sport, level })
+  if (!newSocket || newSocket.readyState !== WebSocket.OPEN) {
+    console.error("WebSocket not connected, cannot send battle_created notification")
+    return
+  }
+  newSocket.send(JSON.stringify({
+    type: "notify_battle_created",
+    battle_id: battle_id,
+    first_opponent: first_opponent,
+    sport: sport,
+    level: level
+  }))
+  console.log("notifyBattleCreated message sent")
+}
+
+export const notifyBattleDeleted = (battle_id: string) => {
+  console.log("notifyBattleDeleted called with battle_id:", battle_id)
+  if (!newSocket || newSocket.readyState !== WebSocket.OPEN) {
+    console.error("WebSocket not connected, cannot send battle_deleted notification")
+    return
+  }
+  newSocket.send(JSON.stringify({
+    type: "notify_battle_deleted",
+    battle_id: battle_id
+  }))
+  console.log("notifyBattleDeleted message sent")
+}
+
 export const removeFriend = (user: User, friend_username: string) => {
   newSocket?.send(JSON.stringify({
     type: "remove_friend",
@@ -108,13 +164,6 @@ export const deleteUser = (user: User) => {
   newSocket?.send(JSON.stringify({
     type: "delete_user",
     email: user.email
-  }))
-}
-
-export const startBattle = (battle_id: string) => {
-  newSocket?.send(JSON.stringify({
-    type: "start_battle",
-    battle_id: battle_id
   }))
 }
 
