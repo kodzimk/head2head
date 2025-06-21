@@ -20,7 +20,7 @@ export default function QuizQuestionPage() {
   const [countdown, setCountdown] = useState(NEXT_QUESTION_DELAY);
   const navigate = useNavigate();
   const {text} = useTextStore();
-  // Helper to check if quiz is finished
+  
   const isQuizFinished = currentQuestion && currentQuestion['question'] === 'No more questions';
 
   const getBattleMessage = () => {
@@ -69,7 +69,7 @@ export default function QuizQuestionPage() {
   };
 
   useEffect(() => {
-    // Stop timer if quiz is finished or during next question countdown
+    
     if (isQuizFinished || showNextQuestion) {
       return;
     }
@@ -90,10 +90,9 @@ export default function QuizQuestionPage() {
     }
   }, [timeLeft, currentQuestion, isQuizFinished, showNextQuestion]);
 
-  // Poll for result when finished
+  
   useEffect(() => {
     if (text !== '') {
-       
         navigate(`/battle/${id}/result`);
     }
   }, [text]);
@@ -109,7 +108,7 @@ export default function QuizQuestionPage() {
     >
       <div className="absolute inset-0 bg-black bg-opacity-40"></div>
       <div className="relative z-10 w-full max-w-lg px-4">
-        {/* Score Display */}
+        
         <div className="w-full mb-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 backdrop-blur-sm bg-opacity-95">
             <div className="flex justify-between items-center mb-2">

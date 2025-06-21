@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../shared/ui/card"
@@ -98,14 +96,12 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
   const file = event.target.files?.[0]
   if (!file) return
 
-  // Create preview
   const reader = new FileReader()
   reader.onloadend = () => {
     setAvatarPreview(reader.result as string)
   }
   reader.readAsDataURL(file)
 
-  // Upload to backend
   try {
     setIsLoading(true)
     const formData = new FormData()
@@ -126,7 +122,6 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
       setUser(updatedUser)
     }
   } catch (error) {
-    console.error('Error uploading avatar:', error)
     setError('Failed to upload avatar')
   } finally {
     setIsLoading(false)
@@ -135,7 +130,6 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      {/* Header */}
       <Header user={user} />  
 
       <main className="container mx-auto px-4 py-8 max-w-5xl">
@@ -156,7 +150,6 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
             </TabsTrigger>
           </TabsList>
 
-          {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-6">
             <Card>
               <CardHeader>
@@ -164,7 +157,6 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
                 <CardDescription>Update your personal details and public profile</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Profile Picture */}
                 <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
                   <div className="relative">
                     <div className="relative w-24 h-24">
@@ -198,7 +190,6 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
 
                 <Separator />
 
-                {/* Basic Info Form */}
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
@@ -261,7 +252,6 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
 
           </TabsContent>
 
-          {/* Account Tab */}
           <TabsContent value="account" className="space-y-6 ">
             <Card>
               <CardHeader>

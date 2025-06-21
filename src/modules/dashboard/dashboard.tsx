@@ -40,29 +40,15 @@ export default function DashboardPage() {
         }
       );
       const data = await response.data;
-      console.log(data)
-      // Map backend battles to RecentBattle type
       const mapped: RecentBattle[] = data.slice(-5).reverse().map((battle: any) => {
-        // Determine opponent
         let opponent = battle.first_opponent === user.username ? battle.second_opponent : battle.first_opponent;
-        // Determine result
         let result = "draw";
         if (battle.first_opponent === user.username) {
           result = battle.first_opponent_score > battle.second_opponent_score ? "win" : (battle.first_opponent_score < battle.second_opponent_score ? "lose" : "draw");
         } else if (battle.second_opponent === user.username) {
           result = battle.second_opponent_score > battle.first_opponent_score ? "win" : (battle.second_opponent_score < battle.first_opponent_score ? "lose" : "draw");
         }
-        // Score string
         const score = `${battle.first_opponent_score} : ${battle.second_opponent_score}`;
-        
-        // Create a better time format using current date (since backend doesn't provide timestamp)
-        const now = new Date();
-        const timeString = now.toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        });
         
         return {
           id: battle.id,
@@ -72,7 +58,6 @@ export default function DashboardPage() {
           sport: battle.sport,
           result,
           score,
-          time: timeString,
         };
       });
       setRecentBattles(mapped);
@@ -82,11 +67,9 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      {/* Header */}
       <Header user={user} />
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Welcome Section */}
+      <main className="container mx-auto px-4 py-8 max-w-7xl"> 
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -113,7 +96,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Stats Overview */}
         <div className="hidden xl:grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 md:hidden lg:block dark:from-orange-600 dark:to-red-600 hover:shadow-lg transition-shadow duration-300">
             <CardContent className="p-6">
@@ -164,7 +146,6 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
@@ -178,10 +159,8 @@ export default function DashboardPage() {
 
           <Overview user={user} recentBattles={recentBattles} />
 
-          {/* Battles Tab */}
           <Battles user={user} recentBattles={recentBattles} />
 
-          {/* Friends Tab */}
           <Friends user={user}/>
         </Tabs>
       </main>

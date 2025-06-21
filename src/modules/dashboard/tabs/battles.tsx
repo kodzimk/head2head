@@ -11,7 +11,7 @@ import { Button } from "../../../shared/ui/button";
 import { ChevronRight, Sword, Trophy, Target, Zap} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// Sport icon mapping
+
 const getSportIcon = (sport: string) => {
   const sportIcons: { [key: string]: React.ReactNode } = {
     football: <Trophy className="w-6 h-6 text-orange-500" />,

@@ -15,6 +15,14 @@ export interface User {
     invitations: string[];
 }
 
+export interface Battle {
+    id: string
+    first_opponent: string
+    sport: string
+    level: string
+    created_at?: string
+}
+
 export const initialUser: User = {
     email: "",
     username: "",

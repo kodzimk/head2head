@@ -30,7 +30,6 @@ export default function FriendsPage({user}: {user: User}) {
             rank: friendData.data.ranking
           }])
         } catch (error) {
-          console.error(`Error fetching data for friend ${friend}:`, error);
           setFriends(prev => [...prev, {
             username: friend,
             status: "online",
@@ -60,7 +59,6 @@ export default function FriendsPage({user}: {user: User}) {
           rank: userData.data.ranking
         }])
       } catch (error) {
-        console.error('Error searching user:', error);
         setSearchResults([])
       }
     } else {

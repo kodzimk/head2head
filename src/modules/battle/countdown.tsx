@@ -7,11 +7,10 @@ import { newSocket } from '../../app/App';
 export default function BattleCountdown() {
   const { id } = useParams() as { id: string };
   const navigate = useNavigate();
-  const [count, setCount] = useState(20);
+  const [count, setCount] = useState(10);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
   const {currentQuestion} = useCurrentQuestionStore();
 
-  // Check websocket connection status
   useEffect(() => {
     const checkConnection = () => {
       if (newSocket && newSocket.readyState === WebSocket.OPEN) {
@@ -26,51 +25,28 @@ export default function BattleCountdown() {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle countdown
   useEffect(() => {
     if (count === 0) {
-      console.log("Countdown finished, starting battle...");
       if (newSocket && newSocket.readyState === WebSocket.OPEN) {
         startBattle(id);
-      } else {
-        console.error("WebSocket not connected, cannot start battle");
-        // Fallback: try to navigate to quiz anyway
-        setTimeout(() => {
-          navigate(`/battle/${id}/quiz`);
-        }, 1000);
-      }
+      } 
       return;
     }
     const timer = setTimeout(() => setCount(count - 1), 1000);
     return () => clearTimeout(timer);
-  }, [count, id, navigate]);
+  }, [count]);
 
-  // Navigate to quiz when question is received
   useEffect(() => {
     if(currentQuestion){
-      console.log("Question received, navigating to quiz");
       navigate(`/battle/${id}/quiz`);
     }
-  }, [currentQuestion, id, navigate]);
-
-  // Fallback: if no question received after countdown, try to navigate anyway
-  useEffect(() => {
-    if (count === 0 && !currentQuestion) {
-      const fallbackTimer = setTimeout(() => {
-        console.log("No question received, using fallback navigation");
-        navigate(`/battle/${id}/quiz`);
-      }, 3000); // Wait 3 seconds after countdown
-      
-      return () => clearTimeout(fallbackTimer);
-    }
-  }, [count, currentQuestion, id, navigate]);
+  }, [currentQuestion]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
       <div className="text-6xl font-bold text-orange-500 mb-4">{count === 0 ? 'Go!' : count}</div>
       <div className="text-xl text-gray-700 dark:text-gray-200 mb-4">Ready to smash or get smashed?</div>
       
-      {/* Connection status indicator */}
       <div className={`text-sm px-3 py-1 rounded-full ${
         connectionStatus === 'connected' 
           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 

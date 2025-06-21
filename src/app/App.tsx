@@ -11,16 +11,16 @@ import BattlesPage from '../modules/battle/battle'
 import WaitingPage from '../modules/battle/waiting-room'
 import { useState, useEffect, useRef } from 'react'
 
-import { CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore } from '../shared/interface/gloabL_var'
+import { BattleStore, CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore } from '../shared/interface/gloabL_var'
 import { ViewProfile } from '../modules/profile/view-profile'
 import LeaderboardPage from '../modules/leaderboard/leaderboard'
 import SelectionPage from '../modules/selection/selection'
 import TrainingsPage from '../modules/trainings/trainings'
 import NotificationsPage from '../modules/notifications/notifications'
 import AllBattlesPage from '../modules/dashboard/all-battles-page'
-import { initialUser } from '../shared/interface/user'
+import { initialUser,type User } from '../shared/interface/user'
+import type { Battle } from '../shared/interface/user'
 
-import type { User } from '../shared/interface/user'
 import {sendMessage } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
 import BattleCountdown from '../modules/battle/countdown'
@@ -95,56 +95,38 @@ export default function App() {
   const [text, setText] = useState<string>('');
   const [loser, setLoser] = useState<string>('');
   const [result, setResult] = useState<string>('');
+  const [battle, setBattle] = useState<Battle[]>([]);
   const navigate = useNavigate()
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const resetBattleStates = () => {
-    console.log("Resetting all battle states...");
-    // Reset all battle-related states
-    setCurrentQuestion(null);
-    setFirstOpponentScore(0);
-    setSecondOpponentScore(0);
-    setWinner('');
-    setLoser('');
-    setText('');
-    setResult('');
-  };
 
   useEffect(() => {
     const username = localStorage.getItem('username')?.replace(/"/g, '')
     if(username && !newSocket){
-      console.log("Creating new WebSocket connection for:", username);
       newSocket = createWebSocket(username); 
     }
   }, [localStorage.getItem('username')?.replace(/"/g, '')]);
 
   useEffect(() => {
     if (!newSocket) return;
+
         newSocket.onopen = () => {
-        console.log("WebSocket connection established for user:", user.username);
+        console.log("WebSocket connection established");
         sendMessage(user, "get_email");
     };
 
-    newSocket.onclose = (event) => {
-      console.log("WebSocket connection closed for user:", user.username, "Code:", event.code, "Reason:", event.reason);
+    newSocket.onclose = () => {
       reconnectTimeoutRef.current = setTimeout(() => {
         const username = localStorage.getItem('username')?.replace(/"/g, '');
         if (username) {
-          console.log("Attempting to reconnect for user:", username);
           newSocket = createWebSocket(username);
         }
       }, 3000);
-    };
-
-    newSocket.onerror = (error) => {
-      console.error("WebSocket error for user:", user.username, error);
     };
 
     newSocket.onmessage = (event) => {
        try {
          console.log("WebSocket message received:", event.data);
          const data = JSON.parse(event.data);
-         console.log("Parsed data:", data);
          
          if (data.type === 'user_updated') {
            const updatedUser = {
@@ -166,10 +148,32 @@ export default function App() {
            setUser(updatedUser);   
            localStorage.setItem('username', updatedUser.username);
          } else if (data.type === 'battle_started') {
-           console.log("Battle started, navigating to countdown with battle ID:", data.data);
-           console.log("Current user:", user.username);
-           console.log("WebSocket state:", newSocket?.readyState);
            navigate(`/battle/${data.data}/countdown`);
+         } 
+         else if (data.type === 'battle_removed') {
+          console.log('Battle removed:', data.data);
+          setBattle(prev => {
+            const newBattles = prev.filter(battle => battle.id !== data.data);
+            console.log('Updated battles after removal:', newBattles);
+            return newBattles;
+          });
+         }
+         else if (data.type === 'battle_created_response') {
+          console.log('Battle created response:', data.data);
+          setBattle(prev => {
+            const newBattles = [...prev, data.data];
+            console.log('Updated battles after creation response:', newBattles);
+            return newBattles;
+          });
+          navigate(`/waiting/${data.data.id}`);
+         }
+         else if (data.type === 'battle_created') {
+          console.log('Battle created:', data.data);
+          setBattle(prev => {
+            const newBattles = [...prev, data.data];
+            console.log('Updated battles after creation:', newBattles);
+            return newBattles;
+          });
          }
          else if(data.type === 'friend_request_updated'){
            const updatedUser = {
@@ -192,11 +196,10 @@ export default function App() {
            refreshView = !refreshView;
          }
          else if(data.type === 'battle_start'){
-          console.log("Battle start message received, setting current question");
+  
           setCurrentQuestion(data.data);
          }
-         else if(data.type === 'next_question'){
-          console.log("Next question message received");
+         else if(data.type === 'next_question'){ 
           setCurrentQuestion(data.data.question);
     
           if(data.data.first_opponent_name === user.username){
@@ -258,6 +261,7 @@ export default function App() {
           <TextStore.Provider value={{text, setText: (text: string) => setText(text)}}>
           <LoserStore.Provider value={{loser, setLoser: (loser: string) => setLoser(loser)}}>
           <ResultStore.Provider value={{result, setResult: (result: string) => setResult(result)}}>
+          <BattleStore.Provider value={{battle, setBattle: (battle: Battle[]) => setBattle(battle)}}>
             <div className={theme ? 'dark' : ''}>
             <Routes>
               <Route path="/" element={<EntryPage />} />
@@ -281,6 +285,7 @@ export default function App() {
               <Route path="/:username/all-battles" element={<AllBattlesPage />} />
             </Routes>
           </div>
+          </BattleStore.Provider>
           </ResultStore.Provider>
           </LoserStore.Provider>
           </TextStore.Provider>

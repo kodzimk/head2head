@@ -104,7 +104,6 @@ export const ViewProfile = ({user}: {user: User}) => {
    <header className='bg-white dark:bg-gray-800 lg:px-12 p-4 py-4 flex items-center justify-between'>
   <ArrowLeft className='w-4 h-4' onClick={() => navigate(-1)} />
    <nav className="flex items-center gap-4">
-        {/* Desktop Navigation */}
         <div className="hidden lg:flex gap-6 items-center">
         <Link to={`/${user.username}`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
@@ -147,7 +146,6 @@ export const ViewProfile = ({user}: {user: User}) => {
           </Link>
         </div>
 
-        {/* Mobile Navigation (in dropdown) and Profile Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -178,7 +176,6 @@ export const ViewProfile = ({user}: {user: User}) => {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             
-            {/* Mobile Navigation Links */}
             <div className="lg:hidden">
             <Link to={`/${user.username}`}>
             <DropdownMenuItem className="cursor-pointer">

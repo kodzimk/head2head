@@ -4,7 +4,6 @@ from models import UserDataCreate
 from db.router import update_data
 from fastapi import HTTPException
 import json
-from auth.router import decode_access_token
 
 @router_friend.post("/cancel-friend-request")
 async def cancel_friend_request(username: str, from_username: str):

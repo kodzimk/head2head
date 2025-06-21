@@ -49,15 +49,11 @@ export default function NotificationsPage() {
   }, [user.friendRequests, user.invitations])
 
   const handleAcceptRequest = async (username: string) => {
-    try {
       const request = friendRequests.find(request => request.sender.username === username)
       if (!request) return
 
       acceptFriendRequest(user, request.sender.username)
       setFriendRequests(prev => prev.filter(request => request.sender.username !== username))
-    } catch (error) {
-      console.error('Error accepting friend request:', error)
-    }
   }
 
   const handleRejectRequest = async (username: string) => {
@@ -73,26 +69,15 @@ export default function NotificationsPage() {
   }
 
   const handleAcceptInvitation = async (battle_id: string) => {
-    try {  
       setInvitations(prev => prev.filter(invitation => invitation.battle_id !== battle_id))
       user.invitations = user.invitations.filter(invitation => invitation !== battle_id)
       acceptInvitation(user.username, battle_id)
-    } catch (error) {
-      console.error('Error accepting invitation:', error)
-    }
   }
 
   const handleRejectInvitation = async (battle_id: string) => {
-    try {
       setInvitations(prev => prev.filter(invitation => invitation.battle_id !== battle_id))
       user.invitations = user.invitations.filter(invitation => invitation !== battle_id)
       sendMessage(user, "user_update")
-    } catch (error) {
-      console.error('Error rejecting invitation:', error)
-      // Revert the state changes if there was an error
-      setInvitations(prev => [...prev, { battle_id, sport: '', duration: 0 }])
-      user.invitations.push(battle_id)
-    }
   }
 
   return (

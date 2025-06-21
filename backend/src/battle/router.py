@@ -19,57 +19,22 @@ async def create_battle(first_opponent: str, sport: str = Query(...), level: str
         sport=sport,
         level=level,
     )
-    
-    # Broadcast battle creation to all connected users via websocket
-    try:
-        from websocket import manager
-        import json
-        
-        battle_created_message = json.dumps({
-            "type": "battle_created",
-            "data": {
-                "id": battle_id,
-                "first_opponent": first_opponent,
-                "sport": sport,
-                "level": level,
-                "created_at": battle_id
-            }
-        })
-        
-        print(f"Broadcasting battle_created for battle {battle_id}")
-        # Send to all users except the creator
-        for connected_user in manager.active_connections.keys():
-            if connected_user != first_opponent:
-                await manager.send_message(battle_created_message, connected_user)
-                print(f"Sent battle_created to {connected_user}")
-    except Exception as e:
-        print(f"Error broadcasting battle_created: {e}")
-    
     return battles[battle_id]
 
 @battle_router.delete("/delete")
 async def delete_battle(battle_id: str):
     if battle_id in battles:
-        battle = battles[battle_id]
         battles.pop(battle_id)
-        
-        # Broadcast battle deletion to all connected users
-        try:
-            from websocket import manager
-            import json
-            
-            battle_removed_message = json.dumps({
+
+
+        from websocket import manager
+        for connected_user in manager.active_connections.keys():
+            await manager.send_message(json.dumps({
                 "type": "battle_removed",
                 "data": battle_id
-            })
-            
-            print(f"Broadcasting battle_removed for battle {battle_id}")
-            for connected_user in manager.active_connections.keys():
-                await manager.send_message(battle_removed_message, connected_user)
-                print(f"Sent battle_removed to {connected_user}")
-        except Exception as e:
-            print(f"Error broadcasting battle_removed: {e}")
-    
+            }), connected_user)
+
+
     return {"message": "Battle deleted successfully"}
 
 
@@ -161,7 +126,6 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
         raise HTTPException(status_code=401, detail="Battle not found")
     
     async with SessionLocal() as session:
-        # Save battle to DB
         battle_db = BattleModel(
             id=battle_id,
             sport=battle.sport,
@@ -175,16 +139,13 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
         await session.commit()
         await session.refresh(battle_db)
 
-        # Handle draw case
         if result == 'draw':
-            # Update both users for draw
             for username in [battle.first_opponent, battle.second_opponent]:
                 user = await get_user_by_username(username)
                 user['totalBattle'] += 1
-                user['streak'] = 0  # Reset streak on draw
+                user['streak'] = 0  
                 user['battles'].append(battle_id)
                 
-                # Recalculate win rate
                 if user['winBattle'] > 0:
                     user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
                 else:
@@ -211,8 +172,6 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
                 )
                 await update_user_data(user_data)
         else:
-            # Handle win/lose case
-            # Update winner user
             user = await get_user_by_username(winner)
             user['winBattle'] += 1
             user['totalBattle'] += 1
@@ -244,7 +203,6 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
             )
             await update_user_data(user_data)
 
-            # Update loser user
             user = await get_user_by_username(loser)
             user['totalBattle'] += 1
             user['streak'] = 0
@@ -275,7 +233,6 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
             )
             await update_user_data(user_data)
 
-    # Remove battle from in-memory battles dict
     if battle_id in battles:
         del battles[battle_id]
 
@@ -288,7 +245,6 @@ async def battle_draw_result(battle_id: str):
         raise HTTPException(status_code=401, detail="Battle not found")
     
     async with SessionLocal() as session:
-        # Save battle to DB
         battle_db = BattleModel(
             id=battle_id,
             sport=battle.sport,
@@ -302,14 +258,12 @@ async def battle_draw_result(battle_id: str):
         await session.commit()
         await session.refresh(battle_db)
 
-        # Update both users for draw
         for username in [battle.first_opponent, battle.second_opponent]:
             user = await get_user_by_username(username)
             user['totalBattle'] += 1
-            user['streak'] = 0  # Reset streak on draw
+            user['streak'] = 0  
             user['battles'].append(battle_id)
             
-            # Recalculate win rate
             if user['winBattle'] > 0:
                 user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
             else:
@@ -336,7 +290,6 @@ async def battle_draw_result(battle_id: str):
             )
             await update_user_data(user_data)
 
-    # Remove battle from in-memory battles dict
     if battle_id in battles:
         del battles[battle_id]
 
@@ -359,18 +312,12 @@ async def get_battles(username: str):
 async def get_waiting_battles():
     waiting_battles = []
     for battle_id, battle in battles.items():
-        if not battle.second_opponent:  # Only battles waiting for second opponent
+        if not battle.second_opponent:  
             waiting_battles.append({
                 "id": battle.id,
                 "first_opponent": battle.first_opponent,
                 "sport": battle.sport,
                 "level": battle.level,
-                "created_at": battle_id  # Using battle_id as created_at for now
+                "created_at": battle_id  
             })
     return waiting_battles
-
-@battle_router.get("/get-redis")
-async def get_redis():
-    for key in redis_username.keys():
-        print(key)
-    return True

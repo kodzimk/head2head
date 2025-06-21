@@ -14,7 +14,7 @@ import {
   SheetTrigger,
 } from "../../shared/ui/sheet"
 import { Avatar, AvatarFallback } from '../../shared/ui/avatar'
-import { cancelInvitation, invitebattleFriend, notifyBattleDeleted } from '../../shared/websockets/websocket'
+import { cancelInvitation, invitebattleFriend } from '../../shared/websockets/websocket'
 import { newSocket } from '../../app/App'
 
 export default function WaitingRoom() {
@@ -33,18 +33,11 @@ export default function WaitingRoom() {
       setWaitingTime(prev => prev + 1)
     }, 1000)
 
-    // Handle websocket messages for battle_started
     const handleWebSocketMessage = (event: MessageEvent) => {
-      try {
         const data = JSON.parse(event.data)
-        console.log("Waiting room received message:", data)
         if (data.type === 'battle_started') {
-          console.log("Battle started, navigating to countdown from waiting room")
           navigate(`/battle/${data.data}/countdown`)
         }
-      } catch (error) {
-        console.error("Error parsing websocket message:", error)
-      }
     }
 
     if (newSocket) {
@@ -67,30 +60,18 @@ export default function WaitingRoom() {
 
   const shareInvite = async () => {
     const inviteLink = `${window.location.origin}/waiting/${id}`
-    try {
-      await navigator.share({
+    await navigator.share({
         title: 'Join my Head2Head battle!',
         text: 'Click to join my Head2Head sports battle!',
         url: inviteLink
-      })
-    } catch (error) {
-      console.error('Error sharing:', error)
-    }
+    })   
   }
 
   const quitBattle = async () => {
-    try {
       await axios.delete(`http://localhost:8000/delete?battle_id=${id}`)
       invitedFriends.forEach(friend => cancelInvitation(friend, id))
-      localStorage.removeItem(`invitedFriends_${id}`)
-      
-      // Notify other users about the battle deletion via websocket
-      notifyBattleDeleted(id)
-      
+      localStorage.removeItem(`invitedFriends_${id}`)   
       navigate('/battles')
-    } catch (error) {
-      console.error('Error deleting battle:', error)
-    }
   } 
 
   const inviteFriend = async (friendUsername: string) => {
@@ -100,15 +81,12 @@ export default function WaitingRoom() {
   }
 
   const undoInvite = async (friendUsername: string) => {
-
-      cancelInvitation(friendUsername, id)
-      
+      cancelInvitation(friendUsername, id)  
       setInvitedFriends(prev => {
         const newInvitedFriends = prev.filter(username => username !== friendUsername)
         localStorage.setItem(`invitedFriends_${id}`, JSON.stringify(newInvitedFriends))
         return newInvitedFriends
-      })
-    
+      })   
   }
 
   return (

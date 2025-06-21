@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react"
-import type { User } from "./user"
+import type { Battle, User } from "./user"
 import { initialUser } from "./user"
 
 interface GlobalStoreType {
@@ -135,6 +135,11 @@ export const useWinnerStore = () => {
   return context
 }
 
+interface ResultStoreType {
+  result: string;
+  setResult: (result: string) => void;
+}
+
 export const ResultStore = createContext<ResultStoreType>({
   result: '',
   setResult: () => {}
@@ -148,8 +153,20 @@ export const useResultStore = () => {
   return context
 }
 
-interface ResultStoreType {
-  result: string;
-  setResult: (result: string) => void;
+interface BattleStoreType {
+  battle: Battle[];
+  setBattle: (battle: Battle[]) => void;
 }
 
+export const BattleStore = createContext<BattleStoreType>({
+  battle: [],
+  setBattle: () => {}
+})
+
+export const useBattleStore = () => {
+  const context = useContext(BattleStore)
+  if (!context) {
+    throw new Error("useBattleStore must be used within a BattleStoreProvider")
+  }
+  return context
+}

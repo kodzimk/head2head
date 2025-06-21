@@ -7,7 +7,6 @@ import { Settings, Sword, Trophy, Target, Zap, Calendar } from "lucide-react"
 import type { User, RecentBattle } from '../../../shared/interface/user'
 import { useNavigate } from "react-router-dom"
 
-// Sport icon mapping
 const getSportIcon = (sport: string) => {
   const sportIcons: { [key: string]: React.ReactNode } = {
     football: <Trophy className="w-5 h-5 text-orange-500" />,
@@ -36,7 +35,6 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
     return (
         <TabsContent value="overview" className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-          {/* Profile Card */}
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -91,8 +89,7 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
               </Button>
             </CardContent>
           </Card>
-
-          {/* Recent Activity */}
+      
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-lg lg:text-xl">Recent Battles</CardTitle>

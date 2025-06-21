@@ -45,7 +45,6 @@ export default function Header({ user }: { user: User }) {
       </Link>
 
       <nav className="flex items-center gap-4">
-        {/* Desktop Navigation */}
         <div className="hidden lg:flex gap-6 items-center">
           <Link to={`/${user.username}`}>
             <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
@@ -85,7 +84,6 @@ export default function Header({ user }: { user: User }) {
           </Link>
         </div>
 
-        {/* Mobile Navigation (in dropdown) and Profile Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -121,7 +119,6 @@ export default function Header({ user }: { user: User }) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             
-            {/* Mobile Navigation Links */}
             <div className="lg:hidden">
               <Link to={`/${user.username}`}>
                 <DropdownMenuItem className="cursor-pointer">

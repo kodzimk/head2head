@@ -15,7 +15,7 @@ class UserData(Base):
     password = Column(String, index=True,nullable=False)
     friends = Column(ARRAY(String), index=True,nullable=True)
     friendRequests = Column(ARRAY(String), index=True,nullable=True)
-    avatar = Column(String, nullable=True)  # Store the avatar URL/path
+    avatar = Column(String, nullable=True)  
     battles = Column(ARRAY(String), index=True,nullable=True)
     invitations = Column(ARRAY(String), index=True,nullable=True)
 
@@ -31,7 +31,7 @@ class UserDataCreate(BaseModel):
     password: str
     friends: list[str]
     friendRequests: list[str]
-    avatar: str | None = None  # Optional avatar field
+    avatar: str | None = None  
     battles: list[str]
     invitations: list[str]
 

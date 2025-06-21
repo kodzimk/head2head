@@ -7,24 +7,20 @@ import {
 } from "../../../shared/ui/card";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
-import { Input } from "../../../shared/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../shared/ui/select";
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Search, 
   Filter,
   Trophy, 
   Target, 
   Zap, 
   Sword,
   Users,
-  Award
 } from "lucide-react";
 import type { RecentBattle } from "../../../shared/interface/user";
 import axios from "axios";
 
-// Sport icon mapping
 const getSportIcon = (sport: string) => {
   const sportIcons: { [key: string]: React.ReactNode } = {
     football: <Trophy className="w-6 h-6 text-orange-500" />,
@@ -77,38 +73,28 @@ export default function AllBattles() {
         
         const data = await response.data;
         const mapped: RecentBattle[] = data.reverse().map((battle: any) => {
-          // Determine opponent
           let opponent = battle.first_opponent === localStorage.getItem("username") ? battle.second_opponent : battle.first_opponent;
           
-          // Determine result based on scores
           let result = "draw";
           const currentUser = localStorage.getItem("username");
           
-          // Convert scores to numbers to ensure proper comparison
           const firstScore = parseInt(battle.first_opponent_score) || 0;
-          const secondScore = parseInt(battle.second_opponent_score) || 0;
-          
-          console.log(`Battle ${battle.id}: ${battle.first_opponent}(${firstScore}) vs ${battle.second_opponent}(${secondScore}), Current user: ${currentUser}`);
+          const secondScore = parseInt(battle.second_opponent_score) || 0
           
           if (battle.first_opponent === currentUser) {
-            // Current user is first opponent
             if (firstScore > secondScore) {
               result = "win";
             } else if (firstScore < secondScore) {
               result = "lose";
             } 
-            console.log(`User is first opponent. Result: ${result}`);
           } else if (battle.second_opponent === currentUser) {
-            // Current user is second opponent
             if (secondScore > firstScore) {
               result = "win";
             } else if (secondScore < firstScore) {
               result = "lose";
             }
-            console.log(`User is second opponent. Result: ${result}`);
           } 
           
-          // Score string
           const score = `${firstScore} : ${secondScore}`;
 
           return {
@@ -134,26 +120,22 @@ export default function AllBattles() {
     fetchAllBattles();
   }, []);
 
-  // Filter battles based on search and filters
   useEffect(() => {
     let filtered = allBattles;
-    // Sport filter
     if (sportFilter !== "all") {
       filtered = filtered.filter(battle => 
         battle.sport.toLowerCase() === sportFilter.toLowerCase()
       );
     }
 
-    // Result filter
     if (resultFilter !== "all") {
       filtered = filtered.filter(battle => battle.result === resultFilter);
     }
 
     setFilteredBattles(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1); 
   }, [allBattles, sportFilter, resultFilter]);
 
-  // Sort battles based on selected sort option
   useEffect(() => {
     const sorted = [...filteredBattles].sort((a, b) => { 
       const resultOrder = { win: 1, draw: 2, lose: 3 };
@@ -161,13 +143,11 @@ export default function AllBattles() {
     });
     
     setSortedBattles(sorted);
-    setCurrentPage(1); // Reset to first page when sorting changes
+    setCurrentPage(1); 
   }, [filteredBattles]);
 
-  // Get unique sports for filter dropdown
   const uniqueSports = [...new Set(allBattles.map(battle => battle.sport))];
 
-  // Calculate pagination
   const totalPages = Math.ceil(sortedBattles.length / battlesPerPage);
   const startIndex = (currentPage - 1) * battlesPerPage;
   const endIndex = startIndex + battlesPerPage;
@@ -190,7 +170,6 @@ export default function AllBattles() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">All Battles</h2>
@@ -204,7 +183,6 @@ export default function AllBattles() {
         </div>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -216,7 +194,6 @@ export default function AllBattles() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
 
-            {/* Sport Filter */}
             <Select value={sportFilter} onValueChange={setSportFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="All Sports" />
@@ -231,7 +208,6 @@ export default function AllBattles() {
               </SelectContent>
             </Select>
 
-            {/* Result Filter */}
             <Select value={resultFilter} onValueChange={setResultFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="All Results" />
