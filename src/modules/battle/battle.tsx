@@ -31,11 +31,6 @@ export default function BattlePage() {
   useEffect(() => {
     fetchWaitingBattles()
 
-    // Set up polling as fallback for real-time updates
-    const pollInterval = setInterval(() => {
-      fetchWaitingBattles()
-    }, 3000) // Poll every 3 seconds
-
     // Handle websocket messages for real-time updates
     const handleWebSocketMessage = (event: MessageEvent) => {
       try {
@@ -82,7 +77,6 @@ export default function BattlePage() {
     }
 
     return () => {
-      clearInterval(pollInterval)
       if (newSocket) {
         newSocket.removeEventListener('message', handleWebSocketMessage)
       }
@@ -105,6 +99,9 @@ export default function BattlePage() {
     try {
       const response = await axios.post(`http://localhost:8000/create?first_opponent=${user.username}&sport=${selectedSport}&level=${selectedLevel}`)
       console.log("Battle created:", response.data)
+      
+      // Notify other users about the battle creation via websocket
+      notifyBattleCreated(response.data.id, user.username, selectedSport, selectedLevel)
       
       navigate(`/waiting/${response.data.id}`)
     } catch (error) {

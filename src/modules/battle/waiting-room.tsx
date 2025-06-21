@@ -84,6 +84,9 @@ export default function WaitingRoom() {
       invitedFriends.forEach(friend => cancelInvitation(friend, id))
       localStorage.removeItem(`invitedFriends_${id}`)
       
+      // Notify other users about the battle deletion via websocket
+      notifyBattleDeleted(id)
+      
       navigate('/battles')
     } catch (error) {
       console.error('Error deleting battle:', error)

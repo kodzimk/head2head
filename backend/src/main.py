@@ -2,6 +2,7 @@ from auth.router import auth_router
 from db.router import db_router
 from friends.router import router_friend
 from battle.router import battle_router
+from aiquiz.router import router_ai
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from websocket import app
@@ -13,7 +14,8 @@ app.mount("/avatars", StaticFiles(directory="avatars"), name="avatars")
 app.include_router(auth_router,prefix="/auth",tags=["auth"])
 app.include_router(db_router)
 app.include_router(router_friend)
-app.include_router(battle_router)   
+app.include_router(battle_router)
+app.include_router(router_ai, prefix="/ai", tags=["ai"])
 
 origins = [
     "https://head2head-psi.vercel.app",
