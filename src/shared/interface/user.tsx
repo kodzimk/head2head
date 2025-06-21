@@ -35,6 +35,8 @@ export const initialUser: User = {
 export interface RecentBattle {
     id: number,
     opponent: string,
+    player1: string,
+    player2: string,
     sport: string,
     result: string,
     score: string,

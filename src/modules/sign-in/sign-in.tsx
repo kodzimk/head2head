@@ -9,6 +9,8 @@ import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { GoogleLogin } from '@react-oauth/google'
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
+import { newSocket, createWebSocket } from "../../app/App"
+
 
 export default function SignInPage() {
   const navigate = useNavigate();
@@ -62,13 +64,14 @@ export default function SignInPage() {
     }
 
     try {
-      const response = await axios.get(
+      const response = await axios.post(
         "http://127.0.0.1:8000/auth/signin",
         {
-          params: {
-            email: formData.email,
-            password: formData.password,
-          },
+          username: formData.email,
+          password: formData.password,
+          email: formData.email,
+        },
+        {
           headers: {
             "Content-Type": "application/json",
             accept: "application/json",
@@ -77,27 +80,28 @@ export default function SignInPage() {
       );
 
       if (response.data) {
+        const userData = response.data.user;
         const updatedUser = {
           ...user,
-          email: response.data.email,
-          username: response.data.username,
-          wins: response.data.winBattle,
-          favoritesSport: response.data.favourite,
-          rank: response.data.ranking,
-          winRate: response.data.winRate,
-          totalBattles: response.data.totalBattle,
-          streak: response.data.winBattle,
-          password: response.data.password,
-          avatar: response.data.avatar,
-          friends: response.data.friends,
-          friendRequests: response.data.friendRequests,
-          battles: response.data.battles,
-          invitations: response.data.invitations
+          email: userData.email,
+          username: userData.username,
+          wins: userData.winBattle,
+          favoritesSport: userData.favourite,
+          rank: userData.ranking,
+          winRate: userData.winRate,
+          totalBattles: userData.totalBattle,
+          streak: userData.winBattle,
+          password: userData.password,
+          avatar: userData.avatar,
+          friends: userData.friends,
+          friendRequests: userData.friendRequests,
+          battles: userData.battles,
+          invitations: userData.invitations
         };
         setUser(updatedUser);
-        localStorage.setItem('username', response.data.username);
-          localStorage.setItem("user", JSON.stringify(response.data.email));
-        navigate(`/${response.data.username}`);
+        localStorage.setItem('access_token', response.data.access_token);
+        localStorage.setItem("username", userData.username); 
+        navigate(`/${userData.username}`);
       }
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -127,13 +131,14 @@ export default function SignInPage() {
     );
     
     try {
-      const response = await axios.get(
+      const response = await axios.post(
         "http://127.0.0.1:8000/auth/signin",
         {
-          params: {
-            email: decodedToken.email,
-            password: credentialResponse.credential,
-          },
+          username: decodedToken.email,
+          password: credentialResponse.credential,
+          email: decodedToken.email,
+        },
+        {
           headers: {
             "Content-Type": "application/json",
             accept: "application/json",
@@ -142,27 +147,28 @@ export default function SignInPage() {
       );
 
       if (response.data) {
+        const userData = response.data.user;
         const updatedUser = {
           ...user,
-          email: response.data.email,
-          username: response.data.username,
-          wins: response.data.winBattle,
-          favoritesSport: response.data.favourite,
-          rank: response.data.ranking,
-          winRate: response.data.winRate,
-          totalBattles: response.data.totalBattle,
-          streak: response.data.winBattle,
-          password: response.data.password,
-          avatar: response.data.avatar,
-          friends: response.data.friends,
-          friendRequests: response.data.friendRequests,
-          battles: response.data.battles,
-          invitations: response.data.invitations
+          email: userData.email,
+          username: userData.username,
+          wins: userData.winBattle,
+          favoritesSport: userData.favourite,
+          rank: userData.ranking,
+          winRate: userData.winRate,
+          totalBattles: userData.totalBattle,
+          streak: userData.winBattle,
+          password: userData.password,
+          avatar: userData.avatar,
+          friends: userData.friends,
+          friendRequests: userData.friendRequests,
+          battles: userData.battles,
+          invitations: userData.invitations
         };
         setUser(updatedUser);
-        localStorage.setItem('username', response.data.username);
-        localStorage.setItem("user", JSON.stringify(response.data.email));
-        navigate(`/${response.data.username}`);
+        localStorage.setItem('access_token', response.data.access_token);
+        localStorage.setItem("username", userData.username);
+        navigate(`/${userData.username}`);
       }
     } catch (error: any) {
       console.error('Sign in error:', error);
@@ -171,7 +177,6 @@ export default function SignInPage() {
           submit: 'Invalid email or password'
         });
       } else if (error.response?.status === 404) {
-        // If user doesn't exist, try to sign them up
         try {
           const signUpResponse = await axios.post("http://127.0.0.1:8000/auth/signup", {
             email: decodedToken.email,
@@ -196,27 +201,28 @@ export default function SignInPage() {
           });
 
           if (signUpResponse.data) {
+            const userData = signUpResponse.data.user;
             const updatedUser = {
               ...user,
-              email: signUpResponse.data.email,
-              username: signUpResponse.data.username,
-              wins: signUpResponse.data.winBattle,
-              favoritesSport: signUpResponse.data.favourite,
-              rank: signUpResponse.data.ranking,
-              winRate: signUpResponse.data.winRate,
-              totalBattles: signUpResponse.data.totalBattle,
-              streak: signUpResponse.data.winBattle,
-              password: signUpResponse.data.password,
-              avatar: signUpResponse.data.avatar,
-              friends: signUpResponse.data.friends,
-              friendRequests: signUpResponse.data.friendRequests,
-              battles: signUpResponse.data.battles,
-              invitations: signUpResponse.data.invitations
+              email: userData.email,
+              username: userData.username,
+              wins: userData.winBattle,
+              favoritesSport: userData.favourite,
+              rank: userData.ranking,
+              winRate: userData.winRate,
+              totalBattles: userData.totalBattle,
+              streak: userData.winBattle,
+              password: userData.password,
+              avatar: userData.avatar,
+              friends: userData.friends,
+              friendRequests: userData.friendRequests,
+              battles: userData.battles,
+              invitations: userData.invitations
             };
             setUser(updatedUser);
-            localStorage.setItem('username', signUpResponse.data.username);
-            localStorage.setItem("user", JSON.stringify(signUpResponse.data.email));
-            navigate(`/${signUpResponse.data.username}`);
+            localStorage.setItem('access_token', signUpResponse.data.access_token);
+            localStorage.setItem("username", userData.username);
+            navigate(`/${userData.username}`);
           }
         } catch (signUpError: any) {
           console.error('Sign up error:', signUpError);

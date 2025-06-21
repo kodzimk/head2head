@@ -26,8 +26,8 @@ export default function Header({ user }: { user: User }) {
   function handleSignOut(){
     document.documentElement.classList.remove('dark');
     localStorage.setItem('theme', 'light');
-    localStorage.removeItem("user");
-    localStorage.removeItem('username');
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("username");
     navigate("/");
   }
 

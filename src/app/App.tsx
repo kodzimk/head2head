@@ -17,10 +17,11 @@ import LeaderboardPage from '../modules/leaderboard/leaderboard'
 import SelectionPage from '../modules/selection/selection'
 import TrainingsPage from '../modules/trainings/trainings'
 import NotificationsPage from '../modules/notifications/notifications'
+import AllBattlesPage from '../modules/dashboard/all-battles-page'
 import { initialUser } from '../shared/interface/user'
 
 import type { User } from '../shared/interface/user'
-import { sendMessage } from '../shared/websockets/websocket'
+import {sendMessage } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
 import BattleCountdown from '../modules/battle/countdown'
 import BattleResultPage from '../modules/battle/result'
@@ -57,12 +58,15 @@ export default function App() {
   
 
   useEffect(() => {
-      newSocket = createWebSocket(localStorage.getItem('username')?.replace(/"/g, '') || null); 
-  }, []);
+    const username = localStorage.getItem('username')?.replace(/"/g, '')
+    if(username){
+      newSocket = createWebSocket(username); 
+    }
+  }, [localStorage.getItem('username')?.replace(/"/g, '')]);
 
   useEffect(() => {
     if (!newSocket) return;
-    newSocket.onopen = () => {
+        newSocket.onopen = () => {
         console.log("WebSocket connection established");
         sendMessage(user, "get_email");
     };
@@ -152,7 +156,7 @@ export default function App() {
        }
    }
 
-  }, []);
+  }, [localStorage.getItem('username')?.replace(/"/g, '')]);
 
   newSocket && (newSocket.onmessage = (event) => {
      const data = JSON.parse(event.data);
@@ -241,8 +245,6 @@ export default function App() {
     }
   });
 
-
-
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
@@ -282,6 +284,7 @@ export default function App() {
               <Route path="/battle/:id/quiz" element={<QuizQuestionPage />} />
               <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
               <Route path="/battle/:id/result" element={<BattleResultPage user={user} />} />
+              <Route path="/:username/all-battles" element={<AllBattlesPage />} />
             </Routes>
           </div>
           </ResultStore.Provider>

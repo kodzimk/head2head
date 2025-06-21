@@ -4,6 +4,7 @@ from models import UserDataCreate
 from db.router import update_data
 from fastapi import HTTPException
 import json
+from auth.router import decode_access_token
 
 @router_friend.post("/cancel-friend-request")
 async def cancel_friend_request(username: str, from_username: str):
@@ -67,12 +68,6 @@ async def check_friend_request(username: str, from_username: str) -> bool:
     user_model = redis_username.get(username)
     user_model = json.loads(user_model)
     return from_username in user_model['friendRequests']
-
-@router_friend.get("/get-friends")
-async def get_friends(email: str):
-    user_model = redis_email.get(email)
-    user_model = json.loads(user_model)
-    return user_model['friends']
 
 @router_friend.post("/remove-friend")
 async def remove_friend(username: str, from_username: str):

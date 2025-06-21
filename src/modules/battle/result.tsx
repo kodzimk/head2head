@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
 import { Button } from '../../shared/ui/button';
 import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, useTextStore, useWinnerStore } from '../../shared/interface/gloabL_var';
 import { useNavigate, useParams } from 'react-router-dom';
-import { battleResult } from '../../shared/websockets/websocket';
+import { battleResult, battleDrawResult } from '../../shared/websockets/websocket';
 import type { User } from '../../shared/interface/user';
 
 export default function BattleResultPage({user}: {user: User}) {
@@ -23,7 +23,11 @@ export default function BattleResultPage({user}: {user: User}) {
     setTimeout(() => {
       setShowResult(true); 
       if(text !== ''){
-        battleResult(id, winner, loser,result);
+        if(result === 'draw'){
+          battleDrawResult(id);
+        } else {
+          battleResult(id, winner, loser, result);
+        }
       }
     }, 3000);
   }, []);

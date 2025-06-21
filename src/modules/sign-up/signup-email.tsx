@@ -9,7 +9,6 @@ import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle, Info, X } from "
 import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
-import { sendMessage } from "../../shared/websockets/websocket"
 
 interface ValidationErrors {
   email?: string;
@@ -104,27 +103,24 @@ export default function EmailSignUpPage() {
     })
       .then(response => {
         if (response.data) {
-          user.email = response.data.email
-          user.username = response.data.username
-          user.wins = response.data.winBattle
-          user.favoritesSport = response.data.favourite
-          user.rank = response.data.ranking
-          user.winRate = response.data.winRate
-          user.totalBattles = response.data.totalBattle
-          user.streak = response.data.winBattle
-          user.password = response.data.password
-          user.friends = response.data.friends          
-          user.friendRequests = response.data.friendRequests
-          user.battles = response.data.battles
-          user.invitations = response.data.invitations
+          const userData = response.data.user;
+          user.email = userData.email
+          user.username = userData.username
+          user.wins = userData.winBattle
+          user.favoritesSport = userData.favourite
+          user.rank = userData.ranking
+          user.winRate = userData.winRate
+          user.totalBattles = userData.totalBattle
+          user.streak = userData.winBattle
+          user.password = userData.password
+          user.friends = userData.friends          
+          user.friendRequests = userData.friendRequests
+          user.battles = userData.battles
+          user.invitations = userData.invitations
           setUser(user)
-          localStorage.setItem('username', response.data.username);
-          localStorage.setItem("user", JSON.stringify(response.data.email)) 
-          sendMessage(user, "user_update")
-
-          setTimeout(() => {
-            navigate(`/${user.username}`)
-          }, 100)
+          localStorage.setItem('access_token', response.data.access_token);
+          localStorage.setItem("username", userData.username);
+          navigate(`/${user.username}`)
         } else {
           setValidationErrors({
             submit: 'Signup failed. Account already exists.'

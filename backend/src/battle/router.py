@@ -109,10 +109,11 @@ async def accept_invitation(friend_username: str, battle_id: str):
     return True
 
 @battle_router.post("/battle_result")
-async def battle_result(battle_id: str, winner: str, loser: str,result:str):
+async def battle_result(battle_id: str, winner: str, loser: str, result: str):
     battle = battles.get(battle_id)
     if not battle:
         raise HTTPException(status_code=401, detail="Battle not found")
+    
     async with SessionLocal() as session:
         # Save battle to DB
         battle_db = BattleModel(
@@ -128,75 +129,166 @@ async def battle_result(battle_id: str, winner: str, loser: str,result:str):
         await session.commit()
         await session.refresh(battle_db)
 
-        # Update winner user
-        user = await get_user_by_username(winner)
-        if result == 'win':
+        # Handle draw case
+        if result == 'draw':
+            # Update both users for draw
+            for username in [battle.first_opponent, battle.second_opponent]:
+                user = await get_user_by_username(username)
+                user['totalBattle'] += 1
+                user['streak'] = 0  # Reset streak on draw
+                user['battles'].append(battle_id)
+                
+                # Recalculate win rate
+                if user['winBattle'] > 0:
+                    user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
+                else:
+                    user['winRate'] = 0
+
+                redis_username.set(user['username'], json.dumps(user))
+                redis_email.set(user['email'], json.dumps(user))
+                
+                user_data = UserDataCreate(
+                    streak=user['streak'],
+                    winRate=user['winRate'],
+                    winBattle=user['winBattle'],
+                    ranking=user['ranking'],
+                    totalBattle=user['totalBattle'],
+                    favourite=user['favourite'],
+                    avatar=user['avatar'],
+                    username=user['username'],
+                    email=user['email'],
+                    password=user['password'],
+                    friends=user['friends'],
+                    friendRequests=user['friendRequests'],
+                    battles=user['battles'],
+                    invitations=user['invitations']
+                )
+                await update_user_data(user_data)
+        else:
+            # Handle win/lose case
+            # Update winner user
+            user = await get_user_by_username(winner)
             user['winBattle'] += 1
-
-        user['totalBattle'] += 1
-
-        if result == 'win':
+            user['totalBattle'] += 1
             user['streak'] += 1
-        else:
+            user['battles'].append(battle_id)
+
+            if user['winBattle'] > 0:
+                user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
+            else:
+                user['winRate'] = 0
+
+            redis_username.set(user['username'], json.dumps(user))
+            redis_email.set(user['email'], json.dumps(user))
+            user_data = UserDataCreate(
+                streak=user['streak'],
+                winRate=user['winRate'],
+                winBattle=user['winBattle'],
+                ranking=user['ranking'],
+                totalBattle=user['totalBattle'],
+                favourite=user['favourite'],
+                avatar=user['avatar'],
+                username=user['username'],
+                email=user['email'],
+                password=user['password'],
+                friends=user['friends'],
+                friendRequests=user['friendRequests'],
+                battles=user['battles'],
+                invitations=user['invitations']
+            )
+            await update_user_data(user_data)
+
+            # Update loser user
+            user = await get_user_by_username(loser)
+            user['totalBattle'] += 1
             user['streak'] = 0
+            user['battles'].append(battle_id)
+
+            if user['winBattle'] > 0:
+                user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
+            else:
+                user['winRate'] = 0
+
+            redis_username.set(user['username'], json.dumps(user))
+            redis_email.set(user['email'], json.dumps(user))
+            user_data = UserDataCreate(
+                streak=user['streak'],
+                winRate=user['winRate'],
+                winBattle=user['winBattle'],
+                ranking=user['ranking'],
+                totalBattle=user['totalBattle'],
+                favourite=user['favourite'],
+                avatar=user['avatar'],
+                username=user['username'],
+                email=user['email'],
+                password=user['password'],
+                friends=user['friends'],
+                friendRequests=user['friendRequests'],
+                battles=user['battles'],
+                invitations=user['invitations']
+            )
+            await update_user_data(user_data)
+
+    # Remove battle from in-memory battles dict
+    if battle_id in battles:
+        del battles[battle_id]
+
+    return True
+
+@battle_router.post("/battle_draw_result")
+async def battle_draw_result(battle_id: str):
+    battle = battles.get(battle_id)
+    if not battle:
+        raise HTTPException(status_code=401, detail="Battle not found")
+    
+    async with SessionLocal() as session:
+        # Save battle to DB
+        battle_db = BattleModel(
+            id=battle_id,
+            sport=battle.sport,
+            level=battle.level,
+            first_opponent=battle.first_opponent,
+            second_opponent=battle.second_opponent,
+            first_opponent_score=battle.first_opponent_score,
+            second_opponent_score=battle.second_opponent_score
+        )
+        session.add(battle_db)
+        await session.commit()
+        await session.refresh(battle_db)
+
+        # Update both users for draw
+        for username in [battle.first_opponent, battle.second_opponent]:
+            user = await get_user_by_username(username)
+            user['totalBattle'] += 1
+            user['streak'] = 0  # Reset streak on draw
+            user['battles'].append(battle_id)
             
-        user['battles'].append(battle_id)
+            # Recalculate win rate
+            if user['winBattle'] > 0:
+                user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
+            else:
+                user['winRate'] = 0
 
-        if user['winBattle'] > 0:
-            user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
-        else:
-            user['winRate'] = 0
-
-        redis_username.set(user['username'], json.dumps(user))
-        redis_email.set(user['email'], json.dumps(user))
-        user_data = UserDataCreate(
-            streak=user['streak'],
-            winRate=user['winRate'],
-            winBattle=user['winBattle'],
-            ranking=user['ranking'],
-            totalBattle=user['totalBattle'],
-            favourite=user['favourite'],
-            avatar=user['avatar'],
-            username=user['username'],
-            email=user['email'],
-            password=user['password'],
-            friends=user['friends'],
-            friendRequests=user['friendRequests'],
-            battles=user['battles'],
-            invitations=user['invitations']
-        )
-        await update_user_data(user_data)
-
-        # Update loser user
-        user = await get_user_by_username(loser)
-        user['totalBattle'] += 1
-        user['streak'] = 0
-        user['battles'].append(battle_id)
-
-        if user['winBattle'] > 0:
-            user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
-        else:
-            user['winRate'] = 0
-
-        redis_username.set(user['username'], json.dumps(user))
-        redis_email.set(user['email'], json.dumps(user))
-        user_data = UserDataCreate(
-            streak=user['streak'],
-            winRate=user['winRate'],
-            winBattle=user['winBattle'],
-            ranking=user['ranking'],
-            totalBattle=user['totalBattle'],
-            favourite=user['favourite'],
-            avatar=user['avatar'],
-            username=user['username'],
-            email=user['email'],
-            password=user['password'],
-            friends=user['friends'],
-            friendRequests=user['friendRequests'],
-            battles=user['battles'],
-            invitations=user['invitations']
-        )
-        await update_user_data(user_data)
+            redis_username.set(user['username'], json.dumps(user))
+            redis_email.set(user['email'], json.dumps(user))
+            
+            user_data = UserDataCreate(
+                streak=user['streak'],
+                winRate=user['winRate'],
+                winBattle=user['winBattle'],
+                ranking=user['ranking'],
+                totalBattle=user['totalBattle'],
+                favourite=user['favourite'],
+                avatar=user['avatar'],
+                username=user['username'],
+                email=user['email'],
+                password=user['password'],
+                friends=user['friends'],
+                friendRequests=user['friendRequests'],
+                battles=user['battles'],
+                invitations=user['invitations']
+            )
+            await update_user_data(user_data)
 
     # Remove battle from in-memory battles dict
     if battle_id in battles:
@@ -207,7 +299,6 @@ async def battle_result(battle_id: str, winner: str, loser: str,result:str):
 @battle_router.get("/get_battles")
 async def get_battles(username: str):
     user = await get_user_by_username(username)
-
     battles_user = user['battles']
     battles_list = []
 
@@ -217,3 +308,9 @@ async def get_battles(username: str):
             if battle_data:
                 battles_list.append(battle_data.to_json())
     return battles_list
+
+@battle_router.get("/get-redis")
+async def get_redis():
+    for key in redis_username.keys():
+        print(key)
+    return True

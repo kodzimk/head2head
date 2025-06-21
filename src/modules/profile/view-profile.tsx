@@ -236,7 +236,8 @@ export const ViewProfile = ({user}: {user: User}) => {
             </Link>
             <DropdownMenuItem
               onClick={() => {
-                localStorage.removeItem("user")
+                localStorage.removeItem("theme")
+                localStorage.removeItem("access_token")
                 navigate("/")
               }}
               className="cursor-pointer"

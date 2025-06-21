@@ -17,6 +17,7 @@ import Friends from "./tabs/friends";
 import Header from "./header";
 import type { RecentBattle } from "../../shared/interface/user";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
+import axios from "axios";
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -29,16 +30,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchBattles = async () => {
-      if (!user.username) return;
-      const response = await fetch(
-        `http://localhost:8000/battle/get_battles?username=${user.username}`,
+      if (!localStorage.getItem("username")) return;
+      const response = await axios.get(
+        `http://localhost:8000/get_battles?username=${localStorage.getItem("username")}`,
         {
           headers: {
             "accept": "application/json",
           },
         }
       );
-      const data = await response.json();
+      const data = await response.data;
+      console.log(data)
       // Map backend battles to RecentBattle type
       const mapped: RecentBattle[] = data.slice(-5).reverse().map((battle: any) => {
         // Determine opponent
@@ -52,20 +54,31 @@ export default function DashboardPage() {
         }
         // Score string
         const score = `${battle.first_opponent_score} : ${battle.second_opponent_score}`;
-        // No time field in backend, so use id as fallback
+        
+        // Create a better time format using current date (since backend doesn't provide timestamp)
+        const now = new Date();
+        const timeString = now.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
         return {
           id: battle.id,
-          opponent: opponent || "-",
+          opponent: opponent || "Unknown",
+          player1: battle.first_opponent,
+          player2: battle.second_opponent,
           sport: battle.sport,
           result,
           score,
-          time: battle.id.slice(0, 8), // fallback, ideally use a real timestamp
+          time: timeString,
         };
       });
       setRecentBattles(mapped);
     };
     fetchBattles();
-  }, [user.username]);
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">

@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 from db.router import delete_user_data, get_user_data, update_user_data, get_user_by_username
 from friends.router import add_friend, cancel_friend_request, send_friend_request
-from battle.router import invite_friend, cancel_invitation, accept_invitation, battle_result
+from battle.router import invite_friend, cancel_invitation, accept_invitation, battle_result, battle_draw_result
 from battle.init import battles
 from models import UserDataCreate
 from init import init_models
@@ -102,7 +102,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                         }), temp)
                         manager.active_connections[message['username']] = websocket               
                     elif message.get("type") == "get_email":
-                        user_data = await get_user_data(message["email"])
+                        user_data = await get_user_data(message["token"])
                         if user_data:
                             await manager.send_message(json.dumps({
                                 "type": "user_updated",
@@ -207,11 +207,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                "type": "user_updated",
                                "data": await get_user_by_username(friend)
                            }), friend)
-        
-
-                    elif message.get("type") == "start_battle":
-                    
-                        
+                    elif message.get("type") == "start_battle":                       
                         if battles[message["battle_id"]].first_opponent == username:
                          await manager.send_message(json.dumps({
                             "type": "battle_start",
@@ -346,7 +342,20 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "type": "user_updated",
                             "data": await get_user_by_username(message["loser"])
                         }), message["loser"])
-
+                        
+                    elif message.get("type") == "battle_draw_result":
+                        await battle_draw_result(message["battle_id"])
+                        # Update both users for draw
+                        battle = battles.get(message["battle_id"])
+                        if battle:
+                            await manager.send_message(json.dumps({
+                                "type": "user_updated",
+                                "data": await get_user_by_username(battle.first_opponent)
+                            }), battle.first_opponent)
+                            await manager.send_message(json.dumps({
+                                "type": "user_updated",
+                                "data": await get_user_by_username(battle.second_opponent)
+                            }), battle.second_opponent)
 
                 except json.JSONDecodeError:
                     logger.error(f"Invalid JSON received from client {username}")

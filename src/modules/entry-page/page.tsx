@@ -8,14 +8,10 @@ export default function EntryPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const email = localStorage.getItem("user")?.replace(/"/g, '');
-    const username = localStorage.getItem("username")?.replace(/"/g, '');
-    
-    if(email && username){
-      setTimeout(() => {
+    const username = localStorage.getItem("username");
+    if(username && localStorage.getItem("access_token")){
         navigate(`/${username}`);
-      }, 100)
-    }
+      }
   }, []);
 
   return (

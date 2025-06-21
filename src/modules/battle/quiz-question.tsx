@@ -108,22 +108,22 @@ export default function QuizQuestionPage() {
       }}
     >
       <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-lg px-4">
         {/* Score Display */}
         <div className="w-full mb-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 backdrop-blur-sm bg-opacity-95">
-            <div className="flex justify-between items-center mb-3">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 backdrop-blur-sm bg-opacity-95">
+            <div className="flex justify-between items-center mb-2">
               <div className="text-center flex-1">
-                <div className="text-sm text-gray-600 dark:text-gray-400">You</div>
-                <div className="text-2xl font-bold text-blue-600">{firstOpponentScore}</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">You</div>
+                <div className="text-xl font-bold text-blue-600">{firstOpponentScore}</div>
               </div>
               <div className="text-center flex-1">
-                <div className="text-sm text-gray-600 dark:text-gray-400">Opponent</div>
-                <div className="text-2xl font-bold text-red-600">{secondOpponentScore}</div>
+                <div className="text-xs text-gray-600 dark:text-gray-400">Opponent</div>
+                <div className="text-xl font-bold text-red-600">{secondOpponentScore}</div>
               </div>
             </div>
             <div className="text-center">
-              <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2">
+              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full px-3 py-1">
                 {getBattleMessage()}
               </div>
             </div>
@@ -131,37 +131,48 @@ export default function QuizQuestionPage() {
         </div>
 
         <Card className="w-full backdrop-blur-sm bg-opacity-95">
-          <CardHeader>
+          <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
-              <CardTitle>Compete for GOATNESS</CardTitle>
-              {/* Hide timer if quiz is finished */}
               {!isQuizFinished && (
-                <div className={`text-lg font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-gray-600'}`}>{timeLeft}s</div>
+                <div className="flex items-center gap-4">
+                  <div className={`text-lg font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-gray-600'}`}>{timeLeft}s</div>
+                  {showNextQuestion && (
+                    <div className="text-sm text-yellow-600 font-semibold">
+                      Next question in {countdown} second{countdown !== 1 ? 's' : ''}...
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4">
             {isQuizFinished ? (
-              <div className="text-center py-8">
-                <div className="text-2xl font-bold mb-4">You finished your quiz, wait for opponent.</div>
+              <div className="text-center py-6">
+                <div className="text-xl font-bold mb-3">You finished your quiz, wait for opponent.</div>
                 {showNextQuestion && (
-                  <div className="mb-4 text-center text-yellow-600 font-semibold">
+                  <div className="mb-3 text-center text-yellow-600 font-semibold">
                     Next question in {countdown} second{countdown !== 1 ? 's' : ''}...
                   </div>
                 )}
               </div>
             ) : (
               <>
-                <div className="text-lg font-semibold mb-2">{currentQuestion['question']}</div>
-                {showNextQuestion && (
-                  <div className="mb-4 text-center text-yellow-600 font-semibold">
-                    Next question in {countdown} second{countdown !== 1 ? 's' : ''}...
-                  </div>
-                )}
-                <div className="grid gap-3 mb-6">
+                <div className="text-base font-semibold mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg break-words leading-relaxed">
+                  {currentQuestion['question']}
+                </div>
+                <div className="grid gap-3 mb-4">
                   {currentQuestion['answers'].map((ans: any) => (
-                    <Button key={ans.label} variant={selected === ans.label ? 'default' : 'outline'} className="w-full justify-start" onClick={() => handleSelect(ans.label)} disabled={showNextQuestion}>
-                      <span className="font-bold mr-2">{ans.label}.</span> {ans.text}
+                    <Button 
+                      key={ans.label} 
+                      variant={selected === ans.label ? 'default' : 'outline'} 
+                      className="w-full h-auto min-h-[50px] p-3 text-left whitespace-normal break-words" 
+                      onClick={() => handleSelect(ans.label)} 
+                      disabled={showNextQuestion}
+                    >
+                      <div className="flex items-start gap-2 w-full">
+                        <span className="font-bold text-xs flex-shrink-0">{ans.label}.</span>
+                        <span className="text-xs leading-relaxed">{ans.text}</span>
+                      </div>
                     </Button>
                   ))}
                 </div>

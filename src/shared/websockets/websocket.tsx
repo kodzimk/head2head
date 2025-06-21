@@ -22,11 +22,11 @@ export const sendMessage = (user: User, type: string) => {
         }))
       }
       else if(type === "get_email"){
-        const user = localStorage.getItem("user")?.replace(/"/g, '')
-        if(user){
+        const token = localStorage.getItem("access_token")?.replace(/"/g, '')
+        if(token){
           newSocket?.send(JSON.stringify({
             type: "get_email",
-            email: user
+            token: token
           }))
         }
       }
@@ -133,5 +133,12 @@ export const battleResult = (battle_id: string, winner: string, loser: string,re
     winner: winner,
     loser: loser,
     result: result
+  }))
+}
+
+export const battleDrawResult = (battle_id: string) => {
+  newSocket?.send(JSON.stringify({
+    type: "battle_draw_result",
+    battle_id: battle_id
   }))
 }

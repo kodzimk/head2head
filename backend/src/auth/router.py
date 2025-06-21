@@ -5,6 +5,11 @@ from .init import auth_router
 import json
 import bcrypt
 from fastapi import APIRouter, HTTPException
+from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel
+from datetime import timedelta, datetime
+import jwt
 
 auth_router = APIRouter()
 
@@ -21,6 +26,58 @@ async def user_exists(email: str) -> bool:
     if user is None:
         return False
     return True
+
+SECRET_KEY = """MIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAqCWwNCUir+tatvRa
+O0R3VOk9kTq5KY35NmKmlE3Dq280IdHtB87b+clPvs7/QyZHFE9DhQMAUWUOx+0T
+zoKsywIDAQABAkAuWAzjomSYFgcvq9N+yFUXix2T/JpyMJZCfhgpgfFvO0mPSdJ8
+mXrKwyo5LPf0Ha8ckRvwZyS2MSMmD8D8lNfRAiEA3IjBDjjICXgV7TfesU4MnIYW
+X2t3L+SFnCDzU+qcUAMCIQDDMDKBUfQqYzrulxtfjwF/qmiPfwVbXm7es5OQdsJJ
+mQIhAJRdRFQHCzyjl0zB+4WZFo7u/novWD3WJbUFze20tnh1AiEAnqjW5PfRGYN/
+q+F4hryf4z6Jr9r4Z8TjKnOeR5fBZkECH2tlOpeGdcfA8qouEtD2njNo4P63Ibmu
+mffGKz34haM="""
+ALGORITHM = "HS256"
+
+bcrypto_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class UserRequest(BaseModel):
+    password: str
+    email: EmailStr
+
+class TokenRequest(BaseModel):
+    token: str
+
+
+def create_access_token(email: str, expires_delta: timedelta):
+    to_encode = {"sub": email}
+    expires = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expires})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def decode_access_token(token: str):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+@auth_router.post("/decode-token")
+async def decode_token(token_request: TokenRequest):
+    payload = decode_access_token(token_request.token)
+    return {
+        "email": payload.get("sub"),
+        "expires": payload.get("exp"),
+        "issued_at": payload.get("iat"),
+        "full_payload": payload
+    }
 
 @auth_router.get("/username-user",name="username-user")
 async def username_exists(username: str) -> bool:
@@ -77,21 +134,26 @@ async def create_user_data(user: UserDataCreate):
         }
         redis_email.set(user.email, json.dumps(user_dict))
         redis_username.set(user.username, json.dumps(user_dict))
-        return db_user
+        
+        token = create_access_token(db_user.email, timedelta(minutes=1440))
+        return {"access_token": token, "token_type": "bearer","user":user_dict}
     
-@auth_router.get("/signin",name="signin")
-async def get_user_data(email: EmailStr,password: str):
-        data = redis_email.get(email)
+@auth_router.post("/signin",name="signin")
+async def get_user_data(user: UserRequest):
+        data = redis_email.get(user.email)
         if data is None:
             raise HTTPException(status_code=404, detail="User not found")
         
         data = json.loads(data)
-        if not verify_password(password, data['password']):
+        if not verify_password(user.password, data['password']):
             raise HTTPException(status_code=401, detail="Invalid password")
         
-        redis_email.set(email, json.dumps(data))
+
+        redis_email.set(user.email, json.dumps(data))
         redis_username.set(data['username'], json.dumps(data))
-        return data
+        
+        token = create_access_token(user.email, timedelta(minutes=1440))
+        return {"access_token": token, "token_type": "bearer", "user": data}
     
 @auth_router.get("/reset",name="reset-redis")
 async def reset_data():

@@ -1,25 +1,28 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startBattle } from '../../shared/websockets/websocket';
+import { useCurrentQuestionStore } from '../../shared/interface/gloabL_var';
 
 export default function BattleCountdown() {
   const { id } = useParams() as { id: string };
   const navigate = useNavigate();
   const [count, setCount] = useState(10);
+  const {currentQuestion} = useCurrentQuestionStore();
 
   useEffect(() => {
     if (count === 0) {
       startBattle(id);
-
-      setTimeout(() => {
-        navigate(`/battle/${id}/quiz`);
-      }, 1000);
-     
       return;
     }
     const timer = setTimeout(() => setCount(count - 1), 1000);
     return () => clearTimeout(timer);
   }, [count, id, navigate]);
+
+  useEffect(() => {
+    if(currentQuestion){
+      navigate(`/battle/${id}/quiz`)
+    }
+  }, [currentQuestion]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">

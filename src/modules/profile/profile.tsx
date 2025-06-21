@@ -89,7 +89,8 @@ export default function ProfileSettingsPage(  ) {
 const handleDelete = async () => {
    deleteUser(user)
    localStorage.removeItem("theme")
-   localStorage.removeItem("user")
+   localStorage.removeItem("username")
+   localStorage.removeItem("access_token")
    navigate("/sign-up")  
 }
 
@@ -111,7 +112,7 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
     formData.append('file', file)
 
     const response = await axios.post(
-      `http://localhost:8000/db/upload-avatar?email=${encodeURIComponent(user.email)}`,
+      `http://localhost:8000/db/upload-avatar?token=${localStorage.getItem("access_token")?.replace(/"/g, '')}`,
       formData,
       {
         headers: {

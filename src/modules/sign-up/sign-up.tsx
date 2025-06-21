@@ -92,40 +92,40 @@ export default function SignUpPage() {
                           });
 
                           if (response.data) {
+                            const userData = response.data.user;
                             const updatedUser = {
                               ...user,
-                              email: response.data.email,
-                              username: response.data.username,
-                              wins: response.data.winBattle,
-                              favoritesSport: response.data.favourite,
-                              rank: response.data.ranking,
-                              winRate: response.data.winRate,
-                              totalBattles: response.data.totalBattle,
-                              streak: response.data.winBattle,
-                              password: response.data.password,
-                              avatar: response.data.avatar,
-                              friends: response.data.friends,
-                              friendRequests: response.data.friendRequests,
-                              battles: response.data.battles,
-                              invitations: response.data.invitations
+                              email: userData.email,
+                              username: userData.username,
+                              wins: userData.winBattle,
+                              favoritesSport: userData.favourite,
+                              rank: userData.ranking,
+                              winRate: userData.winRate,
+                              totalBattles: userData.totalBattle,
+                              streak: userData.winBattle,
+                              password: userData.password,
+                              avatar: userData.avatar,
+                              friends: userData.friends,
+                              friendRequests: userData.friendRequests,
+                              battles: userData.battles,
+                              invitations: userData.invitations
                             };
                             setUser(updatedUser);
-                            localStorage.setItem('username', response.data.username);
-                            localStorage.setItem("user", JSON.stringify(response.data.email));
-                            console.log(updatedUser)
-                            navigate(`/${response.data.username}`);
+                            localStorage.setItem('access_token', response.data.access_token);
+                            localStorage.setItem("username", userData.username);
+                            navigate(`/${userData.username}`);
                           }
                         } catch (error: any) {
                           if (error.response?.status === 401 || error.response?.status === 404) {
-                            // User already exists, try to sign in
                             try {
-                              const signInResponse = await axios.get(
+                              const signInResponse = await axios.post(
                                 "http://127.0.0.1:8000/auth/signin",
                                 {
-                                  params: {
-                                    email: decodedToken.email,
-                                    password: credentialResponse.credential,
-                                  },
+                                  username: decodedToken.email,
+                                  password: credentialResponse.credential,
+                                  email: decodedToken.email,
+                                },
+                                {
                                   headers: {
                                     "Content-Type": "application/json",
                                     accept: "application/json",
@@ -134,27 +134,29 @@ export default function SignUpPage() {
                               );
 
                               if (signInResponse.data) {
+                              
+                                const userData = signInResponse.data.user;
                                 const updatedUser = {
                                   ...user,
-                                  email: signInResponse.data.email,
-                                  username: signInResponse.data.username,
-                                  wins: signInResponse.data.winBattle,
-                                  favoritesSport: signInResponse.data.favourite,
-                                  rank: signInResponse.data.ranking,
-                                  winRate: signInResponse.data.winRate,
-                                  totalBattles: signInResponse.data.totalBattle,
-                                  streak: signInResponse.data.winBattle,
-                                  password: signInResponse.data.password,
-                                  avatar: signInResponse.data.avatar,
-                                  friends: signInResponse.data.friends,
-                                  friendRequests: signInResponse.data.friendRequests,
-                                  battles: signInResponse.data.battles,
-                                  invitations: signInResponse.data.invitations
+                                  email: userData.email,
+                                  username: userData.username,
+                                  wins: userData.winBattle,
+                                  favoritesSport: userData.favourite,
+                                  rank: userData.ranking,
+                                  winRate: userData.winRate,
+                                  totalBattles: userData.totalBattle,
+                                  streak: userData.winBattle,
+                                  password: userData.password,
+                                  avatar: userData.avatar,
+                                  friends: userData.friends,
+                                  friendRequests: userData.friendRequests,
+                                  battles: userData.battles,
+                                  invitations: userData.invitations
                                 };
                                 setUser(updatedUser);
-                                localStorage.setItem('username', signInResponse.data.username);
-                                localStorage.setItem("user", JSON.stringify(signInResponse.data.email));
-                                navigate(`/${signInResponse.data.username}`);
+                                localStorage.setItem('access_token', signInResponse.data.access_token);
+                                localStorage.setItem("username", userData.username);
+                                navigate(`/${userData.username}`);
                               }
                             } catch (signInError: any) {
                             }
