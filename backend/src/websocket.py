@@ -12,6 +12,7 @@ from friends.router import remove_friend
 from aiquiz.router import ai_quiz
 import re
 from fastapi import HTTPException
+import asyncio
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -28,10 +29,72 @@ class ConnectionManager:
         self.active_connections[username] = websocket
         logger.info(f"Client {username} connected. Total connections: {len(self.active_connections)}")
 
-    def disconnect(self, username: str):
+    async def disconnect(self, username: str):
         if username in self.active_connections:
             del self.active_connections[username]
             logger.info(f"Client {username} disconnected. Total connections: {len(self.active_connections)}")
+            
+            # Check if the disconnected user was in an active battle
+            await self.handle_battle_disconnect(username)
+
+    async def handle_battle_disconnect(self, disconnected_username: str):
+        """Handle automatic winner detection when a player disconnects during battle"""
+        try:
+            # Find any active battle where the disconnected user was participating
+            for battle_id, battle in battles.items():
+                if (battle.first_opponent == disconnected_username or 
+                    battle.second_opponent == disconnected_username):
+                    
+                    print(f"Player {disconnected_username} disconnected from battle {battle_id}")
+                    
+                    # Determine the winner (the player who didn't disconnect)
+                    if battle.first_opponent == disconnected_username:
+                        winner = battle.second_opponent
+                        loser = battle.first_opponent
+                        # Set the remaining player's score to 10
+                        battle.second_opponent_score = 10
+                        print(f"Set {winner}'s score to 10 due to {loser} disconnection")
+                    else:
+                        winner = battle.first_opponent
+                        loser = battle.second_opponent
+                        # Set the remaining player's score to 10
+                        battle.first_opponent_score = 10
+                        print(f"Set {winner}'s score to 10 due to {loser} disconnection")
+                    
+                    # Send battle_finished message to the remaining player
+                    battle_finished_message = json.dumps({
+                        "type": "battle_finished",
+                        "data": {
+                            "battle_id": battle_id,
+                            "text": f"{winner} wins by default - {loser} disconnected",
+                            "questions": f"{winner} wins because {loser} left the game",
+                            "loser": loser,
+                            "winner": winner,
+                        }
+                    })
+                    
+                    # Send to the remaining player
+                    if winner in self.active_connections:
+                        await self.send_message(battle_finished_message, winner)
+                        print(f"Sent battle_finished to {winner} due to {loser} disconnection")
+                    
+                    # Process the battle result
+                    try:
+                        from battle.router import battle_result
+                        await battle_result(battle_id, winner, loser, "win")
+                        print(f"Processed battle result for disconnected player {loser}")
+                    except Exception as e:
+                        logger.error(f"Error processing battle result for disconnect: {str(e)}")
+                    
+                    # Remove the battle from active battles
+                    if battle_id in battles:
+                        del battles[battle_id]
+                        print(f"Removed battle {battle_id} due to player disconnect")
+                    
+                    break  # Only handle the first battle found for this user
+                    
+        except Exception as e:
+            logger.error(f"Error handling battle disconnect for {disconnected_username}: {str(e)}")
 
     async def send_message(self, message: str, username: str):
         print(f"Attempting to send message to {username}. Active connections: {list(self.active_connections.keys())}")
@@ -44,16 +107,59 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
+# Track last activity time for each user
+user_last_activity = {}
 
+async def monitor_inactive_players():
+    """Background task to monitor for inactive players in battles"""
+    while True:
+        try:
+            current_time = asyncio.get_event_loop().time()
+            inactive_threshold = 30  # 30 seconds of inactivity
+            
+            for battle_id, battle in battles.items():
+                # Check first opponent activity
+                if battle.first_opponent in user_last_activity:
+                    time_since_activity = current_time - user_last_activity[battle.first_opponent]
+                    if time_since_activity > inactive_threshold:
+                        print(f"Player {battle.first_opponent} inactive for {time_since_activity:.1f}s, marking as disconnected")
+                        # Set the remaining player's score to 10 before handling disconnect
+                        battle.second_opponent_score = 10
+                        print(f"Set {battle.second_opponent}'s score to 10 due to {battle.first_opponent} inactivity")
+                        await manager.handle_battle_disconnect(battle.first_opponent)
+                        continue
+                
+                # Check second opponent activity
+                if battle.second_opponent in user_last_activity:
+                    time_since_activity = current_time - user_last_activity[battle.second_opponent]
+                    if time_since_activity > inactive_threshold:
+                        print(f"Player {battle.second_opponent} inactive for {time_since_activity:.1f}s, marking as disconnected")
+                        # Set the remaining player's score to 10 before handling disconnect
+                        battle.first_opponent_score = 10
+                        print(f"Set {battle.first_opponent}'s score to 10 due to {battle.second_opponent} inactivity")
+                        await manager.handle_battle_disconnect(battle.second_opponent)
+                        continue
+            
+            await asyncio.sleep(10)  # Check every 10 seconds
+        except Exception as e:
+            logger.error(f"Error in monitor_inactive_players: {str(e)}")
+            await asyncio.sleep(10)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, username: str):
     try:
         await manager.connect(websocket, username)
+        
+        # Update user activity time
+        user_last_activity[username] = asyncio.get_event_loop().time()
 
         while True:
             try:
                 data = await websocket.receive_text()
+                
+                # Update user activity time on any message
+                user_last_activity[username] = asyncio.get_event_loop().time()
+                
                 try:
                     message = json.loads(data)          
                     if message.get("type") == "user_update":
@@ -465,7 +571,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     }), username)
 
             except WebSocketDisconnect:
-                manager.disconnect(username)
+                await manager.disconnect(username)
                 logger.info(f"Client {username} disconnected")
                 break
             except Exception as e:
@@ -480,9 +586,11 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
     except Exception as e:
         logger.error(f"Error in websocket connection: {str(e)}")
     finally:
-        manager.disconnect(username)
+        await manager.disconnect(username)
         logger.info(f"Cleaned up connection for client {username}")
 
 @app.on_event("startup")
 async def startup_event():
     await init_models()
+    # Start the inactive player monitoring task
+    asyncio.create_task(monitor_inactive_players())
