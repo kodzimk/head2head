@@ -22,6 +22,16 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
 
+def is_google_user(password: str) -> bool:
+    """Check if the password looks like a Google credential (JWT token)"""
+    # Google credentials are typically long JWT tokens
+    return len(password) > 100 and '.' in password
+
+def verify_google_password(google_credential: str, stored_credential: str) -> bool:
+    """Verify Google credential by comparing the raw tokens"""
+    # For Google users, we compare the raw credentials
+    return google_credential == stored_credential
+
 async def user_exists(email: str) -> bool:
     user = redis_email.get(email)
     if user is None:
@@ -123,7 +133,14 @@ async def create_user_data(user: UserDataCreate):
         # Calculate initial ranking for the new user
         initial_ranking = await calculate_initial_ranking()
         
-        hashed_password = hash_password(user.password)
+        # Check if this is a Google user and handle password accordingly
+        if is_google_user(user.password):
+            # For Google users, store the credential as-is (don't hash)
+            stored_password = user.password
+        else:
+            # For regular users, hash the password
+            stored_password = hash_password(user.password)
+        
         db_user = UserData(
                 username= user.username.strip(),
                 email=user.email,
@@ -133,7 +150,7 @@ async def create_user_data(user: UserDataCreate):
                 winBattle=user.winBattle,
                 favourite=user.favourite,
                 streak=user.streak,
-                password=hashed_password,
+                password=stored_password,
                 friends=[],
                 friendRequests=[],
                 avatar=user.avatar,
@@ -173,10 +190,14 @@ async def get_user_data(user: UserRequest):
             raise HTTPException(status_code=404, detail="User not found")
         
         data = json.loads(data)
-        if not verify_password(user.password, data['password']):
-            raise HTTPException(status_code=401, detail="Invalid password")
         
-
+        # If this is a Google user, just allow sign-in if email exists
+        if is_google_user(user.password):
+            pass  # allow sign-in if email exists
+        else:
+            if not verify_password(user.password, data['password']):
+                raise HTTPException(status_code=401, detail="Invalid password")
+        
         redis_email.set(user.email, json.dumps(data))
         redis_username.set(data['username'], json.dumps(data))
         

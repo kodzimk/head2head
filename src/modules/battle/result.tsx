@@ -4,7 +4,6 @@ import { Button } from '../../shared/ui/button';
 import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, useTextStore, useWinnerStore } from '../../shared/interface/gloabL_var';
 import { useNavigate, useParams } from 'react-router-dom';
 import { battleResult, battleDrawResult } from '../../shared/websockets/websocket';
-import { reconnectWebSocket } from '../../app/App';
 import type { User } from '../../shared/interface/user';
 
 export default function BattleResultPage({user}: {user: User}) {
@@ -29,10 +28,6 @@ export default function BattleResultPage({user}: {user: User}) {
           battleResult(id, winner, loser, result);
         }
       }
-      
-      setTimeout(() => {
-        reconnectWebSocket();
-      }, 1000); 
     }, 3000);
   }, []);
 
@@ -83,7 +78,7 @@ export default function BattleResultPage({user}: {user: User}) {
           <div className="flex flex-col items-center gap-6">
             <div className="mt-6 text-center">
               <div className="text-xl font-semibold text-gray-800 mb-2">
-                {currentQuestion}
+                {currentQuestion?.question || 'Battle completed'}
               </div>
               
               <Button className="mt-2 bg-orange-500 hover:bg-orange-600 w-full" onClick={handleBackToDashboard}>

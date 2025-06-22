@@ -193,7 +193,6 @@ export const ViewProfile = ({user}: {user: User}) => {
                 <DropdownMenuItem className="cursor-pointer">
                   <List className="mr-2 h-4 w-4" />
                   <span>Selection</span>
-                  <span className="ml-2 text-xs text-slate-500">(Coming Soon)</span>
                 </DropdownMenuItem>
               </Link>
               <Link to={`/leaderboard`}>
@@ -206,7 +205,6 @@ export const ViewProfile = ({user}: {user: User}) => {
                 <DropdownMenuItem className="cursor-pointer">
                   <BookOpen className="mr-2 h-4 w-4" />
                   <span>Trainings</span>
-                  <span className="ml-2 text-xs text-slate-500">(Coming Soon)</span>
                 </DropdownMenuItem>
               </Link>
               <Link to={`/${user.username}/friends`}>

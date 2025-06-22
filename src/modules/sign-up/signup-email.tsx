@@ -9,6 +9,7 @@ import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle, Info, X } from "
 import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
+import { initializeWebSocketForNewUser } from "../../app/App"
 
 interface ValidationErrors {
   email?: string;
@@ -120,6 +121,7 @@ export default function EmailSignUpPage() {
           setUser(user)
           localStorage.setItem('access_token', response.data.access_token);
           localStorage.setItem("username", userData.username);
+          initializeWebSocketForNewUser(userData.username);
           navigate(`/${user.username}`)
         } else {
           setValidationErrors({

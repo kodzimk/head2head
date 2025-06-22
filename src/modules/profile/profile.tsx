@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import Header from "../dashboard/header"
 import { deleteUser, sendMessage } from "../../shared/websockets/websocket"
+import { initializeWebSocketForNewUser } from "../../app/App"
 
 export default function ProfileSettingsPage(  ) {
   const navigate = useNavigate()
@@ -60,6 +61,7 @@ export default function ProfileSettingsPage(  ) {
       return
     }
     
+    const oldUsername = user.username
     user.favoritesSport = favourite
     user.username = username
     setUser(user)
@@ -67,8 +69,13 @@ export default function ProfileSettingsPage(  ) {
     localStorage.setItem('username', username)
     sendMessage(user, "user_update")
 
+    // If username changed, reinitialize websocket connection
+    if (oldUsername !== username) {
+      console.log("Username changed, reinitializing websocket connection");
+      initializeWebSocketForNewUser(username);
+    }
+
     setTimeout(() => {
-      
       setIsLoading(false)
     }, 500)
   }

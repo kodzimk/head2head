@@ -327,13 +327,26 @@ async def get_battles(username: str):
 async def get_waiting_battles():
     waiting_battles = []
     for battle in battles.values():
-        if  battle.second_opponent == '':  
-            waiting_battles.append({
-                "id": battle.id,
-                "first_opponent": battle.first_opponent,
-                "sport": battle.sport,
-                "level": battle.level, 
-            })
+        if battle.second_opponent == '':  
+            # Get the creator's user data to include avatar
+            try:
+                creator_user = await get_user_by_username(battle.first_opponent)
+                waiting_battles.append({
+                    "id": battle.id,
+                    "first_opponent": battle.first_opponent,
+                    "sport": battle.sport,
+                    "level": battle.level,
+                    "creator_avatar": creator_user.get('avatar', '') if creator_user else ''
+                })
+            except Exception as e:
+                # If we can't get user data, include battle without avatar
+                waiting_battles.append({
+                    "id": battle.id,
+                    "first_opponent": battle.first_opponent,
+                    "sport": battle.sport,
+                    "level": battle.level,
+                    "creator_avatar": ''
+                })
     return waiting_battles
 
 async def calculate_user_points(user: UserData) -> int:

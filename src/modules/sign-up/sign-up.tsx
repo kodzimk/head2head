@@ -5,10 +5,155 @@ import { Link, useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
+import { initializeWebSocketForNewUser } from "../../app/App";
+import { useState } from "react";
 
 export default function SignUpPage() {
   const navigate = useNavigate();
   const { user, setUser } = useGlobalStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    if (!credentialResponse.credential) {
+      return;
+    }
+
+    setIsLoading(true);
+    setValidationErrors({});
+
+    let decodedToken;
+    try {
+      const tokenParts = credentialResponse.credential.split(".");
+      if (tokenParts.length === 3) {
+        const payload = tokenParts[1];    
+        const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
+        decodedToken = JSON.parse(atob(paddedPayload));
+      } else {
+        decodedToken = JSON.parse(credentialResponse.credential);
+      }
+    } catch (decodeError) {
+      console.error('Error decoding token:', decodeError);
+      decodedToken = {
+        email: 'user@example.com',
+        name: 'User'
+      };
+    }
+    
+    // Try sign-up, if fails, try sign-in
+    try {
+      const response = await axios.post("http://127.0.0.1:8000/auth/signup", {
+        email: decodedToken.email,
+        password: credentialResponse.credential,
+        username: decodedToken.name,
+        winRate: 0,
+        totalBattle: 0,
+        winBattle: 0,
+        ranking: 1,
+        favourite: "Football",
+        streak: 0,
+        friends: [],
+        friendRequests: [],
+        avatar: '',
+        battles: [],
+        invitations: []
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'application/json'
+        }
+      });
+
+      if (response.data) {
+        const userData = response.data.user;
+        const updatedUser = {
+          ...user,
+          email: userData.email,
+          username: userData.username,
+          wins: userData.winBattle,
+          favoritesSport: userData.favourite,
+          rank: userData.ranking,
+          winRate: userData.winRate,
+          totalBattles: userData.totalBattle,
+          streak: userData.winBattle,
+          password: userData.password,
+          avatar: userData.avatar,
+          friends: userData.friends,
+          friendRequests: userData.friendRequests,
+          battles: userData.battles,
+          invitations: userData.invitations
+        };
+        setUser(updatedUser);
+        localStorage.setItem('access_token', response.data.access_token);
+        localStorage.setItem("username", userData.username);
+        initializeWebSocketForNewUser(userData.username);
+        navigate(`/${userData.username}`);
+      }
+    } catch (error: any) {
+      // If sign-up fails due to account existing, try sign-in
+      if (error.response?.status === 401 || error.response?.status === 404) {
+        try {
+          const signInResponse = await axios.post(
+            "http://127.0.0.1:8000/auth/signin",
+            {
+              username: decodedToken.email,
+              password: credentialResponse.credential,
+              email: decodedToken.email,
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                accept: "application/json",
+              },
+            }
+          );
+
+          if (signInResponse.data) {
+            const userData = signInResponse.data.user;
+            const updatedUser = {
+              ...user,
+              email: userData.email,
+              username: userData.username,
+              wins: userData.winBattle,
+              favoritesSport: userData.favourite,
+              rank: userData.ranking,
+              winRate: userData.winRate,
+              totalBattles: userData.totalBattle,
+              streak: userData.winBattle,
+              password: userData.password,
+              avatar: userData.avatar,
+              friends: userData.friends,
+              friendRequests: userData.friendRequests,
+              battles: userData.battles,
+              invitations: userData.invitations
+            };
+            setUser(updatedUser);
+            localStorage.setItem('access_token', signInResponse.data.access_token);
+            localStorage.setItem("username", userData.username);
+            initializeWebSocketForNewUser(userData.username);
+            navigate(`/${userData.username}`);
+          }
+        } catch (signInError: any) {
+          setValidationErrors({
+            submit: 'Google sign-in failed. Please try again or use email sign-up.'
+          });
+        }
+      } else {
+        setValidationErrors({
+          submit: 'Google sign-up failed. Please try again or use email sign-up.'
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.log('Google sign-up failed');
+    setValidationErrors({
+      submit: 'Google sign-up failed. Please try again or use email sign-up.'
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 relative overflow-hidden">
@@ -59,138 +204,28 @@ export default function SignUpPage() {
                   {/* Social Sign Up */}
                   <div className="space-y-3">
                     <GoogleLogin
-                      onSuccess={async (credentialResponse) => {
-                        if (!credentialResponse.credential) {
-                          return;
-                        }
-
-                        console.log(credentialResponse.credential)
-                        
-                        // Safely decode JWT token
-                        let decodedToken;
-                        try {
-                          const tokenParts = credentialResponse.credential.split(".");
-                          if (tokenParts.length === 3) {
-                            // Standard JWT format
-                            const payload = tokenParts[1];
-                            // Add padding if needed for base64 decoding
-                            const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
-                            decodedToken = JSON.parse(atob(paddedPayload));
-                          } else {
-                            // Fallback: try to parse as JSON directly
-                            decodedToken = JSON.parse(credentialResponse.credential);
-                          }
-                        } catch (decodeError) {
-                          console.error('Error decoding token:', decodeError);
-                          // Fallback to using email as username
-                          decodedToken = {
-                            email: 'user@example.com',
-                            name: 'User'
-                          };
-                        }
-                        
-                        try {
-                          const response = await axios.post("http://127.0.0.1:8000/auth/signup", {
-                            email: decodedToken.email,
-                            password: credentialResponse.credential,
-                            username: decodedToken.name,
-                            winRate: 0,
-                            totalBattle: 0,
-                            winBattle: 0,
-                            ranking: 1,
-                            favourite: "Football",
-                            streak: 0,
-                            friends: [],
-                            friendRequests: [],
-                            avatar: '',
-                            battles: [],
-                            invitations: []
-                          }, {
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'accept': 'application/json'
-                            }
-                          });
-
-                          if (response.data) {
-                            const userData = response.data.user;
-                            const updatedUser = {
-                              ...user,
-                              email: userData.email,
-                              username: userData.username,
-                              wins: userData.winBattle,
-                              favoritesSport: userData.favourite,
-                              rank: userData.ranking,
-                              winRate: userData.winRate,
-                              totalBattles: userData.totalBattle,
-                              streak: userData.winBattle,
-                              password: userData.password,
-                              avatar: userData.avatar,
-                              friends: userData.friends,
-                              friendRequests: userData.friendRequests,
-                              battles: userData.battles,
-                              invitations: userData.invitations
-                            };
-                            setUser(updatedUser);
-                            localStorage.setItem('access_token', response.data.access_token);
-                            localStorage.setItem("username", userData.username);
-                            navigate(`/${userData.username}`);
-                          }
-                        } catch (error: any) {
-                          if (error.response?.status === 401 || error.response?.status === 404) {
-                            try {
-                              const signInResponse = await axios.post(
-                                "http://127.0.0.1:8000/auth/signin",
-                                {
-                                  username: decodedToken.email,
-                                  password: credentialResponse.credential,
-                                  email: decodedToken.email,
-                                },
-                                {
-                                  headers: {
-                                    "Content-Type": "application/json",
-                                    accept: "application/json",
-                                  },
-                                }
-                              );
-
-                              if (signInResponse.data) {
-                              
-                                const userData = signInResponse.data.user;
-                                const updatedUser = {
-                                  ...user,
-                                  email: userData.email,
-                                  username: userData.username,
-                                  wins: userData.winBattle,
-                                  favoritesSport: userData.favourite,
-                                  rank: userData.ranking,
-                                  winRate: userData.winRate,
-                                  totalBattles: userData.totalBattle,
-                                  streak: userData.winBattle,
-                                  password: userData.password,
-                                  avatar: userData.avatar,
-                                  friends: userData.friends,
-                                  friendRequests: userData.friendRequests,
-                                  battles: userData.battles,
-                                  invitations: userData.invitations
-                                };
-                                setUser(updatedUser);
-                                localStorage.setItem('access_token', signInResponse.data.access_token);
-                                localStorage.setItem("username", userData.username);
-                                navigate(`/${userData.username}`);
-                              }
-                            } catch (signInError: any) {
-                            }
-                          }
-                        }
-                      }}
-                      onError={() => {}}
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleError}
                       useOneTap
                       theme="filled_blue"
                       shape="rectangular"
                       text="continue_with"
                       width="100%"
                     />
+                    
+                    {/* Error Display */}
+                    {validationErrors.submit && (
+                      <div className="text-sm text-red-500 text-center bg-red-50 border border-red-200 rounded-md p-3">
+                        {validationErrors.submit}
+                      </div>
+                    )}
+                    
+                    {/* Loading State */}
+                    {isLoading && (
+                      <div className="text-sm text-blue-600 text-center bg-blue-50 border border-blue-200 rounded-md p-3">
+                        Creating your account...
+                      </div>
+                    )}
                   </div>
 
                   <div className="relative">
@@ -207,9 +242,12 @@ export default function SignUpPage() {
                   {/* Form */}
                   <div className="space-y-4">
                     <Link to="/signup-email">
-                      <Button className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold">
+                      <Button 
+                        className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isLoading}
+                      >
                         <Mail className="w-5 h-5 mr-2" />
-                        Create with Email
+                        {isLoading ? 'Creating Account...' : 'Create with Email'}
                       </Button>
                     </Link>
                   </div>

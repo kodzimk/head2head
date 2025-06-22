@@ -390,48 +390,70 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "data": battles[message["battle_id"]].get_question(1)
                         }), battles[message["battle_id"]].second_opponent)
                             
-                        for connected_user in manager.active_connections.keys():
-                            if connected_user != battles[message["battle_id"]].first_opponent and connected_user != battles[message["battle_id"]].second_opponent:
-                                await manager.send_message(json.dumps({
-                                    "type": "battle_start",
-                                    "data": message["battle_id"]
-                                }), connected_user)
 
+                        if battles[message["battle_id"]].first_opponent == username:
+                            for connected_user in manager.active_connections.keys():
+                                if connected_user != battles[message["battle_id"]].first_opponent and connected_user != battles[message["battle_id"]].second_opponent:
+                                    await manager.send_message(json.dumps({
+                                        "type": "battle_start",
+                                        "data": message["battle_id"]
+                                    }), connected_user)
+               
                     elif message.get("type") == "submit_answer":
+                        logger.info(f"Answer submitted by {message['username']} for battle {message['battle_id']}: {message['answer']}")
                         index = battles[message["battle_id"]].check_for_answer(message["username"],message["answer"])
                         battle = battles[message["battle_id"]]
                         
-                        if index == 0:
-                            await manager.send_message(json.dumps({
+                        logger.info(f"Battle state after answer - First opponent: {battle.first_opponent_answers}/{len(battle.questions)}, Second opponent: {battle.second_opponent_answers}/{len(battle.questions)}")
+                        
+                        # Send score updates immediately to both players
+                        score_update_data = {
+                            "first_opponent": battle.first_opponent_score,
+                            "second_opponent": battle.second_opponent_score,
+                            "first_opponent_name": battle.first_opponent,
+                        }
+                        
+                        await manager.send_message(json.dumps({
                             "type": "score_updated",
-                            "data": {
-                                "first_opponent": battle.first_opponent_score,
-                                "second_opponent": battle.second_opponent_score,
-                                "first_opponent_name": battle.first_opponent,
-                            }
+                            "data": score_update_data
+                        }), battle.first_opponent)
+                        
+                        await manager.send_message(json.dumps({
+                            "type": "score_updated",
+                            "data": score_update_data
                         }), battle.second_opponent)
+                        
+                        # Wait 3 seconds before sending next question
+                        logger.info(f"Waiting 3 seconds before sending next question for battle {message['battle_id']}")
+                        await asyncio.sleep(3)
+                        
+                        # Check if battle is still active before sending next question
+                        if message["battle_id"] not in battles:
+                            logger.info(f"Battle {message['battle_id']} no longer exists, skipping next question")
+                            continue
+                        
+                        # Send next question to the player who answered
+                        if index == 0:
+                            next_question = battles[message["battle_id"]].get_question(0)
+                            logger.info(f"Sending next question to {battle.first_opponent}: {next_question.get('question', 'No question')[:50]}...")
+                            
                             await manager.send_message(json.dumps({
                                 "type": "next_question",
                                 "data": {
-                                    "question": battles[message["battle_id"]].get_question(0),
+                                    "question": next_question,
                                     "first_opponent": battle.first_opponent_score,
                                     "second_opponent": battle.second_opponent_score,
                                     "first_opponent_name": battle.first_opponent,
                                 }
                             }), battle.first_opponent)
                         elif index == 1:
-                            await manager.send_message(json.dumps({
-                            "type": "score_updated",
-                            "data": {
-                                    "first_opponent": battle.first_opponent_score,
-                                "second_opponent": battle.second_opponent_score,
-                                "first_opponent_name": battle.first_opponent,
-                            }
-                        }), battle.first_opponent)
+                            next_question = battles[message["battle_id"]].get_question(1)
+                            logger.info(f"Sending next question to {battle.second_opponent}: {next_question.get('question', 'No question')[:50]}...")
+                            
                             await manager.send_message(json.dumps({
                                 "type": "next_question",
                                 "data": {
-                                    "question": battles[message["battle_id"]].get_question(1),
+                                    "question": next_question,
                                     "first_opponent": battle.first_opponent_score,
                                     "second_opponent": battle.second_opponent_score,
                                     "first_opponent_name": battle.first_opponent,
@@ -591,6 +613,10 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             
                             logger.info(f"Created battle {battle_id} for {message['first_opponent']}")
                             
+                            # Get creator's user data to include avatar
+                            creator_user = await get_user_by_username(message["first_opponent"])
+                            creator_avatar = creator_user.get('avatar', '') if creator_user else ''
+                            
                             # Send response to battle creator
                             response_message = json.dumps({
                                 "type": "battle_created_response",
@@ -599,6 +625,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                     "first_opponent": battle.first_opponent,
                                     "sport": battle.sport,
                                     "level": battle.level,
+                                    "creator_avatar": creator_avatar
                                 }
                             })
                             
@@ -616,6 +643,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                             "first_opponent": battle.first_opponent,
                                             "sport": battle.sport,
                                             "level": battle.level,
+                                            "creator_avatar": creator_avatar
                                         }
                                     }), connected_user)
                                     

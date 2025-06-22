@@ -21,6 +21,7 @@ export interface Battle {
     sport: string
     level: string
     created_at?: string
+    creator_avatar?: string
 }
 
 export const initialUser: User = {

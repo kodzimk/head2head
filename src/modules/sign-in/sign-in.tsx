@@ -9,10 +9,12 @@ import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { GoogleLogin } from '@react-oauth/google'
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
+import { newSocket, createWebSocket, initializeWebSocketForNewUser } from "../../app/App"
 
 export default function SignInPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -61,6 +63,10 @@ export default function SignInPage() {
       return
     }
 
+    // Clear previous errors and set loading
+    setValidationErrors({});
+    setIsLoading(true);
+
     try {
       const response = await axios.post(
         "http://127.0.0.1:8000/auth/signin",
@@ -100,22 +106,55 @@ export default function SignInPage() {
         localStorage.setItem('access_token', response.data.access_token);
         localStorage.setItem("username", userData.username); 
         navigate(`/${userData.username}`);
+        initializeWebSocketForNewUser(userData.username);
       }
     } catch (error: any) {
       console.error('Sign in error:', error);
-      if (error.response?.status === 401) {
+      
+      // Handle different types of errors
+      if (error.response) {
+        const status = error.response.status;
+        const errorMessage = error.response.data?.detail || error.response.data?.message;
+        
+        switch (status) {
+          case 401:
+            setValidationErrors({
+              submit: 'Invalid email or password. Please check your credentials and try again.'
+            });
+            break;
+          case 404:
+            setValidationErrors({
+              submit: 'User not found. Please check your email or sign up for a new account.'
+            });
+            break;
+          case 422:
+            setValidationErrors({
+              submit: 'Invalid input. Please check your email format and try again.'
+            });
+            break;
+          case 500:
+            setValidationErrors({
+              submit: 'Server error. Please try again later.'
+            });
+            break;
+          default:
+            setValidationErrors({
+              submit: errorMessage || 'An unexpected error occurred. Please try again.'
+            });
+        }
+      } else if (error.request) {
+        // Network error
         setValidationErrors({
-          submit: 'Invalid email or password'
-        });
-      } else if (error.response?.status === 404) {
-        setValidationErrors({
-          submit: 'User not found'
+          submit: 'Network error. Please check your internet connection and try again.'
         });
       } else {
+        // Other error
         setValidationErrors({
           submit: 'An error occurred. Please try again.'
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -124,29 +163,28 @@ export default function SignInPage() {
       return;
     }
 
-    // Decode the JWT token properly
+    setIsLoading(true);
+    setValidationErrors({});
+
     let decodedToken;
     try {
       const tokenParts = credentialResponse.credential.split(".");
       if (tokenParts.length === 3) {
-        // Standard JWT format
         const payload = tokenParts[1];
-        // Add padding if needed for base64 decoding
         const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
         decodedToken = JSON.parse(atob(paddedPayload));
       } else {
-        // Fallback: try to parse as JSON directly
         decodedToken = JSON.parse(credentialResponse.credential);
       }
     } catch (decodeError) {
       console.error('Error decoding token:', decodeError);
-      // Fallback to using email as username
       decodedToken = {
         email: 'user@example.com',
         name: 'User'
       };
     }
     
+    // Try sign-in, if fails, try sign-up
     try {
       const response = await axios.post(
         "http://127.0.0.1:8000/auth/signin",
@@ -186,14 +224,11 @@ export default function SignInPage() {
         localStorage.setItem('access_token', response.data.access_token);
         localStorage.setItem("username", userData.username);
         navigate(`/${userData.username}`);
+        initializeWebSocketForNewUser(userData.username);
       }
     } catch (error: any) {
-      console.error('Sign in error:', error);
-      if (error.response?.status === 401) {
-        setValidationErrors({
-          submit: 'Invalid email or password'
-        });
-      } else if (error.response?.status === 404) {
+      // If sign-in fails due to account not existing, try sign-up
+      if (error.response?.status === 404) {
         try {
           const signUpResponse = await axios.post("http://127.0.0.1:8000/auth/signup", {
             email: decodedToken.email,
@@ -240,18 +275,20 @@ export default function SignInPage() {
             localStorage.setItem('access_token', signUpResponse.data.access_token);
             localStorage.setItem("username", userData.username);
             navigate(`/${userData.username}`);
+            initializeWebSocketForNewUser(userData.username);
           }
         } catch (signUpError: any) {
-          console.error('Sign up error:', signUpError);
           setValidationErrors({
-            submit: 'Failed to create account. Please try again.'
+            submit: 'Google sign-up failed. Please try again or use email sign-in.'
           });
         }
       } else {
         setValidationErrors({
-          submit: 'An error occurred. Please try again.'
+          submit: 'Google sign-in failed. Please try again or use email sign-in.'
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   }
   
@@ -371,11 +408,11 @@ export default function SignInPage() {
                   )}
                   <Button
                     type="submit"
-                    disabled={!canSubmit()}
+                    disabled={!canSubmit() || isLoading}
                     className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Sign In
-                    <ArrowRight className="w-5 h-5 ml-2" />
+                    {isLoading ? 'Signing In...' : 'Sign In'}
+                    {!isLoading && <ArrowRight className="w-5 h-5 ml-2" />}
                   </Button>
                 </form>
               </CardContent>

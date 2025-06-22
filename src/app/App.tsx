@@ -26,8 +26,10 @@ import QuizQuestionPage from '../modules/battle/quiz-question'
 import BattleCountdown from '../modules/battle/countdown'
 import BattleResultPage from '../modules/battle/result'
 import TrainingPage from '../modules/trainings/trainings'
+import NotFoundPage from '../modules/entry-page/not-found'
 
 export let newSocket: WebSocket | null = null;
+let isManualReload = false; // Track if user manually reloaded
 
 export const createWebSocket = (username: string | null) => {
   if (!username) return null;
@@ -75,10 +77,19 @@ export const reconnectWebSocket = () => {
         console.error("WebSocket reconnection error:", error);
       };
       newSocket.onclose = (event) => {
-        console.log("Reconnected WebSocket closed:", event.code, event.reason);
+        console.log("WebSocket closed:", event.code, event.reason);
       };
     }
   }
+  return newSocket;
+};
+
+// Function to initialize websocket for new user (sign up/sign in)
+export const initializeWebSocketForNewUser = (username: string) => {
+  if (newSocket) {
+    newSocket.close();
+  }
+  newSocket = createWebSocket(username);
   return newSocket;
 };
 
@@ -96,36 +107,57 @@ export default function App() {
   const [result, setResult] = useState<string>('');
   const [battle, setBattle] = useState<Battle[]>([]);
   const navigate = useNavigate()
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Handle manual page reload
   useEffect(() => {
-    const username = localStorage.getItem('username')?.replace(/"/g, '')
-    if(username && !newSocket){
-      newSocket = createWebSocket(username); 
-    }
-  }, [localStorage.getItem('username')?.replace(/"/g, '')]);
+    const handleBeforeUnload = () => {
+      isManualReload = true;
+    };
 
+    const handleLoad = () => {
+      if (isManualReload) {
+        const username = localStorage.getItem('username')?.replace(/"/g, '');
+        if (username && !newSocket) {
+          console.log("Manual page reload detected, creating new websocket connection");
+          newSocket = createWebSocket(username);
+        }
+        isManualReload = false;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('load', handleLoad);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('load', handleLoad);
+    };
+  }, []);
+
+  // Only create websocket on initial load if user exists
+  useEffect(() => {
+    const username = localStorage.getItem('username')?.replace(/"/g, '');
+    if (username && !newSocket) {
+      console.log("Initial websocket connection for existing user");
+      newSocket = createWebSocket(username);
+    }
+  }, []);
 
   useEffect(() => {
     if (!newSocket) return;
 
-        newSocket.onopen = () => {  
-        console.log("WebSocket connected successfully"); // Debug log
-        sendMessage(user, "get_email");    
+    newSocket.onopen = () => {  
+      console.log("WebSocket connected successfully");
+      sendMessage(user, "get_email");    
     };
 
-    newSocket.onclose = () => {
-      console.log("WebSocket disconnected, attempting to reconnect..."); // Debug log
-      reconnectTimeoutRef.current = setTimeout(() => {
-        const username = localStorage.getItem('username')?.replace(/"/g, '');
-        if (username) {
-          newSocket = createWebSocket(username);
-        }
-      }, 3000);
+    newSocket.onclose = (event) => {
+      console.log("WebSocket disconnected:", event.code, event.reason);
+      // Don't automatically reconnect - only reconnect on manual reload or user change
     };
 
     newSocket.onerror = (error) => {
-      console.error("WebSocket error:", error); // Debug log
+      console.error("WebSocket error:", error);
     };
 
     newSocket.onmessage = (event) => {
@@ -201,7 +233,13 @@ export default function App() {
           setCurrentQuestion(data.data);
          }
          else if(data.type === 'next_question'){ 
-          setCurrentQuestion(data.data.question);
+          // Ensure we have valid question data before setting it
+          if (data.data && data.data.question) {
+            console.log("Setting next question:", data.data.question); // Debug logging
+            setCurrentQuestion(data.data.question);
+          } else {
+            console.error("Invalid question data received:", data.data);
+          }
     
           if(data.data.first_opponent_name === user.username){
             setFirstOpponentScore(data.data.first_opponent);
@@ -311,6 +349,7 @@ export default function App() {
               <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
               <Route path="/battle/:id/result" element={<BattleResultPage user={user} />} />
               <Route path="/:username/all-battles" element={<AllBattlesPage />} />
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>
           </BattleStore.Provider>

@@ -6,8 +6,7 @@ import { useCurrentQuestionStore, useGlobalStore, useScoreStore, useTextStore } 
 import { checkForWinner, submitAnswer } from '../../shared/websockets/websocket';
 
 
-const QUESTION_TIME_LIMIT = 10; // 30 seconds per question
-const NEXT_QUESTION_DELAY = 3; // 3 seconds delay
+const QUESTION_TIME_LIMIT = 10; // 10 seconds per question
 
 export default function QuizQuestionPage() {
   const {id} = useParams() as {id: string};
@@ -17,7 +16,6 @@ export default function QuizQuestionPage() {
   const {firstOpponentScore, secondOpponentScore} = useScoreStore();
   const {user} = useGlobalStore();  
   const [showNextQuestion, setShowNextQuestion] = useState(false);
-  const [countdown, setCountdown] = useState(NEXT_QUESTION_DELAY);
   const navigate = useNavigate();
   const {text} = useTextStore();
   
@@ -43,29 +41,34 @@ export default function QuizQuestionPage() {
     submitAnswer(id, label,user.username);
     setSelected(label);
     setShowNextQuestion(true);
-    setCountdown(NEXT_QUESTION_DELAY);
     checkForWinner(id);
   };
 
-
   useEffect(() => {
-    if (showNextQuestion && countdown > 0) {
+    if (showNextQuestion) {
+      // Show "Next question coming..." message for 3 seconds
       const timer = setTimeout(() => {
-        setCountdown((prev) => prev - 1);
-      }, 1000);
+        setShowNextQuestion(false);
+        setTimeLeft(QUESTION_TIME_LIMIT);
+      }, 3000);
       return () => clearTimeout(timer);
-    } else if (showNextQuestion && countdown === 0) {
-      
-      moveToNextQuestion();
+    }
+  }, [showNextQuestion]);
+
+  // Reset state when current question changes (new question received from websocket)
+  useEffect(() => {
+    console.log("Current question changed:", currentQuestion); // Debug logging
+    
+    if (currentQuestion && currentQuestion.question && currentQuestion.question !== 'No more questions') {
+      console.log("Resetting quiz state for new question"); // Debug logging
+      setSelected(null);
       setShowNextQuestion(false);
       setTimeLeft(QUESTION_TIME_LIMIT);
-      checkForWinner(id);
     }
-  }, [showNextQuestion, countdown]);
+  }, [currentQuestion]);
 
   const moveToNextQuestion = () => {
     setSelected(null);
-    setCountdown(NEXT_QUESTION_DELAY);
   };
 
   useEffect(() => {
@@ -83,7 +86,7 @@ export default function QuizQuestionPage() {
         setSelected(null);
         submitAnswer(id, '',user.username);
         setShowNextQuestion(true);
-        setCountdown(NEXT_QUESTION_DELAY);
+        setTimeLeft(QUESTION_TIME_LIMIT);
         checkForWinner(id);
       };
       handleTimeUp();
@@ -137,7 +140,7 @@ export default function QuizQuestionPage() {
                   <div className={`text-lg font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-gray-600'}`}>{timeLeft}s</div>
                   {showNextQuestion && (
                     <div className="text-sm text-yellow-600 font-semibold">
-                      Next question in {countdown} second{countdown !== 1 ? 's' : ''}...
+                      Next question in 3 seconds...
                     </div>
                   )}
 
@@ -151,7 +154,7 @@ export default function QuizQuestionPage() {
                 <div className="text-xl font-bold mb-3">You finished your quiz, wait for opponent.</div>
                 {showNextQuestion && (
                   <div className="mb-3 text-center text-yellow-600 font-semibold">
-                    Next question in {countdown} second{countdown !== 1 ? 's' : ''}...
+                    Next question in 3 seconds...
                   </div>
                 )}
               </div>
