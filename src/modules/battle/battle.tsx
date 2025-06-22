@@ -277,9 +277,6 @@ export default function BattlePage() {
                       <SelectItem value="boxing">Boxing</SelectItem>
                     </SelectContent>
                   </Select>
-                  {!selectedSport && (
-                    <p className="text-xs text-red-600">Please select a sport</p>
-                  )}
                 </div>
 
                 <div className="grid gap-2">
@@ -312,9 +309,6 @@ export default function BattlePage() {
                       </SelectItem>      
                     </SelectContent>
                   </Select>
-                  {!selectedLevel && (
-                    <p className="text-xs text-red-600">Please select a difficulty level</p>
-                  )}
                 </div>
 
                 <Button 

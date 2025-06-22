@@ -25,15 +25,6 @@ const getRankIcon = (rank: number) => {
   return <span className="text-lg font-bold text-gray-600">#{rank}</span>;
 };
 
-const getRankBadge = (rank: number) => {
-  if (rank === 1) return "bg-gradient-to-r from-yellow-400 to-yellow-600 text-white";
-  if (rank === 2) return "bg-gradient-to-r from-gray-400 to-gray-600 text-white";
-  if (rank === 3) return "bg-gradient-to-r from-amber-500 to-amber-700 text-white";
-  if (rank <= 10) return "bg-gradient-to-r from-blue-500 to-blue-700 text-white";
-  if (rank <= 50) return "bg-gradient-to-r from-green-500 to-green-700 text-white";
-  return "bg-gray-100 text-gray-700";
-};
-
 export default function LeaderboardPage() {
   const { user } = useGlobalStore();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
@@ -119,20 +110,8 @@ export default function LeaderboardPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-orange-100 text-xs sm:text-sm">Total Players</p>
-                    <p className="text-xl sm:text-2xl font-bold">{leaderboardData.length}</p>
-                  </div>
-                  <Users className="w-6 h-6 sm:w-8 sm:h-8 text-orange-200" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
+          <div className="flex justify-center w-full">
+            <Card className="bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 w-full">
               <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -144,22 +123,6 @@ export default function LeaderboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-0 sm:col-span-2 lg:col-span-1">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-100 text-xs sm:text-sm">Top Winner</p>
-                    <p className="text-lg font-bold">
-                      {leaderboardData[0]?.username || "N/A"}
-                    </p>
-                    <p className="text-sm text-green-200">
-                      {leaderboardData[0]?.wins || 0} wins
-                    </p>
-                  </div>
-                  <Target className="w-6 h-6 sm:w-8 sm:h-8 text-green-200" />
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Leaderboard */}
@@ -179,7 +142,7 @@ export default function LeaderboardPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {leaderboardData.map((player, index) => (
+                  {leaderboardData.map((player) => (
                     <div
                       key={player.username}
                       className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border transition-all hover:shadow-md ${
@@ -230,12 +193,6 @@ export default function LeaderboardPage() {
                           </div>
                           <p className="text-xs text-gray-500 dark:text-gray-400">wins</p>
                         </div>
-                        
-                        <div className="text-center sm:text-right">
-                          <p className="font-semibold text-xs sm:text-sm">{player.winRate}%</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">win rate</p>
-                        </div>
-                        
                         {player.streak > 0 && (
                           <div className="text-center sm:text-right">
                             <p className="font-semibold text-xs sm:text-sm text-orange-600">

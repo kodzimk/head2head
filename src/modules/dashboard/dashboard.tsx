@@ -18,9 +18,11 @@ import Header from "./header";
 import type { RecentBattle } from "../../shared/interface/user";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
+  const navigate = useNavigate();
   const {user} = useGlobalStore()
   const [recentBattles, setRecentBattles] = useState<RecentBattle[]>([]);
 
@@ -81,13 +83,14 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white dark:from-orange-600 dark:to-red-600 dark:hover:from-orange-700 dark:hover:to-red-700">
+              <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white dark:from-orange-600 dark:to-red-600 dark:hover:from-orange-700 dark:hover:to-red-700" onClick={() => navigate("/battles")}>
                 <Play className="w-4 h-4 mr-2" />
                 Quick Battle
               </Button>
               <Button
                 variant="outline"
                 className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-500 dark:text-orange-400 dark:hover:bg-orange-900/20"
+                onClick={() => navigate("/battles")}
               >
                 <Users className="w-4 h-4 mr-2" />
                 Challenge Friends
