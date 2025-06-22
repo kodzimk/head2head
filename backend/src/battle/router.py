@@ -1,14 +1,19 @@
 from .init import Battle,battle_router,battles
 from db.router import update_user_data,get_user_by_username
-from models import UserDataCreate
+from models import UserDataCreate,UserData
 from fastapi import  Query
 from fastapi import HTTPException
 from init import SessionLocal
 from models import BattleModel
 import uuid
 from init import redis_username,redis_email
+
 import json
 import math
+from sqlalchemy import select
+import logging
+
+logger = logging.getLogger(__name__)
 
 @battle_router.post("/create")
 async def create_battle(first_opponent: str, sport: str = Query(...), level: str = Query(...)):
@@ -169,6 +174,9 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
                     invitations=user['invitations']
                 )
                 await update_user_data(user_data)
+                
+                # Update all user rankings
+                await update_user_rankings()
         else:
             user = await get_user_by_username(winner)
             user['winBattle'] += 1
@@ -200,6 +208,9 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
                 invitations=user['invitations']
             )
             await update_user_data(user_data)
+            
+            # Update all user rankings
+            await update_user_rankings()
 
             user = await get_user_by_username(loser)
             user['totalBattle'] += 1
@@ -230,6 +241,9 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
                 invitations=user['invitations']
             )
             await update_user_data(user_data)
+            
+            # Update all user rankings
+            await update_user_rankings()
 
     if battle_id in battles:
         del battles[battle_id]
@@ -287,6 +301,9 @@ async def battle_draw_result(battle_id: str):
                 invitations=user['invitations']
             )
             await update_user_data(user_data)
+            
+            # Update all user rankings
+            await update_user_rankings()
 
     if battle_id in battles:
         del battles[battle_id]
@@ -318,3 +335,117 @@ async def get_waiting_battles():
                 "level": battle.level, 
             })
     return waiting_battles
+
+async def calculate_user_points(user: UserData) -> int:
+    """Calculate ranking points for a user based on multiple factors"""
+    base_points = user.winBattle * 100  # 100 points per win
+    
+    # Win rate bonus (0-50 points)
+    win_rate_bonus = min(50, user.winRate // 2) if user.winRate > 0 else 0
+    
+    # Streak bonus (0-100 points)
+    streak_bonus = min(100, user.streak * 10) if user.streak > 0 else 0
+    
+    # Experience bonus (0-25 points)
+    experience_bonus = min(25, user.totalBattle // 4) if user.totalBattle > 0 else 0
+    
+    # Consistency bonus (bonus for high win rate with many battles)
+    consistency_bonus = 0
+    if user.totalBattle >= 10 and user.winRate >= 70:
+        consistency_bonus = 25
+    elif user.totalBattle >= 5 and user.winRate >= 80:
+        consistency_bonus = 15
+    
+    total_points = base_points + win_rate_bonus + streak_bonus + experience_bonus + consistency_bonus
+    
+    return total_points
+
+async def update_user_rankings():
+    """Update all user rankings based on a sophisticated points system"""
+    try:
+        async with SessionLocal() as db:
+            # Get all users
+            stmt = select(UserData)
+            result = await db.execute(stmt)
+            users = result.scalars().all()
+            
+            # Calculate points for each user
+            user_points = []
+            for user in users:
+                points = await calculate_user_points(user)
+                user_points.append({
+                    'user': user,
+                    'points': points,
+                    'wins': user.winBattle,
+                    'win_rate': user.winRate,
+                    'streak': user.streak,
+                    'total_battles': user.totalBattle
+                })
+            
+            # Sort by points (descending), then by wins (descending), then by win rate (descending)
+            user_points.sort(key=lambda x: (x['points'], x['wins'], x['win_rate']), reverse=True)
+            
+            # Update rankings
+            for index, user_data in enumerate(user_points, 1):
+                user = user_data['user']
+                user.ranking = index
+                
+                # Update Redis cache
+                user_dict = {
+                    'username': user.username,
+                    'email': user.email,
+                    'totalBattle': user.totalBattle,
+                    'winRate': user.winRate,
+                    'ranking': index,
+                    'winBattle': user.winBattle,
+                    'favourite': user.favourite,
+                    'streak': user.streak,
+                    'password': user.password,
+                    'friends': user.friends,
+                    'friendRequests': user.friendRequests,
+                    'avatar': user.avatar,
+                    'battles': user.battles,
+                    'invitations': user.invitations
+                }
+                redis_username.set(user.username, json.dumps(user_dict))
+                redis_email.set(user.email, json.dumps(user_dict))
+            
+            await db.commit()
+            logger.info(f"Updated rankings for {len(users)} users")
+            return True
+    except Exception as e:
+        logger.error(f"Error updating rankings: {str(e)}")
+        return False
+
+async def initialize_rankings():
+    """Initialize rankings for all users on startup"""
+    try:
+        await update_user_rankings()
+        logger.info("User rankings initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing rankings: {str(e)}")
+
+# Initialize rankings on module import
+import asyncio
+try:
+    loop = asyncio.get_event_loop()
+    if loop.is_running():
+        # If loop is running, schedule the initialization
+        loop.create_task(initialize_rankings())
+    else:
+        # If loop is not running, run it
+        loop.run_until_complete(initialize_rankings())
+except Exception as e:
+    logger.error(f"Could not initialize rankings: {str(e)}")
+
+@battle_router.post("/recalculate-rankings")
+async def recalculate_rankings():
+    """Manually recalculate all user rankings"""
+    try:
+        success = await update_user_rankings()
+        if success:
+            return {"message": "Rankings recalculated successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to recalculate rankings")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error recalculating rankings: {str(e)}")

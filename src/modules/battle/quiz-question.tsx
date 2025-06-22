@@ -140,6 +140,7 @@ export default function QuizQuestionPage() {
                       Next question in {countdown} second{countdown !== 1 ? 's' : ''}...
                     </div>
                   )}
+
                 </div>
               )}
             </div>

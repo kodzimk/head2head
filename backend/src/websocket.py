@@ -5,13 +5,13 @@ from typing import Dict
 from db.router import delete_user_data, get_user_data, update_user_data, get_user_by_username
 from friends.router import add_friend, cancel_friend_request, send_friend_request
 from battle.router import invite_friend, cancel_invitation, accept_invitation, battle_result, battle_draw_result, create_battle, get_waiting_battles
-from battle.init import battles
+from battle.init import battles, Battle
 from models import UserDataCreate
 from init import init_models
 from friends.router import remove_friend
 from aiquiz.router import generate_ai_quiz
 import asyncio
-
+import uuid
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -288,7 +288,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                             "type": "battle_removed",
                                             "data": message["battle_id"]
                                         }), connected_user)   
-                                battle.questions = await generate_ai_quiz(f"make a quiz for {battle.sport} for level {battle.level}")
+                                battle.questions = await generate_ai_quiz(battle.sport, battle.level)
                         
                     elif message.get("type") == "join_battle":
                             battle = battles.get(message["battle_id"])
@@ -306,27 +306,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                             "type": "battle_removed",
                                             "data": message["battle_id"]
                                         }), connected_user)       
-                                battle.questions = await generate_ai_quiz(f"make a quiz for {battle.sport} for level {battle.level}")
-
-                    elif message.get("type") == "battle_created":
-                        
-                            battle = battles.get(message["battle_id"])
-                            if battle:
-                                battle_created_message = json.dumps({
-                                    "type": "battle_created",
-                                    "data": {
-                                        "id": battle.id,
-                                        "first_opponent": battle.first_opponent,
-                                        "sport": battle.sport,
-                                        "level": battle.level,
-                                        "created_at": battle.id
-                                    }
-                                })
-                                
-                                for connected_user in manager.active_connections.keys():
-                                    if connected_user != battle.first_opponent:
-                                        await manager.send_message(battle_created_message, connected_user)
-                            
+                                battle.questions = await generate_ai_quiz(battle.sport, battle.level)
+      
                     elif message.get("type") == "delete_user":
                        friends =  await delete_user_data(message["email"])
                        for friend in friends:
@@ -400,6 +381,9 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                         result = battle.check_for_winner()
      
                         if result == "draw":
+                            # Call the battle cleanup function
+                            await battle_draw_result(message["battle_id"])
+                            
                             await manager.send_message(json.dumps({
                                 "type": "battle_finished",
                                 "data": {
@@ -420,8 +404,18 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                     "winner": battle.first_opponent,
                                 }
                             }), battle.second_opponent)
+                            
+                            # Remove battle from waiting battles for all users
+                            for connected_user in manager.active_connections.keys():
+                                await manager.send_message(json.dumps({
+                                    "type": "battle_removed",
+                                    "data": message["battle_id"]
+                                }), connected_user)
                             continue
                         elif result == battle.first_opponent:
+                            # Call the battle cleanup function
+                            await battle_result(message["battle_id"], battle.first_opponent, battle.second_opponent, "win")
+                            
                             await manager.send_message(json.dumps({
                                 "type": "battle_finished",
                                 "data": {
@@ -443,8 +437,18 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                     "winner": battle.first_opponent,
                                 }
                             }), battle.second_opponent)
+                            
+                            # Remove battle from waiting battles for all users
+                            for connected_user in manager.active_connections.keys():
+                                await manager.send_message(json.dumps({
+                                    "type": "battle_removed",
+                                    "data": message["battle_id"]
+                                }), connected_user)
                             continue
                         elif result == battle.second_opponent:
+                            # Call the battle cleanup function
+                            await battle_result(message["battle_id"], battle.second_opponent, battle.first_opponent, "win")
+                            
                             await manager.send_message(json.dumps({
                                 "type": "battle_finished",
                                 "data": {
@@ -465,6 +469,13 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                     "winner": battle.second_opponent,
                                 }
                             }), battle.first_opponent)
+                            
+                            # Remove battle from waiting battles for all users
+                            for connected_user in manager.active_connections.keys():
+                                await manager.send_message(json.dumps({
+                                    "type": "battle_removed",
+                                    "data": message["battle_id"]
+                                }), connected_user)
                             continue
 
                     elif message.get("type") == "battle_result":
@@ -478,6 +489,13 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "data": await get_user_by_username(message["loser"])
                         }), message["loser"])
                         
+                        # Remove battle from waiting battles for all users
+                        for connected_user in manager.active_connections.keys():
+                            await manager.send_message(json.dumps({
+                                "type": "battle_removed",
+                                "data": message["battle_id"]
+                            }), connected_user)
+                        
                     elif message.get("type") == "battle_draw_result":
                         await battle_draw_result(message["battle_id"])
                         battle = battles.get(message["battle_id"])
@@ -490,30 +508,63 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 "type": "user_updated",
                                 "data": await get_user_by_username(battle.second_opponent)
                             }), battle.second_opponent)
+                            
+                            # Remove battle from waiting battles for all users
+                            for connected_user in manager.active_connections.keys():
+                                await manager.send_message(json.dumps({
+                                    "type": "battle_removed",
+                                    "data": message["battle_id"]
+                                }), connected_user)
                
                     elif message.get("type") == "notify_battle_created":
-                        battle = await create_battle(message["first_opponent"], message["sport"], message["level"])
-                        await manager.send_message(json.dumps({
-                            "type": "battle_created_response",
-                            "data": {
-                                "id": battle.id,
-                                "first_opponent": battle.first_opponent,
-                                "sport": battle.sport,
-                                "level": battle.level,
-                            }
-                        }), message["first_opponent"])
+                        try:
+                            battle_id = str(uuid.uuid4())
+                            battle = Battle(
+                                id=battle_id,
+                                first_opponent=message["first_opponent"],
+                                sport=message["sport"],
+                                level=message["level"],
+                            )
+                            battles[battle_id] = battle
+                            
+                            logger.info(f"Created battle {battle_id} for {message['first_opponent']}")
+                            
+                            # Send response to battle creator
+                            response_message = json.dumps({
+                                "type": "battle_created_response",
+                                "data": {
+                                    "id": battle.id,
+                                    "first_opponent": battle.first_opponent,
+                                    "sport": battle.sport,
+                                    "level": battle.level,
+                                }
+                            })
+                            
+                            logger.info(f"Sending battle_created_response to {message['first_opponent']}: {response_message}")
+                            await manager.send_message(response_message, message["first_opponent"])
+                            logger.info(f"Successfully sent battle_created_response to {message['first_opponent']}")
 
-                        for connected_user in manager.active_connections.keys():
-                                await manager.send_message(json.dumps({
-                                    "type": "battle_created",
-                                    "data": {
-                                        "id": battle.id,
-                                        "first_opponent": battle.first_opponent,
-                                        "sport": battle.sport,
-                                        "level": battle.level,
-                                    }
-                                }), connected_user)
-                        
+                            # Send notification to other users
+                            for connected_user in manager.active_connections.keys():
+                                if connected_user != message["first_opponent"]:
+                                    await manager.send_message(json.dumps({
+                                        "type": "battle_created",
+                                        "data": {
+                                            "id": battle.id,
+                                            "first_opponent": battle.first_opponent,
+                                            "sport": battle.sport,
+                                            "level": battle.level,
+                                        }
+                                    }), connected_user)
+                                    
+                        except Exception as e:
+                            logger.error(f"Error creating battle: {str(e)}")
+                            # Send error message to the user
+                            await manager.send_message(json.dumps({
+                                "type": "error",
+                                "message": f"Failed to create battle: {str(e)}"
+                            }), message["first_opponent"])
+
                     elif message.get("type") == "notify_battle_started":
                         await manager.send_message(json.dumps({
                             "type": "battle_started",
@@ -523,6 +574,44 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "type": "battle_started",
                             "data": message["battle_id"]
                         }), message["second_opponent"])
+
+                    elif message.get("type") == "cancel_battle":
+                        battle_id = message["battle_id"]
+                        username = message["username"]
+                        
+                        # Check if the battle exists and belongs to the user
+                        if battle_id in battles:
+                            battle = battles[battle_id]
+                            if battle.first_opponent == username and not battle.second_opponent:
+                                # Remove the battle
+                                del battles[battle_id]
+                                
+                                # Notify all users that the battle was removed
+                                for connected_user in manager.active_connections.keys():
+                                    await manager.send_message(json.dumps({
+                                        "type": "battle_removed",
+                                        "data": battle_id
+                                    }), connected_user)
+                                
+                                # Send success message to the user who cancelled
+                                await manager.send_message(json.dumps({
+                                    "type": "battle_cancelled",
+                                    "data": battle_id
+                                }), username)
+                            else:
+                                # Send error message if user doesn't own the battle or battle is already started
+                                await manager.send_message(json.dumps({
+                                    "type": "error",
+                                    "message": "Cannot cancel this battle"
+                                }), username)
+                        else:
+                            # Send error message if battle doesn't exist
+                            await manager.send_message(json.dumps({
+                                "type": "error",
+                                "message": "Battle not found"
+                            }), username)
+
+            
                 except Exception as e:
                     logger.error(f"Error in battle_draw_result: {str(e)}")
 

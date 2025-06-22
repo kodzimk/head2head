@@ -143,7 +143,6 @@ export default function Header({ user }: { user: User }) {
                 <DropdownMenuItem className="cursor-pointer">
                   <Trophy className="mr-2 h-4 w-4" />
                   <span>Leaderboard</span>
-                  <span className="ml-2 text-xs text-slate-500">(Coming Soon)</span>
                 </DropdownMenuItem>
               </Link>
               <Link to={`/${user.username}/trainings`}>

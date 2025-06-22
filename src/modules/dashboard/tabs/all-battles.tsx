@@ -288,26 +288,27 @@ export default function AllBattles() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center px-4">
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-2 w-full max-w-md">
             <Button
               variant="outline"
               size="sm"
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
+              className="w-full sm:w-auto px-3 sm:px-2 text-sm"
             >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
+              <ChevronLeft className="w-4 h-4 mr-1 sm:mr-0" />
+              <span className="sm:hidden">Previous</span>
             </Button>
             
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap justify-center max-w-full">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <Button
                   key={page}
                   variant={currentPage === page ? "default" : "outline"}
                   size="sm"
                   onClick={() => handlePageChange(page)}
-                  className="w-8 h-8 p-0"
+                  className="w-8 h-8 p-0 text-xs sm:text-sm"
                 >
                   {page}
                 </Button>
@@ -319,9 +320,10 @@ export default function AllBattles() {
               size="sm"
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
+              className="w-full sm:w-auto px-3 sm:px-2 text-sm"
             >
-              Next
-              <ChevronRight className="w-4 h-4" />
+              <span className="sm:hidden">Next</span>
+              <ChevronRight className="w-4 h-4 ml-1 sm:ml-0" />
             </Button>
           </div>
         </div>

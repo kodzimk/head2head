@@ -25,6 +25,7 @@ import {sendMessage } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
 import BattleCountdown from '../modules/battle/countdown'
 import BattleResultPage from '../modules/battle/result'
+import TrainingPage from '../modules/trainings/trainings'
 
 export let newSocket: WebSocket | null = null;
 
@@ -41,7 +42,6 @@ export const createWebSocket = (username: string | null) => {
 };
 
 export const reconnectWebSocket = () => {
-  console.log("Reconnecting websocket...");
   const username = localStorage.getItem('username')?.replace(/"/g, '');
   if (username) {
     // Close existing connection if it exists
@@ -52,7 +52,6 @@ export const reconnectWebSocket = () => {
     newSocket = createWebSocket(username);
     if (newSocket) {
       newSocket.onopen = () => {
-        console.log("WebSocket reconnected successfully");
         // Send initial message to get user data
         const user = {
           username: username,
@@ -110,12 +109,13 @@ export default function App() {
   useEffect(() => {
     if (!newSocket) return;
 
-        newSocket.onopen = () => {
-        console.log("WebSocket connection established");
+        newSocket.onopen = () => {  
+        console.log("WebSocket connected successfully"); // Debug log
         sendMessage(user, "get_email");    
     };
 
     newSocket.onclose = () => {
+      console.log("WebSocket disconnected, attempting to reconnect..."); // Debug log
       reconnectTimeoutRef.current = setTimeout(() => {
         const username = localStorage.getItem('username')?.replace(/"/g, '');
         if (username) {
@@ -124,10 +124,14 @@ export default function App() {
       }, 3000);
     };
 
+    newSocket.onerror = (error) => {
+      console.error("WebSocket error:", error); // Debug log
+    };
+
     newSocket.onmessage = (event) => {
-       try {
-       
+       try {       
          const data = JSON.parse(event.data);
+         console.log("WebSocket message received:", data); // Debug logging
          
          if (data.type === 'user_updated') {
            const updatedUser = {
@@ -152,27 +156,23 @@ export default function App() {
            navigate(`/battle/${data.data}/countdown`);
          } 
          else if (data.type === 'battle_removed') {
-          console.log('Battle removed:', data.data);
           setBattle(prev => {
             const newBattles = prev.filter(battle => battle.id !== data.data);
-            console.log('Updated battles after removal:', newBattles);
             return newBattles;
           });
          }
          else if (data.type === 'battle_created_response') {
-          console.log('Battle created response:', data.data);
+          console.log("Battle created response received:", data); // Debug logging
           setBattle(prev => {
             const newBattles = [...prev, data.data];
-            console.log('Updated battles after creation response:', newBattles);
             return newBattles;
           });
+          console.log("Navigating to waiting room:", `/waiting/${data.data.id}`); // Debug logging
           navigate(`/waiting/${data.data.id}`);
          }
          else if (data.type === 'battle_created') {
-          console.log('Battle created:', data.data);
           setBattle(prev => {
             const newBattles = [...prev, data.data];
-            console.log('Updated battles after creation:', newBattles);
             return newBattles;
           });
          }
@@ -237,8 +237,15 @@ export default function App() {
           navigate(`/battle/${data.data.battle_id}/result`);
          }
          else if(data.type === 'waiting_battles'){
-           console.log('Received waiting battles:', data.data);
            setBattle(data.data);
+         }
+         else if(data.type === 'battle_cancelled'){
+           // Battle was successfully cancelled
+           console.log("Battle cancelled successfully:", data.data);
+         }
+         else if(data.type === 'error'){
+           // Show error message to user
+           alert(data.message || "An error occurred");
          }
        } catch (error) {
          console.error("Error processing websocket message:", error);
@@ -269,6 +276,7 @@ export default function App() {
           <BattleStore.Provider value={{battle, setBattle: (battle: Battle[]) => setBattle(battle)}}>
             <div className={theme ? 'dark' : ''}>
             <Routes>
+            <Route path='/training' element={<TrainingPage />} />
               <Route path="/" element={<EntryPage />} />
               <Route path="/sign-up" element={<SignUpPage />} />
               <Route path="/signup-email" element={<EmailSignUpPage />} />

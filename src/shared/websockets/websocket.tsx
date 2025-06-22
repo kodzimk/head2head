@@ -1,7 +1,26 @@
 import type { User } from "../interface/user"
 import { newSocket } from "../../app/App"
 
+export const checkWebSocketConnection = () => {
+  if (!newSocket) {
+    console.error("WebSocket is not initialized");
+    return false;
+  }
+  
+  if (newSocket.readyState !== WebSocket.OPEN) {
+    console.error("WebSocket is not open. Current state:", newSocket.readyState);
+    return false;
+  }
+  
+  return true;
+};
+
 export const sendMessage = (user: User, type: string) => {
+      if (!checkWebSocketConnection()) {
+        console.error("Cannot send message - WebSocket not connected");
+        return false;
+      }
+      
       if(type === "user_update"){
         newSocket?.send(JSON.stringify({
           type: "user_update",
@@ -31,12 +50,14 @@ export const sendMessage = (user: User, type: string) => {
         }
       }
       else if(type === "get_waiting_battles"){
-        console.log('Sending get_waiting_battles message for user:', user.username);
+         
         newSocket?.send(JSON.stringify({
           type: "get_waiting_battles",
           username: user.username
         }))
       }
+      
+      return true;
 }
 
 export const acceptFriendRequest = (user: User, friend_username: string) => {
@@ -172,18 +193,47 @@ export const battleDrawResult = (battle_id: string) => {
 
 
 export const notifyBattleCreated = ( first_opponent: string, sport: string, level: string) => {
-  console.log('Sending notify_battle_created:', { first_opponent, sport, level });
-  newSocket?.send(JSON.stringify({
+  console.log("Attempting to send battle creation message..."); // Debug log
+  
+  if (!checkWebSocketConnection()) {
+    return false;
+  }
+  
+  const message = {
     type: "notify_battle_created",
     first_opponent: first_opponent,
     sport: sport,
     level: level
-  }))
+  };
+  
+  console.log("Sending battle creation message:", message); // Debug log
+  
+  try {
+    if (newSocket) {
+      newSocket.send(JSON.stringify(message));
+      console.log("Battle creation message sent successfully"); // Debug log
+      return true;
+    } else {
+      console.error("WebSocket is null after connection check");
+      return false;
+    }
+  } catch (error) {
+    console.error("Error sending battle creation message:", error);
+    return false;
+  }
 }
 
 export const notifyBattleStarted = (battle_id: string) => {
   newSocket?.send(JSON.stringify({
     type: "notify_battle_started",
     battle_id: battle_id
+  }))
+}
+
+export const cancelBattle = (battle_id: string, username: string) => {
+  newSocket?.send(JSON.stringify({
+    type: "cancel_battle",
+    battle_id: battle_id,
+    username: username
   }))
 }

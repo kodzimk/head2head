@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react"
 import type { Battle, User } from "./user"
+import type { Question } from "./question"
 import { initialUser } from "./user"
 
 interface GlobalStoreType {
@@ -41,8 +42,8 @@ export const useThemeStore = () => {
 }
 
 interface CurrentQuestionStoreType {
-  currentQuestion: any;
-  setCurrentQuestion: (currentQuestion: any) => void;
+  currentQuestion: Question | null;
+  setCurrentQuestion: (currentQuestion: Question | null) => void;
 }
 
 export const CurrentQuestionStore = createContext<CurrentQuestionStoreType>({

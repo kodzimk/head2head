@@ -279,3 +279,78 @@ async def update_data(user: UserDataCreate):
         redis_username.set(user_model.username, json.dumps(user_dict))
         return friend_list
 
+@db_router.get("/get-leaderboard")
+async def get_leaderboard():
+    try:
+        async with SessionLocal() as db:
+            # Get all users ordered by wins (descending) and then by win rate (descending)
+            stmt = select(UserData).order_by(UserData.winBattle.desc(), UserData.winRate.desc())
+            result = await db.execute(stmt)
+            users = result.scalars().all()
+            
+            leaderboard_data = []
+            for index, user in enumerate(users, 1):
+                leaderboard_data.append({
+                    'rank': index,
+                    'username': user.username,
+                    'wins': user.winBattle,
+                    'totalBattles': user.totalBattle,
+                    'winRate': user.winRate,
+                    'streak': user.streak,
+                    'favoriteSport': user.favourite,
+                    'avatar': user.avatar
+                })
+            
+            return leaderboard_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting leaderboard: {str(e)}")
+
+@db_router.get("/get-user-ranking-details")
+async def get_user_ranking_details(username: str):
+    try:
+        async with SessionLocal() as db:
+            # Get the user
+            stmt = select(UserData).where(UserData.username == username)
+            result = await db.execute(stmt)
+            user = result.scalar_one_or_none()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Calculate ranking points
+            from battle.router import calculate_user_points
+            total_points = await calculate_user_points(user)
+            
+            # Calculate individual components
+            base_points = user.winBattle * 100
+            win_rate_bonus = min(50, user.winRate // 2) if user.winRate > 0 else 0
+            streak_bonus = min(100, user.streak * 10) if user.streak > 0 else 0
+            experience_bonus = min(25, user.totalBattle // 4) if user.totalBattle > 0 else 0
+            
+            consistency_bonus = 0
+            if user.totalBattle >= 10 and user.winRate >= 70:
+                consistency_bonus = 25
+            elif user.totalBattle >= 5 and user.winRate >= 80:
+                consistency_bonus = 15
+            
+            return {
+                'username': user.username,
+                'rank': user.ranking,
+                'total_points': total_points,
+                'breakdown': {
+                    'base_points': base_points,
+                    'win_rate_bonus': win_rate_bonus,
+                    'streak_bonus': streak_bonus,
+                    'experience_bonus': experience_bonus,
+                    'consistency_bonus': consistency_bonus
+                },
+                'stats': {
+                    'wins': user.winBattle,
+                    'total_battles': user.totalBattle,
+                    'win_rate': user.winRate,
+                    'streak': user.streak
+                }
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting ranking details: {str(e)}")
+
