@@ -318,8 +318,9 @@ async def get_user_ranking_details(username: str):
                 raise HTTPException(status_code=404, detail="User not found")
             
             # Calculate ranking points
-            from battle.router import calculate_user_points
+            from battle.router import calculate_user_points, get_ranking_tier
             total_points = await calculate_user_points(user)
+            tier_info = get_ranking_tier(total_points)
             
             # Calculate individual components
             base_points = user.winBattle * 100
@@ -333,16 +334,22 @@ async def get_user_ranking_details(username: str):
             elif user.totalBattle >= 5 and user.winRate >= 80:
                 consistency_bonus = 15
             
+            new_user_bonus = 0
+            if user.totalBattle <= 3 and user.winBattle > 0:
+                new_user_bonus = 20
+            
             return {
                 'username': user.username,
                 'rank': user.ranking,
                 'total_points': total_points,
+                'tier_info': tier_info,
                 'breakdown': {
                     'base_points': base_points,
                     'win_rate_bonus': win_rate_bonus,
                     'streak_bonus': streak_bonus,
                     'experience_bonus': experience_bonus,
-                    'consistency_bonus': consistency_bonus
+                    'consistency_bonus': consistency_bonus,
+                    'new_user_bonus': new_user_bonus
                 },
                 'stats': {
                     'wins': user.winBattle,
@@ -353,4 +360,26 @@ async def get_user_ranking_details(username: str):
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting ranking details: {str(e)}")
+
+@db_router.get("/get-ranking-tiers")
+async def get_ranking_tiers():
+    """Get information about all ranking tiers"""
+    try:
+        from battle.router import get_ranking_tier
+        
+        tiers = [
+            {"points": 1000, "tier": "Elite", "color": "purple", "icon": "👑", "description": "Elite Champion"},
+            {"points": 500, "tier": "Master", "color": "gold", "icon": "🏆", "description": "Master Player"},
+            {"points": 200, "tier": "Expert", "color": "silver", "icon": "🥈", "description": "Expert Competitor"},
+            {"points": 100, "tier": "Veteran", "color": "bronze", "icon": "🥉", "description": "Veteran Player"},
+            {"points": 50, "tier": "Rising", "color": "blue", "icon": "⭐", "description": "Rising Star"},
+            {"points": 0, "tier": "Rookie", "color": "gray", "icon": "🌱", "description": "Rookie Player"}
+        ]
+        
+        return {
+            "tiers": tiers,
+            "description": "Ranking tiers based on total points earned from battles, win rates, streaks, and consistency"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting ranking tiers: {str(e)}")
 

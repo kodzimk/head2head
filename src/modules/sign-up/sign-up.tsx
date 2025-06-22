@@ -64,9 +64,30 @@ export default function SignUpPage() {
                           return;
                         }
 
-                        const decodedToken = JSON.parse(
-                          atob(credentialResponse.credential.split(".")[1])
-                        );
+                        console.log(credentialResponse.credential)
+                        
+                        // Safely decode JWT token
+                        let decodedToken;
+                        try {
+                          const tokenParts = credentialResponse.credential.split(".");
+                          if (tokenParts.length === 3) {
+                            // Standard JWT format
+                            const payload = tokenParts[1];
+                            // Add padding if needed for base64 decoding
+                            const paddedPayload = payload + '='.repeat((4 - payload.length % 4) % 4);
+                            decodedToken = JSON.parse(atob(paddedPayload));
+                          } else {
+                            // Fallback: try to parse as JSON directly
+                            decodedToken = JSON.parse(credentialResponse.credential);
+                          }
+                        } catch (decodeError) {
+                          console.error('Error decoding token:', decodeError);
+                          // Fallback to using email as username
+                          decodedToken = {
+                            email: 'user@example.com',
+                            name: 'User'
+                          };
+                        }
                         
                         try {
                           const response = await axios.post("http://127.0.0.1:8000/auth/signup", {

@@ -10,6 +10,7 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from datetime import timedelta, datetime
 import jwt
+from sqlalchemy import select, func
 
 auth_router = APIRouter()
 
@@ -26,6 +27,30 @@ async def user_exists(email: str) -> bool:
     if user is None:
         return False
     return True
+
+async def username_exists(username: str) -> bool:
+    user = redis_username.get(username)
+    if user is None:
+        return False
+    return True
+
+async def calculate_initial_ranking() -> int:
+    """Calculate the initial ranking for a new user based on existing users"""
+    try:
+        async with SessionLocal() as db:
+            # Get the total number of users
+            stmt = select(func.count(UserData.username))
+            result = await db.execute(stmt)
+            total_users = result.scalar()
+            
+            # New users start at the bottom of the ranking
+            # If no users exist, start at rank 1
+            initial_rank = total_users + 1 if total_users > 0 else 1
+            
+            return initial_rank
+    except Exception as e:
+        # Fallback to rank 1 if there's an error
+        return 1
 
 SECRET_KEY = """MIIBVAIBADANBgkqhkiG9w0BAQEFAASCAT4wggE6AgEAAkEAqCWwNCUir+tatvRa
 O0R3VOk9kTq5KY35NmKmlE3Dq280IdHtB87b+clPvs7/QyZHFE9DhQMAUWUOx+0T
@@ -52,10 +77,10 @@ class TokenRequest(BaseModel):
     token: str
 
 
-def create_access_token(email: str, expires_delta: timedelta):
-    to_encode = {"sub": email}
-    expires = datetime.utcnow() + expires_delta
-    to_encode.update({"exp": expires})
+def create_access_token(data: str, expires_delta: timedelta):
+    to_encode = data.copy() if isinstance(data, dict) else {"sub": data}
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -95,13 +120,16 @@ async def create_user_data(user: UserDataCreate):
         if await user_exists(user.email):
             raise HTTPException(status_code=404, detail="Email already exists")
         
+        # Calculate initial ranking for the new user
+        initial_ranking = await calculate_initial_ranking()
+        
         hashed_password = hash_password(user.password)
         db_user = UserData(
                 username= user.username.strip(),
                 email=user.email,
                 totalBattle=user.totalBattle,
                 winRate=user.winRate,
-                ranking=user.ranking,
+                ranking=initial_ranking,  # Use calculated initial ranking
                 winBattle=user.winBattle,
                 favourite=user.favourite,
                 streak=user.streak,

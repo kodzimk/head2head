@@ -30,11 +30,13 @@ class ConnectionManager:
     async def disconnect(self, username: str):
         if username in self.active_connections:
             del self.active_connections[username]
+            # Clear warning state when user disconnects
+            user_warnings_sent.pop(username, None)
             logger.info(f"Client {username} disconnected. Total connections: {len(self.active_connections)}")
             
             await self.handle_battle_disconnect(username)
 
-    async def handle_battle_disconnect(self, disconnected_username: str):
+    async def handle_battle_disconnect(self, disconnected_username: str, reason: str = "disconnected"):
         try:
             for battle_id, battle in battles.items():
                 if (battle.first_opponent == disconnected_username or 
@@ -49,17 +51,29 @@ class ConnectionManager:
                         loser = battle.second_opponent
                         battle.first_opponent_score = 10
                        
-                    
-                    battle_finished_message = json.dumps({
-                        "type": "battle_finished",
-                        "data": {
-                            "battle_id": battle_id,
-                            "text": f"{winner} wins by default - {loser} disconnected",
-                            "questions": f"{winner} wins because {loser} left the game",
-                            "loser": loser,
-                            "winner": winner,
-                        }
-                    })
+                    # Customize message based on reason
+                    if reason == "inactive":
+                        battle_finished_message = json.dumps({
+                            "type": "battle_finished",
+                            "data": {
+                                "battle_id": battle_id,
+                                "text": f"{winner} wins by default - {loser} was inactive for 1 minute",
+                                "questions": f"{winner} wins because {loser} was inactive for 1 minute",
+                                "loser": loser,
+                                "winner": winner,
+                            }
+                        })
+                    else:
+                        battle_finished_message = json.dumps({
+                            "type": "battle_finished",
+                            "data": {
+                                "battle_id": battle_id,
+                                "text": f"{winner} wins by default - {loser} disconnected",
+                                "questions": f"{winner} wins because {loser} left the game",
+                                "loser": loser,
+                                "winner": winner,
+                            }
+                        })
                     
                     if winner in self.active_connections:
                         await self.send_message(battle_finished_message, winner)
@@ -93,32 +107,78 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 user_last_activity = {}
+user_warnings_sent = {}  # Track if warning has been sent to avoid spam
 
 async def monitor_inactive_players():
     while True:
         try:
             current_time = asyncio.get_event_loop().time()
-            inactive_threshold = 30  
+            warning_threshold = 45  # Send warning at 45 seconds
+            inactive_threshold = 60  # Give default win at 60 seconds (1 minute)
             
             for battle_id, battle in battles.items():
+                # Check first opponent
                 if battle.first_opponent in user_last_activity:
                     time_since_activity = current_time - user_last_activity[battle.first_opponent]
-                    if time_since_activity > inactive_threshold:
+                    
+                    # Send warning at 45 seconds if not already sent
+                    if time_since_activity >= warning_threshold and time_since_activity < inactive_threshold:
+                        if not user_warnings_sent.get(battle.first_opponent, False):
+                            logger.info(f"Warning: Player {battle.first_opponent} inactive for {time_since_activity:.1f} seconds")
+                            user_warnings_sent[battle.first_opponent] = True
+                            
+                            # Send warning message to the inactive player
+                            if battle.first_opponent in manager.active_connections:
+                                await manager.send_message(json.dumps({
+                                    "type": "inactivity_warning",
+                                    "data": {
+                                        "message": "You have been inactive for 45 seconds. You will lose automatically in 15 seconds if you don't respond.",
+                                        "time_remaining": 15
+                                    }
+                                }), battle.first_opponent)
+                    
+                    # Give default win at 60 seconds
+                    if time_since_activity >= inactive_threshold:
+                        logger.info(f"Player {battle.first_opponent} inactive for {time_since_activity:.1f} seconds - giving default win to {battle.second_opponent}")
                         battle.second_opponent_score = 10
-                        await manager.handle_battle_disconnect(battle.first_opponent)
+                        await manager.handle_battle_disconnect(battle.first_opponent, "inactive")
+                        # Clear warning state
+                        user_warnings_sent.pop(battle.first_opponent, None)
                         continue
                 
+                # Check second opponent
                 if battle.second_opponent in user_last_activity:
                     time_since_activity = current_time - user_last_activity[battle.second_opponent]
-                    if time_since_activity > inactive_threshold:                  
+                    
+                    # Send warning at 45 seconds if not already sent
+                    if time_since_activity >= warning_threshold and time_since_activity < inactive_threshold:
+                        if not user_warnings_sent.get(battle.second_opponent, False):
+                            logger.info(f"Warning: Player {battle.second_opponent} inactive for {time_since_activity:.1f} seconds")
+                            user_warnings_sent[battle.second_opponent] = True
+                            
+                            # Send warning message to the inactive player
+                            if battle.second_opponent in manager.active_connections:
+                                await manager.send_message(json.dumps({
+                                    "type": "inactivity_warning",
+                                    "data": {
+                                        "message": "You have been inactive for 45 seconds. You will lose automatically in 15 seconds if you don't respond.",
+                                        "time_remaining": 15
+                                    }
+                                }), battle.second_opponent)
+                    
+                    # Give default win at 60 seconds
+                    if time_since_activity >= inactive_threshold:
+                        logger.info(f"Player {battle.second_opponent} inactive for {time_since_activity:.1f} seconds - giving default win to {battle.first_opponent}")
                         battle.first_opponent_score = 10
-                        await manager.handle_battle_disconnect(battle.second_opponent)
+                        await manager.handle_battle_disconnect(battle.second_opponent, "inactive")
+                        # Clear warning state
+                        user_warnings_sent.pop(battle.second_opponent, None)
                         continue
             
-            await asyncio.sleep(10)  
+            await asyncio.sleep(5)  # Check more frequently (every 5 seconds instead of 10) for more precise timing
         except Exception as e:
             logger.error(f"Error in monitor_inactive_players: {str(e)}")
-            await asyncio.sleep(10)
+            await asyncio.sleep(5)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, username: str):
@@ -142,6 +202,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                 data = await websocket.receive_text()
                 
                 user_last_activity[username] = asyncio.get_event_loop().time()
+                # Clear warning state when user becomes active
+                user_warnings_sent.pop(username, None)
                 
                 try:
                     message = json.loads(data)          

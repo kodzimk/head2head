@@ -247,6 +247,21 @@ export default function App() {
            // Show error message to user
            alert(data.message || "An error occurred");
          }
+         else if(data.type === 'inactivity_warning'){
+           // Show inactivity warning to user
+           const warningMessage = data.data.message;
+           const timeRemaining = data.data.time_remaining;
+           
+           // Show a more prominent warning with countdown
+           const warningAlert = window.confirm(
+             `⚠️ INACTIVITY WARNING ⚠️\n\n${warningMessage}\n\nTime remaining: ${timeRemaining} seconds\n\nClick OK to acknowledge this warning.`
+           );
+           
+           if (warningAlert) {
+             // User acknowledged the warning - they can still respond
+             console.log("User acknowledged inactivity warning");
+           }
+         }
        } catch (error) {
          console.error("Error processing websocket message:", error);
        }

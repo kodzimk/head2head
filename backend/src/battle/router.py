@@ -356,9 +356,59 @@ async def calculate_user_points(user: UserData) -> int:
     elif user.totalBattle >= 5 and user.winRate >= 80:
         consistency_bonus = 15
     
-    total_points = base_points + win_rate_bonus + streak_bonus + experience_bonus + consistency_bonus
+    # New user bonus (encourage new players)
+    new_user_bonus = 0
+    if user.totalBattle <= 3 and user.winBattle > 0:
+        new_user_bonus = 20  # Bonus for winning early battles
+    
+    total_points = base_points + win_rate_bonus + streak_bonus + experience_bonus + consistency_bonus + new_user_bonus
     
     return total_points
+
+def get_ranking_tier(points: int) -> dict:
+    """Get ranking tier information based on points"""
+    if points >= 1000:
+        return {
+            "tier": "Elite",
+            "color": "purple",
+            "icon": "👑",
+            "description": "Elite Champion"
+        }
+    elif points >= 500:
+        return {
+            "tier": "Master",
+            "color": "gold",
+            "icon": "🏆",
+            "description": "Master Player"
+        }
+    elif points >= 200:
+        return {
+            "tier": "Expert",
+            "color": "silver",
+            "icon": "🥈",
+            "description": "Expert Competitor"
+        }
+    elif points >= 100:
+        return {
+            "tier": "Veteran",
+            "color": "bronze",
+            "icon": "🥉",
+            "description": "Veteran Player"
+        }
+    elif points >= 50:
+        return {
+            "tier": "Rising",
+            "color": "blue",
+            "icon": "⭐",
+            "description": "Rising Star"
+        }
+    else:
+        return {
+            "tier": "Rookie",
+            "color": "gray",
+            "icon": "🌱",
+            "description": "Rookie Player"
+        }
 
 async def update_user_rankings():
     """Update all user rankings based on a sophisticated points system"""
