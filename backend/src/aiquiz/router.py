@@ -5,6 +5,7 @@ import json
 import hashlib
 from datetime import datetime, timedelta
 import asyncio
+from difflib import SequenceMatcher
 
 # Global question tracking system
 used_questions = {}  # Track questions by hash to avoid duplicates
@@ -379,75 +380,53 @@ Return the questions in this JSON format:
             async with ai_api_semaphore:
                 api_key = get_next_api_key()
                 chat = get_chat_for_key(api_key)
-                # Run the blocking AI API call in a separate thread to prevent blocking the event loop
-                # Add timeout to prevent hanging indefinitely
                 response_text = await asyncio.wait_for(
                     asyncio.to_thread(lambda: chat.send_message(prompt).text),
-                    timeout=30.0  # 30 second timeout
+                    timeout=30.0
                 )
-            
-            # Clean up markdown code blocks if they exist
             response_text = response_text.replace("```json", "").replace("```", "").strip()
-            
-            # Try to parse as JSON
             try:
                 questions_list = json.loads(response_text)
             except json.JSONDecodeError:
-                # Fallback to ast.literal_eval for Python literal format
                 try:
                     questions_list = ast.literal_eval(response_text)
                 except (ValueError, SyntaxError) as e:
                     print(f"Failed to parse AI response: {e}")
                     return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
-            
             # Validate the response structure
             if not isinstance(questions_list, list) or len(questions_list) != QUESTION_COUNT:
                 print(f"Invalid response structure. Expected {QUESTION_COUNT} questions, got {len(questions_list) if isinstance(questions_list, list) else 'non-list'}")
                 return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
-                
             # Validate each question
             valid_questions = []
             for i, question_data in enumerate(questions_list):
                 if not isinstance(question_data, dict):
-                    print(f"Invalid question format at index {i}")
                     continue
-                
                 required_fields = ["question", "answers", "correctAnswer"]
                 missing_fields = [field for field in required_fields if field not in question_data]
                 if missing_fields:
-                    print(f"Missing required fields {missing_fields} in question {i}")
                     continue
-                
                 # Validate answers structure
                 if not isinstance(question_data["answers"], list) or len(question_data["answers"]) != 4:
-                    print(f"Invalid answers format in question {i}")
                     continue
-                    
                 # Add difficulty level if not present
                 if "difficulty" not in question_data:
                     question_data["difficulty"] = level.upper()
-                
                 valid_questions.append(question_data)
-               
             # If we don't have enough valid questions, use fallback
             if len(valid_questions) < QUESTION_COUNT:
                 print(f"Only {len(valid_questions)} valid questions generated. Using fallback questions...")
                 return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
-            
             # Filter out business-related questions (equipment, economics, contracts, etc.)
             filtered_questions = filter_business_questions(valid_questions)
-            
             # If filtering removed too many questions, use fallback
             if len(filtered_questions) < 3:
                 print(f"Too many business-related questions filtered out ({len(filtered_questions)} remaining). Using fallback questions...")
                 return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
-            
             return filtered_questions[:QUESTION_COUNT]
-            
         except Exception as e:
             print(f"Error generating AI quiz: {e}")
             return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
-        
     except Exception as e:
         print(f"Failed to generate quiz: {str(e)}")
         return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT) 
