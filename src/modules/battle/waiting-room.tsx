@@ -87,7 +87,9 @@ export default function WaitingRoom() {
     const handleWebSocketMessage = (event: MessageEvent) => {
         const data = JSON.parse(event.data)
         if (data.type === 'battle_started') {
-          navigate(`/battle/${data.data}/countdown`)
+          if (data.data === id) {
+            navigate(`/battle/${data.data}/countdown`)
+          }
         } else if (data.type === 'battle_removed' && data.data === id) {
           // Battle was removed, redirect to battle page
           console.log("Battle was removed, redirecting to battle page"); // Debug logging

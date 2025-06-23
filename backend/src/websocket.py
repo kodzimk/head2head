@@ -107,6 +107,40 @@ class ConnectionManager:
         else:
             logger.warning(f"User {username} not found in active connections")
 
+    async def _notify_friend_update(self, friend: str):
+        """Helper method to notify a friend about user updates"""
+        try:
+            await self.send_message(json.dumps({
+                "type": "user_updated",
+                "data": await get_user_by_username(friend)
+            }), friend)
+        except Exception as e:
+            logger.error(f"Error notifying friend {friend}: {e}")
+
+    async def _notify_friend_request_update(self, connected_user: str, old_username: str):
+        """Helper method to notify a user about friend request updates"""
+        try:
+            user_data = await get_user_by_username(connected_user)
+            if user_data and old_username in user_data.get('friendRequests', []):
+                await self.send_message(json.dumps({
+                    "type": "user_updated",
+                    "data": user_data
+                }), connected_user)
+        except Exception as e:
+            logger.error(f"Error notifying user {connected_user} about friend request update: {e}")
+
+    async def _notify_invitation_update(self, connected_user: str, old_username: str):
+        """Helper method to notify a user about invitation updates"""
+        try:
+            user_data = await get_user_by_username(connected_user)
+            if user_data and old_username in user_data.get('invitations', []):
+                await self.send_message(json.dumps({
+                    "type": "user_updated",
+                    "data": user_data
+                }), connected_user)
+        except Exception as e:
+            logger.error(f"Error notifying user {connected_user} about invitation update: {e}")
+
 manager = ConnectionManager()
 
 user_last_activity = {}
@@ -302,7 +336,6 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     message = json.loads(data)          
                     if message.get("type") == "user_update":
                         old_username = actual_username  
-                        temp = message["username"]
                         user_data = UserDataCreate(
                             username=message["username"],
                             email=message["email"],
@@ -357,38 +390,36 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 user_warnings_sent[message["username"]] = user_warnings_sent.pop(old_username)
 
                         
+                        # Notify all friends in parallel
+                        friend_notifications = []
                         for friend in updated_user['friends']:
-                            try:
-                                await manager.send_message(json.dumps({
-                                    "type": "user_updated",
-                                    "data": await get_user_by_username(friend)
-                                }), friend)
-                            except Exception as e:
-                                logger.error(f"Error notifying friend {friend}: {e}")
-
+                            friend_notifications.append(
+                                manager._notify_friend_update(friend)
+                            )
                         
-                        for connected_user in manager.active_connections.keys():
-                            try:
-                                user_data = await get_user_by_username(connected_user)
-                                if user_data and old_username in user_data.get('friendRequests', []):
-                                    await manager.send_message(json.dumps({
-                                        "type": "user_updated",
-                                        "data": user_data
-                                    }), connected_user)
-                            except Exception as e:
-                                logger.error(f"Error notifying user {connected_user} about friend request update: {e}")
+                        # Run all friend notifications in parallel
+                        if friend_notifications:
+                            await asyncio.gather(*friend_notifications, return_exceptions=True)
 
-
+                        # Notify connected users about friend request updates in parallel
+                        friend_request_notifications = []
                         for connected_user in manager.active_connections.keys():
-                            try:
-                                user_data = await get_user_by_username(connected_user)
-                                if user_data and old_username in user_data.get('invitations', []):
-                                    await manager.send_message(json.dumps({
-                                        "type": "user_updated",
-                                        "data": user_data
-                                    }), connected_user)
-                            except Exception as e:
-                                logger.error(f"Error notifying user {connected_user} about invitation update: {e}")
+                            friend_request_notifications.append(
+                                manager._notify_friend_request_update(connected_user, old_username)
+                            )
+                        
+                        if friend_request_notifications:
+                            await asyncio.gather(*friend_request_notifications, return_exceptions=True)
+
+                        # Notify connected users about invitation updates in parallel
+                        invitation_notifications = []
+                        for connected_user in manager.active_connections.keys():
+                            invitation_notifications.append(
+                                manager._notify_invitation_update(connected_user, old_username)
+                            )
+                        
+                        if invitation_notifications:
+                            await asyncio.gather(*invitation_notifications, return_exceptions=True)
 
                         
                         await manager.send_message(json.dumps({
@@ -505,7 +536,44 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                                 "data": user_data
                                             }), connected_user)
                                 
-                                battle.questions = await generate_ai_quiz(battle.sport, battle.level)
+                                # Send immediate response that quiz is being generated
+                                await manager.send_message(json.dumps({
+                                    "type": "quiz_generating",
+                                    "data": {"battle_id": battle.id}
+                                }), battle.first_opponent)
+                                await manager.send_message(json.dumps({
+                                    "type": "quiz_generating",
+                                    "data": {"battle_id": battle.id}
+                                }), battle.second_opponent)
+                                
+                                # Start quiz generation in the background
+                                async def generate_and_send_quiz():
+                                    try:
+                                        logger.info(f"Starting quiz generation for battle {battle.id} ({battle.sport}, {battle.level})")
+                                        questions = await generate_ai_quiz(battle.sport, battle.level)
+                                        battle.questions = questions
+                                        logger.info(f"Quiz generation completed for battle {battle.id}")
+                                        
+                                        # Notify both opponents that quiz is ready
+                                        await manager.send_message(json.dumps({
+                                            "type": "quiz_ready",
+                                            "data": {"battle_id": battle.id, "questions": questions}
+                                        }), battle.first_opponent)
+                                        await manager.send_message(json.dumps({
+                                            "type": "quiz_ready",
+                                            "data": {"battle_id": battle.id, "questions": questions}
+                                        }), battle.second_opponent)
+                                        logger.info(f"Quiz ready notifications sent for battle {battle.id}")
+                                    except Exception as e:
+                                        logger.error(f"Error in quiz generation for battle {battle.id}: {str(e)}")
+                                        # Send error notification to both players
+                                        error_message = json.dumps({
+                                            "type": "quiz_error",
+                                            "data": {"battle_id": battle.id, "message": "Failed to generate quiz"}
+                                        })
+                                        await manager.send_message(error_message, battle.first_opponent)
+                                        await manager.send_message(error_message, battle.second_opponent)
+                                asyncio.create_task(generate_and_send_quiz())
                         except HTTPException as e:
                             
                             await manager.send_message(json.dumps({
@@ -524,22 +592,58 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                         "data": message["battle_id"]
                                     }), connected_user)
                     elif message.get("type") == "join_battle":
-                            battle = battles.get(message["battle_id"])
-                            if battle and not battle.second_opponent:
-                                battle.second_opponent = message["username"]
-                                battle_started_message = json.dumps({
-                                    "type": "battle_started",
-                                    "data": battle.id
-                                })
-                                await manager.send_message(battle_started_message, battle.first_opponent)
-                                await manager.send_message(battle_started_message, battle.second_opponent)
-                                for connected_user in manager.active_connections.keys():
-                                    if connected_user not in [battle.first_opponent, battle.second_opponent]:
-                                        await manager.send_message(json.dumps({
-                                            "type": "battle_removed",
-                                            "data": message["battle_id"]
-                                        }), connected_user)       
-                                battle.questions = await generate_ai_quiz(battle.sport, battle.level)
+                        battle = battles.get(message["battle_id"])
+                        if battle and not battle.second_opponent:
+                            battle.second_opponent = message["username"]
+                            battle_started_message = json.dumps({
+                                "type": "battle_started",
+                                "data": battle.id
+                            })
+                            await manager.send_message(battle_started_message, battle.first_opponent)
+                            await manager.send_message(battle_started_message, battle.second_opponent)
+                            for connected_user in manager.active_connections.keys():
+                                if connected_user not in [battle.first_opponent, battle.second_opponent]:
+                                    await manager.send_message(json.dumps({
+                                        "type": "battle_removed",
+                                        "data": message["battle_id"]
+                                    }), connected_user)
+                            # Send immediate response that quiz is being generated
+                            await manager.send_message(json.dumps({
+                                "type": "quiz_generating",
+                                "data": {"battle_id": battle.id}
+                            }), battle.first_opponent)
+                            await manager.send_message(json.dumps({
+                                "type": "quiz_generating",
+                                "data": {"battle_id": battle.id}
+                            }), battle.second_opponent)
+                            # Start quiz generation in the background
+                            async def generate_and_send_quiz():
+                                try:
+                                    logger.info(f"Starting quiz generation for battle {battle.id} ({battle.sport}, {battle.level})")
+                                    questions = await generate_ai_quiz(battle.sport, battle.level)
+                                    battle.questions = questions
+                                    logger.info(f"Quiz generation completed for battle {battle.id}")
+                                    
+                                    # Notify both opponents that quiz is ready
+                                    await manager.send_message(json.dumps({
+                                        "type": "quiz_ready",
+                                        "data": {"battle_id": battle.id, "questions": questions}
+                                    }), battle.first_opponent)
+                                    await manager.send_message(json.dumps({
+                                        "type": "quiz_ready",
+                                        "data": {"battle_id": battle.id, "questions": questions}
+                                    }), battle.second_opponent)
+                                    logger.info(f"Quiz ready notifications sent for battle {battle.id}")
+                                except Exception as e:
+                                    logger.error(f"Error in quiz generation for battle {battle.id}: {str(e)}")
+                                    # Send error notification to both players
+                                    error_message = json.dumps({
+                                        "type": "quiz_error",
+                                        "data": {"battle_id": battle.id, "message": "Failed to generate quiz"}
+                                    })
+                                    await manager.send_message(error_message, battle.first_opponent)
+                                    await manager.send_message(error_message, battle.second_opponent)
+                            asyncio.create_task(generate_and_send_quiz())
       
                     elif message.get("type") == "delete_user":
                         token = message.get("token")
@@ -551,11 +655,17 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             }), actual_username)
                         else:
                             friends = await delete_user_data(token)
+                            # Notify all friends in parallel
+                            friend_notifications = []
                             for friend in friends:
-                                await manager.send_message(json.dumps({
-                                    "type": "user_updated",
-                                    "data": await get_user_by_username(friend)
-                                }), friend)
+                                friend_notifications.append(
+                                    manager.send_message(json.dumps({
+                                        "type": "user_updated",
+                                        "data": await get_user_by_username(friend)
+                                    }), friend)
+                                )
+                            if friend_notifications:
+                                await asyncio.gather(*friend_notifications, return_exceptions=True)
                   
                     elif message.get("type") == "start_battle":                       
                         if battles[message["battle_id"]].first_opponent == actual_username:
@@ -571,12 +681,18 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             
 
                         if battles[message["battle_id"]].first_opponent == actual_username:
+                            # Notify all connected users about battle start in parallel
+                            battle_start_notifications = []
                             for connected_user in manager.active_connections.keys():
                                 if connected_user != battles[message["battle_id"]].first_opponent and connected_user != battles[message["battle_id"]].second_opponent:
-                                    await manager.send_message(json.dumps({
-                                        "type": "battle_start",
-                                        "data": message["battle_id"]
-                                    }), connected_user)
+                                    battle_start_notifications.append(
+                                        manager.send_message(json.dumps({
+                                            "type": "battle_start",
+                                            "data": message["battle_id"]
+                                        }), connected_user)
+                                    )
+                            if battle_start_notifications:
+                                await asyncio.gather(*battle_start_notifications, return_exceptions=True)
                
                     elif message.get("type") == "submit_answer":
                         logger.info(f"Answer submitted by {message['username']} for battle {message['battle_id']}: {message['answer']}")
@@ -669,11 +785,17 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             }), battle.second_opponent)
                             
                             
+                            # Remove battle from waiting battles for all users in parallel
+                            battle_removal_notifications = []
                             for connected_user in manager.active_connections.keys():
-                                await manager.send_message(json.dumps({
-                                    "type": "battle_removed",
-                                    "data": message["battle_id"]
-                                }), connected_user)
+                                battle_removal_notifications.append(
+                                    manager.send_message(json.dumps({
+                                        "type": "battle_removed",
+                                        "data": message["battle_id"]
+                                    }), connected_user)
+                                )
+                            if battle_removal_notifications:
+                                await asyncio.gather(*battle_removal_notifications, return_exceptions=True)
                             continue
                         elif result == battle.first_opponent:
                             
@@ -701,12 +823,17 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 }
                             }), battle.second_opponent)
                             
-                            # Remove battle from waiting battles for all users
+                            # Remove battle from waiting battles for all users in parallel
+                            battle_removal_notifications = []
                             for connected_user in manager.active_connections.keys():
-                                await manager.send_message(json.dumps({
-                                    "type": "battle_removed",
-                                    "data": message["battle_id"]
-                                }), connected_user)
+                                battle_removal_notifications.append(
+                                    manager.send_message(json.dumps({
+                                        "type": "battle_removed",
+                                        "data": message["battle_id"]
+                                    }), connected_user)
+                                )
+                            if battle_removal_notifications:
+                                await asyncio.gather(*battle_removal_notifications, return_exceptions=True)
                             continue
                         elif result == battle.second_opponent:
                             # Call the battle cleanup function
@@ -733,12 +860,17 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 }
                             }), battle.first_opponent)
                             
-                            # Remove battle from waiting battles for all users
+                            # Remove battle from waiting battles for all users in parallel
+                            battle_removal_notifications = []
                             for connected_user in manager.active_connections.keys():
-                                await manager.send_message(json.dumps({
-                                    "type": "battle_removed",
-                                    "data": message["battle_id"]
-                                }), connected_user)
+                                battle_removal_notifications.append(
+                                    manager.send_message(json.dumps({
+                                        "type": "battle_removed",
+                                        "data": message["battle_id"]
+                                    }), connected_user)
+                                )
+                            if battle_removal_notifications:
+                                await asyncio.gather(*battle_removal_notifications, return_exceptions=True)
                             continue
 
                     elif message.get("type") == "battle_result":
@@ -752,12 +884,17 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "data": await get_user_by_username(message["loser"])
                         }), message["loser"])
                         
-                        # Remove battle from waiting battles for all users
+                        # Remove battle from waiting battles for all users in parallel
+                        battle_removal_notifications = []
                         for connected_user in manager.active_connections.keys():
-                            await manager.send_message(json.dumps({
-                                "type": "battle_removed",
-                                "data": message["battle_id"]
-                            }), connected_user)
+                            battle_removal_notifications.append(
+                                manager.send_message(json.dumps({
+                                    "type": "battle_removed",
+                                    "data": message["battle_id"]
+                                }), connected_user)
+                            )
+                        if battle_removal_notifications:
+                            await asyncio.gather(*battle_removal_notifications, return_exceptions=True)
                         
                     elif message.get("type") == "battle_draw_result":
                         await battle_draw_result(message["battle_id"])
@@ -772,12 +909,17 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 "data": await get_user_by_username(battle.second_opponent)
                             }), battle.second_opponent)
                             
-                            # Remove battle from waiting battles for all users
+                            # Remove battle from waiting battles for all users in parallel
+                            battle_removal_notifications = []
                             for connected_user in manager.active_connections.keys():
-                                await manager.send_message(json.dumps({
-                                    "type": "battle_removed",
-                                    "data": message["battle_id"]
-                                }), connected_user)
+                                battle_removal_notifications.append(
+                                    manager.send_message(json.dumps({
+                                        "type": "battle_removed",
+                                        "data": message["battle_id"]
+                                    }), connected_user)
+                                )
+                            if battle_removal_notifications:
+                                await asyncio.gather(*battle_removal_notifications, return_exceptions=True)
                
                     elif message.get("type") == "notify_battle_created":
                         try:

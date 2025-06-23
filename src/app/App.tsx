@@ -267,7 +267,7 @@ export default function App() {
          else if(data.type === 'next_question'){ 
           // Ensure we have valid question data before setting it
           if (data.data && data.data.question) {
-            console.log("Setting next question:", data.data.question); // Debug logging
+            console.log("sadjkcbasdjhcashdcgvasdgcfvasdgf next question:", data.data.question); // Debug logging
             setCurrentQuestion(data.data.question);
           } else {
             console.error("Invalid question data received:", data.data);

@@ -9,7 +9,8 @@ export default function BattleCountdown() {
   const navigate = useNavigate();
   const [count, setCount] = useState(10);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
-  const {currentQuestion} = useCurrentQuestionStore();
+  const { currentQuestion } = useCurrentQuestionStore();
+  const [countdownFinished, setCountdownFinished] = useState(false);
 
   useEffect(() => {
     const checkConnection = () => {
@@ -27,20 +28,22 @@ export default function BattleCountdown() {
 
   useEffect(() => {
     if (count === 0) {
+      setCountdownFinished(true);
       if (newSocket && newSocket.readyState === WebSocket.OPEN) {
         startBattle(id);
-      } 
+      }
       return;
     }
     const timer = setTimeout(() => setCount(count - 1), 1000);
     return () => clearTimeout(timer);
-  }, [count]);
+  }, [count, id]);
 
+  // Only navigate when both countdown is finished and question is ready
   useEffect(() => {
-    if(currentQuestion){
+    if (countdownFinished && currentQuestion) {
       navigate(`/battle/${id}/quiz`);
     }
-  }, [currentQuestion]);
+  }, [countdownFinished, currentQuestion, id, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">

@@ -86,7 +86,7 @@ export default function BattlePage() {
       return;
     }
     
-    // Check if user already has an active battle
+  
     const userActiveBattle = battle.find(b => b.first_opponent === user.username);
     if (userActiveBattle) {
       setCreationError("You already have an active battle waiting. Please wait for someone to join or cancel it first.");
@@ -96,7 +96,6 @@ export default function BattlePage() {
     setIsCreatingBattle(true);
     setIsBattleBeingCreated(true);
     
-    // Set a timeout to handle cases where the backend doesn't respond
     timeoutRef.current = setTimeout(() => {
       if (isBattleBeingCreated) {
         setCreationError("Battle creation is taking longer than expected. The battle may have been created successfully. Please check the waiting battles list or try again.");

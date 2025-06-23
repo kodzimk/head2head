@@ -1,14 +1,18 @@
-from .init import chat
+from .init import chat, get_next_api_key, get_chat_for_key
 import ast
 import random
 import json
 import hashlib
 from datetime import datetime, timedelta
+import asyncio
 
 # Global question tracking system
 used_questions = {}  # Track questions by hash to avoid duplicates
 question_rotation = {}  # Track question rotation by sport/level
 last_reset = datetime.now()
+
+# Semaphore to limit concurrent AI API calls
+ai_api_semaphore = asyncio.Semaphore(3)  # Allow max 3 concurrent AI API calls
 
 # Question type rotation to ensure variety
 question_types = [
@@ -174,8 +178,8 @@ def filter_business_questions(questions):
     
     return filtered_questions
 
-def generate_expanded_fallback_questions(sport: str, level: str):
-    """Generate fallback questions when AI generation fails"""
+def generate_expanded_fallback_questions(sport: str, level: str, count: int = 5):
+    """Generate fallback questions when AI generation fails, always returns 'count' questions"""
     # Simple fallback questions for each sport and level - focused on pure sports knowledge
     fallback_questions = {
         "football": {
@@ -306,24 +310,38 @@ def generate_expanded_fallback_questions(sport: str, level: str):
         }
     }
     
-    # Get questions for the specific sport and level
     sport_questions = fallback_questions.get(sport.lower(), {})
     level_questions = sport_questions.get(level.lower(), [])
     
-    # If we don't have enough questions, duplicate some to reach 10
-    while len(level_questions) < 10:
-        level_questions.extend(level_questions[:min(len(level_questions), 10 - len(level_questions))])
+    # If we don't have enough questions, duplicate some to reach 'count'
+    while len(level_questions) < count:
+        level_questions.extend(level_questions[:min(len(level_questions), count - len(level_questions))])
     
-    return level_questions[:10]
+    # Extra safety: if still not enough, fill with generic questions
+    if len(level_questions) < count:
+        for i in range(count - len(level_questions)):
+            level_questions.append({
+                "question": f"Generic fallback question {i+1}",
+                "answers": [
+                    {"label": "A", "text": "Option 1"},
+                    {"label": "B", "text": "Option 2"},
+                    {"label": "C", "text": "Option 3"},
+                    {"label": "D", "text": "Option 4"}
+                ],
+                "correctAnswer": "A",
+                "difficulty": level.upper()
+            })
+    
+    return level_questions[:count]
 
 async def generate_ai_quiz(sport: str, level: str):
-    """Generate AI-powered quiz questions for the specified sport and level"""
+    QUESTION_COUNT = 5
     try:
         level = level.lower()
         
         # Simple prompt for AI generation
         prompt = f"""
-Create 10 {level.upper()} level questions about {sport.upper()}.
+Create {QUESTION_COUNT} {level.upper()} level questions about {sport.upper()}.
 Each question should have 4 answer options (A, B, C, D) and one correct answer.
 
 IMPORTANT: Focus on pure sports knowledge and AVOID questions about:
@@ -357,7 +375,16 @@ Return the questions in this JSON format:
 """
         
         try:
-            response_text = chat.send_message(prompt).text
+            # Use semaphore to limit concurrent AI API calls
+            async with ai_api_semaphore:
+                api_key = get_next_api_key()
+                chat = get_chat_for_key(api_key)
+                # Run the blocking AI API call in a separate thread to prevent blocking the event loop
+                # Add timeout to prevent hanging indefinitely
+                response_text = await asyncio.wait_for(
+                    asyncio.to_thread(lambda: chat.send_message(prompt).text),
+                    timeout=30.0  # 30 second timeout
+                )
             
             # Clean up markdown code blocks if they exist
             response_text = response_text.replace("```json", "").replace("```", "").strip()
@@ -371,12 +398,12 @@ Return the questions in this JSON format:
                     questions_list = ast.literal_eval(response_text)
                 except (ValueError, SyntaxError) as e:
                     print(f"Failed to parse AI response: {e}")
-                    return generate_expanded_fallback_questions(sport, level)
+                    return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
             
             # Validate the response structure
-            if not isinstance(questions_list, list) or len(questions_list) != 10:
-                print(f"Invalid response structure. Expected 10 questions, got {len(questions_list) if isinstance(questions_list, list) else 'non-list'}")
-                return generate_expanded_fallback_questions(sport, level)
+            if not isinstance(questions_list, list) or len(questions_list) != QUESTION_COUNT:
+                print(f"Invalid response structure. Expected {QUESTION_COUNT} questions, got {len(questions_list) if isinstance(questions_list, list) else 'non-list'}")
+                return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
                 
             # Validate each question
             valid_questions = []
@@ -403,24 +430,24 @@ Return the questions in this JSON format:
                 valid_questions.append(question_data)
                
             # If we don't have enough valid questions, use fallback
-            if len(valid_questions) < 10:
+            if len(valid_questions) < QUESTION_COUNT:
                 print(f"Only {len(valid_questions)} valid questions generated. Using fallback questions...")
-                return generate_expanded_fallback_questions(sport, level)
+                return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
             
             # Filter out business-related questions (equipment, economics, contracts, etc.)
             filtered_questions = filter_business_questions(valid_questions)
             
             # If filtering removed too many questions, use fallback
-            if len(filtered_questions) < 5:
+            if len(filtered_questions) < 3:
                 print(f"Too many business-related questions filtered out ({len(filtered_questions)} remaining). Using fallback questions...")
-                return generate_expanded_fallback_questions(sport, level)
+                return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
             
-            return filtered_questions[:10]
+            return filtered_questions[:QUESTION_COUNT]
             
         except Exception as e:
             print(f"Error generating AI quiz: {e}")
-            return generate_expanded_fallback_questions(sport, level)
+            return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
         
     except Exception as e:
         print(f"Failed to generate quiz: {str(e)}")
-        return generate_expanded_fallback_questions(sport, level) 
+        return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT) 

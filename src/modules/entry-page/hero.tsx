@@ -14,7 +14,7 @@ export default function Component() {
         id="hero"
         className="relative w-full h-screen flex items-center justify-center overflow-hidden"
         style={{
-          backgroundImage: "url('/temp.png')",
+          backgroundImage: "url('/landing.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -165,6 +165,7 @@ export default function Component() {
                   </p>
                   <Button 
                     className="w-full md:w-1/2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-3 text-lg font-semibold rounded-lg transition-all duration-300"
+                    onClick={() => navigate('/sign-up')}
                   >
                     <Play className="w-5 h-5 mr-2" />
                     Start Playing

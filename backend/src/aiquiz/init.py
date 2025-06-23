@@ -1,6 +1,36 @@
 import google.generativeai as genai
-# Configure API Key
-genai.configure(api_key="AIzaSyDKqLaMMoPBqKVkEIqK3q1ZIZU-q-m75HI")
+import threading
+
+# List of API keys (add your keys here)
+AI_API_KEYS = [
+    "AIzaSyDKqLaMMoPBqKVkEIqK3q1ZIZU-q-m75HI",
+    # "YOUR_SECOND_KEY",
+    # "YOUR_THIRD_KEY",
+]
+
+_key_lock = threading.Lock()
+_key_index = 0
+
+def get_next_api_key():
+    global _key_index
+    with _key_lock:
+        key = AI_API_KEYS[_key_index]
+        _key_index = (_key_index + 1) % len(AI_API_KEYS)
+    return key
+
+def get_chat_for_key(api_key):
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel(
+        model_name="gemini-1.5-flash",
+        system_instruction=system_instruction,
+        generation_config={
+            "temperature": 0.9,
+            "top_p": 0.8,
+            "top_k": 40,
+            "max_output_tokens": 4000,
+        }
+    )
+    return model.start_chat()
 
 # Enhanced system instruction for more creative and diverse questions
 system_instruction = """
@@ -60,19 +90,6 @@ Return exactly 10 questions in this JSON format:
     "correctAnswer": "A/B/C/D"
   }
 ]
-
 """
 
-# Initialize model with enhanced configuration
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    system_instruction=system_instruction,
-    generation_config={
-        "temperature": 0.9,  # High creativity while maintaining coherence
-        "top_p": 0.8,       # Nucleus sampling for diversity
-        "top_k": 40,        # Top-k sampling for variety
-        "max_output_tokens": 4000,  # Allow longer, more detailed responses
-    }
-)
-
-chat = model.start_chat()
+chat = get_chat_for_key(get_next_api_key())

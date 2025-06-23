@@ -28,6 +28,13 @@ export default function Header({ user }: { user: User }) {
     localStorage.setItem('theme', 'light');
     localStorage.removeItem("access_token");
     localStorage.removeItem("username");
+    // Clear Google One Tap/Identity session
+    const win = window as any;
+    if (win.google && win.google.accounts && win.google.accounts.id) {
+      win.google.accounts.id.disableAutoSelect();
+    }
+    // Optionally clear sessionStorage or any other user data
+    sessionStorage.clear();
     navigate("/");
   }
 

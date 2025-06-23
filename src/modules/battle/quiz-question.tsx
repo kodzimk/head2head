@@ -166,7 +166,15 @@ export default function QuizQuestionPage() {
             ) : (
               <>
                 <div className="text-base font-semibold mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg break-words leading-relaxed">
-                  {currentQuestion?.question || 'Loading question...'}
+                  {currentQuestion?.question 
+                    ? currentQuestion.question 
+                    : (
+                        <span className="flex items-center gap-2 justify-center">
+                          <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></span>
+                          <span>Waiting for questions from server...</span>
+                        </span>
+                      )
+                  }
                 </div>
                 <div className="grid gap-3 mb-4">
                   {currentQuestion?.answers?.map((ans: any) => (
