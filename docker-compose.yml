@@ -12,7 +12,7 @@ services:
       - ./backend:/app/backend
       - ./backend/src/avatars:/app/backend/src/avatars
     environment:
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@db:5432/postgres
+      - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
@@ -27,8 +27,8 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: Kais123
+      POSTGRES_DB: user_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
