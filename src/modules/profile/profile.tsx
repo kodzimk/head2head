@@ -119,7 +119,7 @@ export default function ProfileSettingsPage(  ) {
   }
 
 const handleDelete = async () => {
-   deleteUser(user)
+    deleteUser()
    localStorage.removeItem("theme")
    localStorage.removeItem("username")
    localStorage.removeItem("access_token")

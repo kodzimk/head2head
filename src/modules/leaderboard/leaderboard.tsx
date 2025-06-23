@@ -4,7 +4,7 @@ import Header from "../dashboard/header";
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar";
 import { Badge } from "../../shared/ui/badge";
-import { Trophy, Medal, Award, Target, TrendingUp, Users } from "lucide-react";
+import { Trophy, Medal, Award, TrendingUp } from "lucide-react";
 import axios from "axios";
 
 interface LeaderboardUser {

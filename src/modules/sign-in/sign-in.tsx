@@ -9,7 +9,7 @@ import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { GoogleLogin } from '@react-oauth/google'
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
-import { newSocket, createWebSocket, initializeWebSocketForNewUser } from "../../app/App"
+import { initializeWebSocketForNewUser } from "../../app/App"
 
 export default function SignInPage() {
   const navigate = useNavigate();

@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from websocket import app
 import os
-import asyncio
 import logging
 
 logger = logging.getLogger(__name__)

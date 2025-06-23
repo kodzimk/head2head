@@ -151,11 +151,16 @@ export const removeFriend = (user: User, friend_username: string) => {
   }))
 }
 
-export const deleteUser = (user: User) => {
-  newSocket?.send(JSON.stringify({
-    type: "delete_user",
-    email: user.email
-  }))
+export const deleteUser = () => {
+  const token = localStorage.getItem("access_token")?.replace(/"/g, '')
+  if (token) {
+    newSocket?.send(JSON.stringify({
+      type: "delete_user",
+      token: token
+    }))
+  } else {
+    console.error("No access token found in localStorage for account deletion.")
+  }
 }
 
 export const submitAnswer = (battle_id: string, answer: string, username: string) => {

@@ -16,7 +16,7 @@ export default function BattlePage() {
   const { user } = useGlobalStore()
   const [selectedSport, setSelectedSport] = useState('')
   const [selectedLevel, setSelectedLevel] = useState<string>('')
-  const { battle, setBattle } = useBattleStore()
+  const { battle } = useBattleStore()
   const location = useLocation()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isCreatingBattle, setIsCreatingBattle] = useState(false)
@@ -24,25 +24,7 @@ export default function BattlePage() {
   const [creationSuccess, setCreationSuccess] = useState(false)
   const [isBattleBeingCreated, setIsBattleBeingCreated] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-  const checkWebSocketConnection = () => {
-    if (!newSocket) {
-      return "Not connected";
-    }
-    
-    switch (newSocket.readyState) {
-      case WebSocket.CONNECTING:
-        return "Connecting...";
-      case WebSocket.OPEN:
-        return "Connected";
-      case WebSocket.CLOSING:
-        return "Closing...";
-      case WebSocket.CLOSED:
-        return "Disconnected";
-      default:
-        return "Unknown";
-    }
-  };
+  
 
   const refreshWaitingBattles = async (showNotification = false) => {
     if (user.username) {

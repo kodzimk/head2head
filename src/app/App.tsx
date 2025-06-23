@@ -9,7 +9,7 @@ import ProfilePage from '../modules/profile/profile'
 import FriendsPage from '../modules/friends/friends'
 import BattlesPage from '../modules/battle/battle'
 import WaitingPage from '../modules/battle/waiting-room'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
 import { BattleStore, CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore } from '../shared/interface/gloabL_var'
 import { ViewProfile } from '../modules/profile/view-profile'

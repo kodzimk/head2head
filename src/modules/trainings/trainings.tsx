@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+  import { useState } from "react";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
 import Header from "../dashboard/header";
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card";
@@ -6,7 +6,6 @@ import { Button } from "../../shared/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../shared/ui/select";
 import { Label } from "../../shared/ui/label";
 import { Badge } from "../../shared/ui/badge";
-import { Progress } from "../../shared/ui/progress";
 import { 
   Trophy, 
   Target, 
@@ -15,16 +14,8 @@ import {
   Brain, 
   Clock, 
   Star,
-  Play,
-  RotateCcw,
   BarChart3,
-  Award,
-  MapPin,
-  User,
-  Calendar
 } from "lucide-react";
-import axios from "axios";
-import type { Question } from "../../shared/interface/question";
 
 interface TrainingStats {
   totalQuestions: number;
@@ -39,15 +30,10 @@ export default function TrainingsPage() {
   const [selectedSport, setSelectedSport] = useState<string>("");
   const [selectedLevel, setSelectedLevel] = useState<string>("easy");
   const [selectedQuestionType, setSelectedQuestionType] = useState<string>("mixed");
-  const [isLoading, setIsLoading] = useState(false);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
-  const [score, setScore] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [isTrainingActive, setIsTrainingActive] = useState(false);
-  const [trainingStats, setTrainingStats] = useState<TrainingStats>({
+  const [score] = useState(0);
+  const [timeLeft] = useState(30);
+  const [isTrainingActive] = useState(false);
+  const [trainingStats] = useState<TrainingStats>({
     totalQuestions: 0,
     correctAnswers: 0,
     averageTime: 0,

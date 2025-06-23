@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../../shared/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
+import { Card, CardContent, CardHeader } from '../../shared/ui/card';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCurrentQuestionStore, useGlobalStore, useScoreStore, useTextStore } from '../../shared/interface/gloabL_var';
 import { checkForWinner, submitAnswer } from '../../shared/websockets/websocket';

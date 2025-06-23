@@ -113,10 +113,6 @@ user_last_activity = {}
 user_warnings_sent = {} 
 
 async def validate_and_fix_username(connecting_username: str) -> str:
-    """
-    Validate the connecting username and return the correct current username.
-    This handles cases where users try to connect with old usernames.
-    """
     try:
         user_data = await get_user_by_username(connecting_username)
         if user_data:
@@ -546,12 +542,20 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 battle.questions = await generate_ai_quiz(battle.sport, battle.level)
       
                     elif message.get("type") == "delete_user":
-                       friends =  await delete_user_data(message["email"])
-                       for friend in friends:
-                           await manager.send_message(json.dumps({
-                               "type": "user_updated",
-                               "data": await get_user_by_username(friend)
-                           }), friend)
+                        token = message.get("token")
+                        if not token:
+                            logger.error("No token provided for delete_user request.")
+                            await manager.send_message(json.dumps({
+                                "type": "error",
+                                "message": "No token provided for account deletion."
+                            }), actual_username)
+                        else:
+                            friends = await delete_user_data(token)
+                            for friend in friends:
+                                await manager.send_message(json.dumps({
+                                    "type": "user_updated",
+                                    "data": await get_user_by_username(friend)
+                                }), friend)
                   
                     elif message.get("type") == "start_battle":                       
                         if battles[message["battle_id"]].first_opponent == actual_username:

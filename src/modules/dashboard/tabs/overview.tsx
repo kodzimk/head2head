@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/ui/avatar"
 import { TabsContent } from "../../../shared/ui/tabs"
 import { Button } from "../../../shared/ui/button"
 import { Badge } from "../../../shared/ui/badge"
-import { Settings, Sword, Trophy, Target, Zap, Calendar } from "lucide-react"
+import { Settings, Sword, Trophy, Target, Zap } from "lucide-react"
 import type { User, RecentBattle } from '../../../shared/interface/user'
 import { useNavigate } from "react-router-dom"
 
