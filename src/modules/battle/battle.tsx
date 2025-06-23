@@ -47,6 +47,7 @@ export default function BattlePage() {
   const refreshWaitingBattles = async (showNotification = false) => {
     if (user.username) {
       setIsRefreshing(true);
+      console.log("Refreshing waiting battles for user:", user.username); // Debug logging
       sendMessage(user, "get_waiting_battles");
       // Add a small delay to show the loading state
       setTimeout(() => setIsRefreshing(false), 500);

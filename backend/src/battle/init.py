@@ -26,26 +26,24 @@ class Battle:
                 self.first_opponent_finished = True
                 return {"question": "No more questions", "answers": []}
             question = self.questions[self.first_opponent_answers]
-            if question and question.get("question") != "No more questions":
-                self.first_opponent_answers += 1
         else:
             if len(self.questions) <= self.second_opponent_answers:
                 print("second_opponent_finished")
                 self.second_opponent_finished = True
                 return {"question": "No more questions", "answers": []}
             question = self.questions[self.second_opponent_answers]
-            if question and question.get("question") != "No more questions":
-                self.second_opponent_answers += 1
         return question
     
     def check_for_answer(self,username: str,answer: str):
         if username == self.first_opponent:
-            if self.first_opponent_answers > 0 and self.first_opponent_answers <= len(self.questions):
+            if self.first_opponent_answers < len(self.questions):
+                self.first_opponent_answers += 1
                 if answer == self.questions[self.first_opponent_answers - 1]["correctAnswer"]:
                     self.first_opponent_score += 1
             return 0
         else:
-            if self.second_opponent_answers > 0 and self.second_opponent_answers <= len(self.questions):
+            if self.second_opponent_answers < len(self.questions):
+                self.second_opponent_answers += 1
                 if answer == self.questions[self.second_opponent_answers - 1]["correctAnswer"]:       
                     self.second_opponent_score += 1
             return 1

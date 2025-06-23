@@ -204,8 +204,11 @@ async def update_data(user: UserDataCreate):
         if user_model is None:
             raise HTTPException(status_code=404, detail="User not found")
 
-        temp = user_model.username
-        user_model.username = user.username.strip()
+        old_username = user_model.username
+        new_username = user.username.strip()
+        
+        # Update user model
+        user_model.username = new_username
         user_model.email = user.email
         user_model.totalBattle = user.totalBattle
         user_model.winRate = user.winRate
@@ -224,39 +227,105 @@ async def update_data(user: UserDataCreate):
         await db.commit()
         await db.refresh(user_model)
 
-        friend_list = user.friends
-        if temp != user.username:
-            for friend in user_model.friends:
-                    friend_data = redis_username.get(friend)
-                    if not friend_data:
-                        raise HTTPException(status_code=404, detail=f"Friend {friend} not found in cache")
+        # If username changed, update all references
+        if old_username != new_username:
+            print(f"Username changed from {old_username} to {new_username}, updating all references...")
+            
+            # 1. Update friends' friend lists
+            for friend_username in user_model.friends:
+                try:
+                    friend_data = redis_username.get(friend_username)
+                    if friend_data:
+                        friend_model = json.loads(friend_data)
+                        if old_username in friend_model['friends']:
+                            friend_model['friends'][friend_model['friends'].index(old_username)] = new_username
+                            
+                            # Update Redis cache
+                            redis_username.set(friend_username, json.dumps(friend_model))
+                            redis_email.set(friend_model['email'], json.dumps(friend_model))
+                            
+                            # Update database
+                            async with SessionLocal() as friend_db:
+                                db_friend = await friend_db.get(UserData, friend_model['email'])
+                                if db_friend:
+                                    db_friend.friends = friend_model['friends']
+                                    await friend_db.commit()
+                                    await friend_db.refresh(db_friend)
+                except Exception as e:
+                    print(f"Error updating friend {friend_username}: {e}")
+            
+            # 2. Update friend requests (users who have this user in their friendRequests)
+            all_users_stmt = select(UserData)
+            all_users_result = await db.execute(all_users_stmt)
+            all_users = all_users_result.scalars().all()
+            
+            for other_user in all_users:
+                if old_username in other_user.friendRequests:
+                    other_user.friendRequests[other_user.friendRequests.index(old_username)] = new_username
                     
-                    friend_model = json.loads(friend_data)
-                    if temp in friend_model['friends']:
-                        friend_model['friends'][friend_model['friends'].index(temp)] = user.username
+                    # Update Redis cache for this user
+                    other_user_dict = {
+                        'username': other_user.username,
+                        'email': other_user.email,
+                        'totalBattle': other_user.totalBattle,
+                        'winRate': other_user.winRate,
+                        'ranking': other_user.ranking,
+                        'winBattle': other_user.winBattle,
+                        'favourite': other_user.favourite,
+                        'streak': other_user.streak,
+                        'password': other_user.password,
+                        'friends': other_user.friends,
+                        'friendRequests': other_user.friendRequests,
+                        'avatar': other_user.avatar,
+                        'battles': other_user.battles,
+                        'invitations': other_user.invitations
+                    }
+                    redis_username.set(other_user.username, json.dumps(other_user_dict))
+                    redis_email.set(other_user.email, json.dumps(other_user_dict))
+            
+            # 3. Update battle records
+            for battle_id in user_model.battles:
+                try:
+                    battle_data = await db.get(BattleModel, battle_id)
+                    if battle_data:
+                        if battle_data.first_opponent == old_username:
+                            battle_data.first_opponent = new_username
+                        elif battle_data.second_opponent == old_username:
+                            battle_data.second_opponent = new_username
                         
-                        redis_username.set(friend, json.dumps(friend_model))
-                        redis_email.set(friend_model['email'], json.dumps(friend_model))
-                        
-                        async with SessionLocal() as friend_db:
-                            db_friend = await friend_db.get(UserData, friend_model['email'])
-                            if db_friend:
-                                db_friend.friends = friend_model['friends']
-                                await friend_db.commit()
-                                await friend_db.refresh(db_friend)
+                        await db.commit()
+                        await db.refresh(battle_data)
+                except Exception as e:
+                    print(f"Error updating battle {battle_id}: {e}")
+            
+            # 4. Update invitations (users who have this user in their invitations)
+            for other_user in all_users:
+                if old_username in other_user.invitations:
+                    other_user.invitations[other_user.invitations.index(old_username)] = new_username
+                    
+                    # Update Redis cache for this user
+                    other_user_dict = {
+                        'username': other_user.username,
+                        'email': other_user.email,
+                        'totalBattle': other_user.totalBattle,
+                        'winRate': other_user.winRate,
+                        'ranking': other_user.ranking,
+                        'winBattle': other_user.winBattle,
+                        'favourite': other_user.favourite,
+                        'streak': other_user.streak,
+                        'password': other_user.password,
+                        'friends': other_user.friends,
+                        'friendRequests': other_user.friendRequests,
+                        'avatar': other_user.avatar,
+                        'battles': other_user.battles,
+                        'invitations': other_user.invitations
+                    }
+                    redis_username.set(other_user.username, json.dumps(other_user_dict))
+                    redis_email.set(other_user.email, json.dumps(other_user_dict))
+            
+            await db.commit()
 
-        for battle in user_model.battles:
-            battle_data = await db.get(BattleModel, battle)
-            if battle_data:
-                if battle_data.first_opponent == temp:
-                    battle_data.first_opponent = user.username
-                elif battle_data.second_opponent == temp:
-                    battle_data.second_opponent = user.username
-
-                await db.commit()
-                await db.refresh(battle_data)
-                  
-
+        # Create user dictionary for Redis
         user_dict = {
             'username': user_model.username,
             'email': user_model.email,
@@ -274,24 +343,27 @@ async def update_data(user: UserDataCreate):
             'invitations': user_model.invitations
         }
         
-        redis_username.delete(temp)
+        # Update Redis cache
+        if old_username != new_username:
+            redis_username.delete(old_username)
         redis_email.set(user_model.email, json.dumps(user_dict))
         redis_username.set(user_model.username, json.dumps(user_dict))
-        return friend_list
+        
+        return user.friends
 
 @db_router.get("/get-leaderboard")
 async def get_leaderboard():
     try:
         async with SessionLocal() as db:
-            # Get all users ordered by wins (descending) and then by win rate (descending)
-            stmt = select(UserData).order_by(UserData.winBattle.desc(), UserData.winRate.desc())
+            # Get all users ordered by their stored ranking (which is calculated by the points system)
+            stmt = select(UserData).order_by(UserData.ranking.asc())
             result = await db.execute(stmt)
             users = result.scalars().all()
             
             leaderboard_data = []
-            for index, user in enumerate(users, 1):
+            for user in users:
                 leaderboard_data.append({
-                    'rank': index,
+                    'rank': user.ranking,  # Use the stored ranking from the points system
                     'username': user.username,
                     'wins': user.winBattle,
                     'totalBattles': user.totalBattle,
@@ -382,4 +454,167 @@ async def get_ranking_tiers():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting ranking tiers: {str(e)}")
+
+@db_router.get("/test-username-update")
+async def test_username_update(old_username: str, new_username: str):
+    """Test endpoint to verify username update functionality"""
+    try:
+        async with SessionLocal() as db:
+            # Get all users to check references
+            all_users_stmt = select(UserData)
+            all_users_result = await db.execute(all_users_stmt)
+            all_users = all_users_result.scalars().all()
+            
+            # Check friend references
+            friend_references = []
+            for user in all_users:
+                if old_username in user.friends:
+                    friend_references.append({
+                        "user": user.username,
+                        "type": "friend",
+                        "old": old_username,
+                        "new": new_username
+                    })
+            
+            # Check friend request references
+            friend_request_references = []
+            for user in all_users:
+                if old_username in user.friendRequests:
+                    friend_request_references.append({
+                        "user": user.username,
+                        "type": "friend_request",
+                        "old": old_username,
+                        "new": new_username
+                    })
+            
+            # Check invitation references
+            invitation_references = []
+            for user in all_users:
+                if old_username in user.invitations:
+                    invitation_references.append({
+                        "user": user.username,
+                        "type": "invitation",
+                        "old": old_username,
+                        "new": new_username
+                    })
+            
+            # Check battle references
+            battle_references = []
+            for user in all_users:
+                for battle_id in user.battles:
+                    battle_data = await db.get(BattleModel, battle_id)
+                    if battle_data:
+                        if battle_data.first_opponent == old_username:
+                            battle_references.append({
+                                "battle_id": battle_id,
+                                "type": "first_opponent",
+                                "old": old_username,
+                                "new": new_username
+                            })
+                        elif battle_data.second_opponent == old_username:
+                            battle_references.append({
+                                "battle_id": battle_id,
+                                "type": "second_opponent",
+                                "old": old_username,
+                                "new": new_username
+                            })
+            
+            return {
+                "message": "Username update test completed",
+                "old_username": old_username,
+                "new_username": new_username,
+                "friend_references": friend_references,
+                "friend_request_references": friend_request_references,
+                "invitation_references": invitation_references,
+                "battle_references": battle_references,
+                "total_references": len(friend_references) + len(friend_request_references) + len(invitation_references) + len(battle_references)
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error testing username update: {str(e)}")
+
+@db_router.get("/cleanup-old-usernames")
+async def cleanup_old_usernames():
+    """Clean up old usernames from friends lists and other references"""
+    try:
+        async with SessionLocal() as db:
+            # Get all users
+            all_users_stmt = select(UserData)
+            all_users_result = await db.execute(all_users_stmt)
+            all_users = all_users_result.scalars().all()
+            
+            cleanup_stats = {
+                "users_checked": 0,
+                "friends_lists_updated": 0,
+                "friend_requests_updated": 0,
+                "invitations_updated": 0,
+                "total_old_references_removed": 0
+            }
+            
+            for user in all_users:
+                cleanup_stats["users_checked"] += 1
+                updated = False
+                
+                # Check friends list
+                original_friends = user.friends.copy()
+                user.friends = [friend for friend in user.friends if friend in [u.username for u in all_users]]
+                if len(user.friends) != len(original_friends):
+                    cleanup_stats["friends_lists_updated"] += 1
+                    cleanup_stats["total_old_references_removed"] += len(original_friends) - len(user.friends)
+                    updated = True
+                
+                # Check friend requests
+                original_requests = user.friendRequests.copy()
+                user.friendRequests = [req for req in user.friendRequests if req in [u.username for u in all_users]]
+                if len(user.friendRequests) != len(original_requests):
+                    cleanup_stats["friend_requests_updated"] += 1
+                    cleanup_stats["total_old_references_removed"] += len(original_requests) - len(user.friendRequests)
+                    updated = True
+                
+                # Check invitations (these are battle IDs, not usernames, so we'll skip for now)
+                
+                if updated:
+                    # Update Redis cache
+                    user_dict = {
+                        'username': user.username,
+                        'email': user.email,
+                        'totalBattle': user.totalBattle,
+                        'winRate': user.winRate,
+                        'ranking': user.ranking,
+                        'winBattle': user.winBattle,
+                        'favourite': user.favourite,
+                        'streak': user.streak,
+                        'password': user.password,
+                        'friends': user.friends,
+                        'friendRequests': user.friendRequests,
+                        'avatar': user.avatar,
+                        'battles': user.battles,
+                        'invitations': user.invitations
+                    }
+                    redis_username.set(user.username, json.dumps(user_dict))
+                    redis_email.set(user.email, json.dumps(user_dict))
+            
+            await db.commit()
+            
+            return {
+                "message": "Old username cleanup completed",
+                "stats": cleanup_stats
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error cleaning up old usernames: {str(e)}")
+
+@db_router.post("/recalculate-all-rankings")
+async def recalculate_all_rankings():
+    """Manually recalculate all user rankings - useful for testing and fixing inconsistencies"""
+    try:
+        from battle.router import update_user_rankings
+        success = await update_user_rankings()
+        if success:
+            return {
+                "message": "All user rankings recalculated successfully",
+                "status": "success"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to recalculate rankings")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error recalculating rankings: {str(e)}")
 

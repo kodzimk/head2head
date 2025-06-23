@@ -30,6 +30,7 @@ import NotFoundPage from '../modules/entry-page/not-found'
 
 export let newSocket: WebSocket | null = null;
 let isManualReload = false; // Track if user manually reloaded
+let isInitialConnection = true;
 
 export const createWebSocket = (username: string | null) => {
   if (!username) return null;
@@ -86,10 +87,16 @@ export const reconnectWebSocket = () => {
 
 // Function to initialize websocket for new user (sign up/sign in)
 export const initializeWebSocketForNewUser = (username: string) => {
+  console.log("Initializing WebSocket for new user:", username);
   if (newSocket) {
+    console.log("Closing existing WebSocket connection");
     newSocket.close();
   }
   newSocket = createWebSocket(username);
+  
+  // Don't send get_email immediately - the user data is already updated
+  // The WebSocket will connect and be ready for other messages
+  console.log("WebSocket initialized for username:", username);
   return newSocket;
 };
 
@@ -119,6 +126,7 @@ export default function App() {
         const username = localStorage.getItem('username')?.replace(/"/g, '');
         if (username && !newSocket) {
           console.log("Manual page reload detected, creating new websocket connection");
+          isInitialConnection = true; // Reset flag for manual reload
           newSocket = createWebSocket(username);
         }
         isManualReload = false;
@@ -139,6 +147,7 @@ export default function App() {
     const username = localStorage.getItem('username')?.replace(/"/g, '');
     if (username && !newSocket) {
       console.log("Initial websocket connection for existing user");
+      isInitialConnection = true; // Set flag for initial connection
       newSocket = createWebSocket(username);
     }
   }, []);
@@ -148,11 +157,26 @@ export default function App() {
 
     newSocket.onopen = () => {  
       console.log("WebSocket connected successfully");
-      sendMessage(user, "get_email");    
+      // Only send get_email on initial connection, not on reconnections
+      if (isInitialConnection) {
+        sendMessage(user, "get_email");
+        isInitialConnection = false;
+      }
     };
 
     newSocket.onclose = (event) => {
       console.log("WebSocket disconnected:", event.code, event.reason);
+      
+      // Handle invalid username error
+      if (event.code === 4000 && event.reason === "Invalid username") {
+        console.error("WebSocket connection failed due to invalid username");
+        // Clear the invalid username from localStorage
+        localStorage.removeItem('username');
+        // Redirect to sign-in page
+        navigate('/sign-in');
+        return;
+      }
+      
       // Don't automatically reconnect - only reconnect on manual reload or user change
     };
 
@@ -182,14 +206,22 @@ export default function App() {
              battles: data.data.battles,
              invitations: data.data.invitations
            };
+           
+           // Log username changes for debugging
+           if (user.username !== updatedUser.username) {
+             console.log(`Username changed from "${user.username}" to "${updatedUser.username}"`);
+           }
+           
            setUser(updatedUser);   
            localStorage.setItem('username', updatedUser.username);
          } else if (data.type === 'battle_started') {
            navigate(`/battle/${data.data}/countdown`);
          } 
          else if (data.type === 'battle_removed') {
+          console.log("Battle removed:", data.data); // Debug logging
           setBattle(prev => {
             const newBattles = prev.filter(battle => battle.id !== data.data);
+            console.log("Battles after removal:", newBattles); // Debug logging
             return newBattles;
           });
          }
@@ -275,30 +307,25 @@ export default function App() {
           navigate(`/battle/${data.data.battle_id}/result`);
          }
          else if(data.type === 'waiting_battles'){
+           console.log("Received waiting battles:", data.data); // Debug logging
            setBattle(data.data);
          }
          else if(data.type === 'battle_cancelled'){
            // Battle was successfully cancelled
            console.log("Battle cancelled successfully:", data.data);
          }
+         else if(data.type === 'invitation_error'){
+           // Show error message when invitation cannot be accepted
+           alert(data.data.message || "Unable to accept invitation");
+         }
+         else if(data.type === 'waiting_room_inactivity'){
+           // Redirect to battle page when waiting battle is removed due to inactivity
+           alert(data.data.message || "You were inactive in the waiting room");
+           navigate('/battles');
+         }
          else if(data.type === 'error'){
            // Show error message to user
            alert(data.message || "An error occurred");
-         }
-         else if(data.type === 'inactivity_warning'){
-           // Show inactivity warning to user
-           const warningMessage = data.data.message;
-           const timeRemaining = data.data.time_remaining;
-           
-           // Show a more prominent warning with countdown
-           const warningAlert = window.confirm(
-             `⚠️ INACTIVITY WARNING ⚠️\n\n${warningMessage}\n\nTime remaining: ${timeRemaining} seconds\n\nClick OK to acknowledge this warning.`
-           );
-           
-           if (warningAlert) {
-             // User acknowledged the warning - they can still respond
-             console.log("User acknowledged inactivity warning");
-           }
          }
        } catch (error) {
          console.error("Error processing websocket message:", error);

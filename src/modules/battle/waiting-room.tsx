@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Share2, Timer, UserPlus, Undo } from 'lucide-react'
+import { Timer, UserPlus, Undo, AlertCircle } from 'lucide-react'
 import axios from 'axios'
 import Header from '../dashboard/header'
 import {
@@ -23,20 +23,75 @@ export default function WaitingRoom() {
   const navigate = useNavigate()
   const [waitingTime, setWaitingTime] = useState(0)
   const [invitedFriends, setInvitedFriends] = useState<string[]>([])
+  const inactivityTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastActivityRef = useRef<number>(Date.now())
+
+  // Inactivity timeout duration (10 minutes)
+  const INACTIVITY_TIMEOUT = 10 * 60 * 1000
+
+  const resetInactivityTimer = () => {
+    lastActivityRef.current = Date.now()
+    
+    // Clear existing timeout
+    if (inactivityTimeoutRef.current) {
+      clearTimeout(inactivityTimeoutRef.current)
+    }
+    
+    // Set new timeout
+    inactivityTimeoutRef.current = setTimeout(() => {
+      handleInactivity()
+    }, INACTIVITY_TIMEOUT)
+  }
+
+  const handleInactivity = async () => {
+    console.log('User inactive in waiting room for 10 minutes, removing battle and redirecting')
+    
+    // Remove the battle
+    try {
+      await axios.delete(`http://localhost:8000/delete?battle_id=${id}`)
+      invitedFriends.forEach(friend => cancelInvitation(friend, id))
+      localStorage.removeItem(`invitedFriends_${id}`)
+    } catch (error) {
+      console.error('Error removing battle on inactivity:', error)
+    }
+    
+    // Redirect to battle page
+    navigate('/battles')
+  }
+
+  const handleUserActivity = () => {
+    resetInactivityTimer()
+  }
+
+
 
   useEffect(() => {
     const savedInvitedFriends = localStorage.getItem(`invitedFriends_${id}`)
     if (savedInvitedFriends) {
       setInvitedFriends(JSON.parse(savedInvitedFriends))
     }
+    
     const interval = setInterval(() => {
       setWaitingTime(prev => prev + 1)
     }, 1000)
+
+    // Set up inactivity detection
+    resetInactivityTimer()
+
+    // Add event listeners for user activity
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click']
+    activityEvents.forEach(event => {
+      document.addEventListener(event, handleUserActivity, true)
+    })
 
     const handleWebSocketMessage = (event: MessageEvent) => {
         const data = JSON.parse(event.data)
         if (data.type === 'battle_started') {
           navigate(`/battle/${data.data}/countdown`)
+        } else if (data.type === 'battle_removed' && data.data === id) {
+          // Battle was removed, redirect to battle page
+          console.log("Battle was removed, redirecting to battle page"); // Debug logging
+          navigate('/battles')
         }
     }
 
@@ -46,6 +101,15 @@ export default function WaitingRoom() {
 
     return () => {
       clearInterval(interval)
+      if (inactivityTimeoutRef.current) {
+        clearTimeout(inactivityTimeoutRef.current)
+      }
+      
+      // Remove event listeners
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, handleUserActivity, true)
+      })
+      
       if (newSocket) {
         newSocket.removeEventListener('message', handleWebSocketMessage)
       }
@@ -56,15 +120,6 @@ export default function WaitingRoom() {
     const minutes = Math.floor(seconds / 60)
     const remainingSeconds = seconds % 60
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
-  }
-
-  const shareInvite = async () => {
-    const inviteLink = `${window.location.origin}/waiting/${id}`
-    await navigator.share({
-        title: 'Join my Head2Head battle!',
-        text: 'Click to join my Head2Head sports battle!',
-        url: inviteLink
-    })   
   }
 
   const quitBattle = async () => {
@@ -102,7 +157,21 @@ export default function WaitingRoom() {
               <div className="flex items-center gap-2 text-2xl font-bold">
                 <Timer className="w-6 h-6" />
                 {formatTime(waitingTime)}
+               
               </div>
+
+              {/* Show warning about 1v1 limitation */}
+              {invitedFriends.length > 0 && (
+                <div className="w-full max-w-md p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                    <AlertCircle className="w-4 h-4" />
+                    <span className="text-sm font-medium">1v1 Battle</span>
+                  </div>
+                  <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                    Only one friend can join this battle. The first person to accept will become your opponent.
+                  </p>
+                </div>
+              )}
 
               <div className="w-full max-w-md space-y-4">
                 <Sheet>
@@ -112,7 +181,7 @@ export default function WaitingRoom() {
                       className="w-full"
                     >
                       <UserPlus className="w-4 h-4 mr-2" />
-                      View Friends
+                      Invite Friend
                     </Button>
                   </SheetTrigger>
                   <SheetContent>
@@ -166,14 +235,6 @@ export default function WaitingRoom() {
                 </Sheet>
 
                 <Button
-                  onClick={shareInvite}
-                  className="w-full bg-orange-500 hover:bg-orange-600"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share Invite
-                </Button>
-
-                <Button
                   onClick={quitBattle}
                   variant="destructive"
                   className="w-full"
@@ -183,7 +244,10 @@ export default function WaitingRoom() {
               </div>
 
               <p className="text-sm text-gray-500 text-center mt-4">
-                Share this battle with your friends or wait for a random opponent to join
+                {invitedFriends.length > 0 
+                  ? `Waiting for ${invitedFriends[0]} to join or wait for a random opponent`
+                  : 'Share this battle with your friends or wait for a random opponent to join'
+                }
               </p>
             </div>
           </CardContent>

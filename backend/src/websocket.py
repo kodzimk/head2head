@@ -12,6 +12,7 @@ from friends.router import remove_friend
 from aiquiz.router import generate_ai_quiz
 import asyncio
 import uuid
+from fastapi import HTTPException
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,22 +26,26 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket, username: str):
         await websocket.accept()
         self.active_connections[username] = websocket
-        logger.info(f"Client {username} connected. Total connections: {len(self.active_connections)}")
 
     async def disconnect(self, username: str):
         if username in self.active_connections:
             del self.active_connections[username]
-            # Clear warning state when user disconnects
             user_warnings_sent.pop(username, None)
-            logger.info(f"Client {username} disconnected. Total connections: {len(self.active_connections)}")
-            
             await self.handle_battle_disconnect(username)
 
     async def handle_battle_disconnect(self, disconnected_username: str, reason: str = "disconnected"):
         try:
-            for battle_id, battle in battles.items():
+            for battle_id, battle in list(battles.items()):
                 if (battle.first_opponent == disconnected_username or 
                     battle.second_opponent == disconnected_username):
+
+                    # If it's a waiting battle (no second opponent), do nothing on disconnect.
+                    # The inactivity monitor will clean it up if it's truly abandoned.
+                    if not battle.second_opponent:
+                        logger.info(f"User {disconnected_username} disconnected from a waiting battle ({battle_id}). Battle will not be removed immediately.")
+                        continue
+
+                    # The rest of this logic only applies to active battles.
                     if battle.first_opponent == disconnected_username:
                         winner = battle.second_opponent
                         loser = battle.first_opponent
@@ -99,83 +104,138 @@ class ConnectionManager:
        
         if username in self.active_connections:
             await self.active_connections[username].send_text(message)
-            logger.info(f"Message sent to client {username}")
         else:
-           
             logger.warning(f"User {username} not found in active connections")
 
 manager = ConnectionManager()
 
 user_last_activity = {}
-user_warnings_sent = {}  # Track if warning has been sent to avoid spam
+user_warnings_sent = {} 
+
+async def validate_and_fix_username(connecting_username: str) -> str:
+    """
+    Validate the connecting username and return the correct current username.
+    This handles cases where users try to connect with old usernames.
+    """
+    try:
+        user_data = await get_user_by_username(connecting_username)
+        if user_data:
+            return connecting_username  
+    except Exception:
+        pass
+    
+    try:
+        from db.init import SessionLocal
+        from models import UserData
+        from sqlalchemy import select
+        
+        async with SessionLocal() as db:
+            all_users_stmt = select(UserData)
+            all_users_result = await db.execute(all_users_stmt)
+            all_users = all_users_result.scalars().all()
+            
+            for user in all_users:
+                if connecting_username in user.friends:
+                    logger.warning(f"User {connecting_username} tried to connect with old username, found in {user.username}'s friends list")
+                    return None  
+    except Exception as e:
+        logger.error(f"Error validating username {connecting_username}: {e}")
+    
+    return None  
 
 async def monitor_inactive_players():
     while True:
         try:
             current_time = asyncio.get_event_loop().time()
-            warning_threshold = 45  # Send warning at 45 seconds
-            inactive_threshold = 60  # Give default win at 60 seconds (1 minute)
+            warning_threshold = 45  
+            inactive_threshold = 60  
+            waiting_inactive_threshold = 600  
             
             for battle_id, battle in battles.items():
-                # Check first opponent
-                if battle.first_opponent in user_last_activity:
-                    time_since_activity = current_time - user_last_activity[battle.first_opponent]
+                if battle.second_opponent:
+                    if battle.first_opponent in user_last_activity:
+                        time_since_activity = current_time - user_last_activity[battle.first_opponent]
+                        
+                        if time_since_activity >= warning_threshold and time_since_activity < inactive_threshold:
+                            if not user_warnings_sent.get(battle.first_opponent, False):
+                                logger.info(f"Warning: Player {battle.first_opponent} inactive for {time_since_activity:.1f} seconds")
+                                user_warnings_sent[battle.first_opponent] = True
+                                
+                                if battle.first_opponent in manager.active_connections:
+                                    await manager.send_message(json.dumps({
+                                        "type": "inactivity_warning",
+                                        "data": {
+                                            "message": "You have been inactive for 45 seconds. You will lose automatically in 15 seconds if you don't respond.",
+                                            "time_remaining": 15
+                                        }
+                                    }), battle.first_opponent)
+                        
+                        if time_since_activity >= inactive_threshold:
+                            logger.info(f"Player {battle.first_opponent} inactive for {time_since_activity:.1f} seconds - giving default win to {battle.second_opponent}")
+                            battle.second_opponent_score = 10
+                            await manager.handle_battle_disconnect(battle.first_opponent, "inactive")
+                            user_warnings_sent.pop(battle.first_opponent, None)
+                            continue
                     
-                    # Send warning at 45 seconds if not already sent
-                    if time_since_activity >= warning_threshold and time_since_activity < inactive_threshold:
-                        if not user_warnings_sent.get(battle.first_opponent, False):
-                            logger.info(f"Warning: Player {battle.first_opponent} inactive for {time_since_activity:.1f} seconds")
-                            user_warnings_sent[battle.first_opponent] = True
+                    if battle.second_opponent in user_last_activity:
+                        time_since_activity = current_time - user_last_activity[battle.second_opponent]
+                        
+                        if time_since_activity >= warning_threshold and time_since_activity < inactive_threshold:
+                            if not user_warnings_sent.get(battle.second_opponent, False):
+                                logger.info(f"Warning: Player {battle.second_opponent} inactive for {time_since_activity:.1f} seconds")
+                                user_warnings_sent[battle.second_opponent] = True
+
+                                if battle.second_opponent in manager.active_connections:
+                                    await manager.send_message(json.dumps({
+                                        "type": "inactivity_warning",
+                                        "data": {
+                                            "message": "You have been inactive for 45 seconds. You will lose automatically in 15 seconds if you don't respond.",
+                                            "time_remaining": 15
+                                        }
+                                    }), battle.second_opponent)
+                        
+                        
+                        if time_since_activity >= inactive_threshold:
+                            logger.info(f"Player {battle.second_opponent} inactive for {time_since_activity:.1f} seconds - giving default win to {battle.first_opponent}")
+                            battle.first_opponent_score = 10
+                            await manager.handle_battle_disconnect(battle.second_opponent, "inactive")
                             
-                            # Send warning message to the inactive player
+                            user_warnings_sent.pop(battle.second_opponent, None)
+                            continue
+            
+            
+            for battle_id, battle in list(battles.items()):
+                if not battle.second_opponent:  
+                    if battle.first_opponent in user_last_activity:
+                        time_since_activity = current_time - user_last_activity[battle.first_opponent]
+                        
+                        
+                        if time_since_activity >= waiting_inactive_threshold - 60:  
+                            logger.info(f"Waiting battle {battle_id} by {battle.first_opponent} will be removed in {waiting_inactive_threshold - time_since_activity:.1f} seconds")
+                        
+                        
+                        if time_since_activity >= waiting_inactive_threshold:
+                            logger.info(f"Player {battle.first_opponent} inactive in waiting room for {time_since_activity:.1f} seconds - removing waiting battle {battle_id}")
+                            
+                            battles.pop(battle_id)
+                            
+                            for connected_user in manager.active_connections.keys():
+                                await manager.send_message(json.dumps({
+                                    "type": "battle_removed",
+                                    "data": battle_id
+                                }), connected_user)
+                            
                             if battle.first_opponent in manager.active_connections:
                                 await manager.send_message(json.dumps({
-                                    "type": "inactivity_warning",
+                                    "type": "waiting_room_inactivity",
                                     "data": {
-                                        "message": "You have been inactive for 45 seconds. You will lose automatically in 15 seconds if you don't respond.",
-                                        "time_remaining": 15
+                                        "message": "You were inactive in the waiting room for 10 minutes. Your battle has been removed.",
+                                        "battle_id": battle_id
                                     }
                                 }), battle.first_opponent)
-                    
-                    # Give default win at 60 seconds
-                    if time_since_activity >= inactive_threshold:
-                        logger.info(f"Player {battle.first_opponent} inactive for {time_since_activity:.1f} seconds - giving default win to {battle.second_opponent}")
-                        battle.second_opponent_score = 10
-                        await manager.handle_battle_disconnect(battle.first_opponent, "inactive")
-                        # Clear warning state
-                        user_warnings_sent.pop(battle.first_opponent, None)
-                        continue
-                
-                # Check second opponent
-                if battle.second_opponent in user_last_activity:
-                    time_since_activity = current_time - user_last_activity[battle.second_opponent]
-                    
-                    # Send warning at 45 seconds if not already sent
-                    if time_since_activity >= warning_threshold and time_since_activity < inactive_threshold:
-                        if not user_warnings_sent.get(battle.second_opponent, False):
-                            logger.info(f"Warning: Player {battle.second_opponent} inactive for {time_since_activity:.1f} seconds")
-                            user_warnings_sent[battle.second_opponent] = True
-                            
-                            # Send warning message to the inactive player
-                            if battle.second_opponent in manager.active_connections:
-                                await manager.send_message(json.dumps({
-                                    "type": "inactivity_warning",
-                                    "data": {
-                                        "message": "You have been inactive for 45 seconds. You will lose automatically in 15 seconds if you don't respond.",
-                                        "time_remaining": 15
-                                    }
-                                }), battle.second_opponent)
-                    
-                    # Give default win at 60 seconds
-                    if time_since_activity >= inactive_threshold:
-                        logger.info(f"Player {battle.second_opponent} inactive for {time_since_activity:.1f} seconds - giving default win to {battle.first_opponent}")
-                        battle.first_opponent_score = 10
-                        await manager.handle_battle_disconnect(battle.second_opponent, "inactive")
-                        # Clear warning state
-                        user_warnings_sent.pop(battle.second_opponent, None)
-                        continue
+                            continue
             
-            await asyncio.sleep(5)  # Check more frequently (every 5 seconds instead of 10) for more precise timing
+            await asyncio.sleep(5)  
         except Exception as e:
             logger.error(f"Error in monitor_inactive_players: {str(e)}")
             await asyncio.sleep(5)
@@ -183,31 +243,69 @@ async def monitor_inactive_players():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, username: str):
     try:
-        await manager.connect(websocket, username)
+        valid_username = await validate_and_fix_username(username)
+        if valid_username is None:
+            logger.warning(f"Rejecting WebSocket connection for invalid/old username: {username}")
+            await websocket.close(code=4000, reason="Invalid username")
+            return
         
-        user_last_activity[username] = asyncio.get_event_loop().time()
+        actual_username = valid_username
+        if actual_username != username:
+            logger.info(f"Username corrected from {username} to {actual_username}")
+        
+        await manager.connect(websocket, actual_username)
+        
+        user_last_activity[actual_username] = asyncio.get_event_loop().time()
 
-        # Send waiting battles to the user when they connect
+        try:
+            user_data = await get_user_by_username(actual_username)
+            if user_data and user_data.get('friends'):
+                updated_friends = []
+                for friend_username in user_data['friends']:
+                    try:
+                        friend_data = await get_user_by_username(friend_username)
+                        if friend_data:
+                            updated_friends.append(friend_username)
+                        else:
+                            logger.warning(f"Friend {friend_username} not found for user {actual_username}")
+                    except Exception as e:
+                        logger.error(f"Error checking friend {friend_username}: {e}")
+                
+                if len(updated_friends) != len(user_data['friends']):
+                    logger.info(f"Updating friend list for {actual_username} due to username changes")
+                    user_data['friends'] = updated_friends
+                    user_update_data = UserDataCreate(**user_data)
+                    await update_user_data(user_update_data)
+
+                    await manager.send_message(json.dumps({
+                        "type": "user_updated",
+                        "data": user_data
+                    }), actual_username)
+        except Exception as e:
+            logger.error(f"Error checking friend list for {actual_username}: {e}")
+
+        
         try:
             waiting_battles = await get_waiting_battles()
             await manager.send_message(json.dumps({
                 "type": "waiting_battles",
                 "data": waiting_battles
-            }), username)
+            }), actual_username)
         except Exception as e:
-            logger.error(f"Error sending waiting battles to {username}: {str(e)}")
+            logger.error(f"Error sending waiting battles to {actual_username}: {str(e)}")
 
         while True:
             try:
                 data = await websocket.receive_text()
                 
-                user_last_activity[username] = asyncio.get_event_loop().time()
-                # Clear warning state when user becomes active
-                user_warnings_sent.pop(username, None)
+                user_last_activity[actual_username] = asyncio.get_event_loop().time()
+                
+                user_warnings_sent.pop(actual_username, None)
                 
                 try:
                     message = json.loads(data)          
                     if message.get("type") == "user_update":
+                        old_username = actual_username  
                         temp = message["username"]
                         user_data = UserDataCreate(
                             username=message["username"],
@@ -225,6 +323,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             battles=message["battles"],
                             invitations=message["invitations"]
                         )                     
+                        
+                        
                         await update_user_data(user_data)
                         updated_user = await get_user_by_username(message["username"])
                         user_dict = {
@@ -244,18 +344,61 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "invitations": updated_user['invitations']
                         }
 
+                        
+                        if old_username != message["username"]:
+                            logger.info(f"Username changed from {old_username} to {message['username']}")
+                            
+                            
+                            if old_username in manager.active_connections:
+                                manager.active_connections[message["username"]] = manager.active_connections.pop(old_username)
+                            
+                            
+                            if old_username in user_last_activity:
+                                user_last_activity[message["username"]] = user_last_activity.pop(old_username)
+                            
+                            
+                            if old_username in user_warnings_sent:
+                                user_warnings_sent[message["username"]] = user_warnings_sent.pop(old_username)
+
+                        
                         for friend in updated_user['friends']:
-                            await manager.send_message(json.dumps({
-                                "type": "user_updated",
-                                "data": await get_user_by_username(friend)
-                            }), friend)
+                            try:
+                                await manager.send_message(json.dumps({
+                                    "type": "user_updated",
+                                    "data": await get_user_by_username(friend)
+                                }), friend)
+                            except Exception as e:
+                                logger.error(f"Error notifying friend {friend}: {e}")
+
+                        
+                        for connected_user in manager.active_connections.keys():
+                            try:
+                                user_data = await get_user_by_username(connected_user)
+                                if user_data and old_username in user_data.get('friendRequests', []):
+                                    await manager.send_message(json.dumps({
+                                        "type": "user_updated",
+                                        "data": user_data
+                                    }), connected_user)
+                            except Exception as e:
+                                logger.error(f"Error notifying user {connected_user} about friend request update: {e}")
 
 
+                        for connected_user in manager.active_connections.keys():
+                            try:
+                                user_data = await get_user_by_username(connected_user)
+                                if user_data and old_username in user_data.get('invitations', []):
+                                    await manager.send_message(json.dumps({
+                                        "type": "user_updated",
+                                        "data": user_data
+                                    }), connected_user)
+                            except Exception as e:
+                                logger.error(f"Error notifying user {connected_user} about invitation update: {e}")
+
+                        
                         await manager.send_message(json.dumps({
                             "type": "user_updated",
                             "data": user_dict
-                        }), temp)
-                        manager.active_connections[message['username']] = websocket               
+                        }), message["username"])
                     elif message.get("type") == "get_email":
                         user_data = await get_user_data(message["token"])
                         if user_data:
@@ -334,7 +477,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             "data": await get_user_by_username(message["friend_username"])
                         }), message["friend_username"])
                     elif message.get("type") == "accept_invitation":
-                     
+                        try:
                             success = await accept_invitation(message["friend_username"], message["battle_id"])
                             if success:
                                 battle = battles.get(message["battle_id"])
@@ -344,14 +487,46 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 })
                                 await manager.send_message(battle_started_message, battle.first_opponent)
                                 await manager.send_message(battle_started_message, battle.second_opponent)
+                                
+                                
                                 for connected_user in manager.active_connections.keys():
                                     if connected_user not in [battle.first_opponent, battle.second_opponent]:
                                         await manager.send_message(json.dumps({
                                             "type": "battle_removed",
                                             "data": message["battle_id"]
-                                        }), connected_user)   
+                                        }), connected_user)
+                                
+                                
+                                for connected_user in manager.active_connections.keys():
+                                    if connected_user != battle.first_opponent and connected_user != battle.second_opponent:
+                                        user_data = await get_user_by_username(connected_user)
+                                        if user_data and message["battle_id"] in user_data.get('invitations', []):
+                                            user_data['invitations'].remove(message["battle_id"])
+                                            user_update_data = UserDataCreate(**user_data)
+                                            await update_user_data(user_update_data)
+                                            await manager.send_message(json.dumps({
+                                                "type": "user_updated",
+                                                "data": user_data
+                                            }), connected_user)
+                                
                                 battle.questions = await generate_ai_quiz(battle.sport, battle.level)
-                        
+                        except HTTPException as e:
+                            
+                            await manager.send_message(json.dumps({
+                                "type": "invitation_error",
+                                "data": {
+                                    "message": e.detail,
+                                    "battle_id": message["battle_id"]
+                                }
+                            }), message["friend_username"])
+                            
+                            
+                            if e.status_code == 409:
+                                for connected_user in manager.active_connections.keys():
+                                    await manager.send_message(json.dumps({
+                                        "type": "battle_removed",
+                                        "data": message["battle_id"]
+                                    }), connected_user)
                     elif message.get("type") == "join_battle":
                             battle = battles.get(message["battle_id"])
                             if battle and not battle.second_opponent:
@@ -379,7 +554,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                            }), friend)
                   
                     elif message.get("type") == "start_battle":                       
-                        if battles[message["battle_id"]].first_opponent == username:
+                        if battles[message["battle_id"]].first_opponent == actual_username:
                          await manager.send_message(json.dumps({
                             "type": "battle_start",
                             "data": battles[message["battle_id"]].get_question(0)
@@ -391,7 +566,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                         }), battles[message["battle_id"]].second_opponent)
                             
 
-                        if battles[message["battle_id"]].first_opponent == username:
+                        if battles[message["battle_id"]].first_opponent == actual_username:
                             for connected_user in manager.active_connections.keys():
                                 if connected_user != battles[message["battle_id"]].first_opponent and connected_user != battles[message["battle_id"]].second_opponent:
                                     await manager.send_message(json.dumps({
@@ -489,7 +664,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 }
                             }), battle.second_opponent)
                             
-                            # Remove battle from waiting battles for all users
+                            
                             for connected_user in manager.active_connections.keys():
                                 await manager.send_message(json.dumps({
                                     "type": "battle_removed",
@@ -497,7 +672,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 }), connected_user)
                             continue
                         elif result == battle.first_opponent:
-                            # Call the battle cleanup function
+                            
                             await battle_result(message["battle_id"], battle.first_opponent, battle.second_opponent, "win")
                             
                             await manager.send_message(json.dumps({
@@ -683,19 +858,17 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                         "data": battle_id
                                     }), connected_user)
                                 
-                                # Send success message to the user who cancelled
+           
                                 await manager.send_message(json.dumps({
                                     "type": "battle_cancelled",
                                     "data": battle_id
                                 }), username)
-                            else:
-                                # Send error message if user doesn't own the battle or battle is already started
+                            else:                          
                                 await manager.send_message(json.dumps({
                                     "type": "error",
                                     "message": "Cannot cancel this battle"
                                 }), username)
                         else:
-                            # Send error message if battle doesn't exist
                             await manager.send_message(json.dumps({
                                 "type": "error",
                                 "message": "Battle not found"
@@ -707,26 +880,35 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
 
 
             except WebSocketDisconnect:
-                await manager.disconnect(username)
-                logger.info(f"Client {username} disconnected")
+                await manager.disconnect(actual_username)
+                logger.info(f"Client {actual_username} disconnected")
                 break
             except Exception as e:
-                logger.error(f"Error processing message from client {username}: {str(e)}")
+                logger.error(f"Error processing message from client {actual_username}: {str(e)}")
                 try:
                     await manager.send_message(json.dumps({
                         "type": "error",
                         "message": "Internal server error"
-                    }), username)
+                    }), actual_username)
                 except:
                     break
     except Exception as e:
         logger.error(f"Error in websocket connection: {str(e)}")
     finally:
-        await manager.disconnect(username)
-        logger.info(f"Cleaned up connection for client {username}")
+        await manager.disconnect(actual_username)
+        logger.info(f"Cleaned up connection for client {actual_username}")
 
 @app.on_event("startup")
 async def startup_event():
     await init_models()
 
     asyncio.create_task(monitor_inactive_players())
+    
+    try:
+        from db.router import cleanup_old_usernames
+        cleanup_result = await cleanup_old_usernames()
+        logger.info(f"Old username cleanup completed: {cleanup_result}")
+    except Exception as e:
+        logger.error(f"Error during old username cleanup: {e}")
+    
+    logger.info("WebSocket server started successfully")

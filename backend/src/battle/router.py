@@ -94,30 +94,24 @@ async def accept_invitation(friend_username: str, battle_id: str):
         raise HTTPException(status_code=401, detail="Friend not found")
     
     if battle_id not in friend_user['invitations']:
-        return False
+        raise HTTPException(status_code=400, detail="Invitation not found")
     
-    friend_user['invitations'].remove(battle_id)
-
-    user_data = UserDataCreate(
-         streak=friend_user['streak'],
-         winRate=friend_user['winRate'],
-         winBattle=friend_user['winBattle'],
-         ranking=friend_user['ranking'],
-         totalBattle=friend_user['totalBattle'],
-         favourite=friend_user['favourite'],
-         avatar=friend_user['avatar'],
-         username=friend_user['username'],
-         email=friend_user['email'],
-         password=friend_user['password'],
-         friends=friend_user['friends'],
-         friendRequests=friend_user['friendRequests'],
-         battles=friend_user['battles'],
-         invitations=friend_user['invitations']
-        )
-    await update_user_data(user_data)
     battle = battles.get(battle_id)
     if not battle:
-        raise HTTPException(status_code=401, detail="Battle not found")
+        raise HTTPException(status_code=404, detail="Battle not found")
+    
+    # Check if battle already has a second opponent
+    if battle.second_opponent:
+        # Remove the invitation since the battle is full
+        friend_user['invitations'].remove(battle_id)
+        user_data = UserDataCreate(**friend_user)
+        await update_user_data(user_data)
+        raise HTTPException(status_code=409, detail="Battle is already full. Another player has already joined.")
+    
+    # Remove invitation and add friend as second opponent
+    friend_user['invitations'].remove(battle_id)
+    user_data = UserDataCreate(**friend_user)
+    await update_user_data(user_data)
     
     battle.second_opponent = friend_username
     return True
@@ -142,7 +136,7 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
         await session.commit()
         await session.refresh(battle_db)
 
-        if result == 'draw':
+        if result == "draw":
             for username in [battle.first_opponent, battle.second_opponent]:
                 user = await get_user_by_username(username)
                 user['totalBattle'] += 1
@@ -174,9 +168,6 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
                     invitations=user['invitations']
                 )
                 await update_user_data(user_data)
-                
-                # Update all user rankings
-                await update_user_rankings()
         else:
             user = await get_user_by_username(winner)
             user['winBattle'] += 1
@@ -208,9 +199,6 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
                 invitations=user['invitations']
             )
             await update_user_data(user_data)
-            
-            # Update all user rankings
-            await update_user_rankings()
 
             user = await get_user_by_username(loser)
             user['totalBattle'] += 1
@@ -241,9 +229,9 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
                 invitations=user['invitations']
             )
             await update_user_data(user_data)
-            
-            # Update all user rankings
-            await update_user_rankings()
+
+        # Update all user rankings once at the end
+        await update_user_rankings()
 
     if battle_id in battles:
         del battles[battle_id]
@@ -301,9 +289,9 @@ async def battle_draw_result(battle_id: str):
                 invitations=user['invitations']
             )
             await update_user_data(user_data)
-            
-            # Update all user rankings
-            await update_user_rankings()
+        
+        # Update all user rankings once at the end
+        await update_user_rankings()
 
     if battle_id in battles:
         del battles[battle_id]

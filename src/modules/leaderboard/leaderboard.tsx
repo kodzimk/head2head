@@ -105,7 +105,7 @@ export default function LeaderboardPage() {
               Global Leaderboard
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Top players ranked by victories
+              Top players ranked by points (wins, win rate, streaks, and consistency)
             </p>
           </div>
 

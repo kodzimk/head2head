@@ -37,6 +37,7 @@ export default function ProfileSettingsPage(  ) {
   const [isLoading, setIsLoading] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.favoritesSport) {
@@ -55,6 +56,21 @@ export default function ProfileSettingsPage(  ) {
   }, [isDarkMode]);
 
   const handleSave = async () => {
+    // Clear previous messages
+    setError(null)
+    setSuccessMessage(null)
+    
+    // Validate username
+    if (!username.trim()) {
+      setError("Username cannot be empty")
+      return
+    }
+    
+    if (username.trim().length < 3) {
+      setError("Username must be at least 3 characters long")
+      return
+    }
+    
     const response = await axios.get(`http://localhost:8000/auth/username-user?username=${username}`)
     if (response.data === true && username !== user.username && username !== '') {
       setError("Username already exists")
@@ -69,10 +85,21 @@ export default function ProfileSettingsPage(  ) {
     localStorage.setItem('username', username)
     sendMessage(user, "user_update")
 
-    // If username changed, reinitialize websocket connection
+    // If username changed, reinitialize websocket connection and navigate
     if (oldUsername !== username) {
       console.log("Username changed, reinitializing websocket connection");
-      initializeWebSocketForNewUser(username);
+      console.log("Old username:", oldUsername);
+      console.log("New username:", username);
+      setSuccessMessage(`Username successfully changed from "${oldUsername}" to "${username}"!`);
+      
+      // Add a small delay to ensure backend has processed the update
+      setTimeout(() => {
+        initializeWebSocketForNewUser(username);
+      }, 500);
+      
+      // Don't redirect - let user stay on the same page
+    } else {
+      setSuccessMessage("Profile updated successfully!");
     }
 
     setTimeout(() => {
@@ -207,11 +234,15 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
                         setUsername(e.target.value);
                         if (e.target.value.trim()) {
                           setError(null);
+                          setSuccessMessage(null);
                         }
                       }} 
                     />
                     {error && (
                       <p className="text-sm text-red-500 mt-1">{error}</p>
+                    )}
+                    {successMessage && (
+                      <p className="text-sm text-green-500 mt-1">{successMessage}</p>
                     )}
                   </div>
                   <div className="space-y-2">

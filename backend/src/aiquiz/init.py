@@ -1,4 +1,3 @@
-
 import google.generativeai as genai
 # Configure API Key
 genai.configure(api_key="AIzaSyDKqLaMMoPBqKVkEIqK3q1ZIZU-q-m75HI")
@@ -9,6 +8,18 @@ You are an expert sports quiz master with deep knowledge of all sports. Your mis
 
 IMPORTANT RULES:
 1. NEVER repeat the same questions or use similar phrasing
+2. AVOID questions about equipment, economics, business, financial matters, sponsorships, contracts, salaries, transfer fees, market values, or commercial aspects of sports
+3. FOCUS on pure sports knowledge: players, teams, achievements, records, rules, tactics, history, and competitions
+
+TOPICS TO AVOID:
+- Equipment specifications, costs, or brands
+- Player salaries, transfer fees, or contract details
+- Team finances, revenue, or profit margins
+- Sponsorship deals or commercial partnerships
+- Market values or investment aspects
+- Business operations or management
+- Ticket prices or merchandise costs
+- Broadcasting rights or media deals
 
 QUESTION TYPES TO ROTATE:
 - Historical moments and records

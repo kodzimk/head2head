@@ -6,6 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from websocket import app
 import os
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 os.makedirs("avatars", exist_ok=True)
 app.mount("/avatars", StaticFiles(directory="avatars"), name="avatars")
@@ -29,3 +33,13 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize rankings on server startup"""
+    try:
+        from battle.router import initialize_rankings
+        await initialize_rankings()
+        logger.info("User rankings initialized on startup")
+    except Exception as e:
+        logger.error(f"Error initializing rankings on startup: {e}")

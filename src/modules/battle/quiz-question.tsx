@@ -16,6 +16,7 @@ export default function QuizQuestionPage() {
   const {firstOpponentScore, secondOpponentScore} = useScoreStore();
   const {user} = useGlobalStore();  
   const [showNextQuestion, setShowNextQuestion] = useState(false);
+  const [nextQuestionCountdown, setNextQuestionCountdown] = useState(3);
   const navigate = useNavigate();
   const {text} = useTextStore();
   
@@ -41,64 +42,68 @@ export default function QuizQuestionPage() {
     submitAnswer(id, label,user.username);
     setSelected(label);
     setShowNextQuestion(true);
+    setNextQuestionCountdown(3);
     checkForWinner(id);
   };
 
+  // Handle "Next question coming..." message with countdown
   useEffect(() => {
-    if (showNextQuestion) {
-      // Show "Next question coming..." message for 3 seconds
+    if (showNextQuestion && nextQuestionCountdown > 0) {
       const timer = setTimeout(() => {
-        setShowNextQuestion(false);
-        setTimeLeft(QUESTION_TIME_LIMIT);
-      }, 3000);
+        setNextQuestionCountdown(prev => prev - 1);
+      }, 1000);
       return () => clearTimeout(timer);
+    } else if (showNextQuestion && nextQuestionCountdown === 0) {
+      // Countdown finished, reset state
+      setShowNextQuestion(false);
+      setTimeLeft(QUESTION_TIME_LIMIT);
     }
-  }, [showNextQuestion]);
+  }, [showNextQuestion, nextQuestionCountdown]);
 
   // Reset state when current question changes (new question received from websocket)
   useEffect(() => {
     console.log("Current question changed:", currentQuestion); // Debug logging
     
     if (currentQuestion && currentQuestion.question && currentQuestion.question !== 'No more questions') {
-      console.log("Resetting quiz state for new question"); // Debug logging
+      console.log("Resetting quiz state for new question - setting timeLeft to:", QUESTION_TIME_LIMIT);
       setSelected(null);
       setShowNextQuestion(false);
+      setNextQuestionCountdown(3);
       setTimeLeft(QUESTION_TIME_LIMIT);
     }
   }, [currentQuestion]);
 
-  const moveToNextQuestion = () => {
-    setSelected(null);
-  };
-
+  // Main timer effect - only run when not showing next question and not finished
   useEffect(() => {
-    
     if (isQuizFinished || showNextQuestion) {
+      console.log("Timer paused - isQuizFinished:", isQuizFinished, "showNextQuestion:", showNextQuestion);
       return;
     }
+    
     if (timeLeft > 0) {
+      console.log("Timer running - timeLeft:", timeLeft);
       const timer = setTimeout(() => {
         setTimeLeft((prev) => prev - 1);
       }, 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0) {
-      const handleTimeUp = () => {   
-        setSelected(null);
-        submitAnswer(id, '',user.username);
-        setShowNextQuestion(true);
-        setTimeLeft(QUESTION_TIME_LIMIT);
-        checkForWinner(id);
-      };
-      handleTimeUp();
+      // Time's up - submit empty answer
+      console.log("Time's up, submitting empty answer");
+      setSelected(null);
+      submitAnswer(id, '', user.username);
+      setShowNextQuestion(true);
+      setNextQuestionCountdown(3);
+      setTimeLeft(QUESTION_TIME_LIMIT);
+      checkForWinner(id);
     }
-  }, [timeLeft, currentQuestion, isQuizFinished, showNextQuestion]);
+  }, [timeLeft, isQuizFinished, showNextQuestion, id, user.username]);
 
-  
+  // Navigate to result when text is set
   useEffect(() => {
     if (text !== '') {
         navigate(`/battle/${id}/result`);
     }
-  }, [text]);
+  }, [text, id, navigate]);
 
   return (
     <div 
@@ -140,7 +145,7 @@ export default function QuizQuestionPage() {
                   <div className={`text-lg font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-gray-600'}`}>{timeLeft}s</div>
                   {showNextQuestion && (
                     <div className="text-sm text-yellow-600 font-semibold">
-                      Next question in 3 seconds...
+                      Next question in {nextQuestionCountdown} seconds...
                     </div>
                   )}
 
@@ -154,17 +159,17 @@ export default function QuizQuestionPage() {
                 <div className="text-xl font-bold mb-3">You finished your quiz, wait for opponent.</div>
                 {showNextQuestion && (
                   <div className="mb-3 text-center text-yellow-600 font-semibold">
-                    Next question in 3 seconds...
+                    Next question in {nextQuestionCountdown} seconds...
                   </div>
                 )}
               </div>
             ) : (
               <>
                 <div className="text-base font-semibold mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg break-words leading-relaxed">
-                  {currentQuestion['question']}
+                  {currentQuestion?.question || 'Loading question...'}
                 </div>
                 <div className="grid gap-3 mb-4">
-                  {currentQuestion['answers'].map((ans: any) => (
+                  {currentQuestion?.answers?.map((ans: any) => (
                     <Button 
                       key={ans.label} 
                       variant={selected === ans.label ? 'default' : 'outline'} 
