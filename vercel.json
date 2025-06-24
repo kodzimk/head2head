@@ -1,10 +1,1 @@
-{
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "backend/src/main.py"
-        }
-    ]
-
-  
-}
+{ "rewrites": [{ "source": "/(.*)", "destination": "/" }] }

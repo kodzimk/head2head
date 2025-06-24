@@ -39,7 +39,7 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Avatar className="w-10 h-10 lg:w-12 lg:h-12">
-                  <AvatarImage src={user.avatar ? `http://localhost:8000${user.avatar}` : "/placeholder.svg"} alt={user.username} />
+                  <AvatarImage src={user.avatar ? `http://20.163.59.127:8000${user.avatar}` : "/placeholder.svg"} alt={user.username} />
                   <AvatarFallback className="bg-orange-500 text-white text-xs lg:text-sm">
                     {user.username.slice(0, 2).toUpperCase()}
                   </AvatarFallback>

@@ -230,7 +230,7 @@ export default function SignInPage() {
       // If sign-in fails due to account not existing, try sign-up
       if (error.response?.status === 404) {
         try {
-          const signUpResponse = await axios.post("http://127.0.0.1:8000/auth/signup", {
+          const signUpResponse = await axios.post("http://20.163.59.127:8000/auth/signup", {
             email: decodedToken.email,
             password: credentialResponse.credential,
             username: decodedToken.name,

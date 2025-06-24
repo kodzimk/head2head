@@ -35,7 +35,7 @@ let isInitialConnection = true;
 export const createWebSocket = (username: string | null) => {
   if (!username) return null;
   
-  const ws = new WebSocket(`ws://127.0.0.1:8000/ws?username=${encodeURIComponent(username)}`);
+  const ws = new WebSocket(`ws://20.163.59.127:8000/ws?username=${encodeURIComponent(username)}`);
   
   ws.onerror = (event: WebSocketEventMap['error']) => {
     console.error("WebSocket error:", event);

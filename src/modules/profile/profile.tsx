@@ -71,7 +71,7 @@ export default function ProfileSettingsPage(  ) {
       return
     }
     
-    const response = await axios.get(`http://localhost:8000/auth/username-user?username=${username}`)
+    const response = await axios.get(`http://20.163.59.127:8000/auth/username-user?username=${username}`)
     if (response.data === true && username !== user.username && username !== '') {
       setError("Username already exists")
       return
@@ -107,15 +107,23 @@ export default function ProfileSettingsPage(  ) {
     }, 500)
   }
 
-  const handleReset = () => {
-    user.wins = 0
-    user.totalBattles = 0
-    user.winRate = 0
-    user.rank = 0
-    user.streak = 0
-    user.favoritesSport = 'Football'
-    user.battles = []
-    sendMessage(user, "user_update")
+  const handleReset = async () => {
+    try {
+      setIsLoading(true);
+      const response = await axios.post("http://20.163.59.127:8000/db/reset-user-stats", {
+        username: user.username
+      });
+      if (response.status === 200) {
+        setSuccessMessage("Statistics reset successfully!");
+        // Optionally, refresh user data here
+      } else {
+        setError("Failed to reset statistics.");
+      }
+    } catch (error) {
+      setError("Failed to reset statistics.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
 const handleDelete = async () => {
@@ -142,7 +150,7 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
     formData.append('file', file)
 
     const response = await axios.post(
-      `http://localhost:8000/db/upload-avatar?token=${localStorage.getItem("access_token")?.replace(/"/g, '')}`,
+      `http://20.163.59.127:8000/db/upload-avatar?token=${localStorage.getItem("access_token")?.replace(/"/g, '')}`,
       formData,
       {
         headers: {
@@ -195,7 +203,7 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
                   <div className="relative">
                     <div className="relative w-24 h-24">
                       <img
-                        src={avatarPreview || (user.avatar ? `http://localhost:8000${user.avatar}` : "/placeholder.svg?height=100&width=100")}
+                        src={avatarPreview || (user.avatar ? `http://20.163.59.127:8000${user.avatar}` : "/placeholder.svg?height=100&width=100")}
                         alt="Profile"
                         className="w-24 h-24 rounded-full object-cover border-4 border-orange-500"
                       />

@@ -22,11 +22,11 @@ export default function FriendsPage({user}: {user: User}) {
     setFriends([])
       user.friends.map(async (friend: string) => {
         try {
-          const friendData = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${friend}`);
+          const friendData = await axios.get(`http://20.163.59.127:8000/db/get-user-by-username?username=${friend}`);
           setFriends(prev => [...prev, {
             username: friend,
             status: "online",
-            avatar: friendData.data.avatar ? `http://localhost:8000${friendData.data.avatar}` : null,
+            avatar: friendData.data.avatar ? `http://20.163.59.127:8000${friendData.data.avatar}` : null,
             rank: friendData.data.ranking
           }])
         } catch (error) {
@@ -50,12 +50,12 @@ export default function FriendsPage({user}: {user: User}) {
     if (searchQuery.trim()) {
       setIsSearching(true)
       try {
-        const response = await axios.get(`http://localhost:8000/friends/search-user?username=${searchQuery}`)
-        const userData = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${response.data.username}`)
+        const response = await axios.get(`http://20.163.59.127:8000/friends/search-user?username=${searchQuery}`)
+        const userData = await axios.get(`http://20.163.59.127:8000/db/get-user-by-username?username=${response.data.username}`)
         setSearchResults([{
           username: response.data.username,
           status: "online",
-          avatar: userData.data.avatar ? `http://localhost:8000${userData.data.avatar}` : null,
+          avatar: userData.data.avatar ? `http://20.163.59.127:8000${userData.data.avatar}` : null,
           rank: userData.data.ranking
         }])
       } catch (error) {

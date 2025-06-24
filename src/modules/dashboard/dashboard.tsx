@@ -34,7 +34,7 @@ export default function DashboardPage() {
     const fetchBattles = async () => {
       if (!localStorage.getItem("username")) return;
       const response = await axios.get(
-        `http://localhost:8000/get_battles?username=${localStorage.getItem("username")}`,
+        `http://20.163.59.127:8000/get_battles?username=${localStorage.getItem("username")}`,
         {
           headers: {
             "accept": "application/json",
