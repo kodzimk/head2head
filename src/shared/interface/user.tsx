@@ -1,6 +1,7 @@
 export interface User {
     email: string;
     username: string;
+    nickname?: string;
     wins: number;
     favoritesSport: string;
     rank: number;
@@ -27,6 +28,7 @@ export interface Battle {
 export const initialUser: User = {
     email: "",
     username: "",
+    nickname: "",
     avatar: "/placeholder.svg?height=100&width=100",
     rank: 1,
     winRate: 0,

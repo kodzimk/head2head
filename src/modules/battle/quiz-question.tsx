@@ -34,7 +34,7 @@ export default function QuizQuestionPage() {
     } else if (scoreDiff > -2) {
       return "😤 Catch up! You can do it! 😤";
     } else {
-      return "😵 You're getting OWNED! 😵";
+      return "Keep going! You can improve your score.";
     }
   };
 

@@ -48,7 +48,9 @@ export default function BattleCountdown() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
       <div className="text-6xl font-bold text-orange-500 mb-4">{count === 0 ? 'Go!' : count}</div>
-      <div className="text-xl text-gray-700 dark:text-gray-200 mb-4">Ready to smash or get smashed?</div>
+      <div className="text-xl text-gray-700 dark:text-gray-200 mb-4">
+        Prepare yourself. 
+      </div>
       
       <div className={`text-sm px-3 py-1 rounded-full ${
         connectionStatus === 'connected' 

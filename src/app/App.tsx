@@ -295,9 +295,12 @@ export default function App() {
          else if(data.type === 'battle_finished'){
           if(data.data.text === 'draw'){
             setResult('draw');
-          }
-          else{
+          } else if (data.data.winner === user.username) {
             setResult('win');
+          } else if (data.data.loser === user.username) {
+            setResult('lose');
+          } else {
+            setResult('');
           }
 
           setCurrentQuestion(data.data.questions);

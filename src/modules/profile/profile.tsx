@@ -38,6 +38,7 @@ export default function ProfileSettingsPage(  ) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [nickname, setNickname] = useState(user.nickname || "");
 
   useEffect(() => {
     if (user?.favoritesSport) {
@@ -78,8 +79,9 @@ export default function ProfileSettingsPage(  ) {
     }
     
     const oldUsername = user.username
-    user.favoritesSport = favourite
-    user.username = username
+    user.favoritesSport = favourite;
+    user.nickname = nickname;
+    user.username = username;
     setUser(user)
     setIsLoading(true)
     localStorage.setItem('username', username)
@@ -277,6 +279,15 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
                         <SelectItem value="Tennis">Tennis</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nickname">Nickname</Label>
+                    <Input
+                      id="nickname"
+                      value={nickname}
+                      onChange={e => setNickname(e.target.value)}
+                      placeholder="Enter your nickname"
+                    />
                   </div>
                 </div>
               </CardContent>
