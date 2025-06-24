@@ -48,7 +48,7 @@ export default function WaitingRoom() {
     
     // Remove the battle
     try {
-      await axios.delete(`http://20.163.59.127:8000/delete?battle_id=${id}`)
+      await axios.delete(`https://api.head2head.dev/delete?battle_id=${id}`)
       invitedFriends.forEach(friend => cancelInvitation(friend, id))
       localStorage.removeItem(`invitedFriends_${id}`)
     } catch (error) {
@@ -125,7 +125,7 @@ export default function WaitingRoom() {
   }
 
   const quitBattle = async () => {
-      await axios.delete(`http://20.163.59.127:8000/delete?battle_id=${id}`)
+      await axios.delete(`https://api.head2head.dev/delete?battle_id=${id}`)
       invitedFriends.forEach(friend => cancelInvitation(friend, id))
       localStorage.removeItem(`invitedFriends_${id}`)   
       navigate('/battles')

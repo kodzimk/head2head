@@ -13,11 +13,11 @@ export default function Friends({user}: {user: User}) {
   useEffect(() => {
     setFriends([])
     user.friends.map(async (friend: string) => {
-          const friendData = await axios.get(`http://20.163.59.127:8000/db/get-user-by-username?username=${friend}`);
+          const friendData = await axios.get(`https://api.head2head.dev/db/get-user-by-username?username=${friend}`);
           setFriends(prev => [...prev, {
             username: friend,
             status: "online",
-            avatar: friendData.data.avatar ? `http://20.163.59.127:8000${friendData.data.avatar}` : null,
+            avatar: friendData.data.avatar ? `https://api.head2head.dev${friendData.data.avatar}` : null,
             rank: friendData.data.ranking
           }]);
       });
