@@ -69,7 +69,7 @@ export default function SignInPage() {
 
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/auth/signin",
+        "http://20.163.59.127:8000/auth/signin",
         {
           username: formData.email,
           password: formData.password,
@@ -187,7 +187,7 @@ export default function SignInPage() {
     // Try sign-in, if fails, try sign-up
     try {
       const response = await axios.post(
-        "http://127.0.0.1:8000/auth/signin",
+        "http://20.163.59.127:8000/auth/signin",
         {
           username: decodedToken.email,
           password: credentialResponse.credential,
