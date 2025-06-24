@@ -24,11 +24,7 @@ export default function Component() {
         <div className="relative z-10 flex flex-col items-center justify-center w-full h-full text-center">
           {/* Your hero content here */}
           <h1 className="text-3xl sm:text-4xl md:text-4xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-orange-400   leading-tight">
-          "I wish i knew this platform,
-            <br />
-            <span className="text-orange-400">i could become</span>
-            <br></br>
-            <span className="text-orange-400">my friends owner"</span>
+          "I wish i knew this platform"
           </h1>
           <p className="text-sm sm:text-xs md:text-lg w-2/3 lg:text-xl xl:text-2xl text-orange-100/90 max-w-xl leading-relaxed mt-6">
             Challenge friends and players worldwide in real-time sports trivia
