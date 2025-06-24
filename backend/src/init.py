@@ -1,20 +1,21 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
-from config import DATABASE_URL
-from redis import Redis
+import os
+from sqlalchemy.ext.asyncio import create_async_engine
+from dotenv import load_dotenv
 
-engine = create_async_engine(DATABASE_URL)
-SessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
-Base = declarative_base()
+load_dotenv()
 
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-redis_email = Redis(host='localhost', port=6379, db=0)
-redis_username = Redis(host='localhost', port=6379, db=1)
+# Create async engine
+engine = create_async_engine(DATABASE_URL, echo=True)
 
-async def init_models():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+# Test connection
+async def test_connection():
+    async with engine.connect() as conn:
+        result = await conn.execute("SELECT version();")
+        row = result.fetchone()
+        print("✅ Connected to:", row[0])
 
-
-
-
+# Run test
+import asyncio
+asyncio.run(test_connection())
