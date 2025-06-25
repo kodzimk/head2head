@@ -69,7 +69,7 @@ export default function SignInPage() {
 
     try {
       const response = await axios.post(
-        "https://api.head2head.dev/auth/signin",
+        "http://localhost:8000/auth/signin",
         {
           username: formData.email,
           password: formData.password,
@@ -187,7 +187,7 @@ export default function SignInPage() {
     // Try sign-in, if fails, try sign-up
     try {
       const response = await axios.post(
-        "https://api.head2head.dev/auth/signin",
+        "http://localhost:8000/auth/signin",
         {
           username: decodedToken.email,
           password: credentialResponse.credential,
@@ -230,7 +230,7 @@ export default function SignInPage() {
       // If sign-in fails due to account not existing, try sign-up
       if (error.response?.status === 404) {
         try {
-          const signUpResponse = await axios.post("https://api.head2head.dev/auth/signup", {
+          const signUpResponse = await axios.post("http://localhost:8000/auth/signup", {
             email: decodedToken.email,
             password: credentialResponse.credential,
             username: decodedToken.name,

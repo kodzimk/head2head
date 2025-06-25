@@ -71,6 +71,12 @@ export default function BattlePage() {
   }, [user.username]);
   
   const handleCreateBattle = async () => {
+    // Defensive: Only allow creation if not already in a waiting battle
+    const userActiveBattle = battle.find(b => b.first_opponent === user.username && b.second_opponent === '');
+    if (userActiveBattle) {
+      setCreationError("You already have an active battle waiting. Please wait for someone to join or cancel it first.");
+      return;
+    }
     // Clear previous errors and success states
     setCreationError(null);
     setCreationSuccess(false);
@@ -87,12 +93,6 @@ export default function BattlePage() {
     }
     
   
-    const userActiveBattle = battle.find(b => b.first_opponent === user.username);
-    if (userActiveBattle) {
-      setCreationError("You already have an active battle waiting. Please wait for someone to join or cancel it first.");
-      return;
-    }
-    
     setIsCreatingBattle(true);
     setIsBattleBeingCreated(true);
     
@@ -125,12 +125,13 @@ export default function BattlePage() {
   }
 
   const handleJoinBattle = async (battle_id: string) => {
+    // Defensive: Never call notifyBattleCreated here, only joinBattle
     if (!newSocket || newSocket.readyState !== WebSocket.OPEN) {
       reconnectWebSocket();
       setTimeout(() => {
         joinBattle(user.username, battle_id);
       }, 1000);
-    } else {  
+    } else {
       joinBattle(user.username, battle_id);
     }
   }
@@ -355,7 +356,7 @@ export default function BattlePage() {
                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                           <Avatar className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
                             <AvatarImage
-                              src={battle_data.creator_avatar ? `https://api.head2head.dev${battle_data.creator_avatar}` : undefined}
+                              src={battle_data.creator_avatar ? `http://localhost:8000${battle_data.creator_avatar}` : undefined}
                               alt={battle_data.first_opponent}
                             />
                             <AvatarFallback className={`${

@@ -21,6 +21,7 @@ export interface Battle {
     first_opponent: string
     sport: string
     level: string
+    second_opponent?: string
     created_at?: string
     creator_avatar?: string
 }

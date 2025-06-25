@@ -63,7 +63,7 @@ export default function AllBattles() {
       try {
         setIsLoading(true);
         const response = await axios.get(
-          `https://api.head2head.dev/get_battles?username=${localStorage.getItem("username")}`,
+          `http://localhost:8000/get_battles?username=${localStorage.getItem("username")}`,
           {
             headers: {
               "accept": "application/json",

@@ -35,7 +35,7 @@ let isInitialConnection = true;
 export const createWebSocket = (username: string | null) => {
   if (!username) return null;
   
-  const ws = new WebSocket(`wss://api.head2head.dev/ws?username=${encodeURIComponent(username)}`);
+  const ws = new WebSocket(`ws://localhost:8000/ws?username=${encodeURIComponent(username)}`);
   
   ws.onerror = (event: WebSocketEventMap['error']) => {
     console.error("WebSocket error:", event);
@@ -266,11 +266,12 @@ export default function App() {
          }
          else if(data.type === 'next_question'){ 
           // Ensure we have valid question data before setting it
+          console.log("[WebSocket] Received next_question event:", data);
           if (data.data && data.data.question) {
-            console.log("sadjkcbasdjhcashdcgvasdgcfvasdgf next question:", data.data.question); // Debug logging
+            console.log("[WebSocket] Setting current question:", data.data.question);
             setCurrentQuestion(data.data.question);
           } else {
-            console.error("Invalid question data received:", data.data);
+            console.error("[WebSocket] Invalid question data received:", data.data);
           }
     
           if(data.data.first_opponent_name === user.username){
@@ -329,6 +330,23 @@ export default function App() {
          else if(data.type === 'error'){
            // Show error message to user
            alert(data.message || "An error occurred");
+         }
+         else if(data.type === 'quiz_generating'){
+           // Show loading state for quiz generation
+           console.log("Quiz generation started for battle:", data.data.battle_id);
+           // You can add a loading state here if needed
+         }
+         else if(data.type === 'quiz_ready'){
+           // Quiz is ready, questions are available
+           console.log("Quiz ready for battle:", data.data.battle_id);
+           console.log("Questions received:", data.data.questions);
+           // Store the questions in the battle object or global state
+           // The questions will be used when the battle starts
+         }
+         else if(data.type === 'quiz_error'){
+           // Show error message for quiz generation failure
+           console.error("Quiz generation failed:", data.data.message);
+           alert("Failed to generate quiz questions. Please try again.");
          }
        } catch (error) {
          console.error("Error processing websocket message:", error);

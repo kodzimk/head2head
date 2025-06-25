@@ -57,8 +57,14 @@ export default function QuizQuestionPage() {
       // Countdown finished, reset state
       setShowNextQuestion(false);
       setTimeLeft(QUESTION_TIME_LIMIT);
+      // Fallback: If currentQuestion did not change, log a warning
+      setTimeout(() => {
+        if (!currentQuestion || currentQuestion.question === undefined) {
+          console.warn("[Quiz] No new question received after countdown. Possible backend or websocket issue.");
+        }
+      }, 500);
     }
-  }, [showNextQuestion, nextQuestionCountdown]);
+  }, [showNextQuestion, nextQuestionCountdown, currentQuestion]);
 
   // Reset state when current question changes (new question received from websocket)
   useEffect(() => {
@@ -177,16 +183,16 @@ export default function QuizQuestionPage() {
                   }
                 </div>
                 <div className="grid gap-3 mb-4">
-                  {currentQuestion?.answers?.map((ans: any) => (
+                  {currentQuestion?.answers?.map((ans: any, idx: number) => (
                     <Button 
-                      key={ans.label} 
-                      variant={selected === ans.label ? 'default' : 'outline'} 
+                      key={ans.label || String.fromCharCode(65 + idx)} 
+                      variant={selected === (ans.label || String.fromCharCode(65 + idx)) ? 'default' : 'outline'} 
                       className="w-full h-auto min-h-[50px] p-3 text-left whitespace-normal break-words" 
-                      onClick={() => handleSelect(ans.label)} 
+                      onClick={() => handleSelect(ans.label || String.fromCharCode(65 + idx))} 
                       disabled={showNextQuestion}
                     >
                       <div className="flex items-start gap-2 w-full">
-                        <span className="font-bold text-xs flex-shrink-0">{ans.label}.</span>
+                        <span className="font-bold text-xs flex-shrink-0">{ans.label || String.fromCharCode(65 + idx)}.</span>
                         <span className="text-xs leading-relaxed">{ans.text}</span>
                       </div>
                     </Button>

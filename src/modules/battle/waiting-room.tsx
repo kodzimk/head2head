@@ -14,7 +14,7 @@ import {
   SheetTrigger,
 } from "../../shared/ui/sheet"
 import { Avatar, AvatarFallback } from '../../shared/ui/avatar'
-import { cancelInvitation, invitebattleFriend } from '../../shared/websockets/websocket'
+import { cancelInvitation, invitebattleFriend, cancelBattle } from '../../shared/websockets/websocket'
 import { newSocket } from '../../app/App'
 
 export default function WaitingRoom() {
@@ -48,7 +48,7 @@ export default function WaitingRoom() {
     
     // Remove the battle
     try {
-      await axios.delete(`https://api.head2head.dev/delete?battle_id=${id}`)
+      cancelBattle(id, user.username)
       invitedFriends.forEach(friend => cancelInvitation(friend, id))
       localStorage.removeItem(`invitedFriends_${id}`)
     } catch (error) {
@@ -125,9 +125,9 @@ export default function WaitingRoom() {
   }
 
   const quitBattle = async () => {
-      await axios.delete(`https://api.head2head.dev/delete?battle_id=${id}`)
+      cancelBattle(id, user.username)
       invitedFriends.forEach(friend => cancelInvitation(friend, id))
-      localStorage.removeItem(`invitedFriends_${id}`)   
+      localStorage.removeItem(`invitedFriends_${id}`)
       navigate('/battles')
   } 
 
