@@ -114,6 +114,7 @@ export default function App() {
   const [loser, setLoser] = useState<string>('');
   const [result, setResult] = useState<string>('');
   const [battle, setBattle] = useState<Battle[]>([]);
+  const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
   const navigate = useNavigate()
 
   // Handle manual page reload
@@ -206,18 +207,15 @@ export default function App() {
              avatar: data.data.avatar,
              battles: data.data.battles,
              invitations: data.data.invitations
-           };
-           
-           // Log username changes for debugging
-           if (user.username !== updatedUser.username) {
-             console.log(`Username changed from "${user.username}" to "${updatedUser.username}"`);
            }
-           
-           setUser(updatedUser);   
-           localStorage.setItem('username', updatedUser.username);
-         } else if (data.type === 'battle_started') {
+           setUser(updatedUser)
+         }
+         else if (data.type === 'battle_started') {
+           // Set the active battle ID to prevent conflicts
+           console.log(`🎯 Setting active battle: ${data.data} (previous: ${activeBattleId})`);
+           setActiveBattleId(data.data);
            navigate(`/battle/${data.data}/countdown`);
-         } 
+         }
          else if (data.type === 'battle_removed') {
           console.log("Battle removed:", data.data); // Debug logging
           setBattle(prev => {
@@ -225,6 +223,10 @@ export default function App() {
             console.log("Battles after removal:", newBattles); // Debug logging
             return newBattles;
           });
+          // Clear active battle if it was removed
+          if (activeBattleId === data.data) {
+            setActiveBattleId(null);
+          }
          }
          else if (data.type === 'battle_created_response') {
           console.log("Battle created response received:", data); // Debug logging
@@ -235,81 +237,50 @@ export default function App() {
           console.log("Navigating to waiting room:", `/waiting/${data.data.id}`); // Debug logging
           navigate(`/waiting/${data.data.id}`);
          }
-         else if (data.type === 'battle_created') {
-          setBattle(prev => {
-            const newBattles = [...prev, data.data];
-            return newBattles;
-          });
+         else if (data.type === 'battle_start') {
+           // Only process battle_start if it's for the active battle
+           if (activeBattleId === data.data.battle_id || !activeBattleId) {
+             console.log(`🎮 Processing battle_start for active battle: ${data.data.battle_id}`);
+             setCurrentQuestion(data.data);
+             setActiveBattleId(data.data.battle_id);
+           } else {
+             console.log(`⏸️ Ignoring battle_start for inactive battle: ${data.data.battle_id} (active: ${activeBattleId})`);
+           }
          }
-         else if(data.type === 'friend_request_updated'){
-           const updatedUser = {
-             email: data.data.email,
-             username: data.data.username,
-             wins: data.data.winBattle,
-             favoritesSport: data.data.favourite,
-             rank: data.data.ranking,
-             winRate: data.data.winRate,
-             totalBattles: data.data.totalBattle,
-             streak: data.data.streak,
-             password: data.data.password,
-             friends: data.data.friends,
-             friendRequests: data.data.friendRequests,
-             avatar: data.data.avatar,
-             battles: data.data.battles,
-             invitations: data.data.invitations
-           };
-           setUser(updatedUser); 
-           refreshView = !refreshView;
+         else if (data.type === 'next_question') {
+           // Only process next_question if it's for the active battle
+           if (activeBattleId === data.data.battle_id || !activeBattleId) {
+             console.log(`❓ Processing next_question for active battle: ${data.data.battle_id}`);
+             setCurrentQuestion(data.data.question);
+             setFirstOpponentScore(data.data.first_opponent);
+             setSecondOpponentScore(data.data.second_opponent);
+           } else {
+             console.log(`⏸️ Ignoring next_question for inactive battle: ${data.data.battle_id} (active: ${activeBattleId})`);
+           }
          }
-         else if(data.type === 'battle_start'){
-  
-          setCurrentQuestion(data.data);
+         else if (data.type === 'score_updated') {
+           // Only process score updates if it's for the active battle
+           if (activeBattleId === data.data.battle_id || !activeBattleId) {
+             console.log(`📊 Processing score_updated for active battle: ${data.data.battle_id}`);
+             setFirstOpponentScore(data.data.first_opponent);
+             setSecondOpponentScore(data.data.second_opponent);
+           } else {
+             console.log(`⏸️ Ignoring score_updated for inactive battle: ${data.data.battle_id} (active: ${activeBattleId})`);
+           }
          }
-         else if(data.type === 'next_question'){ 
-          // Ensure we have valid question data before setting it
-          console.log("[WebSocket] Received next_question event:", data);
-          if (data.data && data.data.question) {
-            console.log("[WebSocket] Setting current question:", data.data.question);
-            setCurrentQuestion(data.data.question);
-          } else {
-            console.error("[WebSocket] Invalid question data received:", data.data);
-          }
-    
-          if(data.data.first_opponent_name === user.username){
-            setFirstOpponentScore(data.data.first_opponent);
-            setSecondOpponentScore(data.data.second_opponent);
-          }
-          else{
-            setFirstOpponentScore(data.data.second_opponent);
-            setSecondOpponentScore(data.data.first_opponent);
-          }
-         }
-         else if(data.type === 'score_updated'){
-          if(data.data.first_opponent_name === user.username){
-            setFirstOpponentScore(data.data.first_opponent);
-            setSecondOpponentScore(data.data.second_opponent);
-          }
-          else{
-            setFirstOpponentScore(data.data.second_opponent);
-            setSecondOpponentScore(data.data.first_opponent);
-          }
-         }
-         else if(data.type === 'battle_finished'){
-          if(data.data.text === 'draw'){
-            setResult('draw');
-          } else if (data.data.winner === user.username) {
-            setResult('win');
-          } else if (data.data.loser === user.username) {
-            setResult('lose');
-          } else {
-            setResult('');
-          }
-
-          setCurrentQuestion(data.data.questions);
-          setLoser(data.data.loser);
-          setWinner(data.data.winner);
-          setText(data.data.text);
-          navigate(`/battle/${data.data.battle_id}/result`);
+         else if (data.type === 'battle_finished') {
+           // Only process battle_finished if it's for the active battle
+           if (activeBattleId === data.data.battle_id || !activeBattleId) {
+             console.log(`🏁 Processing battle_finished for active battle: ${data.data.battle_id}`);
+             setWinner(data.data.winner);
+             setLoser(data.data.loser);
+             setText(data.data.text);
+             setResult(data.data.questions);
+             setActiveBattleId(null); // Clear active battle
+             navigate(`/battle/${data.data.battle_id}/result`);
+           } else {
+             console.log(`⏸️ Ignoring battle_finished for inactive battle: ${data.data.battle_id} (active: ${activeBattleId})`);
+           }
          }
          else if(data.type === 'waiting_battles'){
            console.log("Received waiting battles:", data.data); // Debug logging
@@ -318,6 +289,10 @@ export default function App() {
          else if(data.type === 'battle_cancelled'){
            // Battle was successfully cancelled
            console.log("Battle cancelled successfully:", data.data);
+           // Clear active battle if it was cancelled
+           if (activeBattleId === data.data) {
+             setActiveBattleId(null);
+           }
          }
          else if(data.type === 'invitation_error'){
            // Show error message when invitation cannot be accepted
@@ -326,6 +301,7 @@ export default function App() {
          else if(data.type === 'waiting_room_inactivity'){
            // Redirect to battle page when waiting battle is removed due to inactivity
            alert(data.data.message || "You were inactive in the waiting room");
+           setActiveBattleId(null); // Clear active battle
            navigate('/battles');
          }
          else if(data.type === 'error'){
@@ -354,7 +330,8 @@ export default function App() {
        }
    }
 
-  }, [newSocket, navigate, user.username]);
+  },
+  [user, navigate, activeBattleId])
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');

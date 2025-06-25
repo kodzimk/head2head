@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react"
+import { createContext, useContext } from 'react'
 import type { Battle, User } from "./user"
 import type { Question } from "./question"
 import { initialUser } from "./user"
@@ -175,3 +175,41 @@ export const useBattleStore = () => {
 // API Configuration
 export const API_BASE_URL = "https://api.head2head.dev";
 export const WS_BASE_URL = "wss://api.head2head.dev";
+
+// Battle-specific state management
+interface BattleState {
+  [battleId: string]: {
+    currentQuestion: any;
+    firstOpponentScore: number;
+    secondOpponentScore: number;
+    winner: string;
+    loser: string;
+    result: string;
+    questions: any[];
+    isActive: boolean;
+  }
+}
+
+interface BattleStateStoreType {
+  battleStates: BattleState;
+  setBattleState: (battleId: string, state: Partial<BattleState[string]>) => void;
+  getBattleState: (battleId: string) => BattleState[string] | null;
+  clearBattleState: (battleId: string) => void;
+  isBattleActive: (battleId: string) => boolean;
+}
+
+export const BattleStateStore = createContext<BattleStateStoreType>({
+  battleStates: {},
+  setBattleState: () => {},
+  getBattleState: () => null,
+  clearBattleState: () => {},
+  isBattleActive: () => false,
+})
+
+export const useBattleStateStore = () => {
+  const context = useContext(BattleStateStore)
+  if (!context) {
+    throw new Error('useBattleStateStore must be used within a BattleStateProvider')
+  }
+  return context
+}

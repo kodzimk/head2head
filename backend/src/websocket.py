@@ -626,6 +626,22 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     elif message.get("type") == "join_battle":
                         battle = battles.get(message["battle_id"])
                         if battle and not battle.second_opponent:
+                            # Check if user is already in another active battle
+                            user_in_active_battle = False
+                            for existing_battle in battles.values():
+                                if (existing_battle.second_opponent and 
+                                    (existing_battle.first_opponent == message["username"] or 
+                                     existing_battle.second_opponent == message["username"])):
+                                    user_in_active_battle = True
+                                    break
+                            
+                            if user_in_active_battle:
+                                await manager.send_message(json.dumps({
+                                    "type": "error",
+                                    "message": "You are already in an active battle. Please finish your current battle first."
+                                }), message["username"])
+                                return
+                            
                             battle.second_opponent = message["username"]
                             from aiquiz.router import generate_ai_quiz, generate_expanded_fallback_questions
                             async def ensure_seven_questions():
@@ -991,6 +1007,22 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                
                     elif message.get("type") == "notify_battle_created":
                         try:
+                            # Check if user is already in an active battle
+                            user_in_active_battle = False
+                            for existing_battle in battles.values():
+                                if (existing_battle.second_opponent and 
+                                    (existing_battle.first_opponent == message["first_opponent"] or 
+                                     existing_battle.second_opponent == message["first_opponent"])):
+                                    user_in_active_battle = True
+                                    break
+                            
+                            if user_in_active_battle:
+                                await manager.send_message(json.dumps({
+                                    "type": "error",
+                                    "message": "You are already in an active battle. Please finish your current battle first."
+                                }), message["first_opponent"])
+                                return
+                            
                             # Check for duplicate battle with same sport and level
                             duplicate_battle = None
                             for b in battles.values():
