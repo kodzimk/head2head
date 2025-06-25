@@ -37,7 +37,7 @@ export const ViewProfile = ({user}: {user: User}) => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${username}`)
+        const response = await axios.get(`https://api.head2head.dev/db/get-user-by-username?username=${username}`)
         const userData = {
           ...initialUser,
           username: response.data.username,
@@ -49,7 +49,7 @@ export const ViewProfile = ({user}: {user: User}) => {
           totalBattles: response.data.totalBattle,
           friendRequests: response.data.friendRequests,
           friends: response.data.friends,
-          avatar: response.data.avatar ? `http://localhost:8000${response.data.avatar}` : undefined
+          avatar: response.data.avatar ? `https://api.head2head.dev${response.data.avatar}` : undefined
         }
         
         setViewUser(userData)

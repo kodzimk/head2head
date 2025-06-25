@@ -42,7 +42,7 @@ export default function SignUpPage() {
     
     // Try sign-up, if fails, try sign-in
     try {
-      const response = await axios.post("http://localhost:8000/auth/signup", {
+      const response = await axios.post("https://api.head2head.dev/auth/signup", {
         email: decodedToken.email,
         password: credentialResponse.credential,
         username: decodedToken.name,
@@ -94,7 +94,7 @@ export default function SignUpPage() {
       if (error.response?.status === 401 || error.response?.status === 404) {
         try {
           const signInResponse = await axios.post(
-            "http://localhost:8000/auth/signin",
+            "https://api.head2head.dev/auth/signin",
             {
               username: decodedToken.email,
               password: credentialResponse.credential,

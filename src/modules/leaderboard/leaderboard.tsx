@@ -37,7 +37,7 @@ export default function LeaderboardPage() {
         setIsLoading(true);
         setError(null);
         
-        const response = await axios.get("http://localhost:8000/db/get-leaderboard", {
+        const response = await axios.get("https://api.head2head.dev/db/get-leaderboard", {
           headers: {
             "accept": "application/json",
           },
@@ -158,7 +158,7 @@ export default function LeaderboardPage() {
                         
                         <Avatar className="w-10 h-10 sm:w-12 sm:h-12">
                           <AvatarImage
-                              src={player.avatar ? `http://localhost:8000${player.avatar}` : undefined}
+                              src={player.avatar ? `https://api.head2head.dev${player.avatar}` : undefined}
                             alt={player.username}
                           />
                           <AvatarFallback className="bg-orange-500 text-white text-xs sm:text-sm">

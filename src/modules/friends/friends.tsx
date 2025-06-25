@@ -50,12 +50,12 @@ export default function FriendsPage({user}: {user: User}) {
     if (searchQuery.trim()) {
       setIsSearching(true)
       try {
-        const response = await axios.get(`http://localhost:8000/friends/search-user?username=${searchQuery}`)
-        const userData = await axios.get(`http://localhost:8000/db/get-user-by-username?username=${response.data.username}`)
+        const response = await axios.get(`https://api.head2head.dev/friends/search-user?username=${searchQuery}`)
+        const userData = await axios.get(`https://api.head2head.dev/db/get-user-by-username?username=${response.data.username}`)
         setSearchResults([{
           username: response.data.username,
           status: "online",
-          avatar: userData.data.avatar ? `http://localhost:8000${userData.data.avatar}` : null,
+          avatar: userData.data.avatar ? `https://api.head2head.dev${userData.data.avatar}` : null,
           rank: userData.data.ranking
         }])
       } catch (error) {
