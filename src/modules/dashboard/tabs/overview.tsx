@@ -6,7 +6,6 @@ import { Badge } from "../../../shared/ui/badge"
 import { Settings, Sword, Trophy, Target, Zap } from "lucide-react"
 import type { User, RecentBattle } from '../../../shared/interface/user'
 import { useNavigate } from "react-router-dom"
-import { useState, useEffect } from "react"
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var"
 
 const getSportIcon = (sport: string) => {
