@@ -1,4 +1,4 @@
-from .init import Battle,battle_router,battles
+from battle.init import Battle,battle_router,battles
 from db.router import update_user_data,get_user_by_username
 from models import UserDataCreate,UserData
 from fastapi import  Query
@@ -19,35 +19,96 @@ logger = logging.getLogger(__name__)
 
 @battle_router.post("/create")
 async def create_battle(first_opponent: str, sport: str = Query(...), level: str = Query(...)):
-    battle_id = str(uuid.uuid4())
-    battles[battle_id] =  Battle(
-        id=battle_id,
-        first_opponent=first_opponent,
-        sport=sport,
-        level=level,
-    )
-    
-    # Trigger AI quiz generation as background task
     try:
-        task = queue_quiz_generation_task(battle_id, sport, level, 6)
-        logger.info(f"Started AI quiz generation task {task.id} for battle {battle_id}")
+        logger.info(f"Creating battle for {first_opponent} with sport={sport}, level={level}")
+        
+        battle_id = str(uuid.uuid4())
+        battles[battle_id] =  Battle(
+            id=battle_id,
+            first_opponent=first_opponent,
+            sport=sport,
+            level=level,
+        )
+        
+        logger.info(f"Battle {battle_id} created successfully")
+        
+        # Trigger AI quiz generation as background task (non-blocking)
+        try:
+            task = queue_quiz_generation_task(battle_id, sport, level, 6)
+            logger.info(f"Started AI quiz generation task {task.id} for battle {battle_id} (sport={sport}, level={level})")
+        except Exception as e:
+            logger.error(f"Failed to start AI quiz generation for battle {battle_id}: {str(e)}")
+            # Don't fail the battle creation if quiz generation fails
+            # The battle can still proceed with fallback questions
+        
+        # Broadcast new battle to all connected users via WebSocket
+        try:
+            from websocket import manager
+            
+            # Get creator's user data to include avatar
+            creator_user = await get_user_by_username(first_opponent)
+            creator_avatar = creator_user.get('avatar', '') if creator_user else ''
+            
+            # Prepare battle data for broadcast
+            battle_data = {
+                "id": battle_id,
+                "first_opponent": first_opponent,
+                "sport": sport,
+                "level": level,
+                "creator_avatar": creator_avatar
+            }
+            
+            # Broadcast to all connected users
+            broadcast_message = {
+                "type": "battle_created",
+                "data": battle_data
+            }
+            
+            logger.info(f"Broadcasting battle creation to all connected users: {battle_data}")
+            
+            # Send to all connected users
+            for connected_user in manager.active_connections.keys():
+                try:
+                    await manager.send_message(json.dumps(broadcast_message), connected_user)
+                    logger.info(f"Sent battle creation notification to {connected_user}")
+                except Exception as e:
+                    logger.error(f"Failed to send battle creation notification to {connected_user}: {str(e)}")
+                    
+        except Exception as e:
+            logger.error(f"Failed to broadcast battle creation: {str(e)}")
+            # Don't fail the battle creation if broadcasting fails
+        
+        return battles[battle_id]
     except Exception as e:
-        logger.error(f"Failed to start AI quiz generation for battle {battle_id}: {str(e)}")
-    
-    return battles[battle_id]
+        logger.error(f"Error creating battle: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create battle: {str(e)}")
 
 @battle_router.delete("/delete")
 async def delete_battle(battle_id: str):
     if battle_id in battles:
         battles.pop(battle_id)
 
-        from websocket import manager
-        for connected_user in manager.active_connections.keys():
-            await manager.send_message(json.dumps({
+        # Broadcast battle removal to all connected users
+        try:
+            from websocket import manager
+            
+            broadcast_message = {
                 "type": "battle_removed",
                 "data": battle_id
-            }), connected_user)
-
+            }
+            
+            logger.info(f"Broadcasting battle removal to all connected users: {battle_id}")
+            
+            # Send to all connected users
+            for connected_user in manager.active_connections.keys():
+                try:
+                    await manager.send_message(json.dumps(broadcast_message), connected_user)
+                    logger.info(f"Sent battle removal notification to {connected_user}")
+                except Exception as e:
+                    logger.error(f"Failed to send battle removal notification to {connected_user}: {str(e)}")
+                    
+        except Exception as e:
+            logger.error(f"Failed to broadcast battle removal: {str(e)}")
 
     return {"message": "Battle deleted successfully"}
 
@@ -310,15 +371,23 @@ async def battle_draw_result(battle_id: str):
 
 @battle_router.get("/get_battles")
 async def get_battles(username: str):
+    logger.info(f"[BATTLE_ROUTER] Getting battles for user: {username}")
     user = await get_user_by_username(username)
     battles_user = user['battles']
+    logger.info(f"[BATTLE_ROUTER] User {username} has {len(battles_user)} battles in their list: {battles_user}")
     battles_list = []
 
     async with SessionLocal() as session:
         for battle_id in battles_user:
+            logger.info(f"[BATTLE_ROUTER] Looking up battle {battle_id} in database")
             battle_data = await session.get(BattleModel, battle_id)
             if battle_data:
+                logger.info(f"[BATTLE_ROUTER] Found battle {battle_id} in database: {battle_data.to_json()}")
                 battles_list.append(battle_data.to_json())
+            else:
+                logger.warning(f"[BATTLE_ROUTER] Battle {battle_id} not found in database")
+    
+    logger.info(f"[BATTLE_ROUTER] Returning {len(battles_list)} battles for user {username}")
     return battles_list
 
 @battle_router.get("/get_waiting_battles")

@@ -8,6 +8,9 @@ import os
 from datetime import datetime
 from auth.router import decode_access_token
 from sqlalchemy import select, update
+import logging
+
+logger = logging.getLogger(__name__)
 
 @db_router.post("/update-user",name="update user data")
 async def update_user_data(user: UserDataCreate):
@@ -85,10 +88,22 @@ async def get_user_data(token: str):
 
 @db_router.get("/get-user-by-username",name="get user by username")
 async def get_user_by_username(username: str):
-    user = redis_username.get(username)
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return json.loads(user)
+    try:
+        logger.info(f"Getting user by username: {username}")
+        user = redis_username.get(username)
+        if user is None:
+            logger.warning(f"User not found in Redis: {username}")
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_data = json.loads(user)
+        logger.info(f"Successfully retrieved user data for: {username}")
+        return user_data
+    except json.JSONDecodeError as e:
+        logger.error(f"Error decoding user data from Redis for {username}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error decoding user data")
+    except Exception as e:
+        logger.error(f"Error getting user by username {username}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving user: {str(e)}")
 
 @db_router.get("/get-battle-stats",name="get battle statistics for user")
 async def get_battle_stats(username: str):

@@ -173,7 +173,7 @@ async def validate_and_fix_username(connecting_username: str) -> str:
         pass
     
     try:
-        from db.init import SessionLocal
+        from init import SessionLocal
         from models import UserData
         from sqlalchemy import select
         
@@ -577,16 +577,12 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                         if not questions:
                                             logger.warning(f"Quiz questions not ready in time for battle {battle.id}, using fallback questions")
                                             try:
-                                                from aiquiz.router import generate_ai_quiz
-                                                questions = await generate_ai_quiz(battle.sport, battle.level, 6)
-                                                if not questions or len(questions) < 6:
-                                                    logger.warning(f"AI fallback also returned no questions for battle {battle.id}, using static questions")
-                                                    from aiquiz.router import generate_expanded_fallback_questions
-                                                    questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
-                                            except Exception as e:
-                                                logger.error(f"Error in AI fallback for battle {battle.id}: {str(e)}, using static questions")
                                                 from aiquiz.router import generate_expanded_fallback_questions
                                                 questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
+                                                logger.info(f"Using fallback questions for battle {battle.id}")
+                                            except Exception as e:
+                                                logger.error(f"Error getting fallback questions for battle {battle.id}: {str(e)}")
+                                                questions = []
                                         battle.questions = questions
                                         logger.info(f"Quiz questions ready for battle {battle.id}")
                                         await manager.send_message(json.dumps({
@@ -624,108 +620,171 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                         "data": message["battle_id"]
                                     }), connected_user)
                     elif message.get("type") == "join_battle":
-                        battle = battles.get(message["battle_id"])
-                        if battle and not battle.second_opponent:
-                            # Check if user is already in another active battle
-                            user_in_active_battle = False
-                            for existing_battle in battles.values():
-                                if (existing_battle.second_opponent and 
-                                    (existing_battle.first_opponent == message["username"] or 
-                                     existing_battle.second_opponent == message["username"])):
-                                    user_in_active_battle = True
-                                    break
-                            
-                            if user_in_active_battle:
-                                await manager.send_message(json.dumps({
-                                    "type": "error",
-                                    "message": "You are already in an active battle. Please finish your current battle first."
-                                }), message["username"])
-                                return
-                            
-                            battle.second_opponent = message["username"]
-                            from aiquiz.router import generate_ai_quiz, generate_expanded_fallback_questions
-                            async def ensure_seven_questions():
-                                questions = await get_cached_questions(battle.id)
-                                if not questions or len(questions) < 7:
-                                    try:
-                                        questions = await generate_ai_quiz(battle.sport, battle.level, 6)
-                                        if not questions or len(questions) < 6:
-                                            questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
-                                        import redis
-                                        redis_client = redis.Redis.from_url("redis://redis:6379/0")
-                                        questions_key = f"battle_questions:{battle.id}"
-                                        redis_client.setex(questions_key, 3600, json.dumps(questions))
-                                    except Exception as e:
-                                        logger.error(f"Error ensuring 7 questions for battle {battle.id}: {str(e)}")
-                                battle.questions = questions
-                            # Start quiz generation in the background
-                            asyncio.create_task(ensure_seven_questions())
-                            # Immediately notify both users that the battle has started
-                            battle_started_message = json.dumps({
-                                "type": "battle_started",
-                                "data": battle.id
-                            })
-                            await manager.send_message(battle_started_message, battle.first_opponent)
-                            await manager.send_message(battle_started_message, battle.second_opponent)
-                            for connected_user in manager.active_connections.keys():
-                                if connected_user not in [battle.first_opponent, battle.second_opponent]:
+                        try:
+                            logger.info(f"Processing join_battle request: {message}")
+                            battle = battles.get(message["battle_id"])
+                            if battle and not battle.second_opponent:
+                                # Check if user is already in another active battle
+                                user_in_active_battle = False
+                                for existing_battle in battles.values():
+                                    if (existing_battle.second_opponent and 
+                                        (existing_battle.first_opponent == message["username"] or 
+                                         existing_battle.second_opponent == message["username"])):
+                                        user_in_active_battle = True
+                                        break
+                                
+                                if user_in_active_battle:
+                                    logger.warning(f"User {message['username']} tried to join battle but is already in an active battle")
                                     await manager.send_message(json.dumps({
-                                        "type": "battle_removed",
-                                        "data": message["battle_id"]
-                                    }), connected_user)
-                            # Notify both users that quiz is being generated
-                            await manager.send_message(json.dumps({
-                                "type": "quiz_generating",
-                                "data": {"battle_id": battle.id}
-                            }), battle.first_opponent)
-                            await manager.send_message(json.dumps({
-                                "type": "quiz_generating",
-                                "data": {"battle_id": battle.id}
-                            }), battle.second_opponent)
-                            # Poll for questions in the background
-                            async def poll_for_questions():
+                                        "type": "error",
+                                        "message": "You are already in an active battle. Please finish your current battle first."
+                                    }), message["username"])
+                                    return
+                                
+                                # Verify user exists before joining
                                 try:
-                                    logger.info(f"Polling for quiz questions for battle {battle.id} ({battle.sport}, {battle.level})")
-                                    max_attempts = 30
-                                    attempts = 0
-                                    questions = await get_cached_questions(battle.id)
-                                    while not questions and attempts < max_attempts:
-                                        await asyncio.sleep(1)
-                                        questions = await get_cached_questions(battle.id)
-                                        attempts += 1
-                                    if not questions:
-                                        logger.warning(f"Quiz questions not ready in time for battle {battle.id}, using fallback questions")
+                                    user_data = await get_user_by_username(message["username"])
+                                    if not user_data:
+                                        logger.error(f"User {message['username']} not found when trying to join battle")
+                                        await manager.send_message(json.dumps({
+                                            "type": "error",
+                                            "message": "User not found. Please try logging in again."
+                                        }), message["username"])
+                                        return
+                                    logger.info(f"User {message['username']} verified successfully")
+                                except Exception as e:
+                                    logger.error(f"Error verifying user {message['username']}: {str(e)}")
+                                    await manager.send_message(json.dumps({
+                                        "type": "error",
+                                        "message": "Error verifying user. Please try again."
+                                    }), message["username"])
+                                    return
+                                
+                                battle.second_opponent = message["username"]
+                                logger.info(f"User {message['username']} joined battle {message['battle_id']}")
+                                
+                                # Broadcast battle joined to all connected users
+                                try:
+                                    battle_joined_message = json.dumps({
+                                        "type": "battle_joined",
+                                        "data": {
+                                            "battle_id": message["battle_id"],
+                                            "second_opponent": message["username"]
+                                        }
+                                    })
+                                    
+                                    logger.info(f"Broadcasting battle joined to all connected users: {message['battle_id']}")
+                                    
+                                    for connected_user in manager.active_connections.keys():
                                         try:
-                                            from aiquiz.router import generate_ai_quiz
-                                            questions = await generate_ai_quiz(battle.sport, battle.level, 6)
-                                            if not questions:
-                                                logger.warning(f"AI fallback also returned no questions for battle {battle.id}, using static questions")
+                                            await manager.send_message(battle_joined_message, connected_user)
+                                            logger.info(f"Sent battle joined notification to {connected_user}")
+                                        except Exception as e:
+                                            logger.error(f"Failed to send battle joined notification to {connected_user}: {str(e)}")
+                                            
+                                except Exception as e:
+                                    logger.error(f"Failed to broadcast battle joined: {str(e)}")
+                                
+                                from aiquiz.router import generate_expanded_fallback_questions
+                                async def ensure_seven_questions():
+                                    questions = await get_cached_questions(battle.id)
+                                    if not questions or len(questions) < 6:
+                                        logger.warning(f"No cached questions found for battle {battle.id}, using fallback questions")
+                                        try:
+                                            questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
+                                            import redis
+                                            redis_client = redis.Redis.from_url("redis://redis:6379/0")
+                                            questions_key = f"battle_questions:{battle.id}"
+                                            redis_client.setex(questions_key, 3600, json.dumps(questions))
+                                            logger.info(f"Saved fallback questions for battle {battle.id}")
+                                        except Exception as e:
+                                            logger.error(f"Error ensuring questions for battle {battle.id}: {str(e)}")
+                                    battle.questions = questions
+                                # Start quiz generation in the background
+                                asyncio.create_task(ensure_seven_questions())
+                                # Immediately notify both users that the battle has started
+                                battle_started_message = json.dumps({
+                                    "type": "battle_started",
+                                    "data": battle.id
+                                })
+                                await manager.send_message(battle_started_message, battle.first_opponent)
+                                await manager.send_message(battle_started_message, battle.second_opponent)
+                                
+                                # Broadcast battle removal to other users since it's no longer waiting
+                                for connected_user in manager.active_connections.keys():
+                                    if connected_user not in [battle.first_opponent, battle.second_opponent]:
+                                        await manager.send_message(json.dumps({
+                                            "type": "battle_removed",
+                                            "data": message["battle_id"]
+                                        }), connected_user)
+                                
+                                # Notify both users that quiz is being generated
+                                await manager.send_message(json.dumps({
+                                    "type": "quiz_generating",
+                                    "data": {"battle_id": battle.id}
+                                }), battle.first_opponent)
+                                await manager.send_message(json.dumps({
+                                    "type": "quiz_generating",
+                                    "data": {"battle_id": battle.id}
+                                }), battle.second_opponent)
+                                # Poll for questions in the background
+                                async def poll_for_questions():
+                                    try:
+                                        logger.info(f"Polling for quiz questions for battle {battle.id} ({battle.sport}, {battle.level})")
+                                        max_attempts = 30
+                                        attempts = 0
+                                        questions = await get_cached_questions(battle.id)
+                                        while not questions and attempts < max_attempts:
+                                            await asyncio.sleep(1)
+                                            questions = await get_cached_questions(battle.id)
+                                            attempts += 1
+                                        if not questions:
+                                            logger.warning(f"Quiz questions not ready in time for battle {battle.id}, using fallback questions")
+                                            try:
                                                 from aiquiz.router import generate_expanded_fallback_questions
                                                 questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
-                                        except Exception as e:
-                                            logger.error(f"Error in AI fallback for battle {battle.id}: {str(e)}, using static questions")
-                                            from aiquiz.router import generate_expanded_fallback_questions
-                                            questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
-                                    battle.questions = questions
-                                    logger.info(f"Quiz questions ready for battle {battle.id}")
+                                                logger.info(f"Using fallback questions for battle {battle.id}")
+                                            except Exception as e:
+                                                logger.error(f"Error getting fallback questions for battle {battle.id}: {str(e)}")
+                                                questions = []
+                                        battle.questions = questions
+                                        logger.info(f"Quiz questions ready for battle {battle.id}")
+                                        await manager.send_message(json.dumps({
+                                            "type": "quiz_ready",
+                                            "data": {"battle_id": battle.id, "questions": questions}
+                                        }), battle.first_opponent)
+                                        await manager.send_message(json.dumps({
+                                            "type": "quiz_ready",
+                                            "data": {"battle_id": battle.id, "questions": questions}
+                                        }), battle.second_opponent)
+                                    except Exception as e:
+                                        logger.error(f"Error polling for quiz questions for battle {battle.id}: {str(e)}")
+                                        error_message = json.dumps({
+                                            "type": "quiz_error",
+                                            "data": {"battle_id": battle.id, "message": "Failed to get quiz questions"}
+                                        })
+                                        await manager.send_message(error_message, battle.first_opponent)
+                                        await manager.send_message(error_message, battle.second_opponent)
+                                asyncio.create_task(poll_for_questions())
+                            else:
+                                if not battle:
+                                    logger.warning(f"Battle {message['battle_id']} not found")
                                     await manager.send_message(json.dumps({
-                                        "type": "quiz_ready",
-                                        "data": {"battle_id": battle.id, "questions": questions}
-                                    }), battle.first_opponent)
+                                        "type": "error",
+                                        "message": "Battle not found"
+                                    }), message["username"])
+                                else:
+                                    logger.warning(f"Battle {message['battle_id']} is already full")
                                     await manager.send_message(json.dumps({
-                                        "type": "quiz_ready",
-                                        "data": {"battle_id": battle.id, "questions": questions}
-                                    }), battle.second_opponent)
-                                except Exception as e:
-                                    logger.error(f"Error polling for quiz questions for battle {battle.id}: {str(e)}")
-                                    error_message = json.dumps({
-                                        "type": "quiz_error",
-                                        "data": {"battle_id": battle.id, "message": "Failed to get quiz questions"}
-                                    })
-                                    await manager.send_message(error_message, battle.first_opponent)
-                                    await manager.send_message(error_message, battle.second_opponent)
-                            asyncio.create_task(poll_for_questions())
-      
+                                        "type": "error",
+                                        "message": "Battle is already full"
+                                    }), message["username"])
+                        except Exception as e:
+                            logger.error(f"Error processing join_battle request: {str(e)}")
+                            await manager.send_message(json.dumps({
+                                "type": "error",
+                                "message": "Error joining battle. Please try again."
+                            }), message["username"])
                     elif message.get("type") == "delete_user":
                         token = message.get("token")
                         if not token:
@@ -775,70 +834,6 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             if battle_start_notifications:
                                 await asyncio.gather(*battle_start_notifications, return_exceptions=True)
                
-                    elif message.get("type") == "submit_answer":
-                        logger.info(f"Answer submitted by {message['username']} for battle {message['battle_id']}: {message['answer']}")
-                        index = battles[message["battle_id"]].check_for_answer(message["username"],message["answer"])
-                        battle = battles[message["battle_id"]]
-                        
-                        logger.info(f"Battle state after answer - First opponent: {battle.first_opponent_answers}/{len(battle.questions)}, Second opponent: {battle.second_opponent_answers}/{len(battle.questions)}")
-                        
-                        # Send score updates immediately to both players
-                        score_update_data = {
-                            "first_opponent": battle.first_opponent_score,
-                            "second_opponent": battle.second_opponent_score,
-                            "first_opponent_name": battle.first_opponent,
-                        }
-                        
-                        await manager.send_message(json.dumps({
-                            "type": "score_updated",
-                            "data": score_update_data
-                        }), battle.first_opponent)
-                        
-                        await manager.send_message(json.dumps({
-                            "type": "score_updated",
-                            "data": score_update_data
-                        }), battle.second_opponent)
-                        
-                        # Wait 3 seconds before sending next question
-                        logger.info(f"Waiting 3 seconds before sending next question for battle {message['battle_id']}")
-                        await asyncio.sleep(3)
-                        
-                        # Check if battle is still active before sending next question
-                        if message["battle_id"] not in battles:
-                            logger.info(f"Battle {message['battle_id']} no longer exists, skipping next question")
-                            continue
-                        
-                        # Log the questions list and current state
-                        logger.info(f"Battle questions for {message['battle_id']}: {battle.questions}")
-                        logger.info(f"First opponent answers: {battle.first_opponent_answers}, Second opponent answers: {battle.second_opponent_answers}")
-                        logger.info(f"First opponent finished: {battle.first_opponent_finished}, Second opponent finished: {battle.second_opponent_finished}")
-                        
-                        # Send next question to the player who answered
-                        if index == 0:
-                            next_question = battle.get_question(0)
-                            logger.info(f"Sending next question to {battle.first_opponent}: {next_question}")
-                            await manager.send_message(json.dumps({
-                                "type": "next_question",
-                                "data": {
-                                    "question": next_question,
-                                    "first_opponent": battle.first_opponent_score,
-                                    "second_opponent": battle.second_opponent_score,
-                                    "first_opponent_name": battle.first_opponent,
-                                }
-                            }), battle.first_opponent)
-                        elif index == 1:
-                            next_question = battle.get_question(1)
-                            logger.info(f"Sending next question to {battle.second_opponent}: {next_question}")
-                            await manager.send_message(json.dumps({
-                                "type": "next_question",
-                                "data": {
-                                    "question": next_question,
-                                    "first_opponent": battle.first_opponent_score,
-                                    "second_opponent": battle.second_opponent_score,
-                                    "first_opponent_name": battle.first_opponent,
-                                }
-                            }), battle.second_opponent)
-
                     elif message.get("type") == "check_for_winner":
                         battle = battles[message["battle_id"]]
                         result = battle.check_for_winner()
@@ -1154,6 +1149,18 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 "type": "error",
                                 "message": "Battle not found"
                             }), username)
+
+                    elif message.get("type") == "test_connection":
+                        logger.info(f"Received test connection message from {actual_username}")
+                        await manager.send_message(json.dumps({
+                            "type": "test_connection_response",
+                            "data": {
+                                "message": "WebSocket connection is working",
+                                "timestamp": message.get("timestamp"),
+                                "server_time": asyncio.get_event_loop().time()
+                            }
+                        }), actual_username)
+                        logger.info(f"Sent test connection response to {actual_username}")
 
             
                 except Exception as e:

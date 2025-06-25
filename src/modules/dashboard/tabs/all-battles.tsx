@@ -120,6 +120,19 @@ export default function AllBattles() {
     };
 
     fetchAllBattles();
+    
+    // Listen for battle finished events to refresh data
+    const handleBattleFinished = (event: any) => {
+      console.log('[All Battles] Battle finished event received:', event.detail);
+      console.log('[All Battles] Refreshing battle data...');
+      fetchAllBattles();
+    };
+    
+    window.addEventListener('battleFinished', handleBattleFinished);
+    
+    return () => {
+      window.removeEventListener('battleFinished', handleBattleFinished);
+    };
   }, []);
 
   useEffect(() => {

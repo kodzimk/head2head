@@ -242,3 +242,18 @@ export const cancelBattle = (battle_id: string, username: string) => {
     username: username
   }))
 }
+
+// Test function to verify WebSocket connectivity
+export const testWebSocketConnection = () => {
+  if (!checkWebSocketConnection()) {
+    console.error("WebSocket connection test failed - not connected");
+    return false;
+  }
+  
+  console.log("WebSocket connection test - sending test message");
+  newSocket?.send(JSON.stringify({
+    type: "test_connection",
+    timestamp: Date.now()
+  }));
+  return true;
+}

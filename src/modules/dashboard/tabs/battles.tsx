@@ -10,6 +10,9 @@ import type { User, RecentBattle } from "../../../shared/interface/user";
 import { Button } from "../../../shared/ui/button";
 import { ChevronRight, Sword, Trophy, Target, Zap} from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { API_BASE_URL } from "../../../shared/interface/gloabL_var";
 
 
 const getSportIcon = (sport: string) => {
@@ -43,6 +46,83 @@ export default function Battles({
   recentBattles: RecentBattle[];
 }) {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [battles, setBattles] = useState<RecentBattle[]>([]);
+  const [filteredBattles, setFilteredBattles] = useState<RecentBattle[]>([]);
+
+  useEffect(() => {
+    const fetchBattles = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/get_battles?username=${localStorage.getItem("username")}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+            },
+          }
+        );
+        const data = await response.data;
+
+        const mapped: RecentBattle[] = data.reverse().map((battle: any) => {
+          let opponent = battle.first_opponent === localStorage.getItem("username") ? battle.second_opponent : battle.first_opponent;
+          
+          let result = "draw";
+          const currentUser = localStorage.getItem("username");
+          
+          const firstScore = parseInt(battle.first_opponent_score) || 0;
+          const secondScore = parseInt(battle.second_opponent_score) || 0
+          
+          if (battle.first_opponent === currentUser) {
+            if (firstScore > secondScore) {
+              result = "win";
+            } else if (firstScore < secondScore) {
+              result = "lose";
+            } 
+          } else if (battle.second_opponent === currentUser) {
+            if (secondScore > firstScore) {
+              result = "win";
+            } else if (secondScore < firstScore) {
+              result = "lose";
+            }
+          } 
+          
+          const score = `${firstScore} : ${secondScore}`;
+
+          return {
+            id: battle.id,
+            opponent: opponent || "Unknown",
+            player1: battle.first_opponent,
+            player2: battle.second_opponent,
+            sport: battle.sport,
+            result,
+            score
+          };
+        });
+        
+        setBattles(mapped);
+        setFilteredBattles(mapped);
+      } catch (error) {
+        console.error("Error fetching battles:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBattles();
+    
+    // Listen for battle finished events to refresh data
+    const handleBattleFinished = () => {
+      console.log('[Battles Tab] Battle finished, refreshing battle data');
+      fetchBattles();
+    };
+    
+    window.addEventListener('battleFinished', handleBattleFinished);
+    
+    return () => {
+      window.removeEventListener('battleFinished', handleBattleFinished);
+    };
+  }, []);
 
   return (
     <div>
@@ -64,7 +144,11 @@ export default function Battles({
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3 lg:space-y-4">
-                {recentBattles.length === 0 ? (
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 text-base lg:text-lg mb-4">Loading...</p>
+                  </div>
+                ) : battles.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-500 text-base lg:text-lg mb-4">There are no battles yet</p>
                     <Button variant="outline" className="gap-2">
@@ -73,7 +157,7 @@ export default function Battles({
                     </Button>
                   </div>
                 ) : (
-                  recentBattles.map((battle) => (
+                  battles.slice(0, 5).map((battle) => (
                     <div
                       key={battle.id}
                       className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 border rounded-lg hover:shadow-sm transition-shadow bg-white dark:bg-gray-800"
@@ -114,18 +198,18 @@ export default function Battles({
             </CardHeader>
             <CardContent className="pt-0 space-y-3 lg:space-y-4">
               <div className="text-center p-3 lg:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <p className="text-xl lg:text-2xl font-bold text-green-600 dark:text-green-400">{user.wins}</p>
+                <p className="text-xl lg:text-2xl font-bold text-green-600 dark:text-green-400">{battles.filter(battle => battle.result === 'win').length}</p>
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Wins</p>
               </div>
               <div className="text-center p-3 lg:p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 <p className="text-xl lg:text-2xl font-bold text-red-600 dark:text-red-400">
-                  {user.totalBattles - user.wins}
+                  {battles.filter(battle => battle.result === 'lose').length}
                 </p>
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Losses</p>
               </div>
               <div className="text-center p-3 lg:p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
                 <p className="text-xl lg:text-2xl font-bold text-gray-600 dark:text-gray-400">
-                  {recentBattles.filter(battle => battle.result === 'draw').length}
+                  {battles.filter(battle => battle.result === 'draw').length}
                 </p>
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Draws</p>
               </div>
@@ -137,7 +221,7 @@ export default function Battles({
               </div>
               <div className="text-center p-3 lg:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                 <p className="text-xl lg:text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {user.totalBattles}
+                  {battles.length}
                 </p>
                 <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Battles</p>
               </div>

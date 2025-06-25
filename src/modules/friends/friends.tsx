@@ -23,11 +23,11 @@ export default function FriendsPage({user}: {user: User}) {
     setFriends([])
       user.friends.map(async (friend: string) => {
         try {
-          const friendData = await axios.get(`https://api.head2head.dev/db/get-user-by-username?username=${friend}`);
+          const friendData = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friend}`);
           setFriends(prev => [...prev, {
             username: friend,
             status: "online",
-            avatar: friendData.data.avatar ? `https://api.head2head.dev${friendData.data.avatar}` : null,
+            avatar: friendData.data.avatar ? `${API_BASE_URL}${friendData.data.avatar}` : null,
             rank: friendData.data.ranking
           }])
         } catch (error) {

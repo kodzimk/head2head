@@ -7,13 +7,14 @@ import { useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { refreshView } from "../../../app/App"
+import { API_BASE_URL } from "../../../shared/interface/gloabL_var"
 
 export default function Friends({user}: {user: User}) {
   const [friends, setFriends] = useState<Friend[]>([])
   useEffect(() => {
     setFriends([])
     user.friends.map(async (friend: string) => {
-          const friendData = await axios.get(`https://api.head2head.dev/db/get-user-by-username?username=${friend}`);
+          const friendData = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friend}`);
           setFriends(prev => [...prev, {
             username: friend,
             avatar: friendData.data.avatar ? `https://api.head2head.dev${friendData.data.avatar}` : null,

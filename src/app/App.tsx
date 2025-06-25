@@ -161,6 +161,7 @@ export default function App() {
       console.log("WebSocket connected successfully");
       // Only send get_email on initial connection, not on reconnections
       if (isInitialConnection) {
+        console.log("Sending initial get_email message");
         sendMessage(user, "get_email");
         isInitialConnection = false;
       }
@@ -191,6 +192,11 @@ export default function App() {
          const data = JSON.parse(event.data);
          console.log("WebSocket message received:", data); // Debug logging
          
+         // Log specific battle-related messages for debugging
+         if (data.type === 'battle_created' || data.type === 'battle_removed' || data.type === 'battle_joined') {
+           console.log(`🎯 Battle event received: ${data.type}`, data.data);
+         }
+         
          if (data.type === 'user_updated') {
            const updatedUser = {
              email: data.data.email,
@@ -210,81 +216,47 @@ export default function App() {
            }
            setUser(updatedUser)
          }
-         else if (data.type === 'battle_started') {
-           // Set the active battle ID to prevent conflicts
-           console.log(`🎯 Setting active battle: ${data.data} (previous: ${activeBattleId})`);
-           setActiveBattleId(data.data);
-           navigate(`/battle/${data.data}/countdown`);
-         }
-         else if (data.type === 'battle_removed') {
-          console.log("Battle removed:", data.data); // Debug logging
-          setBattle(prev => {
-            const newBattles = prev.filter(battle => battle.id !== data.data);
-            console.log("Battles after removal:", newBattles); // Debug logging
-            return newBattles;
-          });
-          // Clear active battle if it was removed
-          if (activeBattleId === data.data) {
-            setActiveBattleId(null);
-          }
-         }
-         else if (data.type === 'battle_created_response') {
-          console.log("Battle created response received:", data); // Debug logging
-          setBattle(prev => {
-            const newBattles = [...prev, data.data];
-            return newBattles;
-          });
-          console.log("Navigating to waiting room:", `/waiting/${data.data.id}`); // Debug logging
-          navigate(`/waiting/${data.data.id}`);
-         }
-         else if (data.type === 'battle_start') {
-           // Only process battle_start if it's for the active battle
-           if (activeBattleId === data.data.battle_id || !activeBattleId) {
-             console.log(`🎮 Processing battle_start for active battle: ${data.data.battle_id}`);
-             setCurrentQuestion(data.data);
-             setActiveBattleId(data.data.battle_id);
-           } else {
-             console.log(`⏸️ Ignoring battle_start for inactive battle: ${data.data.battle_id} (active: ${activeBattleId})`);
-           }
-         }
-         else if (data.type === 'next_question') {
-           // Only process next_question if it's for the active battle
-           if (activeBattleId === data.data.battle_id || !activeBattleId) {
-             console.log(`❓ Processing next_question for active battle: ${data.data.battle_id}`);
-             setCurrentQuestion(data.data.question);
-             setFirstOpponentScore(data.data.first_opponent);
-             setSecondOpponentScore(data.data.second_opponent);
-           } else {
-             console.log(`⏸️ Ignoring next_question for inactive battle: ${data.data.battle_id} (active: ${activeBattleId})`);
-           }
-         }
-         else if (data.type === 'score_updated') {
-           // Only process score updates if it's for the active battle
-           if (activeBattleId === data.data.battle_id || !activeBattleId) {
-             console.log(`📊 Processing score_updated for active battle: ${data.data.battle_id}`);
-             setFirstOpponentScore(data.data.first_opponent);
-             setSecondOpponentScore(data.data.second_opponent);
-           } else {
-             console.log(`⏸️ Ignoring score_updated for inactive battle: ${data.data.battle_id} (active: ${activeBattleId})`);
-           }
-         }
-         else if (data.type === 'battle_finished') {
-           // Only process battle_finished if it's for the active battle
-           if (activeBattleId === data.data.battle_id || !activeBattleId) {
-             console.log(`🏁 Processing battle_finished for active battle: ${data.data.battle_id}`);
-             setWinner(data.data.winner);
-             setLoser(data.data.loser);
-             setText(data.data.text);
-             setResult(data.data.questions);
-             setActiveBattleId(null); // Clear active battle
-             navigate(`/battle/${data.data.battle_id}/result`);
-           } else {
-             console.log(`⏸️ Ignoring battle_finished for inactive battle: ${data.data.battle_id} (active: ${activeBattleId})`);
-           }
-         }
+         // Only keep non-battle, non-creation logic below
          else if(data.type === 'waiting_battles'){
            console.log("Received waiting battles:", data.data); // Debug logging
            setBattle(data.data);
+         }
+         else if(data.type === 'battle_created'){
+           console.log("Received battle created notification:", data.data); // Debug logging
+           // Add the new battle to the existing list
+           setBattle(prevBattles => {
+             // Check if battle already exists to avoid duplicates
+             const battleExists = prevBattles.some(b => b.id === data.data.id);
+             if (!battleExists) {
+               console.log("Adding new battle to list:", data.data);
+               return [...prevBattles, data.data];
+             }
+             console.log("Battle already exists in list, skipping duplicate");
+             return prevBattles;
+           });
+         }
+         else if(data.type === 'battle_removed'){
+           console.log("Received battle removed notification:", data.data); // Debug logging
+           // Remove the battle from the list
+           setBattle(prevBattles => {
+             const filteredBattles = prevBattles.filter(b => b.id !== data.data);
+             console.log("Removed battle from list, remaining battles:", filteredBattles.length);
+             return filteredBattles;
+           });
+         }
+         else if(data.type === 'battle_joined'){
+           console.log("Received battle joined notification:", data.data); // Debug logging
+           // Remove the battle from the waiting list since it's no longer waiting
+           setBattle(prevBattles => {
+             const filteredBattles = prevBattles.filter(b => b.id !== data.data.battle_id);
+             console.log("Battle joined, removed from waiting list, remaining battles:", filteredBattles.length);
+             return filteredBattles;
+           });
+         }
+         else if(data.type === 'battle_started'){
+           console.log("Received battle started notification:", data.data); // Debug logging
+           // Redirect to countdown page for the battle
+           navigate(`/battle/${data.data}/countdown`);
          }
          else if(data.type === 'battle_cancelled'){
            // Battle was successfully cancelled
@@ -306,25 +278,13 @@ export default function App() {
          }
          else if(data.type === 'error'){
            // Show error message to user
+           console.error("WebSocket error received:", data.message);
            alert(data.message || "An error occurred");
          }
-         else if(data.type === 'quiz_generating'){
-           // Show loading state for quiz generation
-           console.log("Quiz generation started for battle:", data.data.battle_id);
-           // You can add a loading state here if needed
+         else if(data.type === 'test_connection_response'){
+           console.log("WebSocket connection test successful:", data.data);
          }
-         else if(data.type === 'quiz_ready'){
-           // Quiz is ready, questions are available
-           console.log("Quiz ready for battle:", data.data.battle_id);
-           console.log("Questions received:", data.data.questions);
-           // Store the questions in the battle object or global state
-           // The questions will be used when the battle starts
-         }
-         else if(data.type === 'quiz_error'){
-           // Show error message for quiz generation failure
-           console.error("Quiz generation failed:", data.data.message);
-           alert("Failed to generate quiz questions. Please try again.");
-         }
+         // Remove all battle/quiz/battle creation message handling here
        } catch (error) {
          console.error("Error processing websocket message:", error);
        }

@@ -5,13 +5,14 @@ import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { Play, Clock, Trophy, RefreshCw } from 'lucide-react'
 import Header from '../dashboard/header'
 import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
-import { joinBattle, notifyBattleCreated, sendMessage, cancelBattle } from '../../shared/websockets/websocket'
+import { joinBattle, sendMessage, cancelBattle, testWebSocketConnection } from '../../shared/websockets/websocket'
 import { newSocket, reconnectWebSocket } from '../../app/App'
 import { Label } from '../../shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../shared/ui/select'
 import { useBattleStore } from '../../shared/interface/gloabL_var'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from "../../shared/interface/gloabL_var"
+import axios from 'axios'
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
@@ -25,6 +26,7 @@ export default function BattlePage() {
   const [creationSuccess, setCreationSuccess] = useState(false)
   const [isBattleBeingCreated, setIsBattleBeingCreated] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const navigate = useNavigate()
   
 
   const refreshWaitingBattles = async (showNotification = false) => {
@@ -113,36 +115,53 @@ export default function BattlePage() {
         setIsCreatingBattle(false);
         setIsBattleBeingCreated(false);
       }
-    }, 10000); // 10 second timeout
+    }, 10000);
     
     try {
-      // Send battle creation request
-      const messageSent = notifyBattleCreated(user.username, selectedSport, selectedLevel);
+      // REST API call to create battle
+      console.log(`Creating battle via REST API: ${API_BASE_URL}/battle/create?first_opponent=${user.username}&sport=${selectedSport}&level=${selectedLevel}`);
+      const response = await axios.post(`${API_BASE_URL}/battle/create?first_opponent=${user.username}&sport=${selectedSport}&level=${selectedLevel}`);
+      console.log("Battle creation response:", response.data);
       
-      if (!messageSent) {
-        throw new Error("Failed to send battle creation message - WebSocket may not be connected");
+      if (response.data && response.data.id) {
+        console.log("Battle created successfully, redirecting to waiting room:", response.data.id);
+        // Redirect to waiting room for the new battle
+        navigate(`/waiting/${response.data.id}`);
+      } else {
+        console.error("Battle creation failed - no battle ID in response");
+        setCreationError("Failed to create battle. Please try again.");
       }
-      
-      // Don't show success message or reset form here
-      // Wait for the backend response which will trigger navigation
-      
-    } catch (error) {
-      clearTimeout(timeoutRef.current);
-      setCreationError("Failed to create battle. Please try again.");
+    } catch (error: any) {
       console.error("Battle creation error:", error);
+      if (error.response) {
+        // Server responded with error status
+        const errorMessage = error.response.data?.detail || error.response.data?.message || "Server error occurred";
+        setCreationError(`Failed to create battle: ${errorMessage}`);
+      } else if (error.request) {
+        // Request was made but no response received
+        setCreationError("No response from server. Please check your connection and try again.");
+      } else {
+        // Something else happened
+        setCreationError("Failed to create battle. Please try again.");
+      }
       setIsCreatingBattle(false);
       setIsBattleBeingCreated(false);
     }
   }
 
   const handleJoinBattle = async (battle_id: string) => {
-    // Defensive: Never call notifyBattleCreated here, only joinBattle
+    console.log(`Attempting to join battle: ${battle_id} as user: ${user.username}`);
+    
+    // Check WebSocket connection
     if (!newSocket || newSocket.readyState !== WebSocket.OPEN) {
+      console.warn("WebSocket not connected, attempting to reconnect...");
       reconnectWebSocket();
       setTimeout(() => {
+        console.log("Sending join battle message after reconnection");
         joinBattle(user.username, battle_id);
       }, 1000);
     } else {
+      console.log("WebSocket connected, sending join battle message");
       joinBattle(user.username, battle_id);
     }
   }
@@ -186,6 +205,31 @@ export default function BattlePage() {
       clearTimeout(timeoutRef.current);
     }
   }, [user.username]);
+
+  const testBackendHealth = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/health`);
+      console.log("Backend health check:", response.data);
+      alert(`Backend Health: ${response.data.status}\nDatabase: ${response.data.database}\nRedis: ${response.data.redis}\nGoogle API: ${response.data.google_api}`);
+    } catch (error) {
+      console.error("Backend health check failed:", error);
+      alert("Backend health check failed");
+    }
+  }
+
+  const testGoogleAPI = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/health`);
+      if (response.data.google_api === "configured") {
+        alert("Google API key is configured");
+      } else {
+        alert("Google API key is NOT configured - AI quiz generation will use fallback questions");
+      }
+    } catch (error) {
+      console.error("Google API check failed:", error);
+      alert("Failed to check Google API status");
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -464,6 +508,77 @@ export default function BattlePage() {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Debug Panel - Remove in production */}
+        {process.env.NODE_ENV === 'development' && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="text-sm text-gray-500">Debug Panel (Development Only)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">WebSocket Status:</span>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    newSocket?.readyState === WebSocket.OPEN 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {newSocket?.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected'}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      console.log("Testing WebSocket connection...");
+                      testWebSocketConnection();
+                    }}
+                  >
+                    Test Connection
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      console.log("Refreshing waiting battles...");
+                      refreshWaitingBattles(true);
+                    }}
+                  >
+                    Refresh Battles
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      console.log("Current battle list:", battle);
+                    }}
+                  >
+                    Log Battles
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={testBackendHealth}
+                  >
+                    Test Backend
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={testGoogleAPI}
+                  >
+                    Test Google API
+                  </Button>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Connected Users: {battle.length} battles in list
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   )

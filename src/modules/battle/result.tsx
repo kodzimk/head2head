@@ -71,16 +71,29 @@ export default function BattleResultPage({user}: {user: User}) {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader>
           <CardTitle className="text-center text-3xl font-bold mb-2">
-            {result === 'win' ? 'Congratulations on your victory!' : result === 'lose' ? 'You were defeated. Good luck next time!' : (text !== '' ? text : 'The battle has concluded.')}
+            {result === 'win' ? '🎉 Congratulations! You Won! 🎉' : 
+             result === 'lose' ? '💪 You Lost - Good Luck Next Time! 💪' : 
+             (text !== '' ? text : 'The battle has concluded.')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center gap-6">
             <div className="mt-6 text-center">
-              <div className="text-xl font-semibold text-gray-800 mb-2">
-                {currentQuestion?.question || 'Thank you for participating in this battle.'}
+              {result === 'win' && (
+                <div className="text-xl font-semibold text-green-600 mb-4">
+                  Amazing performance! You dominated this battle! 🏆
+                </div>
+              )}
+              {result === 'lose' && (
+                <div className="text-xl font-semibold text-blue-600 mb-4">
+                  Keep practicing and you'll get better! 💪
+                </div>
+              )}
+              <div className="text-lg text-gray-800 mb-2">
+                {result === 'win' ? 'You showed incredible knowledge and speed! Well done!' :
+                 result === 'lose' ? 'Every battle makes you stronger. Keep learning and growing!' :
+                 'Thank you for participating in this exciting battle!'}
               </div>
-              
               <Button className="mt-2 bg-orange-500 hover:bg-orange-600 w-full" onClick={handleBackToDashboard}>
                 Back to Dashboard
               </Button>

@@ -65,6 +65,19 @@ export default function DashboardPage() {
       setRecentBattles(mapped);
     };
     fetchBattles();
+    
+    // Listen for battle finished events to refresh data
+    const handleBattleFinished = (event: any) => {
+      console.log('[Dashboard] Battle finished event received:', event.detail);
+      console.log('[Dashboard] Refreshing battle data...');
+      fetchBattles();
+    };
+    
+    window.addEventListener('battleFinished', handleBattleFinished);
+    
+    return () => {
+      window.removeEventListener('battleFinished', handleBattleFinished);
+    };
   }, [user]);
 
   return (
