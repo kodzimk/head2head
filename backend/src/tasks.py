@@ -28,6 +28,7 @@ def generate_ai_quiz(self, battle_id: str, sport: str, level: str, question_coun
     """
     Generate AI quiz questions for a battle as a background task
     """
+    logger.info(f"[CELERY] Starting quiz generation task for battle {battle_id}, sport={sport}, level={level}, count={question_count}")
     try:
         # Update task status
         self.update_state(
@@ -88,14 +89,33 @@ def generate_questions_with_ai(sport: str, level: str, question_count: int = QUE
         try:
             # Create a model instance
             model = genai.GenerativeModel('gemini-2.5-flash')
-            # Optimized prompt for speed and clarity
+            # Enhanced prompt for better quiz generation
             prompt = f"""
-Generate {question_count} multiple-choice sports trivia questions about {sport} at {level} level.
-- Each question must have 4 answer options (A, B, C, D)
+Generate a quiz with {question_count} multiple-choice questions about {sport}, categorized by difficulty: easy, medium, and hard. Each question should be directly related to the sport — rules, players, history, events, or tactics. Format each question with 4 options and mark the correct answer.
+
+IMPORTANT REQUIREMENTS:
+- Each question must have exactly 4 answer options (A, B, C, D)
 - Only one correct answer per question
-- Focus on sports facts, rules, history, records, and players
-- Avoid business, finance, or sponsorship topics
-- Return only valid JSON in this format:
+- Focus on sports facts, rules, history, records, players, and tactics
+- Avoid business, finance, sponsorship, or commercial topics
+- Mix difficulty levels appropriately for {level} level
+- Questions should be engaging and test real sports knowledge
+
+DIFFICULTY GUIDELINES:
+- EASY: Basic facts, well-known players, simple rules, common knowledge
+- MEDIUM: Specific statistics, recent events, detailed rules, notable achievements
+- HARD: Obscure facts, historical details, complex scenarios, advanced tactics
+
+QUESTION CATEGORIES TO INCLUDE:
+- Rules and regulations
+- Player achievements and records
+- Historical moments and events
+- Team statistics and championships
+- Tactics and strategies
+- International competitions
+- Famous matches and rivalries
+
+Return only valid JSON in this format:
 {{
   "questions": [
     {{
@@ -106,7 +126,8 @@ Generate {question_count} multiple-choice sports trivia questions about {sport} 
         {{"text": "Answer C", "correct": false}},
         {{"text": "Answer D", "correct": false}}
       ],
-      "time_limit": 30
+      "time_limit": 30,
+      "difficulty": "easy/medium/hard"
     }}
   ]
 }}
@@ -227,4 +248,12 @@ def add_labels_to_answers(questions):
     for q in questions:
         for i, ans in enumerate(q.get('answers', [])):
             ans['label'] = labels[i]
-    return questions 
+    return questions
+
+# Add this helper for logging when a task is queued
+
+def queue_quiz_generation_task(battle_id, sport, level, question_count):
+    from tasks import generate_ai_quiz
+    task = generate_ai_quiz.delay(battle_id, sport, level, question_count)
+    logging.info(f"[queue_quiz_generation_task] Queued quiz generation for battle {battle_id} (sport={sport}, level={level}, count={question_count}), Celery task id: {task.id}")
+    return task 

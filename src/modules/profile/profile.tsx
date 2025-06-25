@@ -23,6 +23,7 @@ import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import Header from "../dashboard/header"
 import { deleteUser, sendMessage } from "../../shared/websockets/websocket"
 import { initializeWebSocketForNewUser } from "../../app/App"
+import { API_BASE_URL } from "../../shared/interface/gloabL_var"
 
 export default function ProfileSettingsPage(  ) {
   const navigate = useNavigate()
@@ -72,7 +73,7 @@ export default function ProfileSettingsPage(  ) {
       return
     }
     
-    const response = await axios.get(`https://api.head2head.dev/auth/username-user?username=${username}`)
+    const response = await axios.get(`${API_BASE_URL}/auth/username-user?username=${username}`)
     if (response.data === true && username !== user.username && username !== '') {
       setError("Username already exists")
       return
@@ -112,7 +113,7 @@ export default function ProfileSettingsPage(  ) {
   const handleReset = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.post("https://api.head2head.dev/db/reset-user-stats", {
+      const response = await axios.post(`${API_BASE_URL}/db/reset-user-stats`, {
         username: user.username
       });
       if (response.status === 200) {
@@ -152,7 +153,7 @@ const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) =>
     formData.append('file', file)
 
     const response = await axios.post(
-      `https://api.head2head.dev/db/upload-avatar?token=${localStorage.getItem("access_token")?.replace(/"/g, '')}`,
+      `${API_BASE_URL}/db/upload-avatar?token=${localStorage.getItem("access_token")?.replace(/"/g, '')}`,
       formData,
       {
         headers: {

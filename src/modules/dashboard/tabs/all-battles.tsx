@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import type { RecentBattle } from "../../../shared/interface/user";
 import axios from "axios";
+import { API_BASE_URL } from "../../../shared/interface/gloabL_var";
 
 const getSportIcon = (sport: string) => {
   const sportIcons: { [key: string]: React.ReactNode } = {
@@ -63,10 +65,10 @@ export default function AllBattles() {
       try {
         setIsLoading(true);
         const response = await axios.get(
-          `https://api.head2head.dev/get_battles?username=${localStorage.getItem("username")}`,
+          `${API_BASE_URL}/get_battles?username=${localStorage.getItem("username")}`,
           {
             headers: {
-              "accept": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
             },
           }
         );

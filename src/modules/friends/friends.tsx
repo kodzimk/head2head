@@ -9,6 +9,7 @@ import type { Friend, User } from "../../shared/interface/user"
 import { useNavigate } from 'react-router-dom'
 import { removeFriend } from '../../shared/websockets/websocket'
 import { refreshView } from '../../app/App'
+import { API_BASE_URL } from "../../shared/interface/gloabL_var"
 
 
 export default function FriendsPage({user}: {user: User}) {
@@ -50,12 +51,12 @@ export default function FriendsPage({user}: {user: User}) {
     if (searchQuery.trim()) {
       setIsSearching(true)
       try {
-        const response = await axios.get(`https://api.head2head.dev/friends/search-user?username=${searchQuery}`)
-        const userData = await axios.get(`https://api.head2head.dev/db/get-user-by-username?username=${response.data.username}`)
+        const response = await axios.get(`${API_BASE_URL}/friends/search-user?username=${searchQuery}`)
+        const userData = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${response.data.username}`)
         setSearchResults([{
           username: response.data.username,
           status: "online",
-          avatar: userData.data.avatar ? `https://api.head2head.dev${userData.data.avatar}` : null,
+          avatar: userData.data.avatar ? `${API_BASE_URL}${userData.data.avatar}` : null,
           rank: userData.data.ranking
         }])
       } catch (error) {

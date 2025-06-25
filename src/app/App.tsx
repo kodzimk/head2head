@@ -27,6 +27,7 @@ import BattleCountdown from '../modules/battle/countdown'
 import BattleResultPage from '../modules/battle/result'
 import TrainingPage from '../modules/trainings/trainings'
 import NotFoundPage from '../modules/entry-page/not-found'
+import { WS_BASE_URL } from "../shared/interface/gloabL_var";
 
 export let newSocket: WebSocket | null = null;
 let isManualReload = false; // Track if user manually reloaded
@@ -35,7 +36,7 @@ let isInitialConnection = true;
 export const createWebSocket = (username: string | null) => {
   if (!username) return null;
   
-  const ws = new WebSocket(`wss://api.head2head.dev/ws?username=${encodeURIComponent(username)}`);
+  const ws = new WebSocket(`${WS_BASE_URL}/ws?username=${encodeURIComponent(username)}`);
   
   ws.onerror = (event: WebSocketEventMap['error']) => {
     console.error("WebSocket error:", event);

@@ -178,7 +178,7 @@ def filter_questions_with_correct_answer(questions):
             print(f"[Warning] Skipping question missing 'correctAnswer': {q}")
     return filtered
 
-def generate_expanded_fallback_questions(sport: str, level: str, count: int = 5):
+def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6):
     """Generate fallback questions when AI generation fails, always returns 'count' questions"""
     fallback_questions = {
         "football": {
@@ -200,6 +200,24 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 5)
                     "answers": [{"label": "A", "text": "10"}, {"label": "B", "text": "11"}, {"label": "C", "text": "12"}, {"label": "D", "text": "9"}],
                     "correctAnswer": "B",
                     "difficulty": "EASY"
+                },
+                {
+                    "question": "Which country hosted the 2014 FIFA World Cup?",
+                    "answers": [{"label": "A", "text": "Brazil"}, {"label": "B", "text": "Germany"}, {"label": "C", "text": "South Africa"}, {"label": "D", "text": "Russia"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "What is the maximum number of substitutes allowed in a football match?",
+                    "answers": [{"label": "A", "text": "3"}, {"label": "B", "text": "5"}, {"label": "C", "text": "7"}, {"label": "D", "text": "2"}],
+                    "correctAnswer": "B",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "Which player is known as 'El Fenómeno'?",
+                    "answers": [{"label": "A", "text": "Ronaldo Nazário"}, {"label": "B", "text": "Ronaldinho"}, {"label": "C", "text": "Neymar"}, {"label": "D", "text": "Romário"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
                 }
             ],
             "medium": [
@@ -214,6 +232,30 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 5)
                     "answers": [{"label": "A", "text": "80 minutes"}, {"label": "B", "text": "90 minutes"}, {"label": "C", "text": "100 minutes"}, {"label": "D", "text": "120 minutes"}],
                     "correctAnswer": "B",
                     "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Who won the Ballon d'Or in 2018?",
+                    "answers": [{"label": "A", "text": "Luka Modrić"}, {"label": "B", "text": "Cristiano Ronaldo"}, {"label": "C", "text": "Lionel Messi"}, {"label": "D", "text": "Antoine Griezmann"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Which country won the first ever FIFA World Cup?",
+                    "answers": [{"label": "A", "text": "Uruguay"}, {"label": "B", "text": "Brazil"}, {"label": "C", "text": "Italy"}, {"label": "D", "text": "Argentina"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Which English club is nicknamed 'The Red Devils'?",
+                    "answers": [{"label": "A", "text": "Manchester United"}, {"label": "B", "text": "Liverpool"}, {"label": "C", "text": "Arsenal"}, {"label": "D", "text": "Chelsea"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Who scored the 'Hand of God' goal?",
+                    "answers": [{"label": "A", "text": "Diego Maradona"}, {"label": "B", "text": "Pelé"}, {"label": "C", "text": "Zinedine Zidane"}, {"label": "D", "text": "David Beckham"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
                 }
             ],
             "hard": [
@@ -226,6 +268,30 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 5)
                 {
                     "question": "Which player has scored the most goals in World Cup history?",
                     "answers": [{"label": "A", "text": "Miroslav Klose"}, {"label": "B", "text": "Ronaldo"}, {"label": "C", "text": "Pelé"}, {"label": "D", "text": "Just Fontaine"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Which country won the UEFA Euro 2004?",
+                    "answers": [{"label": "A", "text": "Greece"}, {"label": "B", "text": "Portugal"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Spain"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Who was the top scorer in the 2014 FIFA World Cup?",
+                    "answers": [{"label": "A", "text": "James Rodríguez"}, {"label": "B", "text": "Thomas Müller"}, {"label": "C", "text": "Lionel Messi"}, {"label": "D", "text": "Neymar"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Which club did Zinedine Zidane play for before joining Real Madrid?",
+                    "answers": [{"label": "A", "text": "Juventus"}, {"label": "B", "text": "Bordeaux"}, {"label": "C", "text": "Monaco"}, {"label": "D", "text": "Marseille"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Who won the Golden Boot at the 2018 FIFA World Cup?",
+                    "answers": [{"label": "A", "text": "Harry Kane"}, {"label": "B", "text": "Antoine Griezmann"}, {"label": "C", "text": "Romelu Lukaku"}, {"label": "D", "text": "Kylian Mbappé"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 }
@@ -243,6 +309,30 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 5)
                     "question": "How many points is a three-pointer worth in basketball?",
                     "answers": [{"label": "A", "text": "2"}, {"label": "B", "text": "3"}, {"label": "C", "text": "4"}, {"label": "D", "text": "1"}],
                     "correctAnswer": "B",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "Which team is known as the 'Showtime' team in the NBA?",
+                    "answers": [{"label": "A", "text": "Los Angeles Lakers"}, {"label": "B", "text": "Boston Celtics"}, {"label": "C", "text": "Chicago Bulls"}, {"label": "D", "text": "Miami Heat"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "Who is the NBA's all-time leading scorer?",
+                    "answers": [{"label": "A", "text": "Kareem Abdul-Jabbar"}, {"label": "B", "text": "LeBron James"}, {"label": "C", "text": "Karl Malone"}, {"label": "D", "text": "Michael Jordan"}],
+                    "correctAnswer": "B",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "Which NBA player is nicknamed 'The Greek Freak'?",
+                    "answers": [{"label": "A", "text": "Giannis Antetokounmpo"}, {"label": "B", "text": "Kobe Bryant"}, {"label": "C", "text": "Shaquille O'Neal"}, {"label": "D", "text": "Dirk Nowitzki"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "Which team drafted Michael Jordan in 1984?",
+                    "answers": [{"label": "A", "text": "Chicago Bulls"}, {"label": "B", "text": "Portland Trail Blazers"}, {"label": "C", "text": "Houston Rockets"}, {"label": "D", "text": "Los Angeles Lakers"}],
+                    "correctAnswer": "A",
                     "difficulty": "EASY"
                 }
             ],
@@ -282,12 +372,6 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 5)
                     "answers": [{"label": "A", "text": "Stephen Curry"}, {"label": "B", "text": "Ray Allen"}, {"label": "C", "text": "James Harden"}, {"label": "D", "text": "Klay Thompson"}],
                     "correctAnswer": "A",
                     "difficulty": "MEDIUM"
-                },
-                {
-                    "question": "Which NBA team drafted Dirk Nowitzki?",
-                    "answers": [{"label": "A", "text": "Milwaukee Bucks"}, {"label": "B", "text": "Dallas Mavericks"}, {"label": "C", "text": "San Antonio Spurs"}, {"label": "D", "text": "Houston Rockets"}],
-                    "correctAnswer": "A",
-                    "difficulty": "MEDIUM"
                 }
             ],
             "hard": [
@@ -300,6 +384,30 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 5)
                 {
                     "question": "Who holds the NBA record for most points scored in a single game?",
                     "answers": [{"label": "A", "text": "Wilt Chamberlain"}, {"label": "B", "text": "Kobe Bryant"}, {"label": "C", "text": "Michael Jordan"}, {"label": "D", "text": "LeBron James"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Which player won NBA MVP and Defensive Player of the Year in the same season?",
+                    "answers": [{"label": "A", "text": "Michael Jordan"}, {"label": "B", "text": "Hakeem Olajuwon"}, {"label": "C", "text": "Giannis Antetokounmpo"}, {"label": "D", "text": "David Robinson"}],
+                    "correctAnswer": "B",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Which team drafted Dirk Nowitzki?",
+                    "answers": [{"label": "A", "text": "Milwaukee Bucks"}, {"label": "B", "text": "Dallas Mavericks"}, {"label": "C", "text": "San Antonio Spurs"}, {"label": "D", "text": "Houston Rockets"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Who was the first non-US born player to win NBA MVP?",
+                    "answers": [{"label": "A", "text": "Hakeem Olajuwon"}, {"label": "B", "text": "Dirk Nowitzki"}, {"label": "C", "text": "Giannis Antetokounmpo"}, {"label": "D", "text": "Steve Nash"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Which player has the most career triple-doubles in NBA history?",
+                    "answers": [{"label": "A", "text": "Russell Westbrook"}, {"label": "B", "text": "Oscar Robertson"}, {"label": "C", "text": "Magic Johnson"}, {"label": "D", "text": "Jason Kidd"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 }
@@ -318,6 +426,30 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 5)
                     "answers": [{"label": "A", "text": "Clay"}, {"label": "B", "text": "Hard court"}, {"label": "C", "text": "Grass"}, {"label": "D", "text": "Carpet"}],
                     "correctAnswer": "C",
                     "difficulty": "EASY"
+                },
+                {
+                    "question": "Who has won the most Grand Slam singles titles in women's tennis?",
+                    "answers": [{"label": "A", "text": "Serena Williams"}, {"label": "B", "text": "Steffi Graf"}, {"label": "C", "text": "Margaret Court"}, {"label": "D", "text": "Martina Navratilova"}],
+                    "correctAnswer": "C",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "Which male player has won the most French Open titles?",
+                    "answers": [{"label": "A", "text": "Rafael Nadal"}, {"label": "B", "text": "Roger Federer"}, {"label": "C", "text": "Novak Djokovic"}, {"label": "D", "text": "Pete Sampras"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "What is the term for a score of zero in tennis?",
+                    "answers": [{"label": "A", "text": "Love"}, {"label": "B", "text": "Deuce"}, {"label": "C", "text": "Ace"}, {"label": "D", "text": "Break"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "Which tournament is played on clay courts?",
+                    "answers": [{"label": "A", "text": "French Open"}, {"label": "B", "text": "Wimbledon"}, {"label": "C", "text": "US Open"}, {"label": "D", "text": "Australian Open"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
                 }
             ],
             "medium": [
@@ -326,12 +458,72 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 5)
                     "answers": [{"label": "A", "text": "Roger Federer"}, {"label": "B", "text": "Rafael Nadal"}, {"label": "C", "text": "Novak Djokovic"}, {"label": "D", "text": "Pete Sampras"}],
                     "correctAnswer": "C",
                     "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Which country hosts the Australian Open?",
+                    "answers": [{"label": "A", "text": "Australia"}, {"label": "B", "text": "USA"}, {"label": "C", "text": "France"}, {"label": "D", "text": "UK"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Who is known as the 'King of Clay'?",
+                    "answers": [{"label": "A", "text": "Rafael Nadal"}, {"label": "B", "text": "Roger Federer"}, {"label": "C", "text": "Novak Djokovic"}, {"label": "D", "text": "Andy Murray"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Which female player has won the most Wimbledon singles titles?",
+                    "answers": [{"label": "A", "text": "Martina Navratilova"}, {"label": "B", "text": "Serena Williams"}, {"label": "C", "text": "Steffi Graf"}, {"label": "D", "text": "Venus Williams"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "What is a 'bagel' in tennis?",
+                    "answers": [{"label": "A", "text": "A 6-0 set"}, {"label": "B", "text": "A 7-5 set"}, {"label": "C", "text": "A tiebreak"}, {"label": "D", "text": "A double fault"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Which player completed the Golden Slam in 1988?",
+                    "answers": [{"label": "A", "text": "Steffi Graf"}, {"label": "B", "text": "Serena Williams"}, {"label": "C", "text": "Martina Navratilova"}, {"label": "D", "text": "Monica Seles"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
                 }
             ],
             "hard": [
                 {
                     "question": "What year was the first Wimbledon tournament held?",
                     "answers": [{"label": "A", "text": "1877"}, {"label": "B", "text": "1887"}, {"label": "C", "text": "1897"}, {"label": "D", "text": "1907"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Who was the first male player to win all four Grand Slam tournaments in a single year?",
+                    "answers": [{"label": "A", "text": "Don Budge"}, {"label": "B", "text": "Rod Laver"}, {"label": "C", "text": "Roy Emerson"}, {"label": "D", "text": "Fred Perry"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Which country has produced the most men's Grand Slam singles champions?",
+                    "answers": [{"label": "A", "text": "USA"}, {"label": "B", "text": "Australia"}, {"label": "C", "text": "UK"}, {"label": "D", "text": "France"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Who won the men's singles gold medal at the 2008 Beijing Olympics?",
+                    "answers": [{"label": "A", "text": "Rafael Nadal"}, {"label": "B", "text": "Roger Federer"}, {"label": "C", "text": "Novak Djokovic"}, {"label": "D", "text": "Andy Murray"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Which player has the most career ATP singles titles?",
+                    "answers": [{"label": "A", "text": "Jimmy Connors"}, {"label": "B", "text": "Roger Federer"}, {"label": "C", "text": "Ivan Lendl"}, {"label": "D", "text": "Rafael Nadal"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Who was the youngest player to win a Grand Slam singles title?",
+                    "answers": [{"label": "A", "text": "Martina Hingis"}, {"label": "B", "text": "Monica Seles"}, {"label": "C", "text": "Steffi Graf"}, {"label": "D", "text": "Serena Williams"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 }
@@ -385,45 +577,62 @@ async def generate_ai_quiz(sport: str, level: str, count: int = 5):
     QUESTION_COUNT = count
     try:
         level = level.lower()
-        
-        # Simple prompt for AI generation
+        logger = logging.getLogger(__name__)
+        logger.info(f"[AIQUIZ] Starting quiz generation for {sport}/{level}, count={QUESTION_COUNT}")
+        # Enhanced prompt for better quiz generation
         prompt = f"""
-You are an expert sports quiz master. Create {QUESTION_COUNT} highly creative, non-repetitive, and knowledge-focused {level.upper()} level questions about {sport.upper()}.
+Generate a quiz with {QUESTION_COUNT} multiple-choice questions about {sport.upper()}, categorized by difficulty: easy, medium, and hard. Each question should be directly related to the sport — rules, players, history, events, or tactics. Format each question with 4 options and mark the correct answer.
 
-STRICT RULES:
-- Each question must be unique and not similar to others in the batch.
-- Avoid repeating question structure, topic, or answer options.
-- Each question must have 4 answer options (A, B, C, D) and only one correct answer.
-- Focus on pure sports knowledge: players, teams, achievements, rules, tactics, history, competitions, statistics, records, and famous moments.
-- Avoid business, finance, sponsorship, equipment, or commercial topics.
-- Use a variety of question types: historical facts, player records, team achievements, rules, statistics, nicknames, tournaments, controversies, comparisons, and creative trivia.
-- Make questions challenging, interesting, and fun for sports fans.
+IMPORTANT REQUIREMENTS:
+- Each question must have exactly 4 answer options (A, B, C, D) and only one correct answer
+- Focus on sports facts, rules, history, records, players, and tactics
+- Avoid business, finance, sponsorship, or commercial topics
+- Mix difficulty levels appropriately for {level.upper()} level
+- Questions should be engaging and test real sports knowledge
 
-Return the questions in this JSON format:
+DIFFICULTY GUIDELINES:
+- EASY: Basic facts, well-known players, simple rules, common knowledge
+- MEDIUM: Specific statistics, recent events, detailed rules, notable achievements
+- HARD: Obscure facts, historical details, complex scenarios, advanced tactics
+
+QUESTION CATEGORIES TO INCLUDE:
+- Rules and regulations
+- Player achievements and records
+- Historical moments and events
+- Team statistics and championships
+- Tactics and strategies
+- International competitions
+- Famous matches and rivalries
+
+Return as a JSON array in this format:
 [
   {{
-    "question": "Unique and creative question text?",
+    "question": "Question text?",
     "answers": [
-      {{ "label": "A", "text": "Answer option 1" }},
-      {{ "label": "B", "text": "Answer option 2" }},
-      {{ "label": "C", "text": "Answer option 3" }},
-      {{ "label": "D", "text": "Answer option 4" }}
+      {{ "label": "A", "text": "Answer 1" }},
+      {{ "label": "B", "text": "Answer 2" }},
+      {{ "label": "C", "text": "Answer 3" }},
+      {{ "label": "D", "text": "Answer 4" }}
     ],
     "correctAnswer": "A/B/C/D",
-    "difficulty": "{level.upper()}"
+    "difficulty": "easy/medium/hard"
   }}
 ]
 """
-        
         try:
             # Use semaphore to limit concurrent AI API calls
             async with ai_api_semaphore:
                 api_key = get_next_api_key()
                 chat = get_chat_for_key(api_key)
-                response_text = await asyncio.wait_for(
-                    asyncio.to_thread(lambda: chat.send_message(prompt).text),
-                    timeout=30.0
-                )
+                try:
+                    response_text = await asyncio.wait_for(
+                        asyncio.to_thread(lambda: chat.send_message(prompt).text),
+                        timeout=8.0
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(f"[AIQUIZ] AI generation timed out after 8 seconds for {sport}/{level}. Using fallback.")
+                    fallback = generate_expanded_fallback_questions(sport, level, 1)
+                    return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
             response_text = response_text.replace("```json", "").replace("```", "").strip()
             try:
                 questions_list = json.loads(response_text)
@@ -431,12 +640,14 @@ Return the questions in this JSON format:
                 try:
                     questions_list = ast.literal_eval(response_text)
                 except (ValueError, SyntaxError) as e:
-                    print(f"Failed to parse AI response: {e}")
-                    return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
+                    logger.warning(f"[AIQUIZ] Failed to parse AI response: {e}. Using fallback.")
+                    fallback = generate_expanded_fallback_questions(sport, level, 1)
+                    return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
             # Validate the response structure
             if not isinstance(questions_list, list) or len(questions_list) != QUESTION_COUNT:
-                print(f"Invalid response structure. Expected {QUESTION_COUNT} questions, got {len(questions_list) if isinstance(questions_list, list) else 'non-list'}")
-                return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
+                logger.warning(f"[AIQUIZ] Invalid AI response structure. Using fallback.")
+                fallback = generate_expanded_fallback_questions(sport, level, 1)
+                return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
             # Validate each question
             valid_questions = []
             for i, question_data in enumerate(questions_list):
@@ -446,29 +657,29 @@ Return the questions in this JSON format:
                 missing_fields = [field for field in required_fields if field not in question_data]
                 if missing_fields:
                     continue
-                # Validate answers structure
                 if not isinstance(question_data["answers"], list) or len(question_data["answers"]) != 4:
                     continue
-                # Add difficulty level if not present
                 if "difficulty" not in question_data:
                     question_data["difficulty"] = level.upper()
                 valid_questions.append(question_data)
-            # If we don't have enough valid questions, use fallback
             if len(valid_questions) < QUESTION_COUNT:
-                print(f"Only {len(valid_questions)} valid questions generated. Using fallback questions...")
-                return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
-            # Filter out business-related questions (equipment, economics, contracts, etc.)
+                logger.warning(f"[AIQUIZ] Only {len(valid_questions)} valid AI questions. Using fallback.")
+                fallback = generate_expanded_fallback_questions(sport, level, 1)
+                return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
             filtered_questions = filter_business_questions(valid_questions)
-            # If filtering removed too many questions, use fallback
             if len(filtered_questions) < 3:
-                print(f"Too many business-related questions filtered out ({len(filtered_questions)} remaining). Using fallback questions...")
-                return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
-            # Ensure all questions are unique by hash
+                logger.warning(f"[AIQUIZ] Too many business-related questions filtered out. Using fallback.")
+                fallback = generate_expanded_fallback_questions(sport, level, 1)
+                return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
             unique_questions = get_unique_questions(filtered_questions, sport, level, QUESTION_COUNT)
-            return unique_questions[:QUESTION_COUNT]
+            fallback = generate_expanded_fallback_questions(sport, level, 1)
+            logger.info(f"[AIQUIZ] Successfully generated {len(unique_questions)} AI questions and 1 fallback for {sport}/{level}.")
+            return unique_questions[:QUESTION_COUNT] + fallback
         except Exception as e:
-            print(f"Error generating AI quiz: {e}")
-            return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT)
+            logger.error(f"[AIQUIZ] Error generating AI quiz: {e}. Using fallback.")
+            fallback = generate_expanded_fallback_questions(sport, level, 1)
+            return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
     except Exception as e:
-        print(f"Failed to generate quiz: {str(e)}")
-        return generate_expanded_fallback_questions(sport, level, QUESTION_COUNT) 
+        logger.error(f"[AIQUIZ] Failed to generate quiz: {str(e)}. Using fallback.")
+        fallback = generate_expanded_fallback_questions(sport, level, 1)
+        return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback] 

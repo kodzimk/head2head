@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar";
 import { Badge } from "../../shared/ui/badge";
 import { Trophy, Medal, Award, TrendingUp } from "lucide-react";
 import axios from "axios";
+import { API_BASE_URL } from "../../shared/interface/gloabL_var";
 
 interface LeaderboardUser {
   rank: number;
@@ -37,7 +38,7 @@ export default function LeaderboardPage() {
         setIsLoading(true);
         setError(null);
         
-        const response = await axios.get("https://api.head2head.dev/db/get-leaderboard", {
+        const response = await axios.get(`${API_BASE_URL}/db/get-leaderboard`, {
           headers: {
             "accept": "application/json",
           },
@@ -158,7 +159,7 @@ export default function LeaderboardPage() {
                         
                         <Avatar className="w-10 h-10 sm:w-12 sm:h-12">
                           <AvatarImage
-                              src={player.avatar ? `https://api.head2head.dev${player.avatar}` : undefined}
+                              src={player.avatar ? `${API_BASE_URL}${player.avatar}` : undefined}
                             alt={player.username}
                           />
                           <AvatarFallback className="bg-orange-500 text-white text-xs sm:text-sm">

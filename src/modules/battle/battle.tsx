@@ -11,6 +11,7 @@ import { Label } from '../../shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../shared/ui/select'
 import { useBattleStore } from '../../shared/interface/gloabL_var'
 import { useLocation } from 'react-router-dom'
+import { API_BASE_URL } from "../../shared/interface/gloabL_var"
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
@@ -356,7 +357,7 @@ export default function BattlePage() {
                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                           <Avatar className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
                             <AvatarImage
-                              src={battle_data.creator_avatar ? `https://api.head2head.dev${battle_data.creator_avatar}` : undefined}
+                              src={battle_data.creator_avatar ? `${API_BASE_URL}${battle_data.creator_avatar}` : undefined}
                               alt={battle_data.first_opponent}
                             />
                             <AvatarFallback className={`${

@@ -6,6 +6,8 @@ import { Badge } from "../../../shared/ui/badge"
 import { Settings, Sword, Trophy, Target, Zap } from "lucide-react"
 import type { User, RecentBattle } from '../../../shared/interface/user'
 import { useNavigate } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { API_BASE_URL } from "../../../shared/interface/gloabL_var"
 
 const getSportIcon = (sport: string) => {
   const sportIcons: { [key: string]: React.ReactNode } = {
@@ -39,7 +41,7 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Avatar className="w-10 h-10 lg:w-12 lg:h-12">
-                  <AvatarImage src={user.avatar ? `https://api.head2head.dev${user.avatar}` : "/placeholder.svg"} alt={user.username} />
+                  <AvatarImage src={user.avatar ? `${API_BASE_URL}${user.avatar}` : "/placeholder.svg"} alt={user.username} />
                   <AvatarFallback className="bg-orange-500 text-white text-xs lg:text-sm">
                     {user.username.slice(0, 2).toUpperCase()}
                   </AvatarFallback>

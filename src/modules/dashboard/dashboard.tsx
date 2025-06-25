@@ -16,7 +16,7 @@ import Battles from "./tabs/battles";
 import Friends from "./tabs/friends";
 import Header from "./header";
 import type { RecentBattle } from "../../shared/interface/user";
-import { useGlobalStore } from "../../shared/interface/gloabL_var";
+import { useGlobalStore, API_BASE_URL } from "../../shared/interface/gloabL_var";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -34,10 +34,10 @@ export default function DashboardPage() {
     const fetchBattles = async () => {
       if (!localStorage.getItem("username")) return;
       const response = await axios.get(
-        `https://api.head2head.dev/get_battles?username=${localStorage.getItem("username")}`,
+        `${API_BASE_URL}/get_battles?username=${localStorage.getItem("username")}`,
         {
           headers: {
-            "accept": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
           },
         }
       );

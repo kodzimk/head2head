@@ -578,16 +578,15 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                             logger.warning(f"Quiz questions not ready in time for battle {battle.id}, using fallback questions")
                                             try:
                                                 from aiquiz.router import generate_ai_quiz
-                                                questions = await generate_ai_quiz(battle.sport, battle.level, 7)
-                                                # If AI still returns no questions, use static fallback
-                                                if not questions:
+                                                questions = await generate_ai_quiz(battle.sport, battle.level, 6)
+                                                if not questions or len(questions) < 6:
                                                     logger.warning(f"AI fallback also returned no questions for battle {battle.id}, using static questions")
                                                     from aiquiz.router import generate_expanded_fallback_questions
-                                                    questions = generate_expanded_fallback_questions(battle.sport, battle.level, 7)
+                                                    questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
                                             except Exception as e:
                                                 logger.error(f"Error in AI fallback for battle {battle.id}: {str(e)}, using static questions")
                                                 from aiquiz.router import generate_expanded_fallback_questions
-                                                questions = generate_expanded_fallback_questions(battle.sport, battle.level, 7)
+                                                questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
                                         battle.questions = questions
                                         logger.info(f"Quiz questions ready for battle {battle.id}")
                                         await manager.send_message(json.dumps({
@@ -633,9 +632,9 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 questions = await get_cached_questions(battle.id)
                                 if not questions or len(questions) < 7:
                                     try:
-                                        questions = await generate_ai_quiz(battle.sport, battle.level, 7)
-                                        if not questions or len(questions) < 7:
-                                            questions = generate_expanded_fallback_questions(battle.sport, battle.level, 7)
+                                        questions = await generate_ai_quiz(battle.sport, battle.level, 6)
+                                        if not questions or len(questions) < 6:
+                                            questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
                                         import redis
                                         redis_client = redis.Redis.from_url("redis://redis:6379/0")
                                         questions_key = f"battle_questions:{battle.id}"
@@ -682,15 +681,15 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                         logger.warning(f"Quiz questions not ready in time for battle {battle.id}, using fallback questions")
                                         try:
                                             from aiquiz.router import generate_ai_quiz
-                                            questions = await generate_ai_quiz(battle.sport, battle.level, 7)
+                                            questions = await generate_ai_quiz(battle.sport, battle.level, 6)
                                             if not questions:
                                                 logger.warning(f"AI fallback also returned no questions for battle {battle.id}, using static questions")
                                                 from aiquiz.router import generate_expanded_fallback_questions
-                                                questions = generate_expanded_fallback_questions(battle.sport, battle.level, 7)
+                                                questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
                                         except Exception as e:
                                             logger.error(f"Error in AI fallback for battle {battle.id}: {str(e)}, using static questions")
                                             from aiquiz.router import generate_expanded_fallback_questions
-                                            questions = generate_expanded_fallback_questions(battle.sport, battle.level, 7)
+                                            questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
                                     battle.questions = questions
                                     logger.info(f"Quiz questions ready for battle {battle.id}")
                                     await manager.send_message(json.dumps({
@@ -1006,11 +1005,11 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             )
                             battles[battle_id] = battle
                             logger.info(f"Created battle {battle_id} for {message['first_opponent']}")
-
+                            
                             # Trigger AI quiz generation as soon as battle is created
                             try:
-                                from tasks import generate_ai_quiz
-                                task = generate_ai_quiz.delay(battle_id, message["sport"], message["level"], 7)
+                                from tasks import queue_quiz_generation_task
+                                task = queue_quiz_generation_task(battle_id, message["sport"], message["level"], 6)
                                 logger.info(f"Started AI quiz generation task {task.id} for battle {battle_id}")
                             except Exception as e:
                                 logger.error(f"Failed to start AI quiz generation for battle {battle_id}: {str(e)}")
@@ -1086,7 +1085,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                     "type": "battle_cancelled",
                                     "data": battle_id
                                 }), username)
-                            else:
+                            else:                          
                                 logger.warning(f"User {username} tried to cancel battle {battle_id} but is not allowed (second_opponent exists or not first_opponent)")
                                 await manager.send_message(json.dumps({
                                     "type": "error",

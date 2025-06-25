@@ -10,6 +10,7 @@ import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import { initializeWebSocketForNewUser } from "../../app/App"
+import { API_BASE_URL } from "../../shared/interface/gloabL_var"
 
 interface ValidationErrors {
   email?: string;
@@ -81,7 +82,7 @@ export default function EmailSignUpPage() {
     }
 
     // Send the data to the server using POST method with JSON body
-    axios.post("https://api.head2head.dev/auth/signup", {
+    axios.post(`${API_BASE_URL}/auth/signup`, {
       email: formData.email,
       password: formData.password,
       username: formData.username,

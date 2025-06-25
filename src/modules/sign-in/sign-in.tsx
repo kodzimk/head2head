@@ -10,6 +10,7 @@ import axios from "axios"
 import { GoogleLogin } from '@react-oauth/google'
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import { initializeWebSocketForNewUser } from "../../app/App"
+import { API_BASE_URL } from "../../shared/interface/gloabL_var"
 
 export default function SignInPage() {
   const navigate = useNavigate();
@@ -69,7 +70,7 @@ export default function SignInPage() {
 
     try {
       const response = await axios.post(
-        "https://api.head2head.dev/auth/signin",
+        `${API_BASE_URL}/auth/signin`,
         {
           username: formData.email,
           password: formData.password,
@@ -187,7 +188,7 @@ export default function SignInPage() {
     // Try sign-in, if fails, try sign-up
     try {
       const response = await axios.post(
-        "https://api.head2head.dev/auth/signin",
+        `${API_BASE_URL}/auth/signin`,
         {
           username: decodedToken.email,
           password: credentialResponse.credential,
@@ -230,7 +231,7 @@ export default function SignInPage() {
       // If sign-in fails due to account not existing, try sign-up
       if (error.response?.status === 404) {
         try {
-          const signUpResponse = await axios.post("https://api.head2head.dev/auth/signup", {
+          const signUpResponse = await axios.post(`${API_BASE_URL}/auth/signup`, {
             email: decodedToken.email,
             password: credentialResponse.credential,
             username: decodedToken.name,

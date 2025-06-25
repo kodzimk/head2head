@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A celery_app worker --loglevel=info --queues=default,ai_quiz
+    command: celery -A celery_app worker --loglevel=info --concurrency=4 --queues=default,ai_quiz
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
       - REDIS_URL=redis://redis:6379/0

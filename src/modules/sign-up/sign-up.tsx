@@ -7,6 +7,7 @@ import axios from "axios";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
 import { initializeWebSocketForNewUser } from "../../app/App";
 import { useState } from "react";
+import { API_BASE_URL } from "../../shared/interface/gloabL_var";
 
 export default function SignUpPage() {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ export default function SignUpPage() {
     
     // Try sign-up, if fails, try sign-in
     try {
-      const response = await axios.post("https://api.head2head.dev/auth/signup", {
+      const response = await axios.post(`${API_BASE_URL}/auth/signup`, {
         email: decodedToken.email,
         password: credentialResponse.credential,
         username: decodedToken.name,
@@ -94,7 +95,7 @@ export default function SignUpPage() {
       if (error.response?.status === 401 || error.response?.status === 404) {
         try {
           const signInResponse = await axios.post(
-            "https://api.head2head.dev/auth/signin",
+            `${API_BASE_URL}/auth/signin`,
             {
               username: decodedToken.email,
               password: credentialResponse.credential,
@@ -222,8 +223,12 @@ export default function SignUpPage() {
                     
                     {/* Loading State */}
                     {isLoading && (
-                      <div className="text-sm text-blue-600 text-center bg-blue-50 border border-blue-200 rounded-md p-3">
-                        Creating your account...
+                      <div className="flex items-center justify-center text-sm text-blue-600 text-center bg-blue-50 border border-blue-200 rounded-md p-3 gap-2">
+                        <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                        Creating your account. Please wait a moment.
                       </div>
                     )}
                   </div>

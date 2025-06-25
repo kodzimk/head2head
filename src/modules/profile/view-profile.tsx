@@ -11,6 +11,7 @@ import { initialUser } from '../../shared/interface/user'
 import { sendFriendRequest, sendMessage } from '../../shared/websockets/websocket'
 import { cancelFriendRequest } from '../../shared/websockets/websocket'
 import { refreshView } from '../../app/App'
+import { API_BASE_URL } from "../../shared/interface/gloabL_var"
 
 export const ViewProfile = ({user}: {user: User}) => {
   const { username } = useParams<{ username: string }>()
@@ -37,7 +38,7 @@ export const ViewProfile = ({user}: {user: User}) => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get(`https://api.head2head.dev/db/get-user-by-username?username=${username}`)
+        const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${username}`)
         const userData = {
           ...initialUser,
           username: response.data.username,
@@ -49,7 +50,7 @@ export const ViewProfile = ({user}: {user: User}) => {
           totalBattles: response.data.totalBattle,
           friendRequests: response.data.friendRequests,
           friends: response.data.friends,
-          avatar: response.data.avatar ? `https://api.head2head.dev${response.data.avatar}` : undefined
+          avatar: response.data.avatar ? `${API_BASE_URL}${response.data.avatar}` : undefined
         }
         
         setViewUser(userData)

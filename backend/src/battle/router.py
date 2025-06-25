@@ -7,7 +7,7 @@ from init import SessionLocal
 from models import BattleModel
 import uuid
 from init import redis_username,redis_email
-from tasks import generate_ai_quiz
+from tasks import generate_ai_quiz, queue_quiz_generation_task
 from celery.result import AsyncResult
 
 import json
@@ -29,7 +29,7 @@ async def create_battle(first_opponent: str, sport: str = Query(...), level: str
     
     # Trigger AI quiz generation as background task
     try:
-        task = generate_ai_quiz.delay(battle_id, sport, level)
+        task = queue_quiz_generation_task(battle_id, sport, level, 6)
         logger.info(f"Started AI quiz generation task {task.id} for battle {battle_id}")
     except Exception as e:
         logger.error(f"Failed to start AI quiz generation for battle {battle_id}: {str(e)}")
