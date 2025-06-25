@@ -72,12 +72,22 @@ export default function BattlePage() {
   }, [user.username]);
   
   const handleCreateBattle = async () => {
-    // Defensive: Only allow creation if not already in a waiting battle
-    const userActiveBattle = battle.find(b => b.first_opponent === user.username && b.second_opponent === '');
-    if (userActiveBattle) {
-      setCreationError("You already have an active battle waiting. Please wait for someone to join or cancel it first.");
+    // Allow multiple battles but with reasonable limits
+    const userActiveBattles = battle.filter(b => b.first_opponent === user.username && b.second_opponent === '');
+    
+    // Limit to 3 active waiting battles to prevent spam
+    if (userActiveBattles.length >= 3) {
+      setCreationError("You can have up to 3 active battles waiting. Please wait for someone to join or cancel some battles first.");
       return;
     }
+    
+    // Check if user already has a battle with the same sport and level
+    const duplicateBattle = userActiveBattles.find(b => b.sport === selectedSport && b.level === selectedLevel);
+    if (duplicateBattle) {
+      setCreationError(`You already have a ${selectedSport} (${selectedLevel}) battle waiting. Please wait for someone to join or cancel it first.`);
+      return;
+    }
+    
     // Clear previous errors and success states
     setCreationError(null);
     setCreationSuccess(false);
@@ -191,6 +201,37 @@ export default function BattlePage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
+                {/* Battle Status Indicator */}
+                {(() => {
+                  const userActiveBattles = battle.filter(b => b.first_opponent === user.username && b.second_opponent === '');
+                  if (userActiveBattles.length > 0) {
+                    return (
+                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4" />
+                          <span className="font-medium">Your Active Battles: {userActiveBattles.length}/3</span>
+                        </div>
+                        <div className="mt-2 text-sm">
+                          {userActiveBattles.map((battle) => (
+                            <div key={battle.id} className="flex items-center justify-between">
+                              <span>• {battle.sport} ({battle.level})</span>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleCancelBattle(battle.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {isBattleBeingCreated && !creationSuccess && (
                   <div className="mb-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>

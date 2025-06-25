@@ -16,9 +16,9 @@ export default function Friends({user}: {user: User}) {
           const friendData = await axios.get(`https://api.head2head.dev/db/get-user-by-username?username=${friend}`);
           setFriends(prev => [...prev, {
             username: friend,
-            status: "online",
             avatar: friendData.data.avatar ? `https://api.head2head.dev${friendData.data.avatar}` : null,
-            rank: friendData.data.ranking
+            rank: friendData.data.ranking,
+            status: ""
           }]);
       });
   }, [user,refreshView])
@@ -74,10 +74,6 @@ export default function Friends({user}: {user: User}) {
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                                   Rank: #{friend.rank}
                                 </p>
-                                <div className="flex items-center mt-1">
-                                  <span className={`inline-block w-2 h-2 rounded-full ${friend.status === "online" ? "bg-green-500" : "bg-gray-400"}`}></span>
-                                  <span className="ml-2 text-xs text-gray-500">{friend.status}</span>
-                                </div>
                               </div>
                             </div>
                             <Button

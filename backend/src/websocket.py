@@ -991,11 +991,36 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                
                     elif message.get("type") == "notify_battle_created":
                         try:
-                            # Defensive check: do not create or trigger quiz if battle already exists
+                            # Check for duplicate battle with same sport and level
+                            duplicate_battle = None
                             for b in battles.values():
-                                if b.first_opponent == message["first_opponent"] and b.sport == message["sport"] and b.level == message["level"] and b.second_opponent == '':
-                                    logger.warning(f"Duplicate notify_battle_created for {b.id}, skipping creation and quiz generation.")
-                                    return
+                                if (b.first_opponent == message["first_opponent"] and 
+                                    b.sport == message["sport"] and 
+                                    b.level == message["level"] and 
+                                    b.second_opponent == ''):
+                                    duplicate_battle = b
+                                    break
+                            
+                            if duplicate_battle:
+                                logger.warning(f"Duplicate battle creation attempt for {duplicate_battle.id}, skipping creation.")
+                                await manager.send_message(json.dumps({
+                                    "type": "error",
+                                    "message": f"You already have a {message['sport']} ({message['level']}) battle waiting. Please wait for someone to join or cancel it first."
+                                }), message["first_opponent"])
+                                return
+                            
+                            # Check total number of waiting battles for this user (limit to 3)
+                            user_waiting_battles = [b for b in battles.values() 
+                                                  if b.first_opponent == message["first_opponent"] and b.second_opponent == '']
+                            
+                            if len(user_waiting_battles) >= 3:
+                                logger.warning(f"User {message['first_opponent']} tried to create more than 3 waiting battles.")
+                                await manager.send_message(json.dumps({
+                                    "type": "error",
+                                    "message": "You can have up to 3 active battles waiting. Please wait for someone to join or cancel some battles first."
+                                }), message["first_opponent"])
+                                return
+                            
                             battle_id = str(uuid.uuid4())
                             battle = Battle(
                                 id=battle_id,

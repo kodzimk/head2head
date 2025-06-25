@@ -55,7 +55,7 @@ export default function FriendsPage({user}: {user: User}) {
         const userData = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${response.data.username}`)
         setSearchResults([{
           username: response.data.username,
-          status: "online",
+          status: "",
           avatar: userData.data.avatar ? `${API_BASE_URL}${userData.data.avatar}` : null,
           rank: userData.data.ranking
         }])
@@ -142,10 +142,6 @@ export default function FriendsPage({user}: {user: User}) {
                           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             Rank: #{item.rank}
                           </p>
-                          <div className="flex items-center justify-center sm:justify-start mt-1">
-                            <span className={`inline-block w-2 h-2 rounded-full ${item.status === 'online' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                            <span className="ml-2 text-xs text-gray-500">{item.status}</span>
-                          </div>
                         </div>
                       </div>
                       {isSearching ? (
