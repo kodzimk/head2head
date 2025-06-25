@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Timer, UserPlus, Undo, AlertCircle } from 'lucide-react'
-import axios from 'axios'
 import Header from '../dashboard/header'
 import {
   Sheet,
