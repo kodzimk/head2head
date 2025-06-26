@@ -19,7 +19,6 @@ import {
   Sword,
   Users,
 } from "lucide-react";
-import type { RecentBattle } from "../../../shared/interface/user";
 import axios from "axios";
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var";
 
