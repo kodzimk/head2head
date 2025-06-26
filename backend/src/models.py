@@ -35,8 +35,6 @@ class UserDataCreate(BaseModel):
     battles: list[str]
     invitations: list[str]
 
-
-
 class BattleModel(Base):
     __tablename__ = "battles"
     id = Column(String, primary_key=True, index=True)

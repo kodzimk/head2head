@@ -18,7 +18,7 @@ export default function QuizQuestionPage() {
   const { user } = useGlobalStore();  
   const { setCurrentQuestion, currentQuestion } = useCurrentQuestionStore();
   const { firstOpponentScore, secondOpponentScore, setFirstOpponentScore, setSecondOpponentScore } = useScoreStore();
-  const { text, setText } = useTextStore();
+  const { setText } = useTextStore();
   const { setWinner } = useWinnerStore();
   const { setLoser } = useLoserStore();
   const { setResult } = useResultStore();
@@ -180,10 +180,40 @@ export default function QuizQuestionPage() {
           }
         }
         
+        // Update user stats if provided in the event
+        if (data.updated_users && data.updated_users[user.username]) {
+          const updatedStats = data.updated_users[user.username];
+          console.log('[Quiz] Updating user stats:', updatedStats);
+          
+          // Update the global user store with new stats
+          user.totalBattles = updatedStats.totalBattle;
+          user.wins = updatedStats.winBattle;
+          user.winRate = updatedStats.winRate;
+          user.streak = updatedStats.streak;
+          
+          // Update localStorage if needed
+          const userData = JSON.parse(localStorage.getItem('user') || '{}');
+          userData.totalBattles = updatedStats.totalBattle;
+          userData.wins = updatedStats.winBattle;
+          userData.winRate = updatedStats.winRate;
+          userData.streak = updatedStats.streak;
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
         // Trigger a global event to refresh battle data in other components
-        console.log('[Quiz] Dispatching battleFinished event with data:', { battleId: id, finalScores: data.final_scores });
+        console.log('[Quiz] Dispatching battleFinished event with data:', { 
+          battleId: id, 
+          finalScores: data.final_scores,
+          updated_users: data.updated_users,
+          battle: data.battle
+        });
         window.dispatchEvent(new CustomEvent('battleFinished', { 
-          detail: { battleId: id, finalScores: data.final_scores } 
+          detail: { 
+            battleId: id, 
+            finalScores: data.final_scores,
+            updated_users: data.updated_users,
+            battle: data.battle
+          } 
         }));
         console.log('[Quiz] battleFinished event dispatched successfully');
         

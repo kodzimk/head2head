@@ -40,22 +40,21 @@ const getSportIcon = (sport: string) => {
 
 export default function Battles({
   user,
-  recentBattles,
 }: {
   user: User;
-  recentBattles: RecentBattle[];
 }) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [battles, setBattles] = useState<RecentBattle[]>([]);
-  const [filteredBattles, setFilteredBattles] = useState<RecentBattle[]>([]);
 
   useEffect(() => {
     const fetchBattles = async () => {
-      setIsLoading(true);
+      if (!localStorage.getItem("username")) return;
+      
       try {
+        setIsLoading(true);
         const response = await axios.get(
-          `${API_BASE_URL}/get_battles?username=${localStorage.getItem("username")}`,
+          `${API_BASE_URL}/battle/get_recent_battles?username=${localStorage.getItem("username")}&limit=4`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -64,7 +63,7 @@ export default function Battles({
         );
         const data = await response.data;
 
-        const mapped: RecentBattle[] = data.reverse().map((battle: any) => {
+        const mapped: RecentBattle[] = data.map((battle: any) => {
           let opponent = battle.first_opponent === localStorage.getItem("username") ? battle.second_opponent : battle.first_opponent;
           
           let result = "draw";
@@ -101,7 +100,6 @@ export default function Battles({
         });
         
         setBattles(mapped);
-        setFilteredBattles(mapped);
       } catch (error) {
         console.error("Error fetching battles:", error);
       } finally {
@@ -112,8 +110,30 @@ export default function Battles({
     fetchBattles();
     
     // Listen for battle finished events to refresh data
-    const handleBattleFinished = () => {
-      console.log('[Battles Tab] Battle finished, refreshing battle data');
+    const handleBattleFinished = (event: any) => {
+      console.log('[Battles Tab] Battle finished event received:', event.detail);
+      console.log('[Battles Tab] Refreshing battle data...');
+      
+      // Update user stats if provided in the event
+      if (event.detail.updated_users && event.detail.updated_users[user.username]) {
+        const updatedStats = event.detail.updated_users[user.username];
+        console.log('[Battles Tab] Updating user stats:', updatedStats);
+        
+        // Update the user object with new stats
+        user.totalBattles = updatedStats.totalBattle;
+        user.wins = updatedStats.winBattle;
+        user.winRate = updatedStats.winRate;
+        user.streak = updatedStats.streak;
+        
+        // Update localStorage if needed
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        userData.totalBattles = updatedStats.totalBattle;
+        userData.wins = updatedStats.winBattle;
+        userData.winRate = updatedStats.winRate;
+        userData.streak = updatedStats.streak;
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
       fetchBattles();
     };
     
@@ -157,7 +177,7 @@ export default function Battles({
                     </Button>
                   </div>
                 ) : (
-                  battles.slice(0, 5).map((battle) => (
+                  battles.slice(0, 4).map((battle) => (
                     <div
                       key={battle.id}
                       className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 border rounded-lg hover:shadow-sm transition-shadow bg-white dark:bg-gray-800"

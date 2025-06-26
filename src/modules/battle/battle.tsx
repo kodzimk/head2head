@@ -5,7 +5,7 @@ import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { Play, Clock, Trophy, RefreshCw } from 'lucide-react'
 import Header from '../dashboard/header'
 import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
-import { joinBattle, sendMessage, cancelBattle, testWebSocketConnection } from '../../shared/websockets/websocket'
+import { joinBattle, sendMessage, cancelBattle } from '../../shared/websockets/websocket'
 import { newSocket, reconnectWebSocket } from '../../app/App'
 import { Label } from '../../shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../shared/ui/select'
@@ -206,30 +206,6 @@ export default function BattlePage() {
     }
   }, [user.username]);
 
-  const testBackendHealth = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/health`);
-      console.log("Backend health check:", response.data);
-      alert(`Backend Health: ${response.data.status}\nDatabase: ${response.data.database}\nRedis: ${response.data.redis}\nGoogle API: ${response.data.google_api}`);
-    } catch (error) {
-      console.error("Backend health check failed:", error);
-      alert("Backend health check failed");
-    }
-  }
-
-  const testGoogleAPI = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/health`);
-      if (response.data.google_api === "configured") {
-        alert("Google API key is configured");
-      } else {
-        alert("Google API key is NOT configured - AI quiz generation will use fallback questions");
-      }
-    } catch (error) {
-      console.error("Google API check failed:", error);
-      alert("Failed to check Google API status");
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -509,76 +485,6 @@ export default function BattlePage() {
           </Card>
         </div>
         
-        {/* Debug Panel - Remove in production */}
-        {process.env.NODE_ENV === 'development' && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="text-sm text-gray-500">Debug Panel (Development Only)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">WebSocket Status:</span>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    newSocket?.readyState === WebSocket.OPEN 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {newSocket?.readyState === WebSocket.OPEN ? 'Connected' : 'Disconnected'}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      console.log("Testing WebSocket connection...");
-                      testWebSocketConnection();
-                    }}
-                  >
-                    Test Connection
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      console.log("Refreshing waiting battles...");
-                      refreshWaitingBattles(true);
-                    }}
-                  >
-                    Refresh Battles
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      console.log("Current battle list:", battle);
-                    }}
-                  >
-                    Log Battles
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={testBackendHealth}
-                  >
-                    Test Backend
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={testGoogleAPI}
-                  >
-                    Test Google API
-                  </Button>
-                </div>
-                <div className="text-xs text-gray-500">
-                  Connected Users: {battle.length} battles in list
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </main>
     </div>
   )

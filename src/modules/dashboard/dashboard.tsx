@@ -34,7 +34,7 @@ export default function DashboardPage() {
     const fetchBattles = async () => {
       if (!localStorage.getItem("username")) return;
       const response = await axios.get(
-        `${API_BASE_URL}/get_battles?username=${localStorage.getItem("username")}`,
+        `${API_BASE_URL}/battle/get_recent_battles?username=${localStorage.getItem("username")}&limit=4`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -42,7 +42,7 @@ export default function DashboardPage() {
         }
       );
       const data = await response.data;
-      const mapped: RecentBattle[] = data.slice(-5).reverse().map((battle: any) => {
+      const mapped: RecentBattle[] = data.map((battle: any) => {
         let opponent = battle.first_opponent === user.username ? battle.second_opponent : battle.first_opponent;
         let result = "draw";
         if (battle.first_opponent === user.username) {
@@ -70,6 +70,27 @@ export default function DashboardPage() {
     const handleBattleFinished = (event: any) => {
       console.log('[Dashboard] Battle finished event received:', event.detail);
       console.log('[Dashboard] Refreshing battle data...');
+      
+      // Update user stats if provided in the event
+      if (event.detail.updated_users && event.detail.updated_users[user.username]) {
+        const updatedStats = event.detail.updated_users[user.username];
+        console.log('[Dashboard] Updating user stats:', updatedStats);
+        
+        // Update the global user store with new stats
+        user.totalBattles = updatedStats.totalBattle;
+        user.wins = updatedStats.winBattle;
+        user.winRate = updatedStats.winRate;
+        user.streak = updatedStats.streak;
+        
+        // Update localStorage if needed
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        userData.totalBattles = updatedStats.totalBattle;
+        userData.wins = updatedStats.winBattle;
+        userData.winRate = updatedStats.winRate;
+        userData.streak = updatedStats.streak;
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
       fetchBattles();
     };
     
@@ -175,7 +196,7 @@ export default function DashboardPage() {
 
           <Overview user={user} recentBattles={recentBattles} />
 
-          <Battles user={user} recentBattles={recentBattles} />
+          <Battles user={user} />
 
           <Friends user={user}/>
         </Tabs>

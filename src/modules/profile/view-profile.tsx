@@ -57,7 +57,6 @@ export const ViewProfile = ({user}: {user: User}) => {
         setRequestSent(response.data.friendRequests.includes(user.username))
         setIsLoading(false)
       } catch (error) {
-
         setIsLoading(false)
       }
     }
@@ -70,6 +69,25 @@ export const ViewProfile = ({user}: {user: User}) => {
     }
   }, [username, user.username, refreshView])
 
+  // Update viewUser and requestSent when global user state changes (from WebSocket)
+  useEffect(() => {
+    if (username && !isLoading) {
+      // Update requestSent based on current user's friend requests
+      const newRequestSent = user.friendRequests.includes(username)
+      console.log(`Friend request status update for ${username}:`, {
+        userFriendRequests: user.friendRequests,
+        newRequestSent,
+        currentRequestSent: requestSent
+      })
+      setRequestSent(newRequestSent)
+      
+      // Update viewUser's friends list to reflect current state
+      setViewUser(prev => ({
+        ...prev,
+        friends: prev.friends // Keep the viewed user's friends list as is
+      }))
+    }
+  }, [user.friendRequests, user.friends, username, isLoading])
 
   if (isLoading) {
     return (
@@ -296,30 +314,49 @@ export const ViewProfile = ({user}: {user: User}) => {
 
               {viewUser.email !== user.email && (
                 <div className="flex justify-center gap-4 mt-6">
-                  {viewUser.friends && viewUser.friends.includes(user.username) && user.username !== '' ? (
-                    <Button 
-                      className="w-full sm:w-auto bg-orange-500 text-white  dark:text-black hover:bg-orange-600"
-                      onClick={handleBattle}
-                    >
-                      Battle
-                    </Button>
-                  ) : !requestSent ? (
-                    <Button 
-                      onClick={handleSendRequest}
-                      className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Send Request
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={handleCancelRequest}
-                      variant="outline"
-                      className="w-full sm:w-auto border-orange-500 text-orange-500 hover:bg-orange-50 dark:text-orange-500 dark:border-orange-500"
-                    >
-                      Cancel Friend Request
-                    </Button>
-                  )}
+                  {(() => {
+                    const areFriends = viewUser.friends && viewUser.friends.includes(user.username) && user.friends && user.friends.includes(viewUser.username) && user.username !== '';
+                    console.log(`Button logic for ${viewUser.username}:`, {
+                      viewUserFriends: viewUser.friends,
+                      userFriends: user.friends,
+                      areFriends,
+                      requestSent,
+                      shouldShowBattle: areFriends,
+                      shouldShowSendRequest: !requestSent && !areFriends,
+                      shouldShowCancel: requestSent && !areFriends
+                    });
+                    
+                    if (areFriends) {
+                      return (
+                        <Button 
+                          className="w-full sm:w-auto bg-orange-500 text-white  dark:text-black hover:bg-orange-600"
+                          onClick={handleBattle}
+                        >
+                          Battle
+                        </Button>
+                      );
+                    } else if (!requestSent) {
+                      return (
+                        <Button 
+                          onClick={handleSendRequest}
+                          className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
+                        >
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Send Request
+                        </Button>
+                      );
+                    } else {
+                      return (
+                        <Button 
+                          onClick={handleCancelRequest}
+                          variant="outline"
+                          className="w-full sm:w-auto border-orange-500 text-orange-500 hover:bg-orange-50 dark:text-orange-500 dark:border-orange-500"
+                        >
+                          Cancel Friend Request
+                        </Button>
+                      );
+                    }
+                  })()}
                 </div>
               )}
             </div>

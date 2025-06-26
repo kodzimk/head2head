@@ -2,32 +2,25 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
 import { Button } from '../../shared/ui/button';
 import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, useTextStore, useWinnerStore } from '../../shared/interface/gloabL_var';
-import { useNavigate, useParams } from 'react-router-dom';
-import { battleResult, battleDrawResult } from '../../shared/websockets/websocket';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../../shared/interface/user';
 
 export default function BattleResultPage({user}: {user: User}) {
 
   const { text, setText } = useTextStore();
-  const { setFirstOpponentScore, setSecondOpponentScore } = useScoreStore();
-  const { winner, setWinner } = useWinnerStore();
-  const { loser, setLoser } = useLoserStore();
-  const { currentQuestion, setCurrentQuestion } = useCurrentQuestionStore();
+  const {  setFirstOpponentScore, setSecondOpponentScore } = useScoreStore();
+  const { setWinner } = useWinnerStore();
+  const { setLoser } = useLoserStore();
+  const {  setCurrentQuestion } = useCurrentQuestionStore();
   const [showResult, setShowResult] = useState(false);
   const navigate = useNavigate();
-  const { id } = useParams() as { id: string };
   const { result, setResult } = useResultStore();
 
   useEffect(() => {
     setTimeout(() => {
       setShowResult(true); 
-      if(text !== ''){
-        if(result === 'draw'){
-          battleDrawResult(id);
-        } else {
-          battleResult(id, winner, loser, result);
-        }
-      }
+      // Note: Battle result is already processed by the backend WebSocket handler
+      // with the correct scores when the battle finishes
     }, 3000);
   }, []);
 

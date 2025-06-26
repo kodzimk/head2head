@@ -11,6 +11,8 @@ from init import engine, SessionLocal, redis_username, redis_email
 from battle.router import battle_result, battle_draw_result, update_user_rankings
 import math
 from db.router import get_user_by_username, update_user_data
+from datetime import datetime
+from websocket import manager
 
 logger = logging.getLogger("battle_ws")
 
@@ -42,6 +44,48 @@ battle_progress = {}     # battle_id -> {username: current_question_index}
 battle_answers = {}      # battle_id -> {username: {question_index: answer}}
 battle_question_start_time = {}  # battle_id -> start time
 processed_battles = set()  # Set of battle IDs that have already been processed
+
+# Add timeout tracking for battles
+battle_timeouts = {}
+
+async def check_battle_timeout(battle_id: str):
+    """Check if a battle should be timed out due to inactivity"""
+    try:
+        if battle_id not in battle_connections:
+            return
+        
+        current_time = asyncio.get_event_loop().time()
+        timeout_threshold = 300  # 5 minutes timeout
+        
+        # Check if any user has been inactive for too long
+        for user in battle_progress.get(battle_id, {}):
+            if user in battle_question_start_time:
+                time_since_last_activity = current_time - battle_question_start_time[battle_id]
+                if time_since_last_activity > timeout_threshold:
+                    logger.warning(f"[BATTLE_WS] User {user} inactive for {time_since_last_activity}s in battle {battle_id}, forcing completion")
+                    
+                    # Force battle completion with current scores
+                    if battle_id in battle_scores:
+                        await handle_battle_result(battle_id, battle_scores[battle_id])
+                    
+                    # Clean up
+                    if battle_id in battle_connections:
+                        del battle_connections[battle_id]
+                    if battle_id in battle_questions:
+                        del battle_questions[battle_id]
+                    if battle_id in battle_scores:
+                        del battle_scores[battle_id]
+                    if battle_id in battle_progress:
+                        del battle_progress[battle_id]
+                    if battle_id in battle_answers:
+                        del battle_answers[battle_id]
+                    if battle_id in battle_question_start_time:
+                        del battle_question_start_time[battle_id]
+                    
+                    return
+        
+    except Exception as e:
+        logger.error(f"[BATTLE_WS] Error in check_battle_timeout: {str(e)}")
 
 @router.websocket("/ws/battle/{battle_id}")
 async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
@@ -83,6 +127,17 @@ async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
         battle_progress[battle_id] = {}
         battle_answers[battle_id] = {}
         battle_question_start_time[battle_id] = asyncio.get_event_loop().time()
+        
+        # Initialize scores for both users in the battle
+        from battle.init import battles
+        battle = battles.get(battle_id)
+        if battle:
+            battle_scores[battle_id][battle.first_opponent] = 0
+            battle_scores[battle_id][battle.second_opponent] = 0
+            battle_progress[battle_id][battle.first_opponent] = -1  # -1 means not started
+            battle_progress[battle_id][battle.second_opponent] = -1  # -1 means not started
+            logger.info(f"[BATTLE_WS] Initialized scores for battle {battle_id}: {battle_scores[battle_id]}")
+        
         logger.info(f"[BATTLE_WS] Questions loaded for battle {battle_id}: {len(questions)} questions")
         logger.info(f"[BATTLE_WS] First question structure: {questions[0] if questions else 'No questions'}")
         
@@ -124,6 +179,10 @@ async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
             data = await websocket.receive_text()
             logger.info(f"[BATTLE_WS] Message from '{username}' in battle {battle_id}: {data}")
             msg = json.loads(data)
+            
+            # Update last activity time for this user
+            battle_question_start_time[battle_id] = asyncio.get_event_loop().time()
+            
             if msg.get("type") == "submit_answer":
                 user = msg.get("username")
                 answer = msg.get("answer")
@@ -324,7 +383,32 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
         usernames = list(final_scores.keys())
         if len(usernames) != 2:
             logger.error(f"[BATTLE_WS] Invalid number of users in battle {battle_id}: {len(usernames)}")
-            return
+            
+            # Try to get the missing user from the battle object
+            from battle.init import battles
+            battle = battles.get(battle_id)
+            if battle:
+                expected_users = [battle.first_opponent, battle.second_opponent]
+                missing_users = [user for user in expected_users if user not in final_scores]
+                
+                if missing_users:
+                    logger.warning(f"[BATTLE_WS] Missing scores for users: {missing_users}, assigning default score of 0")
+                    for missing_user in missing_users:
+                        final_scores[missing_user] = 0
+                    
+                    # Re-check after adding missing scores
+                    usernames = list(final_scores.keys())
+                    if len(usernames) == 2:
+                        logger.info(f"[BATTLE_WS] Fixed scores: {final_scores}")
+                    else:
+                        logger.error(f"[BATTLE_WS] Still invalid number of users after fix: {len(usernames)}")
+                        return
+                else:
+                    logger.error(f"[BATTLE_WS] Unexpected users in scores: {usernames}, expected: {expected_users}")
+                    return
+            else:
+                logger.error(f"[BATTLE_WS] Battle {battle_id} not found in battles dict")
+                return
         
         user1, user2 = usernames
         score1 = final_scores[user1]
@@ -344,117 +428,111 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
             loser = user2
             result = "draw"
         
-        logger.info(f"[BATTLE_WS] Battle {battle_id} result: {result}, Winner: {winner}, Loser: {loser}")
+        logger.info(f"[BATTLE_WS] Battle {battle_id} result: {result}, Winner: {winner} ({score1 if winner == user1 else score2}), Loser: {loser} ({score2 if loser == user2 else score1})")
         
         # Create battle data for database storage
-        # We need to get the battle info from somewhere - let's try to get it from the battles dict first
         from battle.init import battles
         battle = battles.get(battle_id)
         
         logger.info(f"[BATTLE_WS] Retrieved battle from battles dict: {battle}")
         
         if not battle:
-            logger.warning(f"[BATTLE_WS] Battle {battle_id} not found in battles dict, creating minimal battle data")
-            # Create minimal battle data if not found
-            battle_data = {
-                'id': battle_id,
-                'sport': 'Unknown',  # We don't have this info
-                'level': 'Unknown',  # We don't have this info
-                'first_opponent': user1,
-                'second_opponent': user2,
-                'first_opponent_score': score1,
-                'second_opponent_score': score2
-            }
-        else:
-            battle_data = {
-                'id': battle_id,
-                'sport': battle.sport,
-                'level': battle.level,
-                'first_opponent': battle.first_opponent,
-                'second_opponent': battle.second_opponent,
-                'first_opponent_score': score1,
-                'second_opponent_score': score2
-            }
+            logger.error(f"[BATTLE_WS] Battle {battle_id} not found in battles dict")
+            return
         
-        logger.info(f"[BATTLE_WS] Final battle data for database: {battle_data}")
-        
-        # Save battle to database
+        # Save battle to database with actual scores
         try:
             async with SessionLocal() as session:
-                # Check if battle already exists in database
-                existing_battle = await session.get(BattleModel, battle_id)
-                if existing_battle:
-                    logger.info(f"[BATTLE_WS] Battle {battle_id} already exists in database, skipping save")
+                # Determine which user is first_opponent and which is second_opponent
+                if battle.first_opponent == user1:
+                    first_score = score1
+                    second_score = score2
                 else:
-                    battle_db = BattleModel(
-                        id=battle_id,
-                        sport=battle_data['sport'],
-                        level=battle_data['level'],
-                        first_opponent=battle_data['first_opponent'],
-                        second_opponent=battle_data['second_opponent'],
-                        first_opponent_score=battle_data['first_opponent_score'],
-                        second_opponent_score=battle_data['second_opponent_score']
-                    )
-                    session.add(battle_db)
-                    await session.commit()
-                    await session.refresh(battle_db)
-                    logger.info(f"[BATTLE_WS] Successfully saved battle to database: {battle_db.id}")
+                    first_score = score2
+                    second_score = score1
                 
-                # Verify the battle exists by trying to retrieve it
-                verification_battle = await session.get(BattleModel, battle_id)
-                if verification_battle:
-                    logger.info(f"[BATTLE_WS] Verification successful - battle {battle_id} found in database")
-                else:
-                    logger.error(f"[BATTLE_WS] Verification failed - battle {battle_id} not found in database after saving")
+                battle_db = BattleModel(
+                    id=battle_id,
+                    sport=battle.sport,
+                    level=battle.level,
+                    first_opponent=battle.first_opponent,
+                    second_opponent=battle.second_opponent,
+                    first_opponent_score=first_score,
+                    second_opponent_score=second_score
+                )
+                session.add(battle_db)
+                await session.commit()
+                await session.refresh(battle_db)
+                logger.info(f"[BATTLE_WS] Battle {battle_id} saved to database with scores: {first_score}-{second_score}")
         except Exception as e:
             logger.error(f"[BATTLE_WS] Error saving battle to database: {str(e)}")
-            raise
+            return
         
-        # Update user statistics
-        logger.info(f"[BATTLE_WS] Starting user statistics update for result: {result}")
+        # Also call the battle router function for consistency
+        try:
+            from battle.router import battle_result, battle_draw_result
+            if result == "draw":
+                await battle_draw_result(battle_id, first_score, second_score)
+                logger.info(f"[BATTLE_WS] Called battle_draw_result for consistency")
+            else:
+                await battle_result(battle_id, winner, loser, result, 
+                                  winner_score=score1 if winner == user1 else score2,
+                                  loser_score=score2 if loser == user2 else score1)
+                logger.info(f"[BATTLE_WS] Called battle_result for consistency")
+        except Exception as e:
+            logger.error(f"[BATTLE_WS] Error calling battle router functions: {str(e)}")
+            # Don't return here - continue with the rest of the function
         
-        update_errors = []  # Track any errors that occur during updates
+        # Import the centralized update function
+        from db.router import update_user_statistics
+        
+        # Track updated users for broadcasting
+        updated_users = {}
+        update_errors = []
         
         try:
             if result == "draw":
+                # Update both users for draw
                 for username in [user1, user2]:
                     try:
                         user = await get_user_by_username(username)
                         logger.info(f"[BATTLE_WS] Updating user {username} for draw - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-                        user['totalBattle'] += 1
-                        user['streak'] = 0  
-                        user['battles'].append(battle_id)
                         
-                        if user['winBattle'] > 0:
-                            user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
-                        else:
-                            user['winRate'] = 0
-
-                        logger.info(f"[BATTLE_WS] Updated user {username} for draw - after: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-
-                        redis_username.set(user['username'], json.dumps(user))
-                        redis_email.set(user['email'], json.dumps(user))
+                        # Calculate new stats
+                        new_total_battle = user['totalBattle'] + 1
+                        new_win_battle = user['winBattle']  # No change for draw
+                        new_streak = 0  # Reset streak for draw
+                        new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_win_battle > 0 else 0
                         
-                        user_data = UserDataCreate(
-                            streak=user['streak'],
-                            winRate=user['winRate'],
-                            winBattle=user['winBattle'],
-                            ranking=user['ranking'],
-                            totalBattle=user['totalBattle'],
-                            favourite=user['favourite'],
-                            avatar=user['avatar'],
-                            username=user['username'],
-                            email=user['email'],
-                            password=user['password'],
-                            friends=user['friends'],
-                            friendRequests=user['friendRequests'],
-                            battles=user['battles'],
-                            invitations=user['invitations']
+                        # Add battle to user's battle list
+                        if battle_id not in user['battles']:
+                            user['battles'].append(battle_id)
+                        
+                        # Update user statistics using centralized function
+                        success = await update_user_statistics(
+                            username=username,
+                            total_battle=new_total_battle,
+                            win_battle=new_win_battle,
+                            streak=new_streak,
+                            win_rate=new_win_rate,
+                            battles_list=user['battles']
                         )
-                        await update_user_data(user_data)
-                        logger.info(f"[BATTLE_WS] Successfully updated user data for {username}")
+                        
+                        if success:
+                            logger.info(f"[BATTLE_WS] Successfully updated user {username} for draw")
+                            # Store updated user data for broadcasting
+                            updated_users[username] = {
+                                'totalBattle': new_total_battle,
+                                'winBattle': new_win_battle,
+                                'winRate': new_win_rate,
+                                'streak': new_streak
+                            }
+                        else:
+                            logger.error(f"[BATTLE_WS] Failed to update user {username} for draw")
+                            update_errors.append(f"Failed to update user {username} for draw")
+                            
                     except Exception as e:
-                        error_msg = f"Error updating user {username} for draw: {str(e)}"
+                        error_msg = f"Error updating user {username}: {str(e)}"
                         logger.error(f"[BATTLE_WS] {error_msg}")
                         update_errors.append(error_msg)
             else:
@@ -462,38 +540,40 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
                 try:
                     user = await get_user_by_username(winner)
                     logger.info(f"[BATTLE_WS] Updating winner {winner} - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-                    user['winBattle'] += 1
-                    user['totalBattle'] += 1
-                    user['streak'] += 1
-                    user['battles'].append(battle_id)
-
-                    if user['winBattle'] > 0:
-                        user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
-                    else:
-                        user['winRate'] = 0
-
-                    logger.info(f"[BATTLE_WS] Updated winner {winner} - after: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-
-                    redis_username.set(user['username'], json.dumps(user))
-                    redis_email.set(user['email'], json.dumps(user))
-                    user_data = UserDataCreate(
-                        streak=user['streak'],
-                        winRate=user['winRate'],
-                        winBattle=user['winBattle'],
-                        ranking=user['ranking'],
-                        totalBattle=user['totalBattle'],
-                        favourite=user['favourite'],
-                        avatar=user['avatar'],
-                        username=user['username'],
-                        email=user['email'],
-                        password=user['password'],
-                        friends=user['friends'],
-                        friendRequests=user['friendRequests'],
-                        battles=user['battles'],
-                        invitations=user['invitations']
+                    
+                    # Calculate new stats
+                    new_total_battle = user['totalBattle'] + 1
+                    new_win_battle = user['winBattle'] + 1
+                    new_streak = user['streak'] + 1
+                    new_win_rate = math.floor((new_win_battle / new_total_battle) * 100)
+                    
+                    # Add battle to user's battle list
+                    if battle_id not in user['battles']:
+                        user['battles'].append(battle_id)
+                    
+                    # Update user statistics using centralized function
+                    success = await update_user_statistics(
+                        username=winner,
+                        total_battle=new_total_battle,
+                        win_battle=new_win_battle,
+                        streak=new_streak,
+                        win_rate=new_win_rate,
+                        battles_list=user['battles']
                     )
-                    await update_user_data(user_data)
-                    logger.info(f"[BATTLE_WS] Successfully updated winner data for {winner}")
+                    
+                    if success:
+                        logger.info(f"[BATTLE_WS] Successfully updated winner {winner}")
+                        # Store updated user data for broadcasting
+                        updated_users[winner] = {
+                            'totalBattle': new_total_battle,
+                            'winBattle': new_win_battle,
+                            'winRate': new_win_rate,
+                            'streak': new_streak
+                        }
+                    else:
+                        logger.error(f"[BATTLE_WS] Failed to update winner {winner}")
+                        update_errors.append(f"Failed to update winner {winner}")
+                        
                 except Exception as e:
                     error_msg = f"Error updating winner {winner}: {str(e)}"
                     logger.error(f"[BATTLE_WS] {error_msg}")
@@ -501,42 +581,60 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
 
                 # Update loser
                 try:
+                    logger.info(f"[BATTLE_WS] Starting loser update for {loser}")
                     user = await get_user_by_username(loser)
+                    logger.info(f"[BATTLE_WS] Retrieved loser user data: {user}")
                     logger.info(f"[BATTLE_WS] Updating loser {loser} - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-                    user['totalBattle'] += 1
-                    user['streak'] = 0
-                    user['battles'].append(battle_id)
-
-                    if user['winBattle'] > 0:
-                        user['winRate'] = math.floor((user['winBattle'] / user['totalBattle']) * 100)
+                    logger.info(f"[BATTLE_WS] Loser battles list before update: {user.get('battles', [])}")
+                    
+                    # Calculate new stats
+                    new_total_battle = user['totalBattle'] + 1
+                    new_win_battle = user['winBattle']  # No change for loss
+                    new_streak = 0  # Reset streak for loss
+                    new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_win_battle > 0 else 0
+                    
+                    logger.info(f"[BATTLE_WS] Calculated new stats for loser: total={new_total_battle}, wins={new_win_battle}, streak={new_streak}, win_rate={new_win_rate}")
+                    
+                    # Add battle to user's battle list
+                    if battle_id not in user['battles']:
+                        user['battles'].append(battle_id)
+                        logger.info(f"[BATTLE_WS] Added battle {battle_id} to loser battles list")
                     else:
-                        user['winRate'] = 0
-
-                    logger.info(f"[BATTLE_WS] Updated loser {loser} - after: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-
-                    redis_username.set(user['username'], json.dumps(user))
-                    redis_email.set(user['email'], json.dumps(user))
-                    user_data = UserDataCreate(
-                        streak=user['streak'],
-                        winRate=user['winRate'],
-                        winBattle=user['winBattle'],
-                        ranking=user['ranking'],
-                        totalBattle=user['totalBattle'],
-                        favourite=user['favourite'],
-                        avatar=user['avatar'],
-                        username=user['username'],
-                        email=user['email'],
-                        password=user['password'],
-                        friends=user['friends'],
-                        friendRequests=user['friendRequests'],
-                        battles=user['battles'],
-                        invitations=user['invitations']
+                        logger.info(f"[BATTLE_WS] Battle {battle_id} already in loser battles list")
+                    
+                    logger.info(f"[BATTLE_WS] Loser battles list after update: {user['battles']}")
+                    
+                    # Update user statistics using centralized function
+                    logger.info(f"[BATTLE_WS] Calling update_user_statistics for loser {loser}")
+                    success = await update_user_statistics(
+                        username=loser,
+                        total_battle=new_total_battle,
+                        win_battle=new_win_battle,
+                        streak=new_streak,
+                        win_rate=new_win_rate,
+                        battles_list=user['battles']
                     )
-                    await update_user_data(user_data)
-                    logger.info(f"[BATTLE_WS] Successfully updated loser data for {loser}")
+                    
+                    if success:
+                        logger.info(f"[BATTLE_WS] Successfully updated loser {loser}")
+                        # Store updated user data for broadcasting
+                        updated_users[loser] = {
+                            'totalBattle': new_total_battle,
+                            'winBattle': new_win_battle,
+                            'winRate': new_win_rate,
+                            'streak': new_streak
+                        }
+                        logger.info(f"[BATTLE_WS] Added loser {loser} to updated_users: {updated_users[loser]}")
+                    else:
+                        logger.error(f"[BATTLE_WS] Failed to update loser {loser}")
+                        update_errors.append(f"Failed to update loser {loser}")
+                        
                 except Exception as e:
                     error_msg = f"Error updating loser {loser}: {str(e)}"
                     logger.error(f"[BATTLE_WS] {error_msg}")
+                    logger.error(f"[BATTLE_WS] Exception details: {type(e).__name__}: {str(e)}")
+                    import traceback
+                    logger.error(f"[BATTLE_WS] Full traceback: {traceback.format_exc()}")
                     update_errors.append(error_msg)
             
             # Update rankings
@@ -555,8 +653,88 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
         else:
             logger.info(f"[BATTLE_WS] All user updates completed successfully")
         
-        logger.info(f"[BATTLE_WS] Successfully processed battle result for {battle_id}")
+        # Broadcast battle finished event to all connected clients
+        try:
+            battle_finished_data = {
+                "type": "battle_finished",
+                "battle_id": battle_id,
+                "result": result,
+                "winner": winner if result != "draw" else None,
+                "loser": loser if result != "draw" else None,
+                "final_scores": final_scores,
+                "updated_users": updated_users,
+                "battle": {
+                    "id": battle_id,
+                    "sport": battle.sport,
+                    "level": battle.level,
+                    "first_opponent": battle.first_opponent,
+                    "second_opponent": battle.second_opponent,
+                    "first_opponent_score": first_score,
+                    "second_opponent_score": second_score
+                }
+            }
+            
+            # Send battle finished to users in this battle (they're already connected)
+            if battle_id in battle_connections:
+                for ws in battle_connections[battle_id]:
+                    try:
+                        await ws.send_text(json.dumps(battle_finished_data))
+                    except Exception as e:
+                        logger.error(f"[BATTLE_WS] Error sending battle finished to user in battle {battle_id}: {str(e)}")
+                        battle_connections[battle_id] = [w for w in battle_connections[battle_id] if w != ws]
+            
+            logger.info(f"[BATTLE_WS] Sent battle finished event for {battle_id}")
+            
+        except Exception as e:
+            logger.error(f"[BATTLE_WS] Error sending battle finished event: {str(e)}")
+        
+        # Clean up battle from memory
+        if battle_id in battles:
+            del battles[battle_id]
+            logger.info(f"[BATTLE_WS] Removed battle {battle_id} from memory")
         
     except Exception as e:
-        logger.error(f"[BATTLE_WS] Error handling battle result for {battle_id}: {str(e)}")
-        raise 
+        logger.error(f"[BATTLE_WS] Error in handle_battle_result: {str(e)}")
+        # Remove from processed battles so it can be retried
+        processed_battles.discard(battle_id) 
+
+async def monitor_battle_timeouts():
+    """Background task to monitor battle timeouts"""
+    while True:
+        try:
+            await asyncio.sleep(60)  # Check every minute
+            
+            current_time = asyncio.get_event_loop().time()
+            timeout_threshold = 300  # 5 minutes timeout
+            
+            # Check all active battles for timeouts
+            for battle_id in list(battle_connections.keys()):
+                if battle_id in battle_question_start_time:
+                    time_since_last_activity = current_time - battle_question_start_time[battle_id]
+                    if time_since_last_activity > timeout_threshold:
+                        logger.warning(f"[BATTLE_WS] Battle {battle_id} inactive for {time_since_last_activity}s, forcing completion")
+                        
+                        # Force battle completion with current scores
+                        if battle_id in battle_scores and battle_id not in processed_battles:
+                            await handle_battle_result(battle_id, battle_scores[battle_id])
+                        
+                        # Clean up
+                        if battle_id in battle_connections:
+                            del battle_connections[battle_id]
+                        if battle_id in battle_questions:
+                            del battle_questions[battle_id]
+                        if battle_id in battle_scores:
+                            del battle_scores[battle_id]
+                        if battle_id in battle_progress:
+                            del battle_progress[battle_id]
+                        if battle_id in battle_answers:
+                            del battle_answers[battle_id]
+                        if battle_id in battle_question_start_time:
+                            del battle_question_start_time[battle_id]
+        
+        except Exception as e:
+            logger.error(f"[BATTLE_WS] Error in monitor_battle_timeouts: {str(e)}")
+
+# Start the timeout monitor
+import asyncio
+asyncio.create_task(monitor_battle_timeouts()) 

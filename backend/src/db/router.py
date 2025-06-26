@@ -212,6 +212,72 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+async def update_user_statistics(username: str, total_battle: int, win_battle: int, streak: int, win_rate: int, battles_list: list = None):
+    """
+    Centralized function to update user statistics in both Redis and database.
+    This ensures consistency and proper calculation of win rate.
+    """
+    try:
+        logger.info(f"[UPDATE_STATS] Updating stats for {username}: total={total_battle}, wins={win_battle}, streak={streak}, win_rate={win_rate}")
+        logger.info(f"[UPDATE_STATS] Battles list provided: {battles_list}")
+        
+        # Get current user data from Redis
+        user_data = redis_username.get(username)
+        if not user_data:
+            logger.error(f"[UPDATE_STATS] User {username} not found in Redis")
+            return False
+        
+        user_dict = json.loads(user_data)
+        logger.info(f"[UPDATE_STATS] Current user data from Redis: {user_dict}")
+        
+        # Update statistics
+        user_dict['totalBattle'] = total_battle
+        user_dict['winBattle'] = win_battle
+        user_dict['streak'] = streak
+        user_dict['winRate'] = win_rate
+        
+        # Update battles list if provided
+        if battles_list is not None:
+            user_dict['battles'] = battles_list
+            logger.info(f"[UPDATE_STATS] Updated battles list for {username}: {battles_list}")
+        else:
+            logger.warning(f"[UPDATE_STATS] No battles list provided for {username}")
+        
+        logger.info(f"[UPDATE_STATS] Updated user dict: {user_dict}")
+        
+        # Update Redis
+        redis_username.set(username, json.dumps(user_dict))
+        redis_email.set(user_dict['email'], json.dumps(user_dict))
+        logger.info(f"[UPDATE_STATS] Updated Redis for {username}")
+        
+        # Update database
+        async with SessionLocal() as db:
+            user_model = await db.get(UserData, user_dict['email'])
+            if user_model:
+                user_model.totalBattle = total_battle
+                user_model.winBattle = win_battle
+                user_model.streak = streak
+                user_model.winRate = win_rate
+                
+                # Update battles list if provided
+                if battles_list is not None:
+                    user_model.battles = battles_list
+                    logger.info(f"[UPDATE_STATS] Updated database battles list for {username}: {battles_list}")
+                
+                await db.commit()
+                await db.refresh(user_model)
+                logger.info(f"[UPDATE_STATS] Successfully updated database for {username}")
+            else:
+                logger.error(f"[UPDATE_STATS] User {username} not found in database")
+                return False
+        
+        return True
+    except Exception as e:
+        logger.error(f"[UPDATE_STATS] Error updating stats for {username}: {str(e)}")
+        import traceback
+        logger.error(f"[UPDATE_STATS] Full traceback: {traceback.format_exc()}")
+        return False
+
 async def update_data(user: UserDataCreate):
     async with SessionLocal() as db:
         user_model = await db.get(UserData, user.email)
@@ -611,5 +677,288 @@ async def reset_user_stats(username: str):
         redis_email.set(user_model.email, json.dumps(user_dict))
         redis_username.set(user_model.username, json.dumps(user_dict))
         return {"message": "User statistics reset successfully"}
+
+@db_router.get("/debug-user-stats/{username}", name="debug user statistics")
+async def debug_user_stats(username: str):
+    """Debug endpoint to check user statistics"""
+    try:
+        # Get user from database
+        async with SessionLocal() as db:
+            stmt = select(UserData).where(UserData.username == username)
+            result = await db.execute(stmt)
+            user_model = result.scalar_one_or_none()
+            
+            if not user_model:
+                return {"error": "User not found in database"}
+            
+            db_stats = {
+                "username": user_model.username,
+                "email": user_model.email,
+                "totalBattle": user_model.totalBattle,
+                "winBattle": user_model.winBattle,
+                "winRate": user_model.winRate,
+                "streak": user_model.streak,
+                "ranking": user_model.ranking,
+                "battles": user_model.battles
+            }
+        
+        # Get user from Redis
+        redis_data = redis_username.get(username)
+        redis_stats = None
+        if redis_data:
+            redis_stats = json.loads(redis_data)
+            redis_stats = {
+                "username": redis_stats.get('username'),
+                "email": redis_stats.get('email'),
+                "totalBattle": redis_stats.get('totalBattle'),
+                "winBattle": redis_stats.get('winBattle'),
+                "winRate": redis_stats.get('winRate'),
+                "streak": redis_stats.get('streak'),
+                "ranking": redis_stats.get('ranking'),
+                "battles": redis_stats.get('battles')
+            }
+        
+        return {
+            "database_stats": db_stats,
+            "redis_stats": redis_stats,
+            "match": db_stats == redis_stats if redis_stats else False
+        }
+    except Exception as e:
+        return {"error": f"Error getting user stats: {str(e)}"}
+
+@db_router.get("/debug-battles", name="debug all battles")
+async def debug_battles():
+    """Debug endpoint to check all battles in database"""
+    try:
+        async with SessionLocal() as db:
+            stmt = select(BattleModel)
+            result = await db.execute(stmt)
+            battles = result.scalars().all()
+            
+            battle_list = []
+            for battle in battles:
+                battle_list.append({
+                    "id": battle.id,
+                    "sport": battle.sport,
+                    "level": battle.level,
+                    "first_opponent": battle.first_opponent,
+                    "second_opponent": battle.second_opponent,
+                    "first_opponent_score": battle.first_opponent_score,
+                    "second_opponent_score": battle.second_opponent_score
+                })
+            
+            return {
+                "total_battles": len(battle_list),
+                "battles": battle_list
+            }
+    except Exception as e:
+        return {"error": f"Error getting battles: {str(e)}"}
+
+@db_router.get("/debug-battles/{username}", name="debug user battles")
+async def debug_user_battles(username: str):
+    """Debug endpoint to check battles for a specific user"""
+    try:
+        async with SessionLocal() as db:
+            # Get battles where user is first opponent
+            stmt_first = select(BattleModel).where(BattleModel.first_opponent == username)
+            result_first = await db.execute(stmt_first)
+            battles_as_first = result_first.scalars().all()
+            
+            # Get battles where user is second opponent
+            stmt_second = select(BattleModel).where(BattleModel.second_opponent == username)
+            result_second = await db.execute(stmt_second)
+            battles_as_second = result_second.scalars().all()
+            
+            battle_list = []
+            
+            for battle in battles_as_first:
+                battle_list.append({
+                    "id": battle.id,
+                    "sport": battle.sport,
+                    "level": battle.level,
+                    "position": "first_opponent",
+                    "my_score": battle.first_opponent_score,
+                    "opponent_score": battle.second_opponent_score,
+                    "opponent": battle.second_opponent,
+                    "result": "win" if battle.first_opponent_score > battle.second_opponent_score else "lose" if battle.first_opponent_score < battle.second_opponent_score else "draw"
+                })
+            
+            for battle in battles_as_second:
+                battle_list.append({
+                    "id": battle.id,
+                    "sport": battle.sport,
+                    "level": battle.level,
+                    "position": "second_opponent",
+                    "my_score": battle.second_opponent_score,
+                    "opponent_score": battle.first_opponent_score,
+                    "opponent": battle.first_opponent,
+                    "result": "win" if battle.second_opponent_score > battle.first_opponent_score else "lose" if battle.second_opponent_score < battle.first_opponent_score else "draw"
+                })
+            
+            # Sort by most recent (assuming ID contains timestamp info)
+            battle_list.sort(key=lambda x: x["id"], reverse=True)
+            
+            return {
+                "username": username,
+                "total_battles": len(battle_list),
+                "battles": battle_list[:10]  # Show last 10 battles
+            }
+    except Exception as e:
+        return {"error": f"Error getting user battles: {str(e)}"}
+
+@db_router.get("/debug-users", name="debug all users")
+async def debug_users():
+    """Debug endpoint to check all users in database"""
+    try:
+        async with SessionLocal() as db:
+            stmt = select(UserData)
+            result = await db.execute(stmt)
+            users = result.scalars().all()
+            
+            user_list = []
+            for user in users:
+                user_list.append({
+                    "username": user.username,
+                    "email": user.email,
+                    "totalBattle": user.totalBattle,
+                    "winBattle": user.winBattle,
+                    "winRate": user.winRate,
+                    "streak": user.streak,
+                    "ranking": user.ranking,
+                    "battles_count": len(user.battles) if user.battles else 0
+                })
+            
+            # Sort by ranking
+            user_list.sort(key=lambda x: x["ranking"])
+            
+            return {
+                "total_users": len(user_list),
+                "users": user_list
+            }
+    except Exception as e:
+        return {"error": f"Error getting users: {str(e)}"}
+
+@db_router.get("/debug-database-health", name="debug database health")
+async def debug_database_health():
+    """Debug endpoint to check database health and connection"""
+    try:
+        async with SessionLocal() as db:
+            # Test database connection
+            await db.execute("SELECT 1")
+            
+            # Count records
+            user_count = await db.execute(select(UserData))
+            user_count = len(user_count.scalars().all())
+            
+            battle_count = await db.execute(select(BattleModel))
+            battle_count = len(battle_count.scalars().all())
+            
+            return {
+                "status": "healthy",
+                "connection": "ok",
+                "user_count": user_count,
+                "battle_count": battle_count,
+                "timestamp": str(datetime.now())
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "connection": "failed",
+            "error": str(e),
+            "timestamp": str(datetime.now())
+        }
+
+@db_router.get("/debug-redis-health", name="debug redis health")
+async def debug_redis_health():
+    """Debug endpoint to check Redis health and data"""
+    try:
+        # Test Redis connection
+        redis_username.ping()
+        
+        # Get some sample data
+        sample_keys = redis_username.keys("*")
+        sample_data = {}
+        
+        for key in sample_keys[:5]:  # Show first 5 keys
+            if isinstance(key, bytes):
+                key = key.decode('utf-8')
+            data = redis_username.get(key)
+            if data:
+                try:
+                    sample_data[key] = json.loads(data)
+                except:
+                    sample_data[key] = "Non-JSON data"
+        
+        return {
+            "status": "healthy",
+            "connection": "ok",
+            "total_keys": len(sample_keys),
+            "sample_data": sample_data,
+            "timestamp": str(datetime.now())
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "connection": "failed",
+            "error": str(e),
+            "timestamp": str(datetime.now())
+        }
+
+@db_router.get("/debug-user-battles/{username}", name="debug user battles list")
+async def debug_user_battles_list(username: str):
+    """Debug endpoint to check a user's battles list and verify battle storage"""
+    try:
+        logger.info(f"[DEBUG] Checking battles for user: {username}")
+        
+        # Get user from Redis
+        user_data = redis_username.get(username)
+        if not user_data:
+            return {"error": f"User {username} not found in Redis"}
+        
+        user_dict = json.loads(user_data)
+        battles_list = user_dict.get('battles', [])
+        
+        logger.info(f"[DEBUG] User {username} battles list from Redis: {battles_list}")
+        
+        # Check each battle in the database
+        battle_details = []
+        async with SessionLocal() as db:
+            for battle_id in battles_list:
+                battle_data = await db.get(BattleModel, battle_id)
+                if battle_data:
+                    battle_details.append({
+                        "id": battle_id,
+                        "first_opponent": battle_data.first_opponent,
+                        "second_opponent": battle_data.second_opponent,
+                        "first_score": battle_data.first_opponent_score,
+                        "second_score": battle_data.second_opponent_score,
+                        "sport": battle_data.sport,
+                        "level": battle_data.level,
+                        "created_at": str(battle_data.created_at) if hasattr(battle_data, 'created_at') else None
+                    })
+                else:
+                    battle_details.append({
+                        "id": battle_id,
+                        "error": "Battle not found in database"
+                    })
+        
+        return {
+            "username": username,
+            "battles_list": battles_list,
+            "battles_count": len(battles_list),
+            "battle_details": battle_details,
+            "user_stats": {
+                "totalBattle": user_dict.get('totalBattle', 0),
+                "winBattle": user_dict.get('winBattle', 0),
+                "winRate": user_dict.get('winRate', 0),
+                "streak": user_dict.get('streak', 0)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"[DEBUG] Error checking user battles: {str(e)}")
+        import traceback
+        logger.error(f"[DEBUG] Full traceback: {traceback.format_exc()}")
+        return {"error": f"Error checking user battles: {str(e)}"}
 
 

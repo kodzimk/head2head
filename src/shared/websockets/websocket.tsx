@@ -179,20 +179,24 @@ export const checkForWinner = (battle_id: string) => {
   }))
 }
 
-export const battleResult = (battle_id: string, winner: string, loser: string,result:string) => {
+export const battleResult = (battle_id: string, winner: string, loser: string, result: string, winner_score?: number, loser_score?: number) => {
   newSocket?.send(JSON.stringify({
     type: "battle_result",
     battle_id: battle_id,
     winner: winner,
     loser: loser,
-    result: result
+    result: result,
+    winner_score: winner_score,
+    loser_score: loser_score
   }))
 }
 
-export const battleDrawResult = (battle_id: string) => {
+export const battleDrawResult = (battle_id: string, first_score?: number, second_score?: number) => {
   newSocket?.send(JSON.stringify({
     type: "battle_draw_result",
-    battle_id: battle_id
+    battle_id: battle_id,
+    first_score: first_score,
+    second_score: second_score
   }))
 }
 

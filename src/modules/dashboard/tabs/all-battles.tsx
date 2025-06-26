@@ -46,12 +46,9 @@ const getSportIcon = (sport: string) => {
   return sportIcons[sport.toLowerCase()] || sportIcons.default;
 };
 
-
-
 export default function AllBattles() {
   const [allBattles, setAllBattles] = useState<RecentBattle[]>([]);
   const [filteredBattles, setFilteredBattles] = useState<RecentBattle[]>([]);
-  const [sortedBattles, setSortedBattles] = useState<RecentBattle[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [sportFilter, setSportFilter] = useState("all");
   const [resultFilter, setResultFilter] = useState("all");
@@ -65,7 +62,7 @@ export default function AllBattles() {
       try {
         setIsLoading(true);
         const response = await axios.get(
-          `${API_BASE_URL}/get_battles?username=${localStorage.getItem("username")}`,
+          `${API_BASE_URL}/battle/get_battles?username=${localStorage.getItem("username")}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -74,7 +71,7 @@ export default function AllBattles() {
         );
         
         const data = await response.data;
-        const mapped: RecentBattle[] = data.reverse().map((battle: any) => {
+        const mapped: RecentBattle[] = data.map((battle: any) => {
           let opponent = battle.first_opponent === localStorage.getItem("username") ? battle.second_opponent : battle.first_opponent;
           
           let result = "draw";
@@ -125,6 +122,22 @@ export default function AllBattles() {
     const handleBattleFinished = (event: any) => {
       console.log('[All Battles] Battle finished event received:', event.detail);
       console.log('[All Battles] Refreshing battle data...');
+      
+      // Update user stats if provided in the event
+      const username = localStorage.getItem("username");
+      if (event.detail.updated_users && username && event.detail.updated_users[username]) {
+        const updatedStats = event.detail.updated_users[username];
+        console.log('[All Battles] Updating user stats:', updatedStats);
+        
+        // Update the user object with new stats
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        userData.totalBattles = updatedStats.totalBattle;
+        userData.wins = updatedStats.winBattle;
+        userData.winRate = updatedStats.winRate;
+        userData.streak = updatedStats.streak;
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
       fetchAllBattles();
     };
     
@@ -151,22 +164,12 @@ export default function AllBattles() {
     setCurrentPage(1); 
   }, [allBattles, sportFilter, resultFilter]);
 
-  useEffect(() => {
-    const sorted = [...filteredBattles].sort((a, b) => { 
-      const resultOrder = { win: 1, draw: 2, lose: 3 };
-      return (resultOrder[a.result as keyof typeof resultOrder] || 0) - (resultOrder[b.result as keyof typeof resultOrder] || 0);
-    });
-    
-    setSortedBattles(sorted);
-    setCurrentPage(1); 
-  }, [filteredBattles]);
-
   const uniqueSports = [...new Set(allBattles.map(battle => battle.sport))];
 
-  const totalPages = Math.ceil(sortedBattles.length / battlesPerPage);
+  const totalPages = Math.ceil(filteredBattles.length / battlesPerPage);
   const startIndex = (currentPage - 1) * battlesPerPage;
   const endIndex = startIndex + battlesPerPage;
-  const currentBattles = sortedBattles.slice(startIndex, endIndex);
+  const currentBattles = filteredBattles.slice(startIndex, endIndex);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -245,11 +248,11 @@ export default function AllBattles() {
           {currentBattles.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg mb-4">
-                {sortedBattles.length === 0 && allBattles.length > 0 
+                {filteredBattles.length === 0 && allBattles.length > 0 
                   ? "No battles match your filters" 
                   : "No battles found"}
               </p>
-              {sortedBattles.length === 0 && allBattles.length > 0 && (
+              {filteredBattles.length === 0 && allBattles.length > 0 && (
                 <Button 
                   variant="outline" 
                   onClick={() => {

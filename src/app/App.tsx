@@ -216,6 +216,28 @@ export default function App() {
            }
            setUser(updatedUser)
          }
+         else if (data.type === 'friend_request_updated') {
+           console.log("Friend request updated:", data.data);
+           // Update user state with the new data
+           const updatedUser = {
+             email: data.data.email,
+             username: data.data.username,
+             wins: data.data.winBattle,
+             favoritesSport: data.data.favourite,
+             rank: data.data.ranking,
+             winRate: data.data.winRate,
+             totalBattles: data.data.totalBattle,
+             streak: data.data.streak,
+             password: data.data.password,
+             friends: data.data.friends,
+             friendRequests: data.data.friendRequests,
+             avatar: data.data.avatar,
+             battles: data.data.battles,
+             invitations: data.data.invitations
+           }
+           setUser(updatedUser)
+           console.log("User state updated with friend request changes");
+         }
          // Only keep non-battle, non-creation logic below
          else if(data.type === 'waiting_battles'){
            console.log("Received waiting battles:", data.data); // Debug logging

@@ -53,7 +53,7 @@ export class BattleWebSocket {
 
   send(data: any) {
     if (this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
+    this.ws.send(JSON.stringify(data));
     } else {
       console.error(`[BATTLE_WS] Cannot send message, WebSocket is not open. State: ${this.ws.readyState}`);
       throw new Error('WebSocket is not open');
