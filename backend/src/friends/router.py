@@ -13,8 +13,8 @@ async def cancel_friend_request(username: str, from_username: str):
         if from_username in user_model['friendRequests']:
             user_model['friendRequests'].remove(from_username)
 
-        redis_username.set(username, json.dumps(user_model))
         redis_email.set(user_model['email'], json.dumps(user_model))
+        redis_username.set(username, json.dumps(user_model))
         await update_data(UserDataCreate(**user_model)) 
         return user_model
 
@@ -40,10 +40,10 @@ async def add_friend(username: str, friend_username: str):
         if username not in friend_model['friends']:
             friend_model['friends'].append(username)
 
-        redis_username.set(username, json.dumps(user_model))
-        redis_username.set(friend_username, json.dumps(friend_model))
         redis_email.set(user_model['email'], json.dumps(user_model))
+        redis_username.set(username, json.dumps(user_model))
         redis_email.set(friend_model['email'], json.dumps(friend_model))
+        redis_username.set(friend_username, json.dumps(friend_model))
         await update_data(UserDataCreate(**user_model))
         await update_data(UserDataCreate(**friend_model))
         
@@ -57,8 +57,8 @@ async def send_friend_request(username: str, from_username: str):
         if from_username not in user_model['friendRequests']:
             user_model['friendRequests'].append(from_username)
         
-        redis_username.set(username, json.dumps(user_model))
         redis_email.set(user_model['email'], json.dumps(user_model))
+        redis_username.set(username, json.dumps(user_model))
         await update_data(UserDataCreate(**user_model))
         return True
 
@@ -73,15 +73,15 @@ async def remove_friend(username: str, from_username: str):
     user_model = redis_username.get(username)
     user_model = json.loads(user_model)
     user_model['friends'].remove(from_username)
-    redis_username.set(username, json.dumps(user_model))
     redis_email.set(user_model['email'], json.dumps(user_model))
+    redis_username.set(username, json.dumps(user_model))
     await update_data(UserDataCreate(**user_model))
 
     friend_model = redis_username.get(from_username)
     friend_model = json.loads(friend_model)
     friend_model['friends'].remove(username)
-    redis_username.set(from_username, json.dumps(friend_model))
     redis_email.set(friend_model['email'], json.dumps(friend_model))
+    redis_username.set(from_username, json.dumps(friend_model))
     await update_data(UserDataCreate(**friend_model))
 
     return True

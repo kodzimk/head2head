@@ -1,5 +1,4 @@
 from battle.init import Battle,battle_router,battles
-from db.router import update_user_data,get_user_by_username
 from models import UserDataCreate,UserData
 from fastapi import  Query
 from fastapi import HTTPException
@@ -7,14 +6,15 @@ from init import SessionLocal
 from models import BattleModel
 import uuid
 from init import redis_username,redis_email
-from tasks import generate_ai_quiz, queue_quiz_generation_task
-from celery.result import AsyncResult
+from tasks import queue_quiz_generation_task
+from db.router import update_user_data,get_user_by_username,repair_user_battles
 
 import json
 import math
 from sqlalchemy import select
 import logging
-from datetime import datetime
+import traceback
+
 
 logger = logging.getLogger(__name__)
 
@@ -189,263 +189,180 @@ async def accept_invitation(friend_username: str, battle_id: str):
     return True
 
 @battle_router.post("/battle_result")
-async def battle_result(battle_id: str, winner: str, loser: str, result: str, winner_score: int = None, loser_score: int = None):
-    """Handle battle result and update user statistics"""
-    try:
-        logger.info(f"[BATTLE_ROUTER] Processing battle result: {battle_id}, winner: {winner}, loser: {loser}, result: {result}")
-        logger.info(f"[BATTLE_ROUTER] Scores - winner: {winner_score}, loser: {loser_score}")
-        
-        # Get battle from memory
-        battle = battles.get(battle_id)
-        if not battle:
-            logger.error(f"[BATTLE_ROUTER] Battle {battle_id} not found in memory")
-            return False
-        
-        # Require provided scores, do not fallback
-        if winner_score is not None and loser_score is not None:
-            first_score = winner_score if battle.first_opponent == winner else loser_score
-            second_score = loser_score if battle.first_opponent == winner else winner_score
-        else:
-            logger.error(f"[BATTLE_ROUTER] No valid scores provided for battle {battle_id}. Refusing to save.")
-            return False
-        
-        logger.info(f"[BATTLE_ROUTER] Final scores - {battle.first_opponent}: {first_score}, {battle.second_opponent}: {second_score}")
-        
-        # Save battle to database
-        async with SessionLocal() as session:
-            battle_db = BattleModel(
-                id=battle_id,
-                sport=battle.sport,
-                level=battle.level,
-                first_opponent=battle.first_opponent,
-                second_opponent=battle.second_opponent,
-                first_opponent_score=first_score,
-                second_opponent_score=second_score
-            )
-            session.add(battle_db)
-            await session.commit()
-            await session.refresh(battle_db)
-            logger.info(f"[BATTLE_ROUTER] Battle {battle_id} saved to database")
+async def battle_result(battle_id: str, winner: str, loser: str, result: str):
+    import math
+    import json
+    # Import here to avoid circular import
+    from db.router import update_user_data, get_user_by_username
+    from init import redis_username, redis_email
 
-        # Import the centralized update function
-        from db.router import update_user_statistics
-        
-        if result == "draw":
-            # Update both users for draw
-            for username in [battle.first_opponent, battle.second_opponent]:
-                try:
-                    user = await get_user_by_username(username)
-                    logger.info(f"[BATTLE_ROUTER] Updating user {username} for draw - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-                    
-                    # Calculate new stats
-                    new_total_battle = user['totalBattle'] + 1
-                    new_win_battle = user['winBattle']  # No change for draw
-                    new_streak = 0  # Reset streak for draw
-                    new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_win_battle > 0 else 0
-                    
-                    # Add battle to user's battle list
-                    if battle_id not in user['battles']:
-                        user['battles'].append(battle_id)
-                    
-                    # Update user statistics using centralized function
-                    success = await update_user_statistics(
-                        username=username,
-                        total_battle=new_total_battle,
-                        win_battle=new_win_battle,
-                        streak=new_streak,
-                        win_rate=new_win_rate,
-                        battles_list=user['battles']
-                    )
-                    
-                    if success:
-                        logger.info(f"[BATTLE_ROUTER] Successfully updated user {username} for draw")
+    battle = battles.get(battle_id)
+    if not battle:
+        raise HTTPException(status_code=401, detail="Battle not found")
+    async with SessionLocal() as session:
+        # Save battle to DB
+        battle_db = BattleModel(
+            id=battle_id,
+            sport=battle.sport,
+            level=battle.level,
+            first_opponent=battle.first_opponent,
+            second_opponent=battle.second_opponent,
+            first_opponent_score=battle.first_opponent_score,
+            second_opponent_score=battle.second_opponent_score
+        )
+        session.add(battle_db)
+        await session.commit()
+        await session.refresh(battle_db)
+    if battle_id in battles:
+        del battles[battle_id]
+    # --- Begin repair-style update logic, but increment stats for this battle ---
+    from models import UserData, BattleModel
+    from init import redis_username, redis_email, SessionLocal
+    import math
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        async with SessionLocal() as db:
+            # Get all users
+            users_result = await db.execute(select(UserData))
+            users = users_result.scalars().all()
+            # Get all battles
+            battles_result = await db.execute(select(BattleModel))
+            battles = battles_result.scalars().all()
+            # Build a mapping from username to battle objects
+            user_battles_map = {user.username: [] for user in users}
+            for battle in battles:
+                if battle.first_opponent:
+                    user_battles_map.setdefault(battle.first_opponent, []).append(battle)
+                if battle.second_opponent:
+                    user_battles_map.setdefault(battle.second_opponent, []).append(battle)
+            # Update each user
+            for user in users:
+                user_battles = user_battles_map.get(user.username, [])
+                user_battles.sort(key=lambda b: str(b.id))
+                battle_ids = [b.id for b in user_battles]
+                user.battles = battle_ids
+                user.totalBattle = len(battle_ids)
+                # Calculate winBattle and streak
+                win_count = 0
+                streak = 0
+                current_streak = 0
+                for battle in reversed(user_battles):  # Most recent first
+                    if battle.first_opponent == user.username:
+                        my_score = battle.first_opponent_score
+                        opp_score = battle.second_opponent_score
                     else:
-                        logger.error(f"[BATTLE_ROUTER] Failed to update user {username} for draw")
-                        
+                        my_score = battle.second_opponent_score
+                        opp_score = battle.first_opponent_score
+                    if my_score > opp_score:
+                        win_count += 1
+                        current_streak += 1
+                    else:
+                        if my_score == opp_score:
+                            current_streak = 0
+                        else:
+                            current_streak = 0
+                    if streak == 0 and current_streak > 0:
+                        streak = current_streak
+                user.winBattle = win_count
+                user.streak = streak
+                user.winRate = math.floor((user.winBattle / user.totalBattle) * 100) if user.totalBattle > 0 else 0
+                try:
+                    await db.commit()
+                    await db.refresh(user)
+                    # Update Redis
+                    user_dict = {
+                        'username': user.username,
+                        'email': user.email,
+                        'totalBattle': user.totalBattle,
+                        'winRate': user.winRate,
+                        'ranking': user.ranking,
+                        'winBattle': user.winBattle,
+                        'favourite': user.favourite,
+                        'streak': user.streak,
+                        'password': user.password,
+                        'friends': user.friends,
+                        'friendRequests': user.friendRequests,
+                        'avatar': user.avatar,
+                        'battles': user.battles,
+                        'invitations': user.invitations
+                    }
+                    redis_username.set(user.username, json.dumps(user_dict))
+                    redis_email.set(user.email, json.dumps(user_dict))
+                    logger.info(f"[RESULT-REPAIR] Updated user {user.username}: battles={user.totalBattle}, wins={user.winBattle}, streak={user.streak}, winRate={user.winRate}")
                 except Exception as e:
-                    logger.error(f"[BATTLE_ROUTER] Error updating user {username} for draw: {str(e)}")
-        else:
-            # Update winner
-            try:
-                user = await get_user_by_username(winner)
-                logger.info(f"[BATTLE_ROUTER] Updating winner {winner} - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-                
-                # Calculate new stats
-                new_total_battle = user['totalBattle'] + 1
-                new_win_battle = user['winBattle'] + 1
-                new_streak = user['streak'] + 1
-                new_win_rate = math.floor((new_win_battle / new_total_battle) * 100)
-                
-                # Add battle to user's battle list
-                if battle_id not in user['battles']:
-                    user['battles'].append(battle_id)
-                
-                # Update user statistics using centralized function
-                success = await update_user_statistics(
-                    username=winner,
-                    total_battle=new_total_battle,
-                    win_battle=new_win_battle,
-                    streak=new_streak,
-                    win_rate=new_win_rate,
-                    battles_list=user['battles']
-                )
-                
-                if success:
-                    logger.info(f"[BATTLE_ROUTER] Successfully updated winner {winner}")
-                else:
-                    logger.error(f"[BATTLE_ROUTER] Failed to update winner {winner}")
-                    
-            except Exception as e:
-                logger.error(f"[BATTLE_ROUTER] Error updating winner {winner}: {str(e)}")
-
-            # Update loser
-            try:
-                user = await get_user_by_username(loser)
-                logger.info(f"[BATTLE_ROUTER] Updating loser {loser} - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-                
-                # Calculate new stats
-                new_total_battle = user['totalBattle'] + 1
-                new_win_battle = user['winBattle']  # No change for loss
-                new_streak = 0  # Reset streak for loss
-                new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_win_battle > 0 else 0
-                
-                # Add battle to user's battle list
-                if battle_id not in user['battles']:
-                    user['battles'].append(battle_id)
-                
-                # Update user statistics using centralized function
-                success = await update_user_statistics(
-                    username=loser,
-                    total_battle=new_total_battle,
-                    win_battle=new_win_battle,
-                    streak=new_streak,
-                    win_rate=new_win_rate,
-                    battles_list=user['battles']
-                )
-                
-                if success:
-                    logger.info(f"[BATTLE_ROUTER] Successfully updated loser {loser}")
-                else:
-                    logger.error(f"[BATTLE_ROUTER] Failed to update loser {loser}")
-                    
-            except Exception as e:
-                logger.error(f"[BATTLE_ROUTER] Error updating loser {loser}: {str(e)}")
-
-        # Update all user rankings
-        await update_user_rankings()
-        logger.info(f"[BATTLE_ROUTER] Updated user rankings")
-
+                    logger.error(f"[RESULT-REPAIR] Failed to update user {user.username}: {str(e)}")
     except Exception as e:
-        logger.error(f"[BATTLE_ROUTER] Error in battle_result: {str(e)}")
-        return False
-
-    # Clean up battle from memory
-    if battle_id in battles:
-        del battles[battle_id]
-        logger.info(f"[BATTLE_ROUTER] Removed battle {battle_id} from memory")
-
+        logger.error(f"[RESULT-REPAIR] Fatal error in result repair logic: {str(e)}")
+    # --- End repair-style update logic ---
     return True
 
-@battle_router.post("/battle_draw_result")
-async def battle_draw_result(battle_id: str, first_score: int = None, second_score: int = None):
-    """Handle battle draw result and update user statistics"""
+@battle_router.post("/battle_draw_result", tags=["battle"])
+async def battle_draw_result(battle_id: str, score1: int, score2: int):
+    logger.info(f"[BATTLE_ROUTER] battle_draw_result called for battle_id={battle_id}, scores={score1}-{score2}")
     try:
-        logger.info(f"[BATTLE_ROUTER] Processing battle draw result: {battle_id}")
-        logger.info(f"[BATTLE_ROUTER] Scores - first: {first_score}, second: {second_score}")
-        
-        # Get battle from memory
-        battle = battles.get(battle_id)
-        if not battle:
-            logger.error(f"[BATTLE_ROUTER] Battle {battle_id} not found in memory")
-            return False
-        
-        # Require provided scores, do not fallback
-        if first_score is not None and second_score is not None:
-            final_first_score = first_score
-            final_second_score = second_score
-        else:
-            logger.error(f"[BATTLE_ROUTER] No valid scores provided for battle {battle_id}. Refusing to save.")
-            return False
-        
-        logger.info(f"[BATTLE_ROUTER] Final scores - {battle.first_opponent}: {final_first_score}, {battle.second_opponent}: {final_second_score}")
-        
-        # Save battle to database
+        from models import BattleModel
+        from init import SessionLocal
         async with SessionLocal() as session:
             battle_db = BattleModel(
                 id=battle_id,
-                sport=battle.sport,
-                level=battle.level,
-                first_opponent=battle.first_opponent,
-                second_opponent=battle.second_opponent,
-                first_opponent_score=final_first_score,
-                second_opponent_score=final_second_score
+                sport=None,
+                level=None,
+                first_opponent=None,
+                second_opponent=None,
+                first_opponent_score=score1,
+                second_opponent_score=score2
             )
             session.add(battle_db)
             await session.commit()
             await session.refresh(battle_db)
-            logger.info(f"[BATTLE_ROUTER] Battle {battle_id} saved to database")
-
-        # Import the centralized update function
-        from db.router import update_user_statistics
-
-        # Update both users for draw
-        for username in [battle.first_opponent, battle.second_opponent]:
-            try:
-                user = await get_user_by_username(username)
-                logger.info(f"[BATTLE_ROUTER] Updating user {username} for draw - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-                
-                # Calculate new stats
-                new_total_battle = user['totalBattle'] + 1
-                new_win_battle = user['winBattle']  # No change for draw
-                new_streak = 0  # Reset streak for draw
-                new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_win_battle > 0 else 0
-                
-                # Add battle to user's battle list
-                if battle_id not in user['battles']:
-                    user['battles'].append(battle_id)
-                
-                # Update user statistics using centralized function
-                success = await update_user_statistics(
-                    username=username,
-                    total_battle=new_total_battle,
-                    win_battle=new_win_battle,
-                    streak=new_streak,
-                    win_rate=new_win_rate,
-                    battles_list=user['battles']
-                )
-                
-                if success:
-                    logger.info(f"[BATTLE_ROUTER] Successfully updated user {username} for draw")
-                else:
-                    logger.error(f"[BATTLE_ROUTER] Failed to update user {username} for draw")
-                    
-            except Exception as e:
-                logger.error(f"[BATTLE_ROUTER] Error updating user {username} for draw: {str(e)}")
-        
-        # Update all user rankings
-        await update_user_rankings()
-        logger.info(f"[BATTLE_ROUTER] Updated user rankings")
-
+            logger.info(f"[BATTLE_ROUTER] Battle {battle_id} (draw) saved to database.")
     except Exception as e:
-        logger.error(f"[BATTLE_ROUTER] Error in battle_draw_result: {str(e)}")
-        return False
-
-    # Clean up battle from memory
-    if battle_id in battles:
-        del battles[battle_id]
-        logger.info(f"[BATTLE_ROUTER] Removed battle {battle_id} from memory")
-
-    return True
+        logger.error(f"[BATTLE_ROUTER] Error saving draw battle: {str(e)}\n{traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
+    # Update user stats for both users
+    from db.router import update_user_statistics, get_user_by_username
+    try:
+        # Assume you have a way to get both usernames for the draw
+        # usernames = ...
+        for username in usernames:
+            user = await get_user_by_username(username)
+            new_total_battle = user['totalBattle'] + 1
+            new_win_battle = user['winBattle']
+            new_streak = 0
+            new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_total_battle > 0 else 0
+            if battle_id not in user['battles']:
+                user['battles'].append(battle_id)
+            success = await update_user_statistics(
+                username=username,
+                total_battle=new_total_battle,
+                win_battle=new_win_battle,
+                streak=new_streak,
+                win_rate=new_win_rate,
+                battles_list=user['battles']
+            )
+            if not success:
+                logger.error(f"[BATTLE_ROUTER] Failed to update user {username} for draw")
+                return {"success": False, "error": f"Failed to update user {username} for draw"}
+        logger.info(f"[BATTLE_ROUTER] User stats updated for both users (draw).")
+    except Exception as e:
+        logger.error(f"[BATTLE_ROUTER] Error updating user stats for draw: {str(e)}\n{traceback.format_exc()}")
+        return {"success": False, "error": str(e)}
+    return {"success": True}
 
 @battle_router.get("/get_battles")
 async def get_battles(username: str):
     """Get all battles for a user, sorted by recency (newest first)"""
+    # Import here to avoid circular import
+    from db.router import get_user_by_username
     logger.info(f"[BATTLE_ROUTER] Getting all battles for user: {username}")
     user = await get_user_by_username(username)
+    if not user:
+        logger.error(f"[BATTLE_ROUTER] User {username} not found in DB (get_battles)")
+        return []
     battles_user = user['battles']
     logger.info(f"[BATTLE_ROUTER] User {username} has {len(battles_user)} battles in their list: {battles_user}")
     battles_list = []
-
     async with SessionLocal() as session:
         for battle_id in battles_user:
             logger.info(f"[BATTLE_ROUTER] Looking up battle {battle_id} in database")
@@ -455,22 +372,23 @@ async def get_battles(username: str):
                 battles_list.append(battle_data.to_json())
             else:
                 logger.warning(f"[BATTLE_ROUTER] Battle {battle_id} not found in database")
-    
-    # Sort by battle ID (newest first - assuming UUIDs are time-based)
     battles_list.sort(key=lambda x: x['id'], reverse=True)
-    
     logger.info(f"[BATTLE_ROUTER] Returning {len(battles_list)} battles for user {username} (sorted by recency)")
     return battles_list
 
 @battle_router.get("/get_recent_battles")
 async def get_recent_battles(username: str, limit: int = 4):
     """Get recent battles for a user, sorted by recency (newest first)"""
+    # Import here to avoid circular import
+    from db.router import get_user_by_username
     logger.info(f"[BATTLE_ROUTER] Getting recent battles for user: {username} (limit: {limit})")
     user = await get_user_by_username(username)
+    if not user:
+        logger.error(f"[BATTLE_ROUTER] User {username} not found in DB (get_recent_battles)")
+        return []
     battles_user = user['battles']
     logger.info(f"[BATTLE_ROUTER] User {username} has {len(battles_user)} battles in their list: {battles_user}")
     battles_list = []
-
     async with SessionLocal() as session:
         for battle_id in battles_user:
             logger.info(f"[BATTLE_ROUTER] Looking up battle {battle_id} in database")
@@ -480,13 +398,8 @@ async def get_recent_battles(username: str, limit: int = 4):
                 battles_list.append(battle_data.to_json())
             else:
                 logger.warning(f"[BATTLE_ROUTER] Battle {battle_id} not found in database")
-    
-    # Sort by battle ID (newest first - assuming UUIDs are time-based)
     battles_list.sort(key=lambda x: x['id'], reverse=True)
-    
-    # Limit to specified number of recent battles
     battles_list = battles_list[:limit]
-    
     logger.info(f"[BATTLE_ROUTER] Returning {len(battles_list)} recent battles for user {username}")
     return battles_list
 
@@ -637,8 +550,8 @@ async def update_user_rankings():
                     'battles': user.battles,
                     'invitations': user.invitations
                 }
-                redis_username.set(user.username, json.dumps(user_dict))
                 redis_email.set(user.email, json.dumps(user_dict))
+                redis_username.set(user.username, json.dumps(user_dict))
             
             await db.commit()
             logger.info(f"Updated rankings for {len(users)} users")
@@ -737,3 +650,16 @@ async def get_battle_quiz(battle_id: str):
     except Exception as e:
         logger.error(f"Error retrieving quiz for battle {battle_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Error retrieving quiz")
+
+@battle_router.get("/all_battles", tags=["debug"])
+async def get_all_battles():
+    """Return all battles in the battles database table."""
+    from models import BattleModel
+    from init import SessionLocal
+    battles_list = []
+    async with SessionLocal() as session:
+        result = await session.execute(select(BattleModel))
+        battles = result.scalars().all()
+        for battle in battles:
+            battles_list.append(battle.to_json())
+    return {"total_battles": len(battles_list), "battles": battles_list}

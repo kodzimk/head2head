@@ -23,7 +23,7 @@ import { useNavigate } from "react-router-dom";
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
-  const {user} = useGlobalStore()
+  const {user, setUser} = useGlobalStore()
   const [recentBattles, setRecentBattles] = useState<RecentBattle[]>([]);
 
   useEffect(() => {
@@ -76,19 +76,17 @@ export default function DashboardPage() {
         const updatedStats = event.detail.updated_users[user.username];
         console.log('[Dashboard] Updating user stats:', updatedStats);
         
-        // Update the global user store with new stats
-        user.totalBattles = updatedStats.totalBattle;
-        user.wins = updatedStats.winBattle;
-        user.winRate = updatedStats.winRate;
-        user.streak = updatedStats.streak;
-        
+        // Update the global user store with new stats (use new object, correct mapping)
+        const updatedUser = {
+          ...user,
+          totalBattles: updatedStats.totalBattle,
+          wins: updatedStats.winBattle,
+          winRate: updatedStats.winRate,
+          streak: updatedStats.streak,
+        };
+        setUser(updatedUser);
         // Update localStorage if needed
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        userData.totalBattles = updatedStats.totalBattle;
-        userData.wins = updatedStats.winBattle;
-        userData.winRate = updatedStats.winRate;
-        userData.streak = updatedStats.streak;
-        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('user', JSON.stringify(updatedUser));
       }
       
       fetchBattles();
@@ -99,7 +97,7 @@ export default function DashboardPage() {
     return () => {
       window.removeEventListener('battleFinished', handleBattleFinished);
     };
-  }, [user]);
+  }, [user, setUser]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">

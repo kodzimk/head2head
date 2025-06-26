@@ -4,6 +4,7 @@ import { Button } from '../../shared/ui/button';
 import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, useTextStore, useWinnerStore } from '../../shared/interface/gloabL_var';
 import { useNavigate } from 'react-router-dom';
 import type { User } from '../../shared/interface/user';
+import { API_BASE_URL, useGlobalStore } from '../../shared/interface/gloabL_var';
 
 export default function BattleResultPage({user}: {user: User}) {
 
@@ -15,8 +16,59 @@ export default function BattleResultPage({user}: {user: User}) {
   const [showResult, setShowResult] = useState(false);
   const navigate = useNavigate();
   const { result, setResult } = useResultStore();
+  const { setUser } = useGlobalStore();
 
   useEffect(() => {
+    // Call repair-user-battles on result page load
+    const repairUserBattles = async () => {
+      try {
+        await fetch(`${API_BASE_URL}/db/repair-user-battles`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        console.log('[Result] Repaired user battles/stats');
+        // Fetch updated user data
+        const username = localStorage.getItem('username');
+        if (username) {
+          const res = await fetch(`${API_BASE_URL}/db/get-user-by-username?username=${username}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+            },
+          });
+          if (res.ok) {
+            const updatedUser = await res.json();
+            if (updatedUser) {
+              setUser && setUser({
+                ...user,
+                ...updatedUser,
+                totalBattles: updatedUser.totalBattle,
+                wins: updatedUser.winBattle,
+                winRate: updatedUser.winRate,
+                streak: updatedUser.streak,
+                // add other mapped fields if needed
+              });
+              localStorage.setItem('user', JSON.stringify({
+                ...user,
+                ...updatedUser,
+                totalBattles: updatedUser.totalBattle,
+                wins: updatedUser.winBattle,
+                winRate: updatedUser.winRate,
+                streak: updatedUser.streak,
+              }));
+              console.log('[Result] Updated user data after repair');
+            }
+          } else {
+            console.error('[Result] Failed to fetch updated user data after repair');
+          }
+        }
+      } catch (err) {
+        console.error('[Result] Failed to repair user battles:', err);
+      }
+    };
+    repairUserBattles();
     setTimeout(() => {
       setShowResult(true); 
       // Note: Battle result is already processed by the backend WebSocket handler

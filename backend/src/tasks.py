@@ -240,8 +240,16 @@ def save_questions_to_battle(battle_id: str, questions: list):
     """
     try:
         import redis
-        redis_client = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+        import os
+        redis_url = os.getenv("REDIS_URL", "redis://redis:6379/0")
+        redis_client = redis.Redis.from_url(redis_url)
         questions_key = f"battle_questions:{battle_id}"
+        logger.info(f"[save_questions_to_battle] Using Redis URL: {redis_url}")
+        logger.info(f"[save_questions_to_battle] Saving {len(questions)} questions for battle {battle_id} with key {questions_key}")
+        if questions:
+            logger.info(f"[save_questions_to_battle] First question: {questions[0]}")
+        else:
+            logger.warning(f"[save_questions_to_battle] No questions to save for battle {battle_id}")
         redis_client.setex(
             questions_key,
             3600,  # Expire in 1 hour

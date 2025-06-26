@@ -57,6 +57,7 @@ app.include_router(battle_ws_router)
 
 origins = [
     "https://head2head.dev",
+    "http://localhost:5173",
     "https://www.head2head.dev",
 ]
 

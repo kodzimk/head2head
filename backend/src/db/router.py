@@ -9,6 +9,7 @@ from datetime import datetime
 from auth.router import decode_access_token
 from sqlalchemy import select, update
 import logging
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -88,22 +89,35 @@ async def get_user_data(token: str):
 
 @db_router.get("/get-user-by-username",name="get user by username")
 async def get_user_by_username(username: str):
+    logger.info(f"[DB_ROUTER] get_user_by_username called for {username}")
     try:
-        logger.info(f"Getting user by username: {username}")
-        user = redis_username.get(username)
-        if user is None:
-            logger.warning(f"User not found in Redis: {username}")
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        user_data = json.loads(user)
-        logger.info(f"Successfully retrieved user data for: {username}")
-        return user_data
-    except json.JSONDecodeError as e:
-        logger.error(f"Error decoding user data from Redis for {username}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error decoding user data")
+        async with SessionLocal() as session:
+            stmt = select(UserData).where(UserData.username == username)
+            result = await session.execute(stmt)
+            user = result.scalar_one_or_none()
+            if not user:
+                logger.error(f"[DB_ROUTER] User {username} not found in DB")
+                return None
+            logger.info(f"[DB_ROUTER] User found: {user}")
+            return {
+                "totalBattle": user.totalBattle,
+                "winBattle": user.winBattle,
+                "streak": user.streak,
+                "winRate": user.winRate,
+                "battles": user.battles,
+                "username": user.username,
+                "email": user.email,
+                "ranking": user.ranking,
+                "favourite": user.favourite,
+                "avatar": user.avatar,
+                "password": user.password,
+                "friends": user.friends,
+                "friendRequests": user.friendRequests,
+                "invitations": user.invitations
+            }
     except Exception as e:
-        logger.error(f"Error getting user by username {username}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error retrieving user: {str(e)}")
+        logger.error(f"[DB_ROUTER] Error fetching user {username}: {str(e)}\n{traceback.format_exc()}")
+        return None
 
 @db_router.get("/get-battle-stats",name="get battle statistics for user")
 async def get_battle_stats(username: str):
@@ -212,70 +226,36 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-async def update_user_statistics(username: str, total_battle: int, win_battle: int, streak: int, win_rate: int, battles_list: list = None):
-    """
-    Centralized function to update user statistics in both Redis and database.
-    This ensures consistency and proper calculation of win rate.
-    """
+async def update_user_statistics(username: str, total_battle: int, win_battle: int, streak: int, win_rate: int, battles_list: list):
+    logger.info(f"[DB_ROUTER] update_user_statistics called for {username}: total_battle={total_battle}, win_battle={win_battle}, streak={streak}, win_rate={win_rate}, battles_list={battles_list}")
     try:
-        logger.info(f"[UPDATE_STATS] Updating stats for {username}: total={total_battle}, wins={win_battle}, streak={streak}, win_rate={win_rate}")
-        logger.info(f"[UPDATE_STATS] Battles list provided: {battles_list}")
-        
-        # Get current user data from Redis
-        user_data = redis_username.get(username)
-        if not user_data:
-            logger.error(f"[UPDATE_STATS] User {username} not found in Redis")
-            return False
-        
-        user_dict = json.loads(user_data)
-        logger.info(f"[UPDATE_STATS] Current user data from Redis: {user_dict}")
-        
-        # Update statistics
-        user_dict['totalBattle'] = total_battle
-        user_dict['winBattle'] = win_battle
-        user_dict['streak'] = streak
-        user_dict['winRate'] = win_rate
-        
-        # Update battles list if provided
-        if battles_list is not None:
-            user_dict['battles'] = battles_list
-            logger.info(f"[UPDATE_STATS] Updated battles list for {username}: {battles_list}")
-        else:
-            logger.warning(f"[UPDATE_STATS] No battles list provided for {username}")
-        
-        logger.info(f"[UPDATE_STATS] Updated user dict: {user_dict}")
-        
         # Update Redis
-        redis_username.set(username, json.dumps(user_dict))
-        redis_email.set(user_dict['email'], json.dumps(user_dict))
-        logger.info(f"[UPDATE_STATS] Updated Redis for {username}")
-        
-        # Update database
-        async with SessionLocal() as db:
-            user_model = await db.get(UserData, user_dict['email'])
-            if user_model:
-                user_model.totalBattle = total_battle
-                user_model.winBattle = win_battle
-                user_model.streak = streak
-                user_model.winRate = win_rate
-                
-                # Update battles list if provided
-                if battles_list is not None:
-                    user_model.battles = battles_list
-                    logger.info(f"[UPDATE_STATS] Updated database battles list for {username}: {battles_list}")
-                
-                await db.commit()
-                await db.refresh(user_model)
-                logger.info(f"[UPDATE_STATS] Successfully updated database for {username}")
-            else:
-                logger.error(f"[UPDATE_STATS] User {username} not found in database")
+        redis_key = username
+        redis_data = {
+            "totalBattle": total_battle,
+            "winBattle": win_battle,
+            "streak": streak,
+            "winRate": win_rate,
+            "battles": battles_list
+        }
+        redis_username.set(redis_key, json.dumps(redis_data))
+        logger.info(f"[DB_ROUTER] Redis updated for {username}")
+        # Update DB
+        async with SessionLocal() as session:
+            user = await session.get(UserData, username)
+            if not user:
+                logger.error(f"[DB_ROUTER] User {username} not found in DB")
                 return False
-        
+            user.totalBattle = total_battle
+            user.winBattle = win_battle
+            user.streak = streak
+            user.winRate = win_rate
+            user.battles = battles_list
+            await session.commit()
+            logger.info(f"[DB_ROUTER] DB updated for {username}")
         return True
     except Exception as e:
-        logger.error(f"[UPDATE_STATS] Error updating stats for {username}: {str(e)}")
-        import traceback
-        logger.error(f"[UPDATE_STATS] Full traceback: {traceback.format_exc()}")
+        logger.error(f"[DB_ROUTER] Error updating stats for {username}: {str(e)}\n{traceback.format_exc()}")
         return False
 
 async def update_data(user: UserDataCreate):
@@ -960,5 +940,95 @@ async def debug_user_battles_list(username: str):
         import traceback
         logger.error(f"[DEBUG] Full traceback: {traceback.format_exc()}")
         return {"error": f"Error checking user battles: {str(e)}"}
+
+@db_router.post("/repair-user-battles", name="repair user battles")
+async def repair_user_battles():
+    """Repair all users' battles arrays, totalBattle, winBattle, streak, and ranking to match the actual battles in the database."""
+    from models import UserData, BattleModel
+    from init import redis_username, redis_email, SessionLocal
+    import json
+    import logging
+    import math
+    # Import here to avoid circular import
+    from battle.router import update_user_rankings
+    logger = logging.getLogger(__name__)
+    try:
+        async with SessionLocal() as db:
+            # Get all users
+            users_result = await db.execute(select(UserData))
+            users = users_result.scalars().all()
+            # Get all battles
+            battles_result = await db.execute(select(BattleModel))
+            battles = battles_result.scalars().all()
+            # Build a mapping from username to battle objects
+            user_battles_map = {user.username: [] for user in users}
+            for battle in battles:
+                if battle.first_opponent:
+                    user_battles_map.setdefault(battle.first_opponent, []).append(battle)
+                if battle.second_opponent:
+                    user_battles_map.setdefault(battle.second_opponent, []).append(battle)
+            # Update each user
+            for user in users:
+                user_battles = user_battles_map.get(user.username, [])
+                # Sort battles by id (assuming id encodes time, else add created_at)
+                user_battles.sort(key=lambda b: str(b.id))
+                battle_ids = [b.id for b in user_battles]
+                user.battles = battle_ids
+                user.totalBattle = len(battle_ids)
+                # Calculate winBattle and streak
+                win_count = 0
+                streak = 0
+                current_streak = 0
+                for battle in reversed(user_battles):  # Most recent first
+                    # Determine if user is first or second opponent
+                    if battle.first_opponent == user.username:
+                        my_score = battle.first_opponent_score
+                        opp_score = battle.second_opponent_score
+                    else:
+                        my_score = battle.second_opponent_score
+                        opp_score = battle.first_opponent_score
+                    if my_score > opp_score:
+                        win_count += 1
+                        current_streak += 1
+                    else:
+                        if my_score == opp_score:
+                            # Draw breaks streak
+                            current_streak = 0
+                        else:
+                            current_streak = 0
+                    if streak == 0 and current_streak > 0:
+                        streak = current_streak
+                user.winBattle = win_count
+                user.streak = streak
+                # Calculate winRate
+                user.winRate = math.floor((user.winBattle / user.totalBattle) * 100) if user.totalBattle > 0 else 0
+                await db.commit()
+                await db.refresh(user)
+                # Update Redis
+                user_dict = {
+                    'username': user.username,
+                    'email': user.email,
+                    'totalBattle': user.totalBattle,
+                    'winRate': user.winRate,
+                    'ranking': user.ranking,
+                    'winBattle': user.winBattle,
+                    'favourite': user.favourite,
+                    'streak': user.streak,
+                    'password': user.password,
+                    'friends': user.friends,
+                    'friendRequests': user.friendRequests,
+                    'avatar': user.avatar,
+                    'battles': user.battles,
+                    'invitations': user.invitations
+                }
+                redis_username.set(user.username, json.dumps(user_dict))
+                redis_email.set(user.email, json.dumps(user_dict))
+                logger.info(f"[REPAIR] Updated user {user.username}: {len(battle_ids)} battles, {user.winBattle} wins, streak {user.streak}")
+            # Recalculate rankings for all users
+            await update_user_rankings()
+        return {"status": "success", "message": "All users' battles, winBattle, streak, winRate, and ranking repaired."}
+    except Exception as e:
+        logger.error(f"[REPAIR] Error repairing user battles: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
 

@@ -14,12 +14,12 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://api.head2head.dev',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
       '/ws': {
-        target: 'wss://api.head2head.dev',
+        target: 'ws://localhost:8000',
         ws: true,
       },
     },

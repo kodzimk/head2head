@@ -13,6 +13,7 @@ import math
 from db.router import get_user_by_username, update_user_data
 from datetime import datetime
 from websocket import manager
+import traceback
 
 logger = logging.getLogger("battle_ws")
 
@@ -368,297 +369,116 @@ async def start_next_question_after_delay(battle_id: str, next_question_index: i
 # Remove timeout function since users progress independently 
 
 async def handle_battle_result(battle_id: str, final_scores: dict):
-    """Handle battle completion and update user statistics"""
+    logger.info(f"[BATTLE_WS] handle_battle_result called for battle_id={battle_id}, final_scores={final_scores}")
     try:
-        # Check if this battle has already been processed
-        if battle_id in processed_battles:
-            logger.info(f"[BATTLE_WS] Battle {battle_id} has already been processed, skipping")
-            return
-        
-        # Mark this battle as processed
-        processed_battles.add(battle_id)
-        logger.info(f"[BATTLE_WS] Processing battle result for {battle_id} with scores: {final_scores}")
-        
-        # Get usernames from scores
-        usernames = list(final_scores.keys())
-        if len(usernames) != 2:
-            logger.error(f"[BATTLE_WS] Invalid number of users in battle {battle_id}: {len(usernames)}")
-            
-            # Try to get the missing user from the battle object
-            from battle.init import battles
-            battle = battles.get(battle_id)
-            if battle:
-                expected_users = [battle.first_opponent, battle.second_opponent]
-                missing_users = [user for user in expected_users if user not in final_scores]
-                
-                if missing_users:
-                    logger.warning(f"[BATTLE_WS] Missing scores for users: {missing_users}, assigning default score of 0")
-                    for missing_user in missing_users:
-                        final_scores[missing_user] = 0
-                    
-                    # Re-check after adding missing scores
-                    usernames = list(final_scores.keys())
-                    if len(usernames) == 2:
-                        logger.info(f"[BATTLE_WS] Fixed scores: {final_scores}")
-                    else:
-                        logger.error(f"[BATTLE_WS] Still invalid number of users after fix: {len(usernames)}")
-                        return
-                else:
-                    logger.error(f"[BATTLE_WS] Unexpected users in scores: {usernames}, expected: {expected_users}")
-                    return
-            else:
-                logger.error(f"[BATTLE_WS] Battle {battle_id} not found in battles dict")
-                return
-        
-        user1, user2 = usernames
-        score1 = final_scores[user1]
-        score2 = final_scores[user2]
-        
-        # Determine winner and loser
-        if score1 > score2:
-            winner = user1
-            loser = user2
-            result = "win"
-        elif score2 > score1:
-            winner = user2
-            loser = user1
-            result = "win"
-        else:
-            winner = user1  # For draw, both are treated equally
-            loser = user2
-            result = "draw"
-        
-        logger.info(f"[BATTLE_WS] Battle {battle_id} result: {result}, Winner: {winner} ({score1 if winner == user1 else score2}), Loser: {loser} ({score2 if loser == user2 else score1})")
-        
-        # Create battle data for database storage
         from battle.init import battles
         battle = battles.get(battle_id)
-        
-        logger.info(f"[BATTLE_WS] Retrieved battle from battles dict: {battle}")
-        
         if not battle:
             logger.error(f"[BATTLE_WS] Battle {battle_id} not found in battles dict")
             return
-        
-        # Save battle to database with actual scores
+        user1 = battle.first_opponent
+        user2 = battle.second_opponent
+        score1 = final_scores.get(user1, 0)
+        score2 = final_scores.get(user2, 0)
+        result = "draw" if score1 == score2 else (user1 if score1 > score2 else user2)
+        winner = None
+        loser = None
+        if result == "draw":
+            logger.info(f"[BATTLE_WS] Battle {battle_id} ended in a draw")
+        else:
+            winner = result
+            loser = user2 if winner == user1 else user1
+            logger.info(f"[BATTLE_WS] Battle {battle_id} winner: {winner}, loser: {loser}")
+        # Save battle to database
         try:
+            from models import BattleModel
+            from init import SessionLocal
             async with SessionLocal() as session:
-                # Determine which user is first_opponent and which is second_opponent
-                if battle.first_opponent == user1:
-                    first_score = score1
-                    second_score = score2
-                else:
-                    first_score = score2
-                    second_score = score1
-                
                 battle_db = BattleModel(
                     id=battle_id,
                     sport=battle.sport,
                     level=battle.level,
                     first_opponent=battle.first_opponent,
                     second_opponent=battle.second_opponent,
-                    first_opponent_score=first_score,
-                    second_opponent_score=second_score
+                    first_opponent_score=score1,
+                    second_opponent_score=score2
                 )
                 session.add(battle_db)
                 await session.commit()
                 await session.refresh(battle_db)
-                logger.info(f"[BATTLE_WS] Battle {battle_id} saved to database with scores: {first_score}-{second_score}")
+                logger.info(f"[BATTLE_WS] Battle {battle_id} saved to database with scores: {score1}-{score2}")
         except Exception as e:
-            logger.error(f"[BATTLE_WS] Error saving battle to database: {str(e)}")
+            logger.error(f"[BATTLE_WS] Error saving battle to database: {str(e)}\n{traceback.format_exc()}")
             return
-        
-        # Also call the battle router function for consistency
-        try:
-            from battle.router import battle_result, battle_draw_result
-            if result == "draw":
-                await battle_draw_result(battle_id, first_score, second_score)
-                logger.info(f"[BATTLE_WS] Called battle_draw_result for consistency")
-            else:
-                await battle_result(battle_id, winner, loser, result, 
-                                  winner_score=score1 if winner == user1 else score2,
-                                  loser_score=score2 if loser == user2 else score1)
-                logger.info(f"[BATTLE_WS] Called battle_result for consistency")
-        except Exception as e:
-            logger.error(f"[BATTLE_WS] Error calling battle router functions: {str(e)}")
-            # Don't return here - continue with the rest of the function
-        
-        # Import the centralized update function
-        from db.router import update_user_statistics
-        
-        # Track updated users for broadcasting
+        # Update user stats atomically
+        from db.router import update_user_statistics, get_user_by_username
         updated_users = {}
         update_errors = []
-        
         try:
-            if result == "draw":
-                # Update both users for draw
-                for username in [user1, user2]:
-                    try:
-                        user = await get_user_by_username(username)
-                        logger.info(f"[BATTLE_WS] Updating user {username} for draw - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-                        
-                        # Calculate new stats
-                        new_total_battle = user['totalBattle'] + 1
-                        new_win_battle = user['winBattle']  # No change for draw
-                        new_streak = 0  # Reset streak for draw
-                        new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_win_battle > 0 else 0
-                        
-                        # Add battle to user's battle list
-                        if battle_id not in user['battles']:
-                            user['battles'].append(battle_id)
-                        
-                        # Update user statistics using centralized function
-                        success = await update_user_statistics(
-                            username=username,
-                            total_battle=new_total_battle,
-                            win_battle=new_win_battle,
-                            streak=new_streak,
-                            win_rate=new_win_rate,
-                            battles_list=user['battles']
-                        )
-                        
-                        if success:
-                            logger.info(f"[BATTLE_WS] Successfully updated user {username} for draw")
-                            # Store updated user data for broadcasting
-                            updated_users[username] = {
-                                'totalBattle': new_total_battle,
-                                'winBattle': new_win_battle,
-                                'winRate': new_win_rate,
-                                'streak': new_streak
-                            }
-                        else:
-                            logger.error(f"[BATTLE_WS] Failed to update user {username} for draw")
-                            update_errors.append(f"Failed to update user {username} for draw")
-                            
-                    except Exception as e:
-                        error_msg = f"Error updating user {username}: {str(e)}"
-                        logger.error(f"[BATTLE_WS] {error_msg}")
-                        update_errors.append(error_msg)
+            # Update both users in a single try block for atomicity
+            for username in [user1, user2]:
+                try:
+                    user = await get_user_by_username(username)
+                    logger.info(f"[BATTLE_WS] Updating user {username} - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
+                    new_total_battle = user['totalBattle'] + 1
+                    if result == "draw":
+                        new_win_battle = user['winBattle']
+                        new_streak = 0
+                    elif username == winner:
+                        new_win_battle = user['winBattle'] + 1
+                        new_streak = user['streak'] + 1
+                    else:
+                        new_win_battle = user['winBattle']
+                        new_streak = 0
+                    new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_total_battle > 0 else 0
+                    if battle_id not in user['battles']:
+                        user['battles'].append(battle_id)
+                    success = await update_user_statistics(
+                        username=username,
+                        total_battle=new_total_battle,
+                        win_battle=new_win_battle,
+                        streak=new_streak,
+                        win_rate=new_win_rate,
+                        battles_list=user['battles']
+                    )
+                    if success:
+                        logger.info(f"[BATTLE_WS] Successfully updated user {username}")
+                        updated_users[username] = {
+                            'totalBattle': new_total_battle,
+                            'winBattle': new_win_battle,
+                            'winRate': new_win_rate,
+                            'streak': new_streak
+                        }
+                    else:
+                        logger.error(f"[BATTLE_WS] Failed to update user {username}")
+                        update_errors.append(f"Failed to update user {username}")
+                except Exception as e:
+                    error_msg = f"Error updating user {username}: {str(e)}"
+                    logger.error(f"[BATTLE_WS] {error_msg}\n{traceback.format_exc()}")
+                    update_errors.append(error_msg)
+            if update_errors:
+                logger.error(f"[BATTLE_WS] The following errors occurred during user updates: {update_errors}")
+                return
             else:
-                # Update winner
-                try:
-                    user = await get_user_by_username(winner)
-                    logger.info(f"[BATTLE_WS] Updating winner {winner} - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-                    
-                    # Calculate new stats
-                    new_total_battle = user['totalBattle'] + 1
-                    new_win_battle = user['winBattle'] + 1
-                    new_streak = user['streak'] + 1
-                    new_win_rate = math.floor((new_win_battle / new_total_battle) * 100)
-                    
-                    # Add battle to user's battle list
-                    if battle_id not in user['battles']:
-                        user['battles'].append(battle_id)
-                    
-                    # Update user statistics using centralized function
-                    success = await update_user_statistics(
-                        username=winner,
-                        total_battle=new_total_battle,
-                        win_battle=new_win_battle,
-                        streak=new_streak,
-                        win_rate=new_win_rate,
-                        battles_list=user['battles']
-                    )
-                    
-                    if success:
-                        logger.info(f"[BATTLE_WS] Successfully updated winner {winner}")
-                        # Store updated user data for broadcasting
-                        updated_users[winner] = {
-                            'totalBattle': new_total_battle,
-                            'winBattle': new_win_battle,
-                            'winRate': new_win_rate,
-                            'streak': new_streak
-                        }
-                    else:
-                        logger.error(f"[BATTLE_WS] Failed to update winner {winner}")
-                        update_errors.append(f"Failed to update winner {winner}")
-                        
-                except Exception as e:
-                    error_msg = f"Error updating winner {winner}: {str(e)}"
-                    logger.error(f"[BATTLE_WS] {error_msg}")
-                    update_errors.append(error_msg)
-
-                # Update loser
-                try:
-                    logger.info(f"[BATTLE_WS] Starting loser update for {loser}")
-                    user = await get_user_by_username(loser)
-                    logger.info(f"[BATTLE_WS] Retrieved loser user data: {user}")
-                    logger.info(f"[BATTLE_WS] Updating loser {loser} - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
-                    logger.info(f"[BATTLE_WS] Loser battles list before update: {user.get('battles', [])}")
-                    
-                    # Calculate new stats
-                    new_total_battle = user['totalBattle'] + 1
-                    new_win_battle = user['winBattle']  # No change for loss
-                    new_streak = 0  # Reset streak for loss
-                    new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_win_battle > 0 else 0
-                    
-                    logger.info(f"[BATTLE_WS] Calculated new stats for loser: total={new_total_battle}, wins={new_win_battle}, streak={new_streak}, win_rate={new_win_rate}")
-                    
-                    # Add battle to user's battle list
-                    if battle_id not in user['battles']:
-                        user['battles'].append(battle_id)
-                        logger.info(f"[BATTLE_WS] Added battle {battle_id} to loser battles list")
-                    else:
-                        logger.info(f"[BATTLE_WS] Battle {battle_id} already in loser battles list")
-                    
-                    logger.info(f"[BATTLE_WS] Loser battles list after update: {user['battles']}")
-                    
-                    # Update user statistics using centralized function
-                    logger.info(f"[BATTLE_WS] Calling update_user_statistics for loser {loser}")
-                    success = await update_user_statistics(
-                        username=loser,
-                        total_battle=new_total_battle,
-                        win_battle=new_win_battle,
-                        streak=new_streak,
-                        win_rate=new_win_rate,
-                        battles_list=user['battles']
-                    )
-                    
-                    if success:
-                        logger.info(f"[BATTLE_WS] Successfully updated loser {loser}")
-                        # Store updated user data for broadcasting
-                        updated_users[loser] = {
-                            'totalBattle': new_total_battle,
-                            'winBattle': new_win_battle,
-                            'winRate': new_win_rate,
-                            'streak': new_streak
-                        }
-                        logger.info(f"[BATTLE_WS] Added loser {loser} to updated_users: {updated_users[loser]}")
-                    else:
-                        logger.error(f"[BATTLE_WS] Failed to update loser {loser}")
-                        update_errors.append(f"Failed to update loser {loser}")
-                        
-                except Exception as e:
-                    error_msg = f"Error updating loser {loser}: {str(e)}"
-                    logger.error(f"[BATTLE_WS] {error_msg}")
-                    logger.error(f"[BATTLE_WS] Exception details: {type(e).__name__}: {str(e)}")
-                    import traceback
-                    logger.error(f"[BATTLE_WS] Full traceback: {traceback.format_exc()}")
-                    update_errors.append(error_msg)
-            
-            # Update rankings
+                logger.info(f"[BATTLE_WS] All user updates completed successfully")
+        except Exception as e:
+            error_msg = f"Error in user statistics update: {str(e)}"
+            logger.error(f"[BATTLE_WS] {error_msg}\n{traceback.format_exc()}")
+            return
+        # Update rankings
+        try:
+            from battle.router import update_user_rankings
             logger.info(f"[BATTLE_WS] Updating user rankings...")
             await update_user_rankings()
             logger.info(f"[BATTLE_WS] Successfully updated user rankings")
-            
         except Exception as e:
-            error_msg = f"Error in user statistics update: {str(e)}"
-            logger.error(f"[BATTLE_WS] {error_msg}")
-            update_errors.append(error_msg)
-        
-        # Log any errors that occurred during updates
-        if update_errors:
-            logger.error(f"[BATTLE_WS] The following errors occurred during user updates: {update_errors}")
-        else:
-            logger.info(f"[BATTLE_WS] All user updates completed successfully")
-        
+            logger.error(f"[BATTLE_WS] Error updating user rankings: {str(e)}\n{traceback.format_exc()}")
         # Broadcast battle finished event to all connected clients
         try:
             battle_finished_data = {
                 "type": "battle_finished",
                 "battle_id": battle_id,
-                "result": result,
+                "result": result if result == "draw" else ("win" if winner == user1 else "lose"),
                 "winner": winner if result != "draw" else None,
                 "loser": loser if result != "draw" else None,
                 "final_scores": final_scores,
@@ -669,34 +489,21 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
                     "level": battle.level,
                     "first_opponent": battle.first_opponent,
                     "second_opponent": battle.second_opponent,
-                    "first_opponent_score": first_score,
-                    "second_opponent_score": second_score
+                    "first_opponent_score": score1,
+                    "second_opponent_score": score2
                 }
             }
-            
-            # Send battle finished to users in this battle (they're already connected)
-            if battle_id in battle_connections:
-                for ws in battle_connections[battle_id]:
-                    try:
-                        await ws.send_text(json.dumps(battle_finished_data))
-                    except Exception as e:
-                        logger.error(f"[BATTLE_WS] Error sending battle finished to user in battle {battle_id}: {str(e)}")
-                        battle_connections[battle_id] = [w for w in battle_connections[battle_id] if w != ws]
-            
-            logger.info(f"[BATTLE_WS] Sent battle finished event for {battle_id}")
-            
+            for user in [user1, user2]:
+                await manager.send_message(json.dumps(battle_finished_data), user)
+            logger.info(f"[BATTLE_WS] Battle finished event broadcasted to users {user1} and {user2}")
         except Exception as e:
-            logger.error(f"[BATTLE_WS] Error sending battle finished event: {str(e)}")
-        
-        # Clean up battle from memory
+            logger.error(f"[BATTLE_WS] Error broadcasting battle finished event: {str(e)}\n{traceback.format_exc()}")
+        # Clean up in-memory battle
         if battle_id in battles:
             del battles[battle_id]
             logger.info(f"[BATTLE_WS] Removed battle {battle_id} from memory")
-        
     except Exception as e:
-        logger.error(f"[BATTLE_WS] Error in handle_battle_result: {str(e)}")
-        # Remove from processed battles so it can be retried
-        processed_battles.discard(battle_id) 
+        logger.error(f"[BATTLE_WS] Fatal error in handle_battle_result: {str(e)}\n{traceback.format_exc()}")
 
 async def monitor_battle_timeouts():
     """Background task to monitor battle timeouts"""

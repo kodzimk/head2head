@@ -328,32 +328,32 @@ export const ViewProfile = ({user}: {user: User}) => {
                     
                     if (areFriends) {
                       return (
-                        <Button 
-                          className="w-full sm:w-auto bg-orange-500 text-white  dark:text-black hover:bg-orange-600"
-                          onClick={handleBattle}
-                        >
-                          Battle
-                        </Button>
+                    <Button 
+                      className="w-full sm:w-auto bg-orange-500 text-white  dark:text-black hover:bg-orange-600"
+                      onClick={handleBattle}
+                    >
+                      Battle
+                    </Button>
                       );
                     } else if (!requestSent) {
                       return (
-                        <Button 
-                          onClick={handleSendRequest}
-                          className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
-                        >
-                          <UserPlus className="w-4 h-4 mr-2" />
-                          Send Request
-                        </Button>
+                    <Button 
+                      onClick={handleSendRequest}
+                      className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Send Request
+                    </Button>
                       );
                     } else {
                       return (
-                        <Button 
-                          onClick={handleCancelRequest}
-                          variant="outline"
-                          className="w-full sm:w-auto border-orange-500 text-orange-500 hover:bg-orange-50 dark:text-orange-500 dark:border-orange-500"
-                        >
-                          Cancel Friend Request
-                        </Button>
+                    <Button 
+                      onClick={handleCancelRequest}
+                      variant="outline"
+                      className="w-full sm:w-auto border-orange-500 text-orange-500 hover:bg-orange-50 dark:text-orange-500 dark:border-orange-500"
+                    >
+                      Cancel Friend Request
+                    </Button>
                       );
                     }
                   })()}
