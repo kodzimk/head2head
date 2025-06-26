@@ -46,67 +46,72 @@ export default function Battles({
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [battles, setBattles] = useState<RecentBattle[]>([]);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+
+  const fetchBattles = async () => {
+    if (!localStorage.getItem("username")) return;
+    
+    try {
+      setIsLoading(true);
+      console.log('[Battles Tab] Fetching recent battles...');
+      
+      const response = await axios.get(
+        `${API_BASE_URL}/battle/get_recent_battles?username=${localStorage.getItem("username")}&limit=4`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+        }
+      );
+      const data = await response.data;
+
+      const mapped: RecentBattle[] = data.map((battle: any) => {
+        let opponent = battle.first_opponent === localStorage.getItem("username") ? battle.second_opponent : battle.first_opponent;
+        
+        let result = "draw";
+        const currentUser = localStorage.getItem("username");
+        
+        const firstScore = parseInt(battle.first_opponent_score) || 0;
+        const secondScore = parseInt(battle.second_opponent_score) || 0
+        
+        if (battle.first_opponent === currentUser) {
+          if (firstScore > secondScore) {
+            result = "win";
+          } else if (firstScore < secondScore) {
+            result = "lose";
+          } 
+        } else if (battle.second_opponent === currentUser) {
+          if (secondScore > firstScore) {
+            result = "win";
+          } else if (secondScore < firstScore) {
+            result = "lose";
+          }
+        } 
+        
+        const score = `${firstScore} : ${secondScore}`;
+
+        return {
+          id: battle.id,
+          opponent: opponent || "Unknown",
+          player1: battle.first_opponent,
+          player2: battle.second_opponent,
+          sport: battle.sport,
+          result,
+          score
+        };
+      });
+      
+      setBattles(mapped);
+      setLastUpdate(new Date());
+      console.log('[Battles Tab] Successfully fetched battles:', mapped.length);
+    } catch (error) {
+      console.error("[Battles Tab] Error fetching battles:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchBattles = async () => {
-      if (!localStorage.getItem("username")) return;
-      
-      try {
-        setIsLoading(true);
-        const response = await axios.get(
-          `${API_BASE_URL}/battle/get_recent_battles?username=${localStorage.getItem("username")}&limit=4`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-            },
-          }
-        );
-        const data = await response.data;
-
-        const mapped: RecentBattle[] = data.map((battle: any) => {
-          let opponent = battle.first_opponent === localStorage.getItem("username") ? battle.second_opponent : battle.first_opponent;
-          
-          let result = "draw";
-          const currentUser = localStorage.getItem("username");
-          
-          const firstScore = parseInt(battle.first_opponent_score) || 0;
-          const secondScore = parseInt(battle.second_opponent_score) || 0
-          
-          if (battle.first_opponent === currentUser) {
-            if (firstScore > secondScore) {
-              result = "win";
-            } else if (firstScore < secondScore) {
-              result = "lose";
-            } 
-          } else if (battle.second_opponent === currentUser) {
-            if (secondScore > firstScore) {
-              result = "win";
-            } else if (secondScore < firstScore) {
-              result = "lose";
-            }
-          } 
-          
-          const score = `${firstScore} : ${secondScore}`;
-
-          return {
-            id: battle.id,
-            opponent: opponent || "Unknown",
-            player1: battle.first_opponent,
-            player2: battle.second_opponent,
-            sport: battle.sport,
-            result,
-            score
-          };
-        });
-        
-        setBattles(mapped);
-      } catch (error) {
-        console.error("Error fetching battles:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchBattles();
     
     // Listen for battle finished events to refresh data
@@ -132,9 +137,14 @@ export default function Battles({
         userData.winRate = updatedStats.winRate;
         userData.streak = updatedStats.streak;
         localStorage.setItem('user', JSON.stringify(userData));
+        
+        console.log('[Battles Tab] Updated user stats in localStorage');
       }
       
-      fetchBattles();
+      // Refresh battles data
+      setTimeout(() => {
+        fetchBattles();
+      }, 1000); // Small delay to ensure backend has processed the battle
     };
     
     window.addEventListener('battleFinished', handleBattleFinished);
@@ -142,7 +152,7 @@ export default function Battles({
     return () => {
       window.removeEventListener('battleFinished', handleBattleFinished);
     };
-  }, []);
+  }, [user]);
 
   return (
     <div>
@@ -152,21 +162,32 @@ export default function Battles({
             <CardHeader className="pb-4">
               <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <span className="text-lg lg:text-xl font-semibold">Battle History</span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full sm:w-auto h-9 px-4"
-                  onClick={() => navigate(`/${user.username}/all-battles`)}
-                >
-                  View All <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-9 px-4"
+                    onClick={fetchBattles}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Refreshing...' : 'Refresh'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full sm:w-auto h-9 px-4"
+                    onClick={() => navigate(`/${user.username}/all-battles`)}
+                  >
+                    View All <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-3 lg:space-y-4">
                 {isLoading ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500 text-base lg:text-lg mb-4">Loading...</p>
+                    <p className="text-gray-500 text-base lg:text-lg mb-4">Loading battles...</p>
                   </div>
                 ) : battles.length === 0 ? (
                   <div className="text-center py-8">
@@ -189,6 +210,9 @@ export default function Battles({
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm lg:text-base truncate">
                             {battle.player1} vs {battle.player2}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {battle.sport} • {lastUpdate.toLocaleTimeString()}
                           </p>
                         </div>
                       </div>
@@ -216,34 +240,24 @@ export default function Battles({
             <CardHeader className="pb-4">
               <CardTitle className="text-lg lg:text-xl font-semibold">Battle Stats</CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 space-y-3 lg:space-y-4">
-              <div className="text-center p-3 lg:p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <p className="text-xl lg:text-2xl font-bold text-green-600 dark:text-green-400">{battles.filter(battle => battle.result === 'win').length}</p>
-                <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Wins</p>
-              </div>
-              <div className="text-center p-3 lg:p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <p className="text-xl lg:text-2xl font-bold text-red-600 dark:text-red-400">
-                  {battles.filter(battle => battle.result === 'lose').length}
-                </p>
-                <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Losses</p>
-              </div>
-              <div className="text-center p-3 lg:p-4 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
-                <p className="text-xl lg:text-2xl font-bold text-gray-600 dark:text-gray-400">
-                  {battles.filter(battle => battle.result === 'draw').length}
-                </p>
-                <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Draws</p>
-              </div>
-              <div className="text-center p-3 lg:p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                <p className="text-xl lg:text-2xl font-bold text-orange-600 dark:text-orange-400">
-                  {user.streak}
-                </p>
-                <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Current Streak</p>
-              </div>
-              <div className="text-center p-3 lg:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-xl lg:text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {battles.length}
-                </p>
-                <p className="text-xs lg:text-sm text-gray-600 dark:text-gray-400">Total Battles</p>
+            <CardContent className="pt-0">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm lg:text-base">Total Battles</span>
+                  <span className="font-bold text-lg lg:text-xl">{user.totalBattles || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm lg:text-base">Wins</span>
+                  <span className="font-bold text-lg lg:text-xl text-green-600">{user.wins || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm lg:text-base">Win Rate</span>
+                  <span className="font-bold text-lg lg:text-xl text-blue-600">{user.winRate || 0}%</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm lg:text-base">Current Streak</span>
+                  <span className="font-bold text-lg lg:text-xl text-orange-600">{user.streak || 0}</span>
+                </div>
               </div>
             </CardContent>
           </Card>

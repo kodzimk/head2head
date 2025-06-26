@@ -376,19 +376,32 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
         if not battle:
             logger.error(f"[BATTLE_WS] Battle {battle_id} not found in battles dict")
             return
+        
         user1 = battle.first_opponent
         user2 = battle.second_opponent
         score1 = final_scores.get(user1, 0)
         score2 = final_scores.get(user2, 0)
-        result = "draw" if score1 == score2 else (user1 if score1 > score2 else user2)
+        
+        # Determine winner, loser, and result
         winner = None
         loser = None
-        if result == "draw":
-            logger.info(f"[BATTLE_WS] Battle {battle_id} ended in a draw")
+        result = "draw"
+        
+        if score1 > score2:
+            winner = user1
+            loser = user2
+            result = "win"
+        elif score2 > score1:
+            winner = user2
+            loser = user1
+            result = "win"
         else:
-            winner = result
-            loser = user2 if winner == user1 else user1
-            logger.info(f"[BATTLE_WS] Battle {battle_id} winner: {winner}, loser: {loser}")
+            # Draw case
+            logger.info(f"[BATTLE_WS] Battle {battle_id} ended in a draw: {score1}-{score2}")
+        
+        if winner:
+            logger.info(f"[BATTLE_WS] Battle {battle_id} winner: {winner}, loser: {loser}, score: {score1}-{score2}")
+        
         # Save battle to database
         try:
             from models import BattleModel
@@ -410,39 +423,59 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
         except Exception as e:
             logger.error(f"[BATTLE_WS] Error saving battle to database: {str(e)}\n{traceback.format_exc()}")
             return
+        
         # Update user stats atomically
         from db.router import update_user_statistics, get_user_by_username
         updated_users = {}
         update_errors = []
+        
         try:
             # Update both users in a single try block for atomicity
             for username in [user1, user2]:
                 try:
                     user = await get_user_by_username(username)
-                    logger.info(f"[BATTLE_WS] Updating user {username} - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}")
+                    if not user:
+                        logger.error(f"[BATTLE_WS] User {username} not found")
+                        update_errors.append(f"User {username} not found")
+                        continue
+                    
+                    logger.info(f"[BATTLE_WS] Updating user {username} - before: totalBattle={user['totalBattle']}, winBattle={user['winBattle']}, winRate={user['winRate']}, streak={user['streak']}")
+                    
+                    # Calculate new statistics
                     new_total_battle = user['totalBattle'] + 1
+                    
                     if result == "draw":
                         new_win_battle = user['winBattle']
-                        new_streak = 0
+                        new_streak = 0  # Draw breaks streak
                     elif username == winner:
                         new_win_battle = user['winBattle'] + 1
                         new_streak = user['streak'] + 1
                     else:
                         new_win_battle = user['winBattle']
-                        new_streak = 0
+                        new_streak = 0  # Loss breaks streak
+                    
                     new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_total_battle > 0 else 0
-                    if battle_id not in user['battles']:
-                        user['battles'].append(battle_id)
+                    
+                    # Update battles list - ensure battle_id is added
+                    battles_list = user.get('battles', [])
+                    if battle_id not in battles_list:
+                        battles_list.append(battle_id)
+                        logger.info(f"[BATTLE_WS] Added battle {battle_id} to user {username} battles list")
+                    else:
+                        logger.info(f"[BATTLE_WS] Battle {battle_id} already in user {username} battles list")
+                    
+                    # Update user statistics
                     success = await update_user_statistics(
                         username=username,
                         total_battle=new_total_battle,
                         win_battle=new_win_battle,
                         streak=new_streak,
                         win_rate=new_win_rate,
-                        battles_list=user['battles']
+                        battles_list=battles_list
                     )
+                    
                     if success:
-                        logger.info(f"[BATTLE_WS] Successfully updated user {username}")
+                        logger.info(f"[BATTLE_WS] Successfully updated user {username}: totalBattle={new_total_battle}, winBattle={new_win_battle}, winRate={new_win_rate}, streak={new_streak}")
                         updated_users[username] = {
                             'totalBattle': new_total_battle,
                             'winBattle': new_win_battle,
@@ -452,35 +485,43 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
                     else:
                         logger.error(f"[BATTLE_WS] Failed to update user {username}")
                         update_errors.append(f"Failed to update user {username}")
+                        
                 except Exception as e:
                     error_msg = f"Error updating user {username}: {str(e)}"
                     logger.error(f"[BATTLE_WS] {error_msg}\n{traceback.format_exc()}")
                     update_errors.append(error_msg)
+            
             if update_errors:
                 logger.error(f"[BATTLE_WS] The following errors occurred during user updates: {update_errors}")
-                return
+                # Continue with the process even if some updates failed
             else:
                 logger.info(f"[BATTLE_WS] All user updates completed successfully")
+                
         except Exception as e:
             error_msg = f"Error in user statistics update: {str(e)}"
             logger.error(f"[BATTLE_WS] {error_msg}\n{traceback.format_exc()}")
             return
+        
         # Update rankings
         try:
             from battle.router import update_user_rankings
             logger.info(f"[BATTLE_WS] Updating user rankings...")
-            await update_user_rankings()
-            logger.info(f"[BATTLE_WS] Successfully updated user rankings")
+            ranking_success = await update_user_rankings()
+            if ranking_success:
+                logger.info(f"[BATTLE_WS] Successfully updated user rankings")
+            else:
+                logger.warning(f"[BATTLE_WS] Failed to update user rankings")
         except Exception as e:
             logger.error(f"[BATTLE_WS] Error updating user rankings: {str(e)}\n{traceback.format_exc()}")
+        
         # Broadcast battle finished event to all connected clients
         try:
             battle_finished_data = {
                 "type": "battle_finished",
                 "battle_id": battle_id,
-                "result": result if result == "draw" else ("win" if winner == user1 else "lose"),
-                "winner": winner if result != "draw" else None,
-                "loser": loser if result != "draw" else None,
+                "result": result,
+                "winner": winner,
+                "loser": loser,
                 "final_scores": final_scores,
                 "updated_users": updated_users,
                 "battle": {
@@ -493,15 +534,21 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
                     "second_opponent_score": score2
                 }
             }
+            
+            # Send to both users
             for user in [user1, user2]:
                 await manager.send_message(json.dumps(battle_finished_data), user)
+            
             logger.info(f"[BATTLE_WS] Battle finished event broadcasted to users {user1} and {user2}")
+            
         except Exception as e:
             logger.error(f"[BATTLE_WS] Error broadcasting battle finished event: {str(e)}\n{traceback.format_exc()}")
+        
         # Clean up in-memory battle
         if battle_id in battles:
             del battles[battle_id]
             logger.info(f"[BATTLE_WS] Removed battle {battle_id} from memory")
+            
     except Exception as e:
         logger.error(f"[BATTLE_WS] Fatal error in handle_battle_result: {str(e)}\n{traceback.format_exc()}")
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Card,
@@ -23,99 +23,114 @@ import type { RecentBattle } from "../../../shared/interface/user";
 import axios from "axios";
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var";
 
+interface Battle {
+  id: string;
+  first_opponent: string;
+  second_opponent: string;
+  first_opponent_score: number;
+  second_opponent_score: number;
+  sport: string;
+  level: string;
+  created_at: string;
+  result: string;
+  score: string;
+}
+
 const getSportIcon = (sport: string) => {
   const sportIcons: { [key: string]: React.ReactNode } = {
-    football: <Trophy className="w-6 h-6 text-orange-500" />,
-    basketball: <Target className="w-6 h-6 text-orange-500" />,
-    tennis: <Zap className="w-6 h-6 text-orange-500" />,
-    soccer: <Trophy className="w-6 h-6 text-green-500" />,
-    baseball: <Target className="w-6 h-6 text-blue-500" />,
-    volleyball: <Zap className="w-6 h-6 text-purple-500" />,
-    hockey: <Sword className="w-6 h-6 text-blue-500" />,
-    cricket: <Target className="w-6 h-6 text-green-500" />,
-    rugby: <Trophy className="w-6 h-6 text-red-500" />,
-    golf: <Target className="w-6 h-6 text-green-500" />,
-    swimming: <Zap className="w-6 h-6 text-blue-500" />,
-    athletics: <Zap className="w-6 h-6 text-orange-500" />,
-    cycling: <Zap className="w-6 h-6 text-yellow-500" />,
-    boxing: <Sword className="w-6 h-6 text-red-500" />,
-    martial_arts: <Sword className="w-6 h-6 text-purple-500" />,
-    default: <Trophy className="w-6 h-6 text-gray-500" />
+    football: <Trophy className="w-5 h-5 text-orange-500" />,
+    basketball: <Target className="w-5 h-5 text-orange-500" />,
+    tennis: <Zap className="w-5 h-5 text-orange-500" />,
+    soccer: <Trophy className="w-5 h-5 text-green-500" />,
+    baseball: <Target className="w-5 h-5 text-blue-500" />,
+    volleyball: <Zap className="w-5 h-5 text-purple-500" />,
+    hockey: <Sword className="w-5 h-5 text-blue-500" />,
+    cricket: <Target className="w-5 h-5 text-green-500" />,
+    rugby: <Trophy className="w-5 h-5 text-red-500" />,
+    golf: <Target className="w-5 h-5 text-green-500" />,
+    swimming: <Zap className="w-5 h-5 text-blue-500" />,
+    athletics: <Zap className="w-5 h-5 text-orange-500" />,
+    cycling: <Zap className="w-5 h-5 text-yellow-500" />,
+    boxing: <Sword className="w-5 h-5 text-red-500" />,
+    martial_arts: <Sword className="w-5 h-5 text-purple-500" />,
+    default: <Trophy className="w-5 h-5 text-gray-500" />
   };
   
   return sportIcons[sport.toLowerCase()] || sportIcons.default;
 };
 
 export default function AllBattles() {
-  const [allBattles, setAllBattles] = useState<RecentBattle[]>([]);
-  const [filteredBattles, setFilteredBattles] = useState<RecentBattle[]>([]);
+  const [allBattles, setAllBattles] = useState<Battle[]>([]);
+  const [filteredBattles, setFilteredBattles] = useState<Battle[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [sportFilter, setSportFilter] = useState("all");
   const [resultFilter, setResultFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const battlesPerPage = 10;
 
-  useEffect(() => {
-    const fetchAllBattles = async () => {
-      if (!localStorage.getItem("username")) return;
+  const fetchAllBattles = async () => {
+    if (!localStorage.getItem("username")) return;
+    
+    try {
+      setIsLoading(true);
+      console.log('[All Battles] Fetching all battles...');
       
-      try {
-        setIsLoading(true);
-        const response = await axios.get(
-          `${API_BASE_URL}/battle/get_battles?username=${localStorage.getItem("username")}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-            },
+      const response = await axios.get(
+        `${API_BASE_URL}/battle/get_all_battles?username=${localStorage.getItem("username")}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+        }
+      );
+      const data = await response.data;
+
+      const mapped: Battle[] = data.map((battle: any) => {
+        const currentUser = localStorage.getItem("username");
+        const firstScore = parseInt(battle.first_opponent_score) || 0;
+        const secondScore = parseInt(battle.second_opponent_score) || 0;
+        
+        let result = "draw";
+        if (battle.first_opponent === currentUser) {
+          if (firstScore > secondScore) {
+            result = "win";
+          } else if (firstScore < secondScore) {
+            result = "lose";
           }
-        );
+        } else if (battle.second_opponent === currentUser) {
+          if (secondScore > firstScore) {
+            result = "win";
+          } else if (secondScore < firstScore) {
+            result = "lose";
+          }
+        }
         
-        const data = await response.data;
-        const mapped: RecentBattle[] = data.map((battle: any) => {
-          let opponent = battle.first_opponent === localStorage.getItem("username") ? battle.second_opponent : battle.first_opponent;
-          
-          let result = "draw";
-          const currentUser = localStorage.getItem("username");
-          
-          const firstScore = parseInt(battle.first_opponent_score) || 0;
-          const secondScore = parseInt(battle.second_opponent_score) || 0
-          
-          if (battle.first_opponent === currentUser) {
-            if (firstScore > secondScore) {
-              result = "win";
-            } else if (firstScore < secondScore) {
-              result = "lose";
-            } 
-          } else if (battle.second_opponent === currentUser) {
-            if (secondScore > firstScore) {
-              result = "win";
-            } else if (secondScore < firstScore) {
-              result = "lose";
-            }
-          } 
-          
-          const score = `${firstScore} : ${secondScore}`;
+        const score = `${firstScore} : ${secondScore}`;
 
-          return {
-            id: battle.id,
-            opponent: opponent || "Unknown",
-            player1: battle.first_opponent,
-            player2: battle.second_opponent,
-            sport: battle.sport,
-            result,
-            score
-          };
-        });
-        
-        setAllBattles(mapped);
-        setFilteredBattles(mapped);
-      } catch (error) {
-        console.error("Error fetching battles:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+        return {
+          id: battle.id,
+          first_opponent: battle.first_opponent,
+          second_opponent: battle.second_opponent,
+          first_opponent_score: firstScore,
+          second_opponent_score: secondScore,
+          sport: battle.sport,
+          level: battle.level,
+          created_at: battle.created_at,
+          result,
+          score
+        };
+      });
+      
+      setAllBattles(mapped);
+      console.log('[All Battles] Successfully fetched battles:', mapped.length);
+    } catch (error) {
+      console.error("[All Battles] Error fetching battles:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchAllBattles();
     
     // Listen for battle finished events to refresh data
@@ -136,9 +151,14 @@ export default function AllBattles() {
         userData.winRate = updatedStats.winRate;
         userData.streak = updatedStats.streak;
         localStorage.setItem('user', JSON.stringify(userData));
+        
+        console.log('[All Battles] Updated user stats in localStorage');
       }
       
-      fetchAllBattles();
+      // Refresh battles data
+      setTimeout(() => {
+        fetchAllBattles();
+      }, 1000); // Small delay to ensure backend has processed the battle
     };
     
     window.addEventListener('battleFinished', handleBattleFinished);
@@ -171,8 +191,9 @@ export default function AllBattles() {
   const endIndex = startIndex + battlesPerPage;
   const currentBattles = filteredBattles.slice(startIndex, endIndex);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   if (isLoading) {
@@ -207,8 +228,6 @@ export default function AllBattles() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-
             <Select value={sportFilter} onValueChange={setSportFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="All Sports" />
@@ -234,7 +253,6 @@ export default function AllBattles() {
                 <SelectItem value="draw">Draws</SelectItem>
               </SelectContent>
             </Select>
-
           </div>
         </CardContent>
       </Card>
@@ -269,33 +287,33 @@ export default function AllBattles() {
               {currentBattles.map((battle) => (
                 <div
                   key={battle.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow bg-white dark:bg-gray-800"
                 >
-                  <div className="flex items-center gap-4 mb-3 sm:mb-0">
+                  <div className="flex items-center gap-3 mb-3 sm:mb-0">
                     <div className="flex-shrink-0">
                       {getSportIcon(battle.sport)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm lg:text-base truncate">
-                        {battle.player1} vs {battle.player2}
+                      <p className="font-medium text-sm lg:text-base">
+                        {battle.first_opponent} vs {battle.second_opponent}
                       </p>
-                      <div className="flex items-center gap-4 mt-1">
-                        <span className="text-xs text-gray-500 uppercase">{battle.sport}</span>
-                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {battle.sport} • {battle.level} • {formatDate(battle.created_at)}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <Badge
                       variant={
                         battle.result === "win" ? "default" : 
                         battle.result === "lose" ? "destructive" : "secondary"
                       }
-                      className="w-fit text-xs"
+                      className="w-fit text-xs lg:text-sm"
                     >
                       {battle.result === "win" ? "Victory" : 
                        battle.result === "lose" ? "Defeat" : "Draw"}
                     </Badge>
-                    <p className="text-lg font-bold text-right">{battle.score}</p>
+                    <p className="text-sm lg:text-lg font-bold text-right">{battle.score}</p>
                   </div>
                 </div>
               ))}
@@ -311,7 +329,7 @@ export default function AllBattles() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
+              onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
               className="w-full sm:w-auto px-3 sm:px-2 text-sm"
             >
@@ -325,7 +343,7 @@ export default function AllBattles() {
                   key={page}
                   variant={currentPage === page ? "default" : "outline"}
                   size="sm"
-                  onClick={() => handlePageChange(page)}
+                  onClick={() => setCurrentPage(page)}
                   className="w-8 h-8 p-0 text-xs sm:text-sm"
                 >
                   {page}
@@ -336,7 +354,7 @@ export default function AllBattles() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
+              onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
               className="w-full sm:w-auto px-3 sm:px-2 text-sm"
             >

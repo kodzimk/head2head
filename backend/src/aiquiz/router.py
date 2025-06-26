@@ -6,6 +6,7 @@ import hashlib
 from datetime import datetime, timedelta
 import asyncio
 import logging
+import time
 # Global question tracking system
 used_questions = {}  # Track questions by hash to avoid duplicates
 question_rotation = {}  # Track question rotation by sport/level
@@ -178,8 +179,41 @@ def filter_questions_with_correct_answer(questions):
             print(f"[Warning] Skipping question missing 'correctAnswer': {q}")
     return filtered
 
-def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6):
-    """Generate fallback questions when AI generation fails, always returns 'count' questions"""
+def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6, battle_id: str = None):
+    """Generate fallback questions when AI generation fails, always returns 'count' questions with battle-specific uniqueness"""
+    import time
+    
+    # Add battle-specific context for uniqueness
+    battle_context = f"Battle {battle_id}" if battle_id else "Default"
+    timestamp = int(time.time())
+    
+    # Create battle-specific variations of fallback questions
+    def create_battle_specific_question(base_question, variation_index):
+        """Create a battle-specific variation of a question"""
+        question = base_question.copy()
+        
+        # Add battle context to question text
+        if battle_id:
+            question["question"] = f"[{battle_context}] {question['question']}"
+        
+        # Shuffle answer options for uniqueness
+        answers = question['answers'].copy()
+        random.shuffle(answers)
+        question['answers'] = answers
+        
+        # Update correct answer to match new order
+        correct_text = next((ans['text'] for ans in base_question['answers'] if ans['label'] == base_question['correctAnswer']), '')
+        for ans in answers:
+            if ans['text'] == correct_text:
+                question['correctAnswer'] = ans['label']
+                break
+        
+        # Add timestamp-based variation
+        if variation_index > 0:
+            question["question"] = f"{question['question']} (v{variation_index})"
+        
+        return question
+    
     fallback_questions = {
         "football": {
             "easy": [
@@ -208,31 +242,19 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6)
                     "difficulty": "EASY"
                 },
                 {
-                    "question": "What is the maximum number of substitutes allowed in a football match?",
-                    "answers": [{"label": "A", "text": "3"}, {"label": "B", "text": "5"}, {"label": "C", "text": "7"}, {"label": "D", "text": "2"}],
+                    "question": "What is the duration of a standard football match?",
+                    "answers": [{"label": "A", "text": "80 minutes"}, {"label": "B", "text": "90 minutes"}, {"label": "C", "text": "100 minutes"}, {"label": "D", "text": "120 minutes"}],
                     "correctAnswer": "B",
                     "difficulty": "EASY"
                 },
                 {
-                    "question": "Which player is known as 'El Fenómeno'?",
-                    "answers": [{"label": "A", "text": "Ronaldo Nazário"}, {"label": "B", "text": "Ronaldinho"}, {"label": "C", "text": "Neymar"}, {"label": "D", "text": "Romário"}],
+                    "question": "Which club has won the most UEFA Champions League titles?",
+                    "answers": [{"label": "A", "text": "Real Madrid"}, {"label": "B", "text": "Barcelona"}, {"label": "C", "text": "Bayern Munich"}, {"label": "D", "text": "AC Milan"}],
                     "correctAnswer": "A",
                     "difficulty": "EASY"
                 }
             ],
             "medium": [
-                {
-                    "question": "Which club has won the most UEFA Champions League titles?",
-                    "answers": [{"label": "A", "text": "Real Madrid"}, {"label": "B", "text": "Barcelona"}, {"label": "C", "text": "Bayern Munich"}, {"label": "D", "text": "AC Milan"}],
-                    "correctAnswer": "A",
-                    "difficulty": "MEDIUM"
-                },
-                {
-                    "question": "What is the duration of a standard football match?",
-                    "answers": [{"label": "A", "text": "80 minutes"}, {"label": "B", "text": "90 minutes"}, {"label": "C", "text": "100 minutes"}, {"label": "D", "text": "120 minutes"}],
-                    "correctAnswer": "B",
-                    "difficulty": "MEDIUM"
-                },
                 {
                     "question": "Who won the Ballon d'Or in 2018?",
                     "answers": [{"label": "A", "text": "Luka Modrić"}, {"label": "B", "text": "Cristiano Ronaldo"}, {"label": "C", "text": "Lionel Messi"}, {"label": "D", "text": "Antoine Griezmann"}],
@@ -252,46 +274,58 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6)
                     "difficulty": "MEDIUM"
                 },
                 {
-                    "question": "Who scored the 'Hand of God' goal?",
-                    "answers": [{"label": "A", "text": "Diego Maradona"}, {"label": "B", "text": "Pelé"}, {"label": "C", "text": "Zinedine Zidane"}, {"label": "D", "text": "David Beckham"}],
+                    "question": "What year did the first FIFA World Cup take place?",
+                    "answers": [{"label": "A", "text": "1930"}, {"label": "B", "text": "1934"}, {"label": "C", "text": "1938"}, {"label": "D", "text": "1950"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Which player has scored the most goals in World Cup history?",
+                    "answers": [{"label": "A", "text": "Miroslav Klose"}, {"label": "B", "text": "Ronaldo"}, {"label": "C", "text": "Pelé"}, {"label": "D", "text": "Just Fontaine"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Which country has hosted the most World Cups?",
+                    "answers": [{"label": "A", "text": "Brazil"}, {"label": "B", "text": "Germany"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Italy"}],
                     "correctAnswer": "A",
                     "difficulty": "MEDIUM"
                 }
             ],
             "hard": [
                 {
-                    "question": "What year was the first FIFA World Cup held?",
-                    "answers": [{"label": "A", "text": "1930"}, {"label": "B", "text": "1934"}, {"label": "C", "text": "1938"}, {"label": "D", "text": "1950"}],
+                    "question": "What was the original name of the FIFA World Cup trophy?",
+                    "answers": [{"label": "A", "text": "Jules Rimet Trophy"}, {"label": "B", "text": "FIFA World Cup Trophy"}, {"label": "C", "text": "Victory Trophy"}, {"label": "D", "text": "Champions Trophy"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Which player has scored the most goals in World Cup history?",
-                    "answers": [{"label": "A", "text": "Miroslav Klose"}, {"label": "B", "text": "Ronaldo"}, {"label": "C", "text": "Pelé"}, {"label": "D", "text": "Just Fontaine"}],
+                    "question": "Which player scored the fastest hat-trick in World Cup history?",
+                    "answers": [{"label": "A", "text": "László Kiss"}, {"label": "B", "text": "Pelé"}, {"label": "C", "text": "Just Fontaine"}, {"label": "D", "text": "Gerd Müller"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Which country won the UEFA Euro 2004?",
-                    "answers": [{"label": "A", "text": "Greece"}, {"label": "B", "text": "Portugal"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Spain"}],
+                    "question": "What year did the first European Championship take place?",
+                    "answers": [{"label": "A", "text": "1960"}, {"label": "B", "text": "1964"}, {"label": "C", "text": "1968"}, {"label": "D", "text": "1972"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Who was the top scorer in the 2014 FIFA World Cup?",
-                    "answers": [{"label": "A", "text": "James Rodríguez"}, {"label": "B", "text": "Thomas Müller"}, {"label": "C", "text": "Lionel Messi"}, {"label": "D", "text": "Neymar"}],
+                    "question": "Which country has won the most European Championships?",
+                    "answers": [{"label": "A", "text": "Germany"}, {"label": "B", "text": "Spain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Italy"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Which club did Zinedine Zidane play for before joining Real Madrid?",
-                    "answers": [{"label": "A", "text": "Juventus"}, {"label": "B", "text": "Bordeaux"}, {"label": "C", "text": "Monaco"}, {"label": "D", "text": "Marseille"}],
+                    "question": "What is the record for most goals scored in a single World Cup tournament?",
+                    "answers": [{"label": "A", "text": "13"}, {"label": "B", "text": "15"}, {"label": "C", "text": "17"}, {"label": "D", "text": "19"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Who won the Golden Boot at the 2018 FIFA World Cup?",
-                    "answers": [{"label": "A", "text": "Harry Kane"}, {"label": "B", "text": "Antoine Griezmann"}, {"label": "C", "text": "Romelu Lukaku"}, {"label": "D", "text": "Kylian Mbappé"}],
+                    "question": "Which player has the most assists in World Cup history?",
+                    "answers": [{"label": "A", "text": "Pelé"}, {"label": "B", "text": "Diego Maradona"}, {"label": "C", "text": "Zinedine Zidane"}, {"label": "D", "text": "Lothar Matthäus"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 }
@@ -300,26 +334,8 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6)
         "basketball": {
             "easy": [
                 {
-                    "question": "Which player has won the most NBA championships?",
-                    "answers": [{"label": "A", "text": "Bill Russell"}, {"label": "B", "text": "Michael Jordan"}, {"label": "C", "text": "Kareem Abdul-Jabbar"}, {"label": "D", "text": "LeBron James"}],
-                    "correctAnswer": "A",
-                    "difficulty": "EASY"
-                },
-                {
-                    "question": "How many points is a three-pointer worth in basketball?",
-                    "answers": [{"label": "A", "text": "2"}, {"label": "B", "text": "3"}, {"label": "C", "text": "4"}, {"label": "D", "text": "1"}],
-                    "correctAnswer": "B",
-                    "difficulty": "EASY"
-                },
-                {
-                    "question": "Which team is known as the 'Showtime' team in the NBA?",
-                    "answers": [{"label": "A", "text": "Los Angeles Lakers"}, {"label": "B", "text": "Boston Celtics"}, {"label": "C", "text": "Chicago Bulls"}, {"label": "D", "text": "Miami Heat"}],
-                    "correctAnswer": "A",
-                    "difficulty": "EASY"
-                },
-                {
-                    "question": "Who is the NBA's all-time leading scorer?",
-                    "answers": [{"label": "A", "text": "Kareem Abdul-Jabbar"}, {"label": "B", "text": "LeBron James"}, {"label": "C", "text": "Karl Malone"}, {"label": "D", "text": "Michael Jordan"}],
+                    "question": "How many players are on a basketball team during a game?",
+                    "answers": [{"label": "A", "text": "4"}, {"label": "B", "text": "5"}, {"label": "C", "text": "6"}, {"label": "D", "text": "7"}],
                     "correctAnswer": "B",
                     "difficulty": "EASY"
                 },
@@ -334,33 +350,27 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6)
                     "answers": [{"label": "A", "text": "Chicago Bulls"}, {"label": "B", "text": "Portland Trail Blazers"}, {"label": "C", "text": "Houston Rockets"}, {"label": "D", "text": "Los Angeles Lakers"}],
                     "correctAnswer": "A",
                     "difficulty": "EASY"
+                },
+                {
+                    "question": "How many points is a three-pointer worth?",
+                    "answers": [{"label": "A", "text": "2"}, {"label": "B", "text": "3"}, {"label": "C", "text": "4"}, {"label": "D", "text": "5"}],
+                    "correctAnswer": "B",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "Which country has won the most Olympic basketball gold medals?",
+                    "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Soviet Union"}, {"label": "C", "text": "Yugoslavia"}, {"label": "D", "text": "Argentina"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "What year was the NBA founded?",
+                    "answers": [{"label": "A", "text": "1946"}, {"label": "B", "text": "1947"}, {"label": "C", "text": "1948"}, {"label": "D", "text": "1949"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
                 }
             ],
             "medium": [
-                {
-                    "question": "Which team has won the most NBA championships?",
-                    "answers": [{"label": "A", "text": "Boston Celtics"}, {"label": "B", "text": "Los Angeles Lakers"}, {"label": "C", "text": "Chicago Bulls"}, {"label": "D", "text": "Golden State Warriors"}],
-                    "correctAnswer": "A",
-                    "difficulty": "MEDIUM"
-                },
-                {
-                    "question": "How many quarters are in a standard NBA game?",
-                    "answers": [{"label": "A", "text": "3"}, {"label": "B", "text": "4"}, {"label": "C", "text": "5"}, {"label": "D", "text": "6"}],
-                    "correctAnswer": "B",
-                    "difficulty": "MEDIUM"
-                },
-                {
-                    "question": "Who was the first player to record a quadruple-double in the NBA?",
-                    "answers": [{"label": "A", "text": "Nate Thurmond"}, {"label": "B", "text": "Hakeem Olajuwon"}, {"label": "C", "text": "David Robinson"}, {"label": "D", "text": "Alvin Robertson"}],
-                    "correctAnswer": "A",
-                    "difficulty": "MEDIUM"
-                },
-                {
-                    "question": "Which NBA player is known as 'The Answer'?",
-                    "answers": [{"label": "A", "text": "Allen Iverson"}, {"label": "B", "text": "Shaquille O'Neal"}, {"label": "C", "text": "Kobe Bryant"}, {"label": "D", "text": "Tim Duncan"}],
-                    "correctAnswer": "A",
-                    "difficulty": "MEDIUM"
-                },
                 {
                     "question": "Which city hosted the first NBA All-Star Game?",
                     "answers": [{"label": "A", "text": "Boston"}, {"label": "B", "text": "New York"}, {"label": "C", "text": "Chicago"}, {"label": "D", "text": "Philadelphia"}],
@@ -372,42 +382,66 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6)
                     "answers": [{"label": "A", "text": "Stephen Curry"}, {"label": "B", "text": "Ray Allen"}, {"label": "C", "text": "James Harden"}, {"label": "D", "text": "Klay Thompson"}],
                     "correctAnswer": "A",
                     "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Which player has won the most NBA championships?",
+                    "answers": [{"label": "A", "text": "Bill Russell"}, {"label": "B", "text": "Michael Jordan"}, {"label": "C", "text": "Kareem Abdul-Jabbar"}, {"label": "D", "text": "LeBron James"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "What year did the NBA introduce the three-point line?",
+                    "answers": [{"label": "A", "text": "1979"}, {"label": "B", "text": "1980"}, {"label": "C", "text": "1981"}, {"label": "D", "text": "1982"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Which team has won the most NBA championships?",
+                    "answers": [{"label": "A", "text": "Boston Celtics"}, {"label": "B", "text": "Los Angeles Lakers"}, {"label": "C", "text": "Chicago Bulls"}, {"label": "D", "text": "Golden State Warriors"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Who is the NBA's all-time leading scorer?",
+                    "answers": [{"label": "A", "text": "LeBron James"}, {"label": "B", "text": "Kareem Abdul-Jabbar"}, {"label": "C", "text": "Karl Malone"}, {"label": "D", "text": "Michael Jordan"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
                 }
             ],
             "hard": [
                 {
-                    "question": "What year was the NBA founded?",
-                    "answers": [{"label": "A", "text": "1946"}, {"label": "B", "text": "1947"}, {"label": "C", "text": "1948"}, {"label": "D", "text": "1949"}],
+                    "question": "What year did the NBA introduce the shot clock?",
+                    "answers": [{"label": "A", "text": "1954"}, {"label": "B", "text": "1955"}, {"label": "C", "text": "1956"}, {"label": "D", "text": "1957"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Who holds the NBA record for most points scored in a single game?",
-                    "answers": [{"label": "A", "text": "Wilt Chamberlain"}, {"label": "B", "text": "Kobe Bryant"}, {"label": "C", "text": "Michael Jordan"}, {"label": "D", "text": "LeBron James"}],
+                    "question": "Which player has the highest career field goal percentage in NBA history?",
+                    "answers": [{"label": "A", "text": "DeAndre Jordan"}, {"label": "B", "text": "Tyson Chandler"}, {"label": "C", "text": "Shaquille O'Neal"}, {"label": "D", "text": "Wilt Chamberlain"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Which player won NBA MVP and Defensive Player of the Year in the same season?",
-                    "answers": [{"label": "A", "text": "Michael Jordan"}, {"label": "B", "text": "Hakeem Olajuwon"}, {"label": "C", "text": "Giannis Antetokounmpo"}, {"label": "D", "text": "David Robinson"}],
-                    "correctAnswer": "B",
-                    "difficulty": "HARD"
-                },
-                {
-                    "question": "Which team drafted Dirk Nowitzki?",
-                    "answers": [{"label": "A", "text": "Milwaukee Bucks"}, {"label": "B", "text": "Dallas Mavericks"}, {"label": "C", "text": "San Antonio Spurs"}, {"label": "D", "text": "Houston Rockets"}],
+                    "question": "What year did the NBA introduce the three-point contest?",
+                    "answers": [{"label": "A", "text": "1986"}, {"label": "B", "text": "1987"}, {"label": "C", "text": "1988"}, {"label": "D", "text": "1989"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Who was the first non-US born player to win NBA MVP?",
-                    "answers": [{"label": "A", "text": "Hakeem Olajuwon"}, {"label": "B", "text": "Dirk Nowitzki"}, {"label": "C", "text": "Giannis Antetokounmpo"}, {"label": "D", "text": "Steve Nash"}],
+                    "question": "Which player has the most career assists in NBA history?",
+                    "answers": [{"label": "A", "text": "John Stockton"}, {"label": "B", "text": "Jason Kidd"}, {"label": "C", "text": "Steve Nash"}, {"label": "D", "text": "Magic Johnson"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Which player has the most career triple-doubles in NBA history?",
-                    "answers": [{"label": "A", "text": "Russell Westbrook"}, {"label": "B", "text": "Oscar Robertson"}, {"label": "C", "text": "Magic Johnson"}, {"label": "D", "text": "Jason Kidd"}],
+                    "question": "What year did the NBA introduce the slam dunk contest?",
+                    "answers": [{"label": "A", "text": "1984"}, {"label": "B", "text": "1985"}, {"label": "C", "text": "1986"}, {"label": "D", "text": "1987"}],
+                    "correctAnswer": "A",
+                    "difficulty": "HARD"
+                },
+                {
+                    "question": "Which player has the most career steals in NBA history?",
+                    "answers": [{"label": "A", "text": "John Stockton"}, {"label": "B", "text": "Jason Kidd"}, {"label": "C", "text": "Michael Jordan"}, {"label": "D", "text": "Gary Payton"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 }
@@ -416,61 +450,43 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6)
         "tennis": {
             "easy": [
                 {
-                    "question": "How many Grand Slam tournaments are there in tennis?",
-                    "answers": [{"label": "A", "text": "3"}, {"label": "B", "text": "4"}, {"label": "C", "text": "5"}, {"label": "D", "text": "6"}],
+                    "question": "How many players are in a tennis singles match?",
+                    "answers": [{"label": "A", "text": "1"}, {"label": "B", "text": "2"}, {"label": "C", "text": "3"}, {"label": "D", "text": "4"}],
                     "correctAnswer": "B",
                     "difficulty": "EASY"
                 },
                 {
-                    "question": "Which surface is Wimbledon played on?",
-                    "answers": [{"label": "A", "text": "Clay"}, {"label": "B", "text": "Hard court"}, {"label": "C", "text": "Grass"}, {"label": "D", "text": "Carpet"}],
-                    "correctAnswer": "C",
-                    "difficulty": "EASY"
-                },
-                {
-                    "question": "Who has won the most Grand Slam singles titles in women's tennis?",
-                    "answers": [{"label": "A", "text": "Serena Williams"}, {"label": "B", "text": "Steffi Graf"}, {"label": "C", "text": "Margaret Court"}, {"label": "D", "text": "Martina Navratilova"}],
-                    "correctAnswer": "C",
-                    "difficulty": "EASY"
-                },
-                {
-                    "question": "Which male player has won the most French Open titles?",
-                    "answers": [{"label": "A", "text": "Rafael Nadal"}, {"label": "B", "text": "Roger Federer"}, {"label": "C", "text": "Novak Djokovic"}, {"label": "D", "text": "Pete Sampras"}],
+                    "question": "Which Grand Slam tournament is played on grass?",
+                    "answers": [{"label": "A", "text": "Wimbledon"}, {"label": "B", "text": "US Open"}, {"label": "C", "text": "French Open"}, {"label": "D", "text": "Australian Open"}],
                     "correctAnswer": "A",
                     "difficulty": "EASY"
                 },
                 {
-                    "question": "What is the term for a score of zero in tennis?",
-                    "answers": [{"label": "A", "text": "Love"}, {"label": "B", "text": "Deuce"}, {"label": "C", "text": "Ace"}, {"label": "D", "text": "Break"}],
+                    "question": "Who has won the most Grand Slam singles titles?",
+                    "answers": [{"label": "A", "text": "Margaret Court"}, {"label": "B", "text": "Serena Williams"}, {"label": "C", "text": "Steffi Graf"}, {"label": "D", "text": "Martina Navratilova"}],
                     "correctAnswer": "A",
                     "difficulty": "EASY"
                 },
                 {
-                    "question": "Which tournament is played on clay courts?",
-                    "answers": [{"label": "A", "text": "French Open"}, {"label": "B", "text": "Wimbledon"}, {"label": "C", "text": "US Open"}, {"label": "D", "text": "Australian Open"}],
+                    "question": "What is the scoring system in tennis?",
+                    "answers": [{"label": "A", "text": "Love, 15, 30, 40"}, {"label": "B", "text": "1, 2, 3, 4"}, {"label": "C", "text": "0, 1, 2, 3"}, {"label": "D", "text": "A, B, C, D"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "Which country has won the most Davis Cup titles?",
+                    "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Australia"}, {"label": "C", "text": "Great Britain"}, {"label": "D", "text": "France"}],
+                    "correctAnswer": "A",
+                    "difficulty": "EASY"
+                },
+                {
+                    "question": "What year was the first Wimbledon tournament held?",
+                    "answers": [{"label": "A", "text": "1877"}, {"label": "B", "text": "1887"}, {"label": "C", "text": "1897"}, {"label": "D", "text": "1907"}],
                     "correctAnswer": "A",
                     "difficulty": "EASY"
                 }
             ],
             "medium": [
-                {
-                    "question": "Who has won the most Grand Slam titles in men's tennis?",
-                    "answers": [{"label": "A", "text": "Roger Federer"}, {"label": "B", "text": "Rafael Nadal"}, {"label": "C", "text": "Novak Djokovic"}, {"label": "D", "text": "Pete Sampras"}],
-                    "correctAnswer": "C",
-                    "difficulty": "MEDIUM"
-                },
-                {
-                    "question": "Which country hosts the Australian Open?",
-                    "answers": [{"label": "A", "text": "Australia"}, {"label": "B", "text": "USA"}, {"label": "C", "text": "France"}, {"label": "D", "text": "UK"}],
-                    "correctAnswer": "A",
-                    "difficulty": "MEDIUM"
-                },
-                {
-                    "question": "Who is known as the 'King of Clay'?",
-                    "answers": [{"label": "A", "text": "Rafael Nadal"}, {"label": "B", "text": "Roger Federer"}, {"label": "C", "text": "Novak Djokovic"}, {"label": "D", "text": "Andy Murray"}],
-                    "correctAnswer": "A",
-                    "difficulty": "MEDIUM"
-                },
                 {
                     "question": "Which female player has won the most Wimbledon singles titles?",
                     "answers": [{"label": "A", "text": "Martina Navratilova"}, {"label": "B", "text": "Serena Williams"}, {"label": "C", "text": "Steffi Graf"}, {"label": "D", "text": "Venus Williams"}],
@@ -488,227 +504,63 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6)
                     "answers": [{"label": "A", "text": "Steffi Graf"}, {"label": "B", "text": "Serena Williams"}, {"label": "C", "text": "Martina Navratilova"}, {"label": "D", "text": "Monica Seles"}],
                     "correctAnswer": "A",
                     "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "What year did the US Open move to Flushing Meadows?",
+                    "answers": [{"label": "A", "text": "1978"}, {"label": "B", "text": "1979"}, {"label": "C", "text": "1980"}, {"label": "D", "text": "1981"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "Which player has won the most Australian Open titles?",
+                    "answers": [{"label": "A", "text": "Novak Djokovic"}, {"label": "B", "text": "Roger Federer"}, {"label": "C", "text": "Rafael Nadal"}, {"label": "D", "text": "Pete Sampras"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
+                },
+                {
+                    "question": "What year did tennis become an Olympic sport?",
+                    "answers": [{"label": "A", "text": "1896"}, {"label": "B", "text": "1900"}, {"label": "C", "text": "1904"}, {"label": "D", "text": "1908"}],
+                    "correctAnswer": "A",
+                    "difficulty": "MEDIUM"
                 }
             ],
             "hard": [
                 {
-                    "question": "What year was the first Wimbledon tournament held?",
-                    "answers": [{"label": "A", "text": "1877"}, {"label": "B", "text": "1887"}, {"label": "C", "text": "1897"}, {"label": "D", "text": "1907"}],
+                    "question": "What year did the French Open become a Grand Slam tournament?",
+                    "answers": [{"label": "A", "text": "1925"}, {"label": "B", "text": "1926"}, {"label": "C", "text": "1927"}, {"label": "D", "text": "1928"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Who was the first male player to win all four Grand Slam tournaments in a single year?",
-                    "answers": [{"label": "A", "text": "Don Budge"}, {"label": "B", "text": "Rod Laver"}, {"label": "C", "text": "Roy Emerson"}, {"label": "D", "text": "Fred Perry"}],
+                    "question": "Which player has the highest career winning percentage in Grand Slam matches?",
+                    "answers": [{"label": "A", "text": "Margaret Court"}, {"label": "B", "text": "Serena Williams"}, {"label": "C", "text": "Steffi Graf"}, {"label": "D", "text": "Martina Navratilova"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Which country has produced the most men's Grand Slam singles champions?",
-                    "answers": [{"label": "A", "text": "USA"}, {"label": "B", "text": "Australia"}, {"label": "C", "text": "UK"}, {"label": "D", "text": "France"}],
+                    "question": "What year did the Australian Open move to Melbourne Park?",
+                    "answers": [{"label": "A", "text": "1988"}, {"label": "B", "text": "1989"}, {"label": "C", "text": "1990"}, {"label": "D", "text": "1991"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Who won the men's singles gold medal at the 2008 Beijing Olympics?",
-                    "answers": [{"label": "A", "text": "Rafael Nadal"}, {"label": "B", "text": "Roger Federer"}, {"label": "C", "text": "Novak Djokovic"}, {"label": "D", "text": "Andy Murray"}],
+                    "question": "Which player has won the most consecutive Grand Slam titles?",
+                    "answers": [{"label": "A", "text": "Don Budge"}, {"label": "B", "text": "Rod Laver"}, {"label": "C", "text": "Roger Federer"}, {"label": "D", "text": "Rafael Nadal"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Which player has the most career ATP singles titles?",
-                    "answers": [{"label": "A", "text": "Jimmy Connors"}, {"label": "B", "text": "Roger Federer"}, {"label": "C", "text": "Ivan Lendl"}, {"label": "D", "text": "Rafael Nadal"}],
+                    "question": "What year did the US Open introduce the tiebreak?",
+                    "answers": [{"label": "A", "text": "1970"}, {"label": "B", "text": "1971"}, {"label": "C", "text": "1972"}, {"label": "D", "text": "1973"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 },
                 {
-                    "question": "Who was the youngest player to win a Grand Slam singles title?",
-                    "answers": [{"label": "A", "text": "Martina Hingis"}, {"label": "B", "text": "Monica Seles"}, {"label": "C", "text": "Steffi Graf"}, {"label": "D", "text": "Serena Williams"}],
+                    "question": "Which player has the most career aces in Grand Slam tournaments?",
+                    "answers": [{"label": "A", "text": "Ivo Karlović"}, {"label": "B", "text": "John Isner"}, {"label": "C", "text": "Roger Federer"}, {"label": "D", "text": "Pete Sampras"}],
                     "correctAnswer": "A",
                     "difficulty": "HARD"
                 }
-            ]
-        },
-        "cricket": {
-            "easy": [
-                {"question": "How many players are there in a cricket team?", "answers": [{"label": "A", "text": "9"}, {"label": "B", "text": "10"}, {"label": "C", "text": "11"}, {"label": "D", "text": "12"}], "correctAnswer": "C", "difficulty": "EASY"},
-                {"question": "What is it called when a batsman is out without scoring any runs?", "answers": [{"label": "A", "text": "Duck"}, {"label": "B", "text": "Goose"}, {"label": "C", "text": "Swan"}, {"label": "D", "text": "Eagle"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which country won the first Cricket World Cup?", "answers": [{"label": "A", "text": "India"}, {"label": "B", "text": "Australia"}, {"label": "C", "text": "West Indies"}, {"label": "D", "text": "England"}], "correctAnswer": "C", "difficulty": "EASY"},
-                {"question": "What is the maximum number of overs in a T20 match?", "answers": [{"label": "A", "text": "10"}, {"label": "B", "text": "20"}, {"label": "C", "text": "50"}, {"label": "D", "text": "40"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "What is the area in the center of the cricket field called?", "answers": [{"label": "A", "text": "Pitch"}, {"label": "B", "text": "Court"}, {"label": "C", "text": "Track"}, {"label": "D", "text": "Lane"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which piece of equipment is used by the wicketkeeper?", "answers": [{"label": "A", "text": "Bat"}, {"label": "B", "text": "Gloves"}, {"label": "C", "text": "Helmet"}, {"label": "D", "text": "Pads"}], "correctAnswer": "B", "difficulty": "EASY"}
-            ],
-            "medium": [
-                {"question": "Who is known as the 'God of Cricket'?", "answers": [{"label": "A", "text": "Sachin Tendulkar"}, {"label": "B", "text": "Ricky Ponting"}, {"label": "C", "text": "Brian Lara"}, {"label": "D", "text": "Virat Kohli"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "How many runs is a boundary worth if the ball crosses the rope after touching the ground?", "answers": [{"label": "A", "text": "4"}, {"label": "B", "text": "6"}, {"label": "C", "text": "2"}, {"label": "D", "text": "1"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which bowler has taken the most wickets in Test cricket?", "answers": [{"label": "A", "text": "Shane Warne"}, {"label": "B", "text": "Muttiah Muralitharan"}, {"label": "C", "text": "James Anderson"}, {"label": "D", "text": "Anil Kumble"}], "correctAnswer": "B", "difficulty": "MEDIUM"},
-                {"question": "What is the term for three wickets in three consecutive balls?", "answers": [{"label": "A", "text": "Hat-trick"}, {"label": "B", "text": "Triple"}, {"label": "C", "text": "Treble"}, {"label": "D", "text": "Trio"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which country hosts the IPL?", "answers": [{"label": "A", "text": "Australia"}, {"label": "B", "text": "India"}, {"label": "C", "text": "England"}, {"label": "D", "text": "South Africa"}], "correctAnswer": "B", "difficulty": "MEDIUM"},
-                {"question": "Who was the first captain to win the Cricket World Cup twice?", "answers": [{"label": "A", "text": "Clive Lloyd"}, {"label": "B", "text": "Ricky Ponting"}, {"label": "C", "text": "MS Dhoni"}, {"label": "D", "text": "Imran Khan"}], "correctAnswer": "B", "difficulty": "MEDIUM"}
-            ],
-            "hard": [
-                {"question": "Which cricketer has scored the most double centuries in Test cricket?", "answers": [{"label": "A", "text": "Don Bradman"}, {"label": "B", "text": "Brian Lara"}, {"label": "C", "text": "Kumar Sangakkara"}, {"label": "D", "text": "Sachin Tendulkar"}], "correctAnswer": "C", "difficulty": "HARD"},
-                {"question": "Who bowled the fastest recorded delivery in cricket?", "answers": [{"label": "A", "text": "Shoaib Akhtar"}, {"label": "B", "text": "Brett Lee"}, {"label": "C", "text": "Jeff Thomson"}, {"label": "D", "text": "Shaun Tait"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which country won the first T20 World Cup?", "answers": [{"label": "A", "text": "India"}, {"label": "B", "text": "Pakistan"}, {"label": "C", "text": "Australia"}, {"label": "D", "text": "England"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who was the first batsman to score 10,000 runs in ODIs?", "answers": [{"label": "A", "text": "Sachin Tendulkar"}, {"label": "B", "text": "Viv Richards"}, {"label": "C", "text": "Sunil Gavaskar"}, {"label": "D", "text": "Brian Lara"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "What is the term for a score of 111 in cricket?", "answers": [{"label": "A", "text": "Nelson"}, {"label": "B", "text": "Century"}, {"label": "C", "text": "Half-century"}, {"label": "D", "text": "Duck"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who is the only player to captain and keep wicket in a World Cup final?", "answers": [{"label": "A", "text": "MS Dhoni"}, {"label": "B", "text": "Adam Gilchrist"}, {"label": "C", "text": "Kumar Sangakkara"}, {"label": "D", "text": "Alec Stewart"}], "correctAnswer": "A", "difficulty": "HARD"}
-            ]
-        },
-        "baseball": {
-            "easy": [
-                {"question": "How many bases are there on a baseball field?", "answers": [{"label": "A", "text": "3"}, {"label": "B", "text": "4"}, {"label": "C", "text": "5"}, {"label": "D", "text": "6"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "What is it called when a batter hits the ball out of the park in fair territory?", "answers": [{"label": "A", "text": "Home run"}, {"label": "B", "text": "Triple"}, {"label": "C", "text": "Double"}, {"label": "D", "text": "Single"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "How many players are on a baseball team?", "answers": [{"label": "A", "text": "7"}, {"label": "B", "text": "8"}, {"label": "C", "text": "9"}, {"label": "D", "text": "10"}], "correctAnswer": "C", "difficulty": "EASY"},
-                {"question": "What is the area where pitchers warm up called?", "answers": [{"label": "A", "text": "Bullpen"}, {"label": "B", "text": "Dugout"}, {"label": "C", "text": "Outfield"}, {"label": "D", "text": "Infield"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which base must a runner touch last to score a run?", "answers": [{"label": "A", "text": "First base"}, {"label": "B", "text": "Second base"}, {"label": "C", "text": "Third base"}, {"label": "D", "text": "Home plate"}], "correctAnswer": "D", "difficulty": "EASY"},
-                {"question": "What is the term for three strikes in a row?", "answers": [{"label": "A", "text": "Strikeout"}, {"label": "B", "text": "Walk"}, {"label": "C", "text": "Hit"}, {"label": "D", "text": "Run"}], "correctAnswer": "A", "difficulty": "EASY"}
-            ],
-            "medium": [
-                {"question": "Who holds the record for most home runs in a single MLB season?", "answers": [{"label": "A", "text": "Barry Bonds"}, {"label": "B", "text": "Babe Ruth"}, {"label": "C", "text": "Mark McGwire"}, {"label": "D", "text": "Sammy Sosa"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "What is the distance between bases in Major League Baseball?", "answers": [{"label": "A", "text": "60 feet"}, {"label": "B", "text": "90 feet"}, {"label": "C", "text": "100 feet"}, {"label": "D", "text": "120 feet"}], "correctAnswer": "B", "difficulty": "MEDIUM"},
-                {"question": "Which team has won the most World Series titles?", "answers": [{"label": "A", "text": "New York Yankees"}, {"label": "B", "text": "Boston Red Sox"}, {"label": "C", "text": "Los Angeles Dodgers"}, {"label": "D", "text": "Chicago Cubs"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "What is a 'grand slam' in baseball?", "answers": [{"label": "A", "text": "A home run with bases loaded"}, {"label": "B", "text": "A triple play"}, {"label": "C", "text": "A double play"}, {"label": "D", "text": "A no-hitter"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Who is known as the 'Sultan of Swat'?", "answers": [{"label": "A", "text": "Babe Ruth"}, {"label": "B", "text": "Lou Gehrig"}, {"label": "C", "text": "Willie Mays"}, {"label": "D", "text": "Hank Aaron"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which position does the player who throws the ball to the batter play?", "answers": [{"label": "A", "text": "Pitcher"}, {"label": "B", "text": "Catcher"}, {"label": "C", "text": "Shortstop"}, {"label": "D", "text": "First baseman"}], "correctAnswer": "A", "difficulty": "MEDIUM"}
-            ],
-            "hard": [
-                {"question": "Who was the first African American to play in Major League Baseball?", "answers": [{"label": "A", "text": "Jackie Robinson"}, {"label": "B", "text": "Satchel Paige"}, {"label": "C", "text": "Willie Mays"}, {"label": "D", "text": "Hank Aaron"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which pitcher has the most career strikeouts in MLB history?", "answers": [{"label": "A", "text": "Nolan Ryan"}, {"label": "B", "text": "Randy Johnson"}, {"label": "C", "text": "Roger Clemens"}, {"label": "D", "text": "Greg Maddux"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "What is the rarest play in baseball?", "answers": [{"label": "A", "text": "Unassisted triple play"}, {"label": "B", "text": "Grand slam"}, {"label": "C", "text": "No-hitter"}, {"label": "D", "text": "Perfect game"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who was the first player to hit 700 home runs?", "answers": [{"label": "A", "text": "Babe Ruth"}, {"label": "B", "text": "Barry Bonds"}, {"label": "C", "text": "Hank Aaron"}, {"label": "D", "text": "Alex Rodriguez"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which team won the first World Series?", "answers": [{"label": "A", "text": "Boston Americans"}, {"label": "B", "text": "New York Yankees"}, {"label": "C", "text": "Chicago Cubs"}, {"label": "D", "text": "Brooklyn Dodgers"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who holds the record for most RBIs in a single season?", "answers": [{"label": "A", "text": "Hack Wilson"}, {"label": "B", "text": "Lou Gehrig"}, {"label": "C", "text": "Babe Ruth"}, {"label": "D", "text": "Albert Pujols"}], "correctAnswer": "A", "difficulty": "HARD"}
-            ]
-        },
-        "hockey": {
-            "easy": [
-                {"question": "How many players are there on an ice hockey team?", "answers": [{"label": "A", "text": "5"}, {"label": "B", "text": "6"}, {"label": "C", "text": "7"}, {"label": "D", "text": "8"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "What is the term for a score of zero in hockey?", "answers": [{"label": "A", "text": "Love"}, {"label": "B", "text": "Deuce"}, {"label": "C", "text": "Ace"}, {"label": "D", "text": "Break"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which country won the first Olympic ice hockey tournament?", "answers": [{"label": "A", "text": "Canada"}, {"label": "B", "text": "Russia"}, {"label": "C", "text": "Sweden"}, {"label": "D", "text": "Finland"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "What is the term for a score of 100 in hockey?", "answers": [{"label": "A", "text": "Century"}, {"label": "B", "text": "Hundred"}, {"label": "C", "text": "Duck"}, {"label": "D", "text": "Break"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "Which player is known as the 'Great One'?", "answers": [{"label": "A", "text": "Wayne Gretzky"}, {"label": "B", "text": "Mario Lemieux"}, {"label": "C", "text": "Mark Messier"}, {"label": "D", "text": "Bobby Orr"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which team drafted Wayne Gretzky in 1979?", "answers": [{"label": "A", "text": "Edmonton Oilers"}, {"label": "B", "text": "New York Rangers"}, {"label": "C", "text": "Toronto Maple Leafs"}, {"label": "D", "text": "Montreal Canadiens"}], "correctAnswer": "A", "difficulty": "EASY"}
-            ],
-            "medium": [
-                {"question": "Which team has won the most Stanley Cups?", "answers": [{"label": "A", "text": "Montreal Canadiens"}, {"label": "B", "text": "Toronto Maple Leafs"}, {"label": "C", "text": "Edmonton Oilers"}, {"label": "D", "text": "Detroit Red Wings"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "How many periods are in a standard ice hockey game?", "answers": [{"label": "A", "text": "2"}, {"label": "B", "text": "3"}, {"label": "C", "text": "4"}, {"label": "D", "text": "5"}], "correctAnswer": "B", "difficulty": "MEDIUM"},
-                {"question": "Who was the first player to score 1,000 points in a single NHL season?", "answers": [{"label": "A", "text": "Wayne Gretzky"}, {"label": "B", "text": "Mario Lemieux"}, {"label": "C", "text": "Mark Messier"}, {"label": "D", "text": "Bobby Orr"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "What is a 'hat trick' in hockey?", "answers": [{"label": "A", "text": "Scoring three goals in a single game"}, {"label": "B", "text": "Scoring three assists in a single game"}, {"label": "C", "text": "Scoring three penalties in a single game"}, {"label": "D", "text": "Scoring three points in a single game"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which player is known as the 'Great Wall of China'?", "answers": [{"label": "A", "text": "Liu Shaoqi"}, {"label": "B", "text": "Deng Xiaoping"}, {"label": "C", "text": "Mao Zedong"}, {"label": "D", "text": "Zhou Enlai"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which team drafted Liu Shaoqi in 1979?", "answers": [{"label": "A", "text": "Harbin Tigers"}, {"label": "B", "text": "Beijing Ducks"}, {"label": "C", "text": "Shanghai Sharks"}, {"label": "D", "text": "Tianjin Dragons"}], "correctAnswer": "A", "difficulty": "MEDIUM"}
-            ],
-            "hard": [
-                {"question": "What year was the NHL founded?", "answers": [{"label": "A", "text": "1917"}, {"label": "B", "text": "1926"}, {"label": "C", "text": "1932"}, {"label": "D", "text": "1946"}], "correctAnswer": "B", "difficulty": "HARD"},
-                {"question": "Who holds the NHL record for most points scored in a single game?", "answers": [{"label": "A", "text": "Wayne Gretzky"}, {"label": "B", "text": "Mario Lemieux"}, {"label": "C", "text": "Mark Messier"}, {"label": "D", "text": "Bobby Orr"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which player won the Hart Trophy and Conn Smythe Trophy in the same season?", "answers": [{"label": "A", "text": "Wayne Gretzky"}, {"label": "B", "text": "Mario Lemieux"}, {"label": "C", "text": "Mark Messier"}, {"label": "D", "text": "Bobby Orr"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which team drafted Mark Messier?", "answers": [{"label": "A", "text": "Edmonton Oilers"}, {"label": "B", "text": "New York Rangers"}, {"label": "C", "text": "Toronto Maple Leafs"}, {"label": "D", "text": "Montreal Canadiens"}], "correctAnswer": "B", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single NHL season?", "answers": [{"label": "A", "text": "Wayne Gretzky"}, {"label": "B", "text": "Mario Lemieux"}, {"label": "C", "text": "Mark Messier"}, {"label": "D", "text": "Bobby Orr"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single NHL season?", "answers": [{"label": "A", "text": "Wayne Gretzky"}, {"label": "B", "text": "Mario Lemieux"}, {"label": "C", "text": "Mark Messier"}, {"label": "D", "text": "Bobby Orr"}], "correctAnswer": "A", "difficulty": "HARD"}
-            ]
-        },
-        "volleyball": {
-            "easy": [
-                {"question": "How many players are there on a volleyball team?", "answers": [{"label": "A", "text": "5"}, {"label": "B", "text": "6"}, {"label": "C", "text": "7"}, {"label": "D", "text": "8"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "What is the term for a score of zero in volleyball?", "answers": [{"label": "A", "text": "Love"}, {"label": "B", "text": "Deuce"}, {"label": "C", "text": "Ace"}, {"label": "D", "text": "Break"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which country won the first Olympic volleyball tournament?", "answers": [{"label": "A", "text": "Russia"}, {"label": "B", "text": "Brazil"}, {"label": "C", "text": "United States"}, {"label": "D", "text": "China"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "What is the term for a score of 15 in volleyball?", "answers": [{"label": "A", "text": "Game"}, {"label": "B", "text": "Set"}, {"label": "C", "text": "Point"}, {"label": "D", "text": "Rally"}], "correctAnswer": "C", "difficulty": "EASY"},
-                {"question": "Which player is known as the 'King of the Court'?", "answers": [{"label": "A", "text": "Mario"}, {"label": "B", "text": "Ivan"}, {"label": "C", "text": "Andre"}, {"label": "D", "text": "Paolo"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which team drafted Mario in 1992?", "answers": [{"label": "A", "text": "Italy"}, {"label": "B", "text": "Brazil"}, {"label": "C", "text": "United States"}, {"label": "D", "text": "Russia"}], "correctAnswer": "A", "difficulty": "EASY"}
-            ],
-            "medium": [
-                {"question": "Which team has won the most FIVB Volleyball World Championships?", "answers": [{"label": "A", "text": "Brazil"}, {"label": "B", "text": "United States"}, {"label": "C", "text": "Russia"}, {"label": "D", "text": "Italy"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "How many points is a kill worth in volleyball?", "answers": [{"label": "A", "text": "1"}, {"label": "B", "text": "2"}, {"label": "C", "text": "3"}, {"label": "D", "text": "4"}], "correctAnswer": "B", "difficulty": "MEDIUM"},
-                {"question": "Which player is known as the 'King of the Court'?", "answers": [{"label": "A", "text": "Mario"}, {"label": "B", "text": "Ivan"}, {"label": "C", "text": "Andre"}, {"label": "D", "text": "Paolo"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which team drafted Paolo in 1992?", "answers": [{"label": "A", "text": "Italy"}, {"label": "B", "text": "Brazil"}, {"label": "C", "text": "United States"}, {"label": "D", "text": "Russia"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "What is a 'sandwich' in volleyball?", "answers": [{"label": "A", "text": "A 3-2 set"}, {"label": "B", "text": "A 2-3 set"}, {"label": "C", "text": "A 2-1 set"}, {"label": "D", "text": "A 3-1 set"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which player completed the Golden Slam in volleyball?", "answers": [{"label": "A", "text": "Ivan"}, {"label": "B", "text": "Mario"}, {"label": "C", "text": "Paolo"}, {"label": "D", "text": "Andre"}], "correctAnswer": "A", "difficulty": "MEDIUM"}
-            ],
-            "hard": [
-                {"question": "What year was the first FIVB Volleyball World Championships held?", "answers": [{"label": "A", "text": "1949"}, {"label": "B", "text": "1952"}, {"label": "C", "text": "1964"}, {"label": "D", "text": "1976"}], "correctAnswer": "B", "difficulty": "HARD"},
-                {"question": "Who was the first player to win the Olympic gold medal in volleyball?", "answers": [{"label": "A", "text": "Mario"}, {"label": "B", "text": "Ivan"}, {"label": "C", "text": "Andre"}, {"label": "D", "text": "Paolo"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which country has produced the most men's volleyball players?", "answers": [{"label": "A", "text": "Brazil"}, {"label": "B", "text": "United States"}, {"label": "C", "text": "Russia"}, {"label": "D", "text": "Italy"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who won the women's volleyball gold medal at the 2008 Beijing Olympics?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Brazil"}, {"label": "C", "text": "Russia"}, {"label": "D", "text": "Italy"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which player has the most career kills in volleyball?", "answers": [{"label": "A", "text": "Ivan"}, {"label": "B", "text": "Mario"}, {"label": "C", "text": "Paolo"}, {"label": "D", "text": "Andre"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who was the first player to win the Olympic gold medal in volleyball?", "answers": [{"label": "A", "text": "Mario"}, {"label": "B", "text": "Ivan"}, {"label": "C", "text": "Andre"}, {"label": "D", "text": "Paolo"}], "correctAnswer": "A", "difficulty": "HARD"}
-            ]
-        },
-        "rugby": {
-            "easy": [
-                {"question": "How many players are there on a rugby team?", "answers": [{"label": "A", "text": "15"}, {"label": "B", "text": "16"}, {"label": "C", "text": "17"}, {"label": "D", "text": "18"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "What is the term for a score of zero in rugby?", "answers": [{"label": "A", "text": "Love"}, {"label": "B", "text": "Deuce"}, {"label": "C", "text": "Ace"}, {"label": "D", "text": "Break"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which country won the first Rugby World Cup?", "answers": [{"label": "A", "text": "New Zealand"}, {"label": "B", "text": "South Africa"}, {"label": "C", "text": "Australia"}, {"label": "D", "text": "England"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "What is the term for a score of 100 in rugby?", "answers": [{"label": "A", "text": "Hundred"}, {"label": "B", "text": "Century"}, {"label": "C", "text": "Duck"}, {"label": "D", "text": "Break"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "Which player is known as the 'Lion of New Zealand'?", "answers": [{"label": "A", "text": "Richie McCaw"}, {"label": "B", "text": "Dan Carter"}, {"label": "C", "text": "Tana Umaga"}, {"label": "D", "text": "Sean Fitzpatrick"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which team drafted Dan Carter in 1996?", "answers": [{"label": "A", "text": "New Zealand"}, {"label": "B", "text": "Australia"}, {"label": "C", "text": "South Africa"}, {"label": "D", "text": "England"}], "correctAnswer": "A", "difficulty": "EASY"}
-            ],
-            "medium": [
-                {"question": "Which team has won the most Rugby World Cups?", "answers": [{"label": "A", "text": "New Zealand"}, {"label": "B", "text": "South Africa"}, {"label": "C", "text": "Australia"}, {"label": "D", "text": "England"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "How many points is a try worth in rugby?", "answers": [{"label": "A", "text": "5"}, {"label": "B", "text": "7"}, {"label": "C", "text": "10"}, {"label": "D", "text": "15"}], "correctAnswer": "B", "difficulty": "MEDIUM"},
-                {"question": "Which player is known as the 'Lion of New Zealand'?", "answers": [{"label": "A", "text": "Richie McCaw"}, {"label": "B", "text": "Dan Carter"}, {"label": "C", "text": "Tana Umaga"}, {"label": "D", "text": "Sean Fitzpatrick"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which team drafted Tana Umaga?", "answers": [{"label": "A", "text": "New Zealand"}, {"label": "B", "text": "Australia"}, {"label": "C", "text": "South Africa"}, {"label": "D", "text": "England"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "What is a 'haka' in rugby?", "answers": [{"label": "A", "text": "A traditional Maori war dance"}, {"label": "B", "text": "A traditional Maori greeting"}, {"label": "C", "text": "A traditional Maori song"}, {"label": "D", "text": "A traditional Maori game"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which player completed the Golden Slam in rugby?", "answers": [{"label": "A", "text": "Richie McCaw"}, {"label": "B", "text": "Dan Carter"}, {"label": "C", "text": "Tana Umaga"}, {"label": "D", "text": "Sean Fitzpatrick"}], "correctAnswer": "A", "difficulty": "MEDIUM"}
-            ],
-            "hard": [
-                {"question": "What year was the first Rugby World Cup held?", "answers": [{"label": "A", "text": "1987"}, {"label": "B", "text": "1991"}, {"label": "C", "text": "1995"}, {"label": "D", "text": "1999"}], "correctAnswer": "B", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single Rugby World Cup?", "answers": [{"label": "A", "text": "Richie McCaw"}, {"label": "B", "text": "Dan Carter"}, {"label": "C", "text": "Tana Umaga"}, {"label": "D", "text": "Sean Fitzpatrick"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which country won the first Rugby World Cup?", "answers": [{"label": "A", "text": "New Zealand"}, {"label": "B", "text": "South Africa"}, {"label": "C", "text": "Australia"}, {"label": "D", "text": "England"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single Rugby World Cup?", "answers": [{"label": "A", "text": "Richie McCaw"}, {"label": "B", "text": "Dan Carter"}, {"label": "C", "text": "Tana Umaga"}, {"label": "D", "text": "Sean Fitzpatrick"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which player has the most career points in rugby?", "answers": [{"label": "A", "text": "Richie McCaw"}, {"label": "B", "text": "Dan Carter"}, {"label": "C", "text": "Tana Umaga"}, {"label": "D", "text": "Sean Fitzpatrick"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single Rugby World Cup?", "answers": [{"label": "A", "text": "Richie McCaw"}, {"label": "B", "text": "Dan Carter"}, {"label": "C", "text": "Tana Umaga"}, {"label": "D", "text": "Sean Fitzpatrick"}], "correctAnswer": "A", "difficulty": "HARD"}
-            ]
-        },
-        "golf": {
-            "easy": [
-                {"question": "How many players are there on a golf course?", "answers": [{"label": "A", "text": "1"}, {"label": "B", "text": "2"}, {"label": "C", "text": "3"}, {"label": "D", "text": "4"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "What is the term for a score of zero in golf?", "answers": [{"label": "A", "text": "Love"}, {"label": "B", "text": "Deuce"}, {"label": "C", "text": "Ace"}, {"label": "D", "text": "Break"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which country won the first Olympic golf tournament?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Great Britain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Germany"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "What is the term for a score of 100 in golf?", "answers": [{"label": "A", "text": "Hundred"}, {"label": "B", "text": "Century"}, {"label": "C", "text": "Duck"}, {"label": "D", "text": "Break"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "Which player is known as the 'Golden Boy'?", "answers": [{"label": "A", "text": "Tiger Woods"}, {"label": "B", "text": "Jack Nicklaus"}, {"label": "C", "text": "Gary Player"}, {"label": "D", "text": "Arnold Palmer"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which team drafted Tiger Woods in 1996?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Great Britain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Germany"}], "correctAnswer": "A", "difficulty": "EASY"}
-            ],
-            "medium": [
-                {"question": "Which team has won the most Masters tournaments?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Great Britain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Germany"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "How many points is a birdie worth in golf?", "answers": [{"label": "A", "text": "1"}, {"label": "B", "text": "2"}, {"label": "C", "text": "3"}, {"label": "D", "text": "4"}], "correctAnswer": "B", "difficulty": "MEDIUM"},
-                {"question": "Which player is known as the 'Golden Boy'?", "answers": [{"label": "A", "text": "Tiger Woods"}, {"label": "B", "text": "Jack Nicklaus"}, {"label": "C", "text": "Gary Player"}, {"label": "D", "text": "Arnold Palmer"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which team drafted Gary Player?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Great Britain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Germany"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "What is a 'bogey' in golf?", "answers": [{"label": "A", "text": "A score of 1 over par"}, {"label": "B", "text": "A score of 2 over par"}, {"label": "C", "text": "A score of 3 over par"}, {"label": "D", "text": "A score of 4 over par"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which player completed the Golden Slam in golf?", "answers": [{"label": "A", "text": "Tiger Woods"}, {"label": "B", "text": "Jack Nicklaus"}, {"label": "C", "text": "Gary Player"}, {"label": "D", "text": "Arnold Palmer"}], "correctAnswer": "A", "difficulty": "MEDIUM"}
-            ],
-            "hard": [
-                {"question": "What year was the first Olympic golf tournament held?", "answers": [{"label": "A", "text": "1900"}, {"label": "B", "text": "1904"}, {"label": "C", "text": "1908"}, {"label": "D", "text": "1912"}], "correctAnswer": "B", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single Olympic golf tournament?", "answers": [{"label": "A", "text": "Tiger Woods"}, {"label": "B", "text": "Jack Nicklaus"}, {"label": "C", "text": "Gary Player"}, {"label": "D", "text": "Arnold Palmer"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which country won the first Olympic golf tournament?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Great Britain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Germany"}], "correctAnswer": "B", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single Olympic golf tournament?", "answers": [{"label": "A", "text": "Tiger Woods"}, {"label": "B", "text": "Jack Nicklaus"}, {"label": "C", "text": "Gary Player"}, {"label": "D", "text": "Arnold Palmer"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which player has the most career points in golf?", "answers": [{"label": "A", "text": "Tiger Woods"}, {"label": "B", "text": "Jack Nicklaus"}, {"label": "C", "text": "Gary Player"}, {"label": "D", "text": "Arnold Palmer"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single Olympic golf tournament?", "answers": [{"label": "A", "text": "Tiger Woods"}, {"label": "B", "text": "Jack Nicklaus"}, {"label": "C", "text": "Gary Player"}, {"label": "D", "text": "Arnold Palmer"}], "correctAnswer": "A", "difficulty": "HARD"}
-            ]
-        },
-        "boxing": {
-            "easy": [
-                {"question": "How many rounds are there in a boxing match?", "answers": [{"label": "A", "text": "6"}, {"label": "B", "text": "8"}, {"label": "C", "text": "10"}, {"label": "D", "text": "12"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "What is the term for a score of zero in boxing?", "answers": [{"label": "A", "text": "Love"}, {"label": "B", "text": "Deuce"}, {"label": "C", "text": "Ace"}, {"label": "D", "text": "Break"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which country won the first Olympic boxing tournament?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Great Britain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Germany"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "What is the term for a score of 100 in boxing?", "answers": [{"label": "A", "text": "Hundred"}, {"label": "B", "text": "Century"}, {"label": "C", "text": "Duck"}, {"label": "D", "text": "Break"}], "correctAnswer": "B", "difficulty": "EASY"},
-                {"question": "Which player is known as the 'Greatest'?", "answers": [{"label": "A", "text": "Muhammad Ali"}, {"label": "B", "text": "Mike Tyson"}, {"label": "C", "text": "Joe Louis"}, {"label": "D", "text": "Floyd Mayweather"}], "correctAnswer": "A", "difficulty": "EASY"},
-                {"question": "Which team drafted Muhammad Ali in 1960?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Great Britain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Germany"}], "correctAnswer": "A", "difficulty": "EASY"}
-            ],
-            "medium": [
-                {"question": "Which team has won the most Olympic boxing tournaments?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Great Britain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Germany"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "How many points is a knockdown worth in boxing?", "answers": [{"label": "A", "text": "1"}, {"label": "B", "text": "2"}, {"label": "C", "text": "3"}, {"label": "D", "text": "4"}], "correctAnswer": "B", "difficulty": "MEDIUM"},
-                {"question": "Which player is known as the 'Greatest'?", "answers": [{"label": "A", "text": "Muhammad Ali"}, {"label": "B", "text": "Mike Tyson"}, {"label": "C", "text": "Joe Louis"}, {"label": "D", "text": "Floyd Mayweather"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which team drafted Joe Louis?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Great Britain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Germany"}], "correctAnswer": "B", "difficulty": "MEDIUM"},
-                {"question": "What is a 'cut' in boxing?", "answers": [{"label": "A", "text": "A score of 100"}, {"label": "B", "text": "A score of 100"}, {"label": "C", "text": "A score of 100"}, {"label": "D", "text": "A score of 100"}], "correctAnswer": "A", "difficulty": "MEDIUM"},
-                {"question": "Which player completed the Golden Slam in boxing?", "answers": [{"label": "A", "text": "Muhammad Ali"}, {"label": "B", "text": "Mike Tyson"}, {"label": "C", "text": "Joe Louis"}, {"label": "D", "text": "Floyd Mayweather"}], "correctAnswer": "A", "difficulty": "MEDIUM"}
-            ],
-            "hard": [
-                {"question": "What year was the first Olympic boxing tournament held?", "answers": [{"label": "A", "text": "1904"}, {"label": "B", "text": "1908"}, {"label": "C", "text": "1912"}, {"label": "D", "text": "1920"}], "correctAnswer": "B", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single Olympic boxing tournament?", "answers": [{"label": "A", "text": "Muhammad Ali"}, {"label": "B", "text": "Mike Tyson"}, {"label": "C", "text": "Joe Louis"}, {"label": "D", "text": "Floyd Mayweather"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which country won the first Olympic boxing tournament?", "answers": [{"label": "A", "text": "United States"}, {"label": "B", "text": "Great Britain"}, {"label": "C", "text": "France"}, {"label": "D", "text": "Germany"}], "correctAnswer": "B", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single Olympic boxing tournament?", "answers": [{"label": "A", "text": "Muhammad Ali"}, {"label": "B", "text": "Mike Tyson"}, {"label": "C", "text": "Joe Louis"}, {"label": "D", "text": "Floyd Mayweather"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Which player has the most career points in boxing?", "answers": [{"label": "A", "text": "Muhammad Ali"}, {"label": "B", "text": "Mike Tyson"}, {"label": "C", "text": "Joe Louis"}, {"label": "D", "text": "Floyd Mayweather"}], "correctAnswer": "A", "difficulty": "HARD"},
-                {"question": "Who was the first player to score 1,000 points in a single Olympic boxing tournament?", "answers": [{"label": "A", "text": "Muhammad Ali"}, {"label": "B", "text": "Mike Tyson"}, {"label": "C", "text": "Joe Louis"}, {"label": "D", "text": "Floyd Mayweather"}], "correctAnswer": "A", "difficulty": "HARD"}
             ]
         }
     }
@@ -716,34 +568,36 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6)
     sport_questions = fallback_questions.get(sport.lower(), {})
     level_questions = sport_questions.get(level.lower(), [])
     
-    # If we don't have enough questions, duplicate some to reach 'count'
-    while len(level_questions) < count:
-        level_questions.extend(level_questions[:min(len(level_questions), count - len(level_questions))])
+    # Create battle-specific variations of the questions
+    battle_specific_questions = []
+    for i, base_question in enumerate(level_questions):
+        # Create multiple variations for uniqueness
+        for variation in range(3):  # Create 3 variations per question
+            battle_question = create_battle_specific_question(base_question, variation)
+            battle_specific_questions.append(battle_question)
     
-    # Filter out any questions missing 'correctAnswer'
-    # Extra safety: if still not enough, fill with generic questions
-    if len(level_questions) < count:
-        for i in range(count - len(level_questions)):
-            level_questions.append({
-                "question": f"Generic fallback question {i+1}",
-                "answers": [
-                    {"label": "A", "text": "Option 1"},
-                    {"label": "B", "text": "Option 2"},
-                    {"label": "C", "text": "Option 3"},
-                    {"label": "D", "text": "Option 4"}
-                ],
-                "correctAnswer": "A",
-                "difficulty": level.upper()
-            })
+    # Shuffle and select the required number of questions
+    random.shuffle(battle_specific_questions)
+    selected_questions = battle_specific_questions[:count]
     
-    # Ensure all fallback questions are unique by hash
-    unique_questions = get_unique_questions(level_questions, sport, level, count)
+    # If we don't have enough questions, create more variations
+    while len(selected_questions) < count:
+        for base_question in level_questions:
+            if len(selected_questions) >= count:
+                break
+            variation = len(selected_questions) + 1
+            battle_question = create_battle_specific_question(base_question, variation)
+            selected_questions.append(battle_question)
+    
+    # Ensure all questions are unique by hash
+    unique_questions = get_unique_questions(selected_questions, sport, level, count)
+    
     # If still not enough, fill with generic unique questions
     if len(unique_questions) < count:
         logging.warning(f"[generate_expanded_fallback_questions] Only {len(unique_questions)} unique fallback questions for {sport}/{level}. Filling with generic questions.")
         for i in range(count - len(unique_questions)):
             unique_questions.append({
-                "question": f"Generic fallback question {i+1}",
+                "question": f"[{battle_context}] Generic fallback question {i+1} (t{timestamp})",
                 "answers": [
                     {"label": "A", "text": "Option 1"},
                     {"label": "B", "text": "Option 2"},
@@ -753,17 +607,26 @@ def generate_expanded_fallback_questions(sport: str, level: str, count: int = 6)
                 "correctAnswer": "A",
                 "difficulty": level.upper()
             })
+    
     return unique_questions[:count]
 
-async def generate_ai_quiz(sport: str, level: str, count: int = 5):
+async def generate_ai_quiz(sport: str, level: str, count: int = 5, battle_id: str = None):
     QUESTION_COUNT = count
     try:
         level = level.lower()
         logger = logging.getLogger(__name__)
-        logger.info(f"[AIQUIZ] Starting quiz generation for {sport}/{level}, count={QUESTION_COUNT}")
-        # Enhanced prompt for better quiz generation
+        logger.info(f"[AIQUIZ] Starting quiz generation for {sport}/{level}, count={QUESTION_COUNT}, battle_id={battle_id}")
+        
+        # Add battle-specific context for uniqueness
+        battle_context = f"Battle {battle_id}" if battle_id else "Default Battle"
+        current_timestamp = int(time.time())
+        
+        # Enhanced prompt for better quiz generation with battle-specific uniqueness
         prompt = f"""
 Generate a quiz with {QUESTION_COUNT} multiple-choice questions about {sport.upper()}, categorized by difficulty: easy, medium, and hard. Each question should be directly related to the sport — rules, players, history, events, or tactics. Format each question with 4 options and mark the correct answer.
+
+BATTLE CONTEXT: {battle_context}
+TIMESTAMP: {current_timestamp}
 
 IMPORTANT REQUIREMENTS:
 - Each question must have exactly 4 answer options (A, B, C, D) and only one correct answer
@@ -771,6 +634,8 @@ IMPORTANT REQUIREMENTS:
 - Avoid business, finance, sponsorship, or commercial topics
 - Mix difficulty levels appropriately for {level.upper()} level
 - Questions should be engaging and test real sports knowledge
+- CRITICAL: Generate completely unique questions for this specific battle context
+- Use the timestamp and battle context to ensure no repetition with previous battles
 
 DIFFICULTY GUIDELINES:
 - EASY: Basic facts, well-known players, simple rules, common knowledge
@@ -785,6 +650,19 @@ QUESTION CATEGORIES TO INCLUDE:
 - Tactics and strategies
 - International competitions
 - Famous matches and rivalries
+- Recent developments and current events
+- Controversial moments and decisions
+- Statistical records and milestones
+
+UNIQUENESS STRATEGY:
+- Use specific years, dates, and time periods
+- Reference specific players, teams, or events
+- Include detailed statistics and records
+- Mention specific tournaments, championships, or competitions
+- Reference specific rules or regulations
+- Use current events and recent developments
+- Vary question structure and phrasing
+- Use different difficulty distributions
 
 Return as a JSON array in this format:
 [
@@ -813,8 +691,8 @@ Return as a JSON array in this format:
                     )
                 except asyncio.TimeoutError:
                     logger.warning(f"[AIQUIZ] AI generation timed out after 8 seconds for {sport}/{level}. Using fallback.")
-                    fallback = generate_expanded_fallback_questions(sport, level, 1)
-                    return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
+                    fallback = generate_expanded_fallback_questions(sport, level, 1, battle_id)
+                    return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT, battle_id), *fallback]
             response_text = response_text.replace("```json", "").replace("```", "").strip()
             try:
                 questions_list = json.loads(response_text)
@@ -823,13 +701,13 @@ Return as a JSON array in this format:
                     questions_list = ast.literal_eval(response_text)
                 except (ValueError, SyntaxError) as e:
                     logger.warning(f"[AIQUIZ] Failed to parse AI response: {e}. Using fallback.")
-                    fallback = generate_expanded_fallback_questions(sport, level, 1)
-                    return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
+                    fallback = generate_expanded_fallback_questions(sport, level, 1, battle_id)
+                    return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT, battle_id), *fallback]
             # Validate the response structure
             if not isinstance(questions_list, list) or len(questions_list) != QUESTION_COUNT:
                 logger.warning(f"[AIQUIZ] Invalid AI response structure. Using fallback.")
-                fallback = generate_expanded_fallback_questions(sport, level, 1)
-                return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
+                fallback = generate_expanded_fallback_questions(sport, level, 1, battle_id)
+                return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT, battle_id), *fallback]
             # Validate each question
             valid_questions = []
             for i, question_data in enumerate(questions_list):
@@ -846,22 +724,22 @@ Return as a JSON array in this format:
                 valid_questions.append(question_data)
             if len(valid_questions) < QUESTION_COUNT:
                 logger.warning(f"[AIQUIZ] Only {len(valid_questions)} valid AI questions. Using fallback.")
-                fallback = generate_expanded_fallback_questions(sport, level, 1)
-                return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
+                fallback = generate_expanded_fallback_questions(sport, level, 1, battle_id)
+                return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT, battle_id), *fallback]
             filtered_questions = filter_business_questions(valid_questions)
             if len(filtered_questions) < 3:
                 logger.warning(f"[AIQUIZ] Too many business-related questions filtered out. Using fallback.")
-                fallback = generate_expanded_fallback_questions(sport, level, 1)
-                return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
+                fallback = generate_expanded_fallback_questions(sport, level, 1, battle_id)
+                return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT, battle_id), *fallback]
             unique_questions = get_unique_questions(filtered_questions, sport, level, QUESTION_COUNT)
-            fallback = generate_expanded_fallback_questions(sport, level, 1)
-            logger.info(f"[AIQUIZ] Successfully generated {len(unique_questions)} AI questions and 1 fallback for {sport}/{level}.")
+            fallback = generate_expanded_fallback_questions(sport, level, 1, battle_id)
+            logger.info(f"[AIQUIZ] Successfully generated {len(unique_questions)} AI questions and 1 fallback for {sport}/{level} with battle_id={battle_id}.")
             return unique_questions[:QUESTION_COUNT] + fallback
         except Exception as e:
             logger.error(f"[AIQUIZ] Error generating AI quiz: {e}. Using fallback.")
-            fallback = generate_expanded_fallback_questions(sport, level, 1)
-            return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback]
+            fallback = generate_expanded_fallback_questions(sport, level, 1, battle_id)
+            return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT, battle_id), *fallback]
     except Exception as e:
         logger.error(f"[AIQUIZ] Failed to generate quiz: {str(e)}. Using fallback.")
-        fallback = generate_expanded_fallback_questions(sport, level, 1)
-        return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT), *fallback] 
+        fallback = generate_expanded_fallback_questions(sport, level, 1, battle_id)
+        return [*generate_expanded_fallback_questions(sport, level, QUESTION_COUNT, battle_id), *fallback] 

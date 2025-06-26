@@ -19,67 +19,98 @@ export default function BattleResultPage({user}: {user: User}) {
   const { setUser } = useGlobalStore();
 
   useEffect(() => {
-    // Call repair-user-battles on result page load
-    const repairUserBattles = async () => {
+    // Enhanced user data update after battle completion
+    const updateUserDataAfterBattle = async () => {
       try {
-        await fetch(`${API_BASE_URL}/db/repair-user-battles`, {
+        console.log('[Result] Starting user data update after battle...');
+        
+        // First, repair user battles to ensure data consistency
+        const repairResponse = await fetch(`${API_BASE_URL}/db/repair-user-battles`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
             'Content-Type': 'application/json',
           },
         });
-        console.log('[Result] Repaired user battles/stats');
+        
+        if (repairResponse.ok) {
+          console.log('[Result] Successfully repaired user battles/stats');
+        } else {
+          console.warn('[Result] Failed to repair user battles, continuing with direct update');
+        }
+        
         // Fetch updated user data
         const username = localStorage.getItem('username');
         if (username) {
-          const res = await fetch(`${API_BASE_URL}/db/get-user-by-username?username=${username}`, {
+          const userResponse = await fetch(`${API_BASE_URL}/db/get-user-by-username?username=${username}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
             },
           });
-          if (res.ok) {
-            const updatedUser = await res.json();
-            if (updatedUser) {
-              setUser && setUser({
+          
+          if (userResponse.ok) {
+            const updatedUserData = await userResponse.json();
+            if (updatedUserData) {
+              console.log('[Result] Received updated user data:', updatedUserData);
+              
+              // Create updated user object with proper field mapping
+              const updatedUser = {
                 ...user,
-                ...updatedUser,
-                totalBattles: updatedUser.totalBattle,
-                wins: updatedUser.winBattle,
-                winRate: updatedUser.winRate,
-                streak: updatedUser.streak,
-                // add other mapped fields if needed
-              });
-              localStorage.setItem('user', JSON.stringify({
-                ...user,
-                ...updatedUser,
-                totalBattles: updatedUser.totalBattle,
-                wins: updatedUser.winBattle,
-                winRate: updatedUser.winRate,
-                streak: updatedUser.streak,
-              }));
-              console.log('[Result] Updated user data after repair');
+                username: updatedUserData.username,
+                email: updatedUserData.email,
+                totalBattles: updatedUserData.totalBattle || 0,
+                wins: updatedUserData.winBattle || 0,
+                winRate: updatedUserData.winRate || 0,
+                streak: updatedUserData.streak || 0,
+                ranking: updatedUserData.ranking || 0,
+                favourite: updatedUserData.favourite || '',
+                friends: updatedUserData.friends || [],
+                friendRequests: updatedUserData.friendRequests || [],
+                avatar: updatedUserData.avatar || '',
+                battles: updatedUserData.battles || [],
+                invitations: updatedUserData.invitations || []
+              };
+              
+              // Update global store
+              if (setUser) {
+                setUser(updatedUser);
+                console.log('[Result] Updated global user store');
+              }
+              
+              // Update localStorage
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+              console.log('[Result] Updated localStorage with new user data');
+              
+              // Also update the username in localStorage if it changed
+              if (updatedUserData.username && updatedUserData.username !== username) {
+                localStorage.setItem('username', updatedUserData.username);
+                console.log('[Result] Updated username in localStorage');
+              }
+            } else {
+              console.error('[Result] No user data received from API');
             }
           } else {
-            console.error('[Result] Failed to fetch updated user data after repair');
+            console.error('[Result] Failed to fetch updated user data:', userResponse.status);
           }
+        } else {
+          console.error('[Result] No username found in localStorage');
         }
-      } catch (err) {
-        console.error('[Result] Failed to repair user battles:', err);
+      } catch (error) {
+        console.error('[Result] Error updating user data after battle:', error);
       }
     };
-    repairUserBattles();
-    setTimeout(() => {
-      setShowResult(true); 
-      // Note: Battle result is already processed by the backend WebSocket handler
-      // with the correct scores when the battle finishes
-    }, 3000);
-  }, []);
 
+    // Update user data and show result after a short delay
+    const timer = setTimeout(() => {
+      updateUserDataAfterBattle();
+      setShowResult(true);
+    }, 2000); // Reduced delay for better UX
 
-  
+    return () => clearTimeout(timer);
+  }, [user, setUser]);
 
   const handleBackToDashboard = () => {
+    // Clean up all battle-related state
     setResult('');
     setFirstOpponentScore(0);
     setSecondOpponentScore(0);
@@ -88,8 +119,14 @@ export default function BattleResultPage({user}: {user: User}) {
     setText('');
     setCurrentQuestion(null);
     
-    navigate(`/${user.username}`);
-  }
+    // Navigate back to dashboard
+    const username = localStorage.getItem('username');
+    if (username) {
+      navigate(`/${username}`);
+    } else {
+      navigate('/');
+    }
+  };
 
   if (!showResult) {
     return (
@@ -103,7 +140,7 @@ export default function BattleResultPage({user}: {user: User}) {
           <CardContent>
             <div className="flex flex-col items-center gap-6 py-12">
               <div className="text-4xl">⏳</div>
-              <div className="text-lg text-gray-600">Please wait while we determine the winner.</div>
+              <div className="text-lg text-gray-600">Please wait while we determine the winner and update your statistics.</div>
             </div>
           </CardContent>
         </Card>
@@ -132,6 +169,11 @@ export default function BattleResultPage({user}: {user: User}) {
               {result === 'lose' && (
                 <div className="text-xl font-semibold text-blue-600 mb-4">
                   Keep practicing and you'll get better! 💪
+                </div>
+              )}
+              {result === 'draw' && (
+                <div className="text-xl font-semibold text-orange-600 mb-4">
+                  It was a close battle! Well played! 🤝
                 </div>
               )}
               <div className="text-lg text-gray-800 mb-2">

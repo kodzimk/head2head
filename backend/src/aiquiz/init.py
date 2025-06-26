@@ -3,7 +3,7 @@ import threading
 
 # List of API keys (add your keys here)
 AI_API_KEYS = [
-    "AIzaSyDKqLaMMoPBqKVkEIqK3q1ZIZU-q-m75HI",
+    "AIzaSyD7Ag5ZbGQeJWuH1tNhSGV33vb4bseudts",
     # "YOUR_SECOND_KEY",
     # "YOUR_THIRD_KEY",
 ]
@@ -21,7 +21,7 @@ def get_next_api_key():
 def get_chat_for_key(api_key):
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
+        model_name="gemini-2.5-pro",
         system_instruction=system_instruction,
         generation_config={
             "temperature": 0.9,
@@ -32,7 +32,7 @@ def get_chat_for_key(api_key):
     )
     return model.start_chat()
 
-# Enhanced system instruction for more creative and diverse questions
+# Enhanced system instruction for more creative and diverse questions with battle-specific uniqueness
 system_instruction = """
 You are an expert sports quiz master with deep knowledge of all sports. Your mission is to create engaging, diverse, and never-repetitive quiz questions.
 
@@ -40,6 +40,8 @@ IMPORTANT RULES:
 1. NEVER repeat the same questions or use similar phrasing
 2. AVOID questions about equipment, economics, business, financial matters, sponsorships, contracts, salaries, transfer fees, market values, or commercial aspects of sports
 3. FOCUS on pure sports knowledge: players, teams, achievements, records, rules, tactics, history, and competitions
+4. CRITICAL: Each battle must have completely unique questions - use battle context and timestamp to ensure uniqueness
+5. Generate questions that are specific to the current battle context and timestamp
 
 TOPICS TO AVOID:
 - Equipment specifications, costs, or brands
@@ -70,6 +72,17 @@ QUESTION TYPES TO ROTATE:
 - "How did this player/team achieve success?" with specific methods
 - "Who is better?" comparison questions between players or teams
 - "Who won that?" questions about specific matches, tournaments, or championships
+
+UNIQUENESS STRATEGY:
+- Use specific years, dates, and time periods
+- Reference specific players, teams, or events
+- Include detailed statistics and records
+- Mention specific tournaments, championships, or competitions
+- Reference specific rules or regulations
+- Use current events and recent developments
+- Vary question structure and phrasing
+- Use different difficulty distributions
+- Include battle-specific context in question generation
 
 DIFFICULTY LEVELS:
 - EASY: Basic facts, well-known players, simple rules

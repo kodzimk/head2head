@@ -651,6 +651,32 @@ async def get_battle_quiz(battle_id: str):
         logger.error(f"Error retrieving quiz for battle {battle_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Error retrieving quiz")
 
+@battle_router.get("/get_all_battles")
+async def get_all_battles_for_user(username: str):
+    """Get all battles for a specific user, sorted by recency (newest first)"""
+    # Import here to avoid circular import
+    from db.router import get_user_by_username
+    logger.info(f"[BATTLE_ROUTER] Getting all battles for user: {username}")
+    user = await get_user_by_username(username)
+    if not user:
+        logger.error(f"[BATTLE_ROUTER] User {username} not found in DB (get_all_battles_for_user)")
+        return []
+    battles_user = user['battles']
+    logger.info(f"[BATTLE_ROUTER] User {username} has {len(battles_user)} battles in their list: {battles_user}")
+    battles_list = []
+    async with SessionLocal() as session:
+        for battle_id in battles_user:
+            logger.info(f"[BATTLE_ROUTER] Looking up battle {battle_id} in database")
+            battle_data = await session.get(BattleModel, battle_id)
+            if battle_data:
+                logger.info(f"[BATTLE_ROUTER] Found battle {battle_id} in database: {battle_data.to_json()}")
+                battles_list.append(battle_data.to_json())
+            else:
+                logger.warning(f"[BATTLE_ROUTER] Battle {battle_id} not found in database")
+    battles_list.sort(key=lambda x: x['id'], reverse=True)
+    logger.info(f"[BATTLE_ROUTER] Returning {len(battles_list)} all battles for user {username} (sorted by recency)")
+    return battles_list
+
 @battle_router.get("/all_battles", tags=["debug"])
 async def get_all_battles():
     """Return all battles in the battles database table."""
