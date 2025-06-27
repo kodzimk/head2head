@@ -13,6 +13,7 @@ import {
 import { LogOut, User as UserIcon, BookOpen, Trophy, List, Users, Play, Home, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "../../shared/interface/gloabL_var";
 
 
 export default function Header({ user }: { user: User }) {
@@ -99,7 +100,7 @@ export default function Header({ user }: { user: User }) {
             >
               <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                 <AvatarImage
-                  src={`https://api.head2head.dev${user.avatar}`}
+                  src={`${API_BASE_URL}${user.avatar}`}
                   alt={user.username}
                 />
                 <AvatarFallback className="bg-orange-500 text-white">

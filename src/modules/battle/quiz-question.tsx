@@ -34,6 +34,7 @@ export default function QuizQuestionPage() {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [battleFinished, setBattleFinished] = useState(false);
   const [answerSubmitted, setAnswerSubmitted] = useState(false); // Track if answer was submitted
+  const [userFinishedAllQuestions, setUserFinishedAllQuestions] = useState(false); // Track if user finished all questions
   const navigate = useNavigate();
   const wsRef = useRef<BattleWebSocket | null>(null);
   const questionsRef = useRef<any[]>([]); // Use ref to avoid stale closure
@@ -144,6 +145,7 @@ export default function QuizQuestionPage() {
         setNextQuestionCountdown(7);
         setMotivationalMessage(getRandomMotivationalMessage());
         setTimeLeft(QUESTION_TIME_LIMIT);
+        setUserFinishedAllQuestions(false); // Reset when quiz starts
       }
       
       if (data.type === 'answer_submitted') {
@@ -154,6 +156,13 @@ export default function QuizQuestionPage() {
           setFirstOpponentScore(data.scores[user.username] || 0);
           const opponentUsername = Object.keys(data.scores).find(name => name !== user.username);
           setSecondOpponentScore(opponentUsername ? data.scores[opponentUsername] : 0);
+        }
+        
+        // Check if this was the last question
+        const currentQuestionIndex = currentIndexRef.current;
+        if (currentQuestionIndex >= questionsRef.current.length - 1) {
+          setUserFinishedAllQuestions(true);
+          console.log('[BATTLE_WS] User finished all questions');
         }
         
         // Start 3-second countdown for next question
@@ -200,6 +209,20 @@ export default function QuizQuestionPage() {
         console.log('[BATTLE_WS] Waiting for opponent message received:', data);
         setWaitingForOpponent(true);
         setShowNextQuestion(false);
+        
+        // Update scores if provided
+        if (data.scores) {
+          setFirstOpponentScore(data.scores[user.username] || 0);
+          const opponentUsername = Object.keys(data.scores).find(name => name !== user.username);
+          setSecondOpponentScore(opponentUsername ? data.scores[opponentUsername] : 0);
+        }
+        
+        // Set a timeout to show a message if waiting too long
+        setTimeout(() => {
+          if (waitingForOpponent && !battleFinished) {
+            setText('Still waiting for opponent... This may take a moment.');
+          }
+        }, 5000);
       }
       
       if (data.type === 'battle_finished') {
@@ -207,6 +230,9 @@ export default function QuizQuestionPage() {
         
         // Set battle as finished to prevent further interactions
         setBattleFinished(true);
+        setWaitingForOpponent(false);
+        setShowNextQuestion(false);
+        setUserFinishedAllQuestions(false); // Reset when battle is finished
         
         // Set final scores
         const userScore = data.final_scores[user.username] || 0;
@@ -476,7 +502,11 @@ export default function QuizQuestionPage() {
             </div>
             <div className="text-center">
               <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full px-3 py-1">
-                {showNextQuestion ? (
+                {userFinishedAllQuestions ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <span>Waiting for opponent...</span>
+                  </div>
+                ) : showNextQuestion ? (
                   <div className="flex items-center justify-center gap-2">
                     <span>Next question in:</span>
                     <span className="text-lg font-bold text-orange-600">{nextQuestionCountdown}</span>
@@ -511,6 +541,14 @@ export default function QuizQuestionPage() {
                     Next question in {nextQuestionCountdown} seconds...
                   </div>
                 )}
+              </div>
+            ) : userFinishedAllQuestions ? (
+              // Show waiting for opponent state when user finished all questions
+              <div className="text-center py-6">
+                <div className="text-lg font-semibold mb-3">
+                  Waiting for opponent to finish...
+                </div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
               </div>
             ) : showNextQuestion ? (
               // Show countdown to next question

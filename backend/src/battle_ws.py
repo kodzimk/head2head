@@ -382,6 +382,9 @@ async def schedule_next_question(battle_id: str, username: str, question_index: 
             
             battle_progress[battle_id][username] = len(battle_questions[battle_id]) - 1
             
+            # Update the question start time to track waiting duration
+            battle_question_start_time[battle_id] = asyncio.get_event_loop().time()
+            
             # Use the new validation logic to check if battle should be completed
             if await validate_battle_completion(battle_id):
                 logger.info(f"[BATTLE_WS] Battle {battle_id} ready for completion, triggering result")
@@ -394,11 +397,15 @@ async def schedule_next_question(battle_id: str, username: str, question_index: 
                     try:
                         await user_websocket_map[battle_id][username].send_text(json.dumps({
                             "type": "waiting_for_opponent",
-                            "message": "Waiting for opponent to finish..."
+                            "message": "Waiting for opponent to finish...",
+                            "scores": battle_scores[battle_id]
                         }))
                         logger.info(f"[BATTLE_WS] Sent waiting message to user {username} in battle {battle_id}")
                     except Exception as e:
                         logger.error(f"[BATTLE_WS] Error sending waiting message to user {username}: {str(e)}")
+                
+                # Schedule a completion check after 10 seconds to ensure battle doesn't get stuck
+                asyncio.create_task(delayed_completion_check(battle_id, 10))
             return
         
         logger.info(f"[BATTLE_WS] Starting question {question_index} for battle {battle_id}")
@@ -429,6 +436,25 @@ async def schedule_next_question(battle_id: str, username: str, question_index: 
                 
     except Exception as e:
         logger.error(f"[BATTLE_WS] Error in schedule_next_question for battle {battle_id}: {str(e)}")
+
+async def delayed_completion_check(battle_id: str, delay_seconds: int):
+    """Perform a delayed completion check to ensure battle doesn't get stuck"""
+    try:
+        await asyncio.sleep(delay_seconds)
+        
+        if battle_id not in battle_connections:
+            return
+        
+        logger.info(f"[BATTLE_WS] Performing delayed completion check for battle {battle_id}")
+        
+        if await validate_battle_completion(battle_id):
+            logger.info(f"[BATTLE_WS] Delayed check: Battle {battle_id} ready for completion")
+            await trigger_battle_completion(battle_id)
+        else:
+            logger.info(f"[BATTLE_WS] Delayed check: Battle {battle_id} not ready yet")
+            
+    except Exception as e:
+        logger.error(f"[BATTLE_WS] Error in delayed completion check for battle {battle_id}: {str(e)}")
 
 # Remove timeout function since users progress independently 
 
@@ -731,8 +757,11 @@ async def validate_battle_completion(battle_id: str) -> bool:
         total_questions = len(battle_questions[battle_id])
         
         # Check if both users have answered all questions
-        user1_finished = battle_progress.get(battle_id, {}).get(user1, -1) >= total_questions - 1
-        user2_finished = battle_progress.get(battle_id, {}).get(user2, -1) >= total_questions - 1
+        user1_progress = battle_progress.get(battle_id, {}).get(user1, -1)
+        user2_progress = battle_progress.get(battle_id, {}).get(user2, -1)
+        
+        user1_finished = user1_progress >= total_questions - 1
+        user2_finished = user2_progress >= total_questions - 1
         
         # Check if both users have all their answers recorded
         user1_answers = len(battle_answers.get(battle_id, {}).get(user1, []))
@@ -749,9 +778,27 @@ async def validate_battle_completion(battle_id: str) -> bool:
         # Check if time expired and both users have at least some answers
         time_expired_with_answers = time_expired and user1_answers > 0 and user2_answers > 0
         
+        # Additional check: if one user is waiting for the other for more than 30 seconds
+        waiting_time_threshold = 30  # 30 seconds
+        if user1_finished and not user2_finished:
+            # User1 finished, check how long they've been waiting
+            if battle_id in battle_question_start_time:
+                waiting_time = asyncio.get_event_loop().time() - battle_question_start_time[battle_id]
+                if waiting_time > waiting_time_threshold:
+                    logger.info(f"[BATTLE_WS] User {user1} has been waiting for {waiting_time:.1f}s, forcing completion")
+                    both_finished = True
+        
+        if user2_finished and not user1_finished:
+            # User2 finished, check how long they've been waiting
+            if battle_id in battle_question_start_time:
+                waiting_time = asyncio.get_event_loop().time() - battle_question_start_time[battle_id]
+                if waiting_time > waiting_time_threshold:
+                    logger.info(f"[BATTLE_WS] User {user2} has been waiting for {waiting_time:.1f}s, forcing completion")
+                    both_finished = True
+        
         logger.info(f"[BATTLE_WS] Battle {battle_id} completion check:")
-        logger.info(f"  - User1 ({user1}): finished={user1_finished}, answers={user1_answers}/{total_questions}")
-        logger.info(f"  - User2 ({user2}): finished={user2_finished}, answers={user2_answers}/{total_questions}")
+        logger.info(f"  - User1 ({user1}): progress={user1_progress}, finished={user1_finished}, answers={user1_answers}/{total_questions}")
+        logger.info(f"  - User2 ({user2}): progress={user2_progress}, finished={user2_finished}, answers={user2_answers}/{total_questions}")
         logger.info(f"  - Battle duration: {battle_duration:.1f}s (max: {max_battle_time}s)")
         logger.info(f"  - Both finished: {both_finished}")
         logger.info(f"  - Time expired with answers: {time_expired_with_answers}")
@@ -762,7 +809,7 @@ async def validate_battle_completion(battle_id: str) -> bool:
         battle_completion_checks[battle_id] += 1
         
         # Only allow completion if conditions are met and we haven't exceeded check limits
-        if battle_completion_checks[battle_id] > 5:  # Maximum 5 completion checks
+        if battle_completion_checks[battle_id] > 10:  # Increased maximum completion checks
             logger.warning(f"[BATTLE_WS] Battle {battle_id} exceeded maximum completion checks")
             return False
         

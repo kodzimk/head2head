@@ -1396,3 +1396,72 @@ This document tracks all major changes and implementations throughout the develo
 - **Development Friendly**: Localhost still available for development
 
 ### Reset Statistics System Implementation (Latest)
+
+### Battle Ending Improvements (Latest)
+
+**Date**: 2024-12-19
+
+**Changes Made**:
+
+1. **Enhanced Battle Completion Validation** (`backend/src/battle_ws.py`):
+   - **Improved Progress Tracking**: Better tracking of user progress through questions
+   - **Waiting Time Detection**: Added 30-second timeout for users waiting for opponents
+   - **Increased Completion Checks**: Raised maximum completion checks from 5 to 10
+   - **Better Logging**: Enhanced logging to track user progress and completion conditions
+
+2. **Improved Question Scheduling** (`backend/src/battle_ws.py`):
+   - **Delayed Completion Check**: Added 10-second delayed completion check to prevent stuck battles
+   - **Better Waiting Messages**: Enhanced waiting messages with current scores
+   - **Progress Tracking**: Improved tracking of when users finish their questions
+
+3. **Enhanced Frontend Waiting State** (`src/modules/battle/quiz-question.tsx`):
+   - **Score Updates**: Waiting messages now include current scores
+   - **Timeout Messages**: Added 5-second timeout message for long waits
+   - **State Management**: Better handling of waiting and finished states
+   - **Visual Feedback**: Improved waiting state UI with loading indicators
+
+**Technical Implementation**:
+- **Waiting Detection**: System detects when one user finishes and waits for the other
+- **Timeout Handling**: 30-second timeout forces battle completion if one user is waiting too long
+- **Delayed Checks**: 10-second delayed completion checks prevent battles from getting stuck
+- **Better State Management**: Frontend properly handles waiting states and battle completion
+
+**Benefits**:
+- **Reliable Battle Completion**: Battles now properly end when both users finish
+- **No Stuck Battles**: Timeout mechanisms prevent battles from getting stuck
+- **Better User Experience**: Clear waiting messages and visual feedback
+- **Robust Error Handling**: Multiple completion checks ensure battles end properly
+
+### Waiting for Opponent Text Improvement (Latest)
+
+**Date**: 2024-12-19
+
+**Changes Made**:
+
+1. **Enhanced User State Tracking** (`src/modules/battle/quiz-question.tsx`):
+   - **New State Variable**: Added `userFinishedAllQuestions` to track when user completes all questions
+   - **Question Completion Detection**: Logic to detect when user answers their last question
+   - **State Reset**: Properly reset state when quiz starts or battle finishes
+
+2. **Improved UI Display Logic**:
+   - **Priority Display**: When user finishes all questions, show "Waiting for opponent..." instead of "Next question coming up..."
+   - **Consistent Messaging**: Both header and main content show waiting message when user is done
+   - **Visual Feedback**: Loading spinner and clear messaging for waiting state
+
+3. **Better User Experience**:
+   - **Clear Communication**: Users know they're waiting for opponent, not for next question
+   - **Accurate Status**: UI accurately reflects the current state of the battle
+   - **Reduced Confusion**: No misleading "next question" messages when user is finished
+
+**Technical Implementation**:
+- **State Management**: Added `userFinishedAllQuestions` boolean state
+- **Detection Logic**: Check if current question index is the last question when answer is submitted
+- **State Reset**: Reset state when quiz starts or battle finishes
+
+**Benefits**:
+- **Accurate Messaging**: Users see correct status when they finish all questions
+- **Better UX**: Clear indication that they're waiting for opponent, not for next question
+- **Reduced Confusion**: Eliminates misleading "next question" messages
+- **Consistent Experience**: Both header and main content show appropriate waiting message
+
+### Development URL Configuration Update (Latest)
