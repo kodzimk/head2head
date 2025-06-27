@@ -4,7 +4,7 @@ import logging
 from typing import Dict
 from db.router import delete_user_data, get_user_data, update_user_data, get_user_by_username
 from friends.router import add_friend, cancel_friend_request, send_friend_request
-from battle.router import invite_friend, cancel_invitation, accept_invitation, battle_result, battle_draw_result, create_battle, get_waiting_battles
+from battle.router import invite_friend, cancel_invitation, accept_invitation, get_waiting_battles
 from battle.init import battles, Battle
 from models import UserDataCreate
 from init import init_models
@@ -12,30 +12,12 @@ from friends.router import remove_friend
 import asyncio
 import uuid
 from fastapi import HTTPException
-import redis
+from questions import get_questions
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
-
-# Redis client for checking cached questions
-redis_client = redis.Redis.from_url("redis://redis:6379/0")
-
-async def get_cached_questions(battle_id: str):
-    """Get cached questions for a battle"""
-    try:
-        questions_key = f"battle_questions:{battle_id}"
-        logger.info(f"[get_cached_questions] Fetching questions with key {questions_key}")
-        cached_questions = redis_client.get(questions_key)
-        if cached_questions:
-            logger.info(f"[get_cached_questions] Found cached questions for {battle_id}")
-            return json.loads(cached_questions)
-        logger.info(f"[get_cached_questions] No cached questions found for {battle_id}")
-        return None
-    except Exception as e:
-        logger.error(f"[get_cached_questions] Error getting cached questions for battle {battle_id}: {str(e)}")
-        return None
 
 class ConnectionManager:
     def __init__(self):
@@ -569,7 +551,6 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 # Poll for questions in the background
                                 async def poll_for_questions():
                                     try:
-                                        logger.info(f"Polling for quiz questions for battle {battle.id} ({battle.sport}, {battle.level})")
                                         max_attempts = 30
                                         attempts = 0
                                         questions = await get_cached_questions(battle.id)
@@ -578,32 +559,15 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                             questions = await get_cached_questions(battle.id)
                                             attempts += 1
                                         if not questions:
-                                            logger.warning(f"Quiz questions not ready in time for battle {battle.id}, using fallback questions")
                                             try:
-                                                    from aiquiz.router import generate_expanded_fallback_questions
-                                                    questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
-                                                    logger.info(f"Using fallback questions for battle {battle.id}")
+                                                questions = get_questions(battle.sport, battle.level, 6)
                                             except Exception as e:
                                                 logger.error(f"Error getting fallback questions for battle {battle.id}: {str(e)}")
                                                 questions = []
                                         battle.questions = questions
-                                        logger.info(f"Quiz questions ready for battle {battle.id}")
-                                        await manager.send_message(json.dumps({
-                                            "type": "quiz_ready",
-                                            "data": {"battle_id": battle.id, "questions": questions}
-                                        }), battle.first_opponent)
-                                        await manager.send_message(json.dumps({
-                                            "type": "quiz_ready",
-                                            "data": {"battle_id": battle.id, "questions": questions}
-                                        }), battle.second_opponent)
                                     except Exception as e:
-                                        logger.error(f"Error polling for quiz questions for battle {battle.id}: {str(e)}")
-                                        error_message = json.dumps({
-                                            "type": "quiz_error",
-                                            "data": {"battle_id": battle.id, "message": "Failed to get quiz questions"}
-                                        })
-                                        await manager.send_message(error_message, battle.first_opponent)
-                                        await manager.send_message(error_message, battle.second_opponent)
+                                        logger.error(f"Error polling for questions: {str(e)}")
+                                        battle.questions = []
                                 asyncio.create_task(poll_for_questions())
                         except HTTPException as e:
                             
@@ -671,12 +635,11 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             for connected_user in manager.active_connections.keys():
                                 await manager.send_message(battle_joined_message, connected_user)
                             # Start quiz generation in the background
-                            from aiquiz.router import generate_expanded_fallback_questions
                             async def ensure_seven_questions():
                                 questions = await get_cached_questions(battle.id)
                                 if not questions or len(questions) < 6:
                                     logger.warning(f"No cached questions found for battle {battle.id}, using fallback questions")
-                                    questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
+                                    questions = get_questions(battle.sport, battle.level, 6)
                                     logger.info(f"Saved fallback questions for battle {battle.id}")
                                 battle.questions = questions
                             asyncio.create_task(ensure_seven_questions())
@@ -708,7 +671,6 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             # Poll for questions in the background
                             async def poll_for_questions():
                                 try:
-                                    logger.info(f"Polling for quiz questions for battle {battle.id} ({battle.sport}, {battle.level})")
                                     max_attempts = 30
                                     attempts = 0
                                     questions = await get_cached_questions(battle.id)
@@ -717,32 +679,15 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                         questions = await get_cached_questions(battle.id)
                                         attempts += 1
                                     if not questions:
-                                        logger.warning(f"Quiz questions not ready in time for battle {battle.id}, using fallback questions")
                                         try:
-                                            from aiquiz.router import generate_expanded_fallback_questions
-                                            questions = generate_expanded_fallback_questions(battle.sport, battle.level, 6)
-                                            logger.info(f"Using fallback questions for battle {battle.id}")
+                                            questions = get_questions(battle.sport, battle.level, 6)
                                         except Exception as e:
                                             logger.error(f"Error getting fallback questions for battle {battle.id}: {str(e)}")
                                             questions = []
                                     battle.questions = questions
-                                    logger.info(f"Quiz questions ready for battle {battle.id}")
-                                    await manager.send_message(json.dumps({
-                                        "type": "quiz_ready",
-                                        "data": {"battle_id": battle.id, "questions": questions}
-                                    }), battle.first_opponent)
-                                    await manager.send_message(json.dumps({
-                                        "type": "quiz_ready",
-                                        "data": {"battle_id": battle.id, "questions": questions}
-                                    }), battle.second_opponent)
                                 except Exception as e:
-                                    logger.error(f"Error polling for quiz questions for battle {battle.id}: {str(e)}")
-                                    error_message = json.dumps({
-                                        "type": "quiz_error",
-                                        "data": {"battle_id": battle.id, "message": "Failed to get quiz questions"}
-                                    })
-                                    await manager.send_message(error_message, battle.first_opponent)
-                                    await manager.send_message(error_message, battle.second_opponent)
+                                    logger.error(f"Error polling for questions: {str(e)}")
+                                    battle.questions = []
                             asyncio.create_task(poll_for_questions())
                         else:
                             if not battle:
@@ -879,13 +824,13 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             battles[battle_id] = battle
                             logger.info(f"Created battle {battle_id} for {message['first_opponent']}")
                             
-                            # Trigger AI quiz generation as soon as battle is created
+                            # Trigger manual quiz generation as soon as battle is created
                             try:
                                 from tasks import queue_quiz_generation_task
                                 task = queue_quiz_generation_task(battle_id, message["sport"], message["level"], 6)
-                                logger.info(f"Started AI quiz generation task {task.id} for battle {battle_id}")
+                                logger.info(f"Started manual quiz generation task {task.id} for battle {battle_id}")
                             except Exception as e:
-                                logger.error(f"Failed to start AI quiz generation for battle {battle_id}: {str(e)}")
+                                logger.error(f"Failed to start manual quiz generation for battle {battle_id}: {str(e)}")
 
                             # Get creator's user data to include avatar
                             creator_user = await get_user_by_username(message["first_opponent"])

@@ -10,13 +10,10 @@ export default function Footer() {
           <span className="font-bold text-xl text-slate-900">head2head</span>
         </div>
             <nav className="flex flex-wrap justify-center gap-4 md:gap-6">
-              <a href="#" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
-                Support
+              <a href="https://www.instagram.com/head2head.app" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
+                Instagram
               </a>
-              <a href="#" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
-                Discord
-              </a>
-              <a href="#" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
+              <a href="https://www.linkedin.com/company/head2head-dev" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
                 LinkedIn
               </a>
             </nav>

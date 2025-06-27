@@ -77,7 +77,6 @@ The application uses WebSocket connections to provide real-time updates for batt
 
 Create a `.env` file in the backend directory:
 ```env
-GOOGLE_API_KEY=your_google_api_key_here
 REDIS_URL=redis://redis:6379/0
 DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
 ```
@@ -115,7 +114,7 @@ In development mode, a debug panel is available on the battles page with:
 - WebSocket connection management
 - Real-time event broadcasting
 - Battle state management
-- AI quiz generation
+- Manual quiz generation
 
 ### Frontend (React + TypeScript)
 - WebSocket client management

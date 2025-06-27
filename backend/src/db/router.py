@@ -67,14 +67,69 @@ async def delete_user_data(token: str):
                                 await friend_db.commit()
                                 await friend_db.refresh(db_friend)
 
-
-        
+        # Delete the user
         await db.delete(data)
         await db.commit()
         redis_email.delete(email)
         redis_username.delete(data.username)
+        
+        # Recalculate rankings for all remaining users after account deletion
+        try:
+            from battle.router import update_user_rankings
+            logger.info(f"[DELETE] Recalculating rankings after account deletion...")
+            ranking_success = await update_user_rankings()
+            if ranking_success:
+                logger.info(f"[DELETE] Successfully recalculated rankings after account deletion")
+                
+                # Update Redis cache for all remaining users with new rankings
+                async with SessionLocal() as ranking_db:
+                    stmt = select(UserData)
+                    result = await ranking_db.execute(stmt)
+                    remaining_users = result.scalars().all()
+                    
+                    for user in remaining_users:
+                        try:
+                            await ranking_db.refresh(user)
+                            updated_user_dict = {
+                                'username': user.username,
+                                'email': user.email,
+                                'totalBattle': user.totalBattle,
+                                'winRate': user.winRate,
+                                'ranking': user.ranking,
+                                'winBattle': user.winBattle,
+                                'favourite': user.favourite,
+                                'streak': user.streak,
+                                'password': user.password,
+                                'friends': user.friends,
+                                'friendRequests': user.friendRequests,
+                                'avatar': user.avatar,
+                                'battles': user.battles,
+                                'invitations': user.invitations
+                            }
+                            
+                            redis_email.set(user.email, json.dumps(updated_user_dict))
+                            redis_username.set(user.username, json.dumps(updated_user_dict))
+                            
+                            # Send websocket notification to each remaining user
+                            try:
+                                from websocket import manager
+                                await manager.send_message(json.dumps({
+                                    "type": "user_updated",
+                                    "data": updated_user_dict
+                                }), user.username)
+                                logger.info(f"[DELETE] Sent user_updated websocket notification to {user.username} with new ranking {user.ranking}")
+                            except Exception as e:
+                                logger.warning(f"[DELETE] Failed to send websocket notification to {user.username}: {str(e)}")
+                                
+                        except Exception as e:
+                            logger.error(f"[DELETE] Error updating Redis for user {user.username}: {str(e)}")
+            else:
+                logger.warning(f"[DELETE] Failed to recalculate rankings after account deletion")
+        except Exception as e:
+            logger.error(f"[DELETE] Error recalculating rankings after account deletion: {str(e)}\n{traceback.format_exc()}")
+        
         return friends
-    
+
 @db_router.on_event("shutdown")
 async def end_event():
     redis_email.close()
@@ -458,6 +513,17 @@ async def update_data(user: UserDataCreate):
         redis_email.set(user_model.email, json.dumps(user_dict))
         redis_username.set(user_model.username, json.dumps(user_dict))
         
+        # Send websocket notification to the user
+        try:
+            from websocket import manager
+            await manager.send_message(json.dumps({
+                "type": "stats_reset",
+                "data": user_dict
+            }), user_model.username)
+            logger.info(f"[RESET] Sent stats_reset websocket notification to {user_model.username}")
+        except Exception as e:
+            logger.warning(f"[RESET] Failed to send websocket notification to {user_model.username}: {str(e)}")
+        
         return user.friends
 
 @db_router.get("/get-leaderboard")
@@ -651,41 +717,337 @@ async def recalculate_all_rankings():
         raise HTTPException(status_code=500, detail=f"Error recalculating rankings: {str(e)}")
 
 @db_router.post("/reset-user-stats", name="reset user statistics")
-async def reset_user_stats(username: str):
-    async with SessionLocal() as db:
-        stmt = select(UserData).where(UserData.username == username)
-        result = await db.execute(stmt)
-        user_model = result.scalar_one_or_none()
-        if user_model is None:
-            raise HTTPException(status_code=404, detail="User not found")
-        # Reset stats
-        user_model.winBattle = 0
-        user_model.winRate = 0
-        user_model.totalBattle = 0
-        user_model.ranking = 0  # Set to 0 or your default rank value
-        user_model.streak = 0
-        await db.commit()
-        await db.refresh(user_model)
-        # Update Redis cache
-        user_dict = {
-            'username': user_model.username,
-            'email': user_model.email,
-            'totalBattle': user_model.totalBattle,
-            'winRate': user_model.winRate,
-            'ranking': user_model.ranking,
-            'favourite': user_model.favourite,
-            'winBattle': user_model.winBattle,
-            'streak': user_model.streak,
-            'password': user_model.password,
-            'friends': user_model.friends,
-            'friendRequests': user_model.friendRequests,
-            'avatar': user_model.avatar,
-            'battles': user_model.battles,
-            'invitations': user_model.invitations
-        }
-        redis_email.set(user_model.email, json.dumps(user_dict))
-        redis_username.set(user_model.username, json.dumps(user_dict))
-        return {"message": "User statistics reset successfully"}
+async def reset_user_stats(username: str, reset_type: str = "all"):
+    """
+    Reset user statistics with different options:
+    - "all": Reset all battle statistics (totalBattle, winBattle, winRate, streak, ranking, battles)
+    - "battles": Reset only battle-related stats (totalBattle, winBattle, winRate, streak)
+    - "ranking": Reset only ranking
+    - "streak": Reset only streak
+    """
+    logger.info(f"[RESET] Starting reset for user {username}, type: {reset_type}")
+    
+    try:
+        async with SessionLocal() as db:
+            stmt = select(UserData).where(UserData.username == username)
+            result = await db.execute(stmt)
+            user_model = result.scalar_one_or_none()
+            
+            if user_model is None:
+                logger.error(f"[RESET] User {username} not found")
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Store original values for logging
+            original_stats = {
+                'totalBattle': user_model.totalBattle,
+                'winBattle': user_model.winBattle,
+                'winRate': user_model.winRate,
+                'streak': user_model.streak,
+                'ranking': user_model.ranking,
+                'battles_count': len(user_model.battles) if user_model.battles else 0
+            }
+            
+            logger.info(f"[RESET] Original stats for {username}: {original_stats}")
+            
+            # Reset based on type
+            if reset_type == "all":
+                user_model.winBattle = 0
+                user_model.winRate = 0
+                user_model.totalBattle = 0
+                user_model.ranking = 0
+                user_model.streak = 0
+                user_model.battles = []  # Clear battles list
+                logger.info(f"[RESET] Reset all statistics for {username}")
+                
+            elif reset_type == "battles":
+                user_model.winBattle = 0
+                user_model.winRate = 0
+                user_model.totalBattle = 0
+                user_model.streak = 0
+                user_model.battles = []  # Clear battles list
+                logger.info(f"[RESET] Reset battle statistics for {username}")
+                
+            elif reset_type == "ranking":
+                user_model.ranking = 0
+                logger.info(f"[RESET] Reset ranking for {username}")
+                
+            elif reset_type == "streak":
+                user_model.streak = 0
+                logger.info(f"[RESET] Reset streak for {username}")
+                
+            else:
+                logger.error(f"[RESET] Invalid reset type: {reset_type}")
+                raise HTTPException(status_code=400, detail="Invalid reset type. Use 'all', 'battles', 'ranking', or 'streak'")
+            
+            await db.commit()
+            await db.refresh(user_model)
+            
+            # Update Redis cache with complete user data
+            user_dict = {
+                'username': user_model.username,
+                'email': user_model.email,
+                'totalBattle': user_model.totalBattle,
+                'winRate': user_model.winRate,
+                'ranking': user_model.ranking,
+                'winBattle': user_model.winBattle,
+                'favourite': user_model.favourite,
+                'streak': user_model.streak,
+                'password': user_model.password,
+                'friends': user_model.friends,
+                'friendRequests': user_model.friendRequests,
+                'avatar': user_model.avatar,
+                'battles': user_model.battles,
+                'invitations': user_model.invitations
+            }
+            
+            # Update both Redis caches
+            redis_email.set(user_model.email, json.dumps(user_dict))
+            redis_username.set(user_model.username, json.dumps(user_dict))
+            
+            # Send websocket notification to the user
+            try:
+                from websocket import manager
+                await manager.send_message(json.dumps({
+                    "type": "stats_reset",
+                    "data": user_dict
+                }), user_model.username)
+                logger.info(f"[RESET] Sent stats_reset websocket notification to {user_model.username}")
+            except Exception as e:
+                logger.warning(f"[RESET] Failed to send websocket notification to {user_model.username}: {str(e)}")
+            
+            # Log the changes
+            new_stats = {
+                'totalBattle': user_model.totalBattle,
+                'winBattle': user_model.winBattle,
+                'winRate': user_model.winRate,
+                'streak': user_model.streak,
+                'ranking': user_model.ranking,
+                'battles_count': len(user_model.battles) if user_model.battles else 0
+            }
+            
+            logger.info(f"[RESET] New stats for {username}: {new_stats}")
+            logger.info(f"[RESET] Successfully reset {reset_type} statistics for user {username}")
+            
+            # Recalculate rankings for all users after stats reset
+            try:
+                from battle.router import update_user_rankings
+                logger.info(f"[RESET] Recalculating rankings after stats reset...")
+                ranking_success = await update_user_rankings()
+                if ranking_success:
+                    logger.info(f"[RESET] Successfully recalculated rankings after stats reset")
+                    
+                    # Get updated user data with new ranking
+                    await db.refresh(user_model)
+                    updated_user_dict = {
+                        'username': user_model.username,
+                        'email': user_model.email,
+                        'totalBattle': user_model.totalBattle,
+                        'winRate': user_model.winRate,
+                        'ranking': user_model.ranking,
+                        'winBattle': user_model.winBattle,
+                        'favourite': user_model.favourite,
+                        'streak': user_model.streak,
+                        'password': user_model.password,
+                        'friends': user_model.friends,
+                        'friendRequests': user_model.friendRequests,
+                        'avatar': user_model.avatar,
+                        'battles': user_model.battles,
+                        'invitations': user_model.invitations
+                    }
+                    
+                    # Update Redis with new ranking
+                    redis_email.set(user_model.email, json.dumps(updated_user_dict))
+                    redis_username.set(user_model.username, json.dumps(updated_user_dict))
+                    
+                    # Send updated websocket notification with new ranking
+                    try:
+                        from websocket import manager
+                        await manager.send_message(json.dumps({
+                            "type": "stats_reset",
+                            "data": updated_user_dict
+                        }), user_model.username)
+                        logger.info(f"[RESET] Sent updated stats_reset websocket notification to {user_model.username} with new ranking {user_model.ranking}")
+                    except Exception as e:
+                        logger.warning(f"[RESET] Failed to send updated websocket notification to {user_model.username}: {str(e)}")
+                    
+                    # Update the return data with new ranking
+                    new_stats['ranking'] = user_model.ranking
+                else:
+                    logger.warning(f"[RESET] Failed to recalculate rankings after stats reset")
+            except Exception as e:
+                logger.error(f"[RESET] Error recalculating rankings after stats reset: {str(e)}\n{traceback.format_exc()}")
+            
+            return {
+                "message": f"User {reset_type} statistics reset successfully",
+                "username": username,
+                "reset_type": reset_type,
+                "original_stats": original_stats,
+                "new_stats": new_stats,
+                "rankings_recalculated": ranking_success if 'ranking_success' in locals() else False
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[RESET] Error resetting stats for {username}: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Error resetting user statistics: {str(e)}")
+
+@db_router.post("/reset-all-users-stats", name="reset all users statistics")
+async def reset_all_users_stats(reset_type: str = "all"):
+    """
+    Reset statistics for all users (admin function)
+    """
+    logger.info(f"[RESET-ALL] Starting mass reset for all users, type: {reset_type}")
+    
+    try:
+        async with SessionLocal() as db:
+            # Get all users
+            stmt = select(UserData)
+            result = await db.execute(stmt)
+            users = result.scalars().all()
+            
+            reset_count = 0
+            errors = []
+            
+            for user in users:
+                try:
+                    # Store original values
+                    original_stats = {
+                        'totalBattle': user.totalBattle,
+                        'winBattle': user.winBattle,
+                        'winRate': user.winRate,
+                        'streak': user.streak,
+                        'ranking': user.ranking,
+                        'battles_count': len(user.battles) if user.battles else 0
+                    }
+                    
+                    # Reset based on type
+                    if reset_type == "all":
+                        user.winBattle = 0
+                        user.winRate = 0
+                        user.totalBattle = 0
+                        user.ranking = 0
+                        user.streak = 0
+                        user.battles = []
+                    elif reset_type == "battles":
+                        user.winBattle = 0
+                        user.winRate = 0
+                        user.totalBattle = 0
+                        user.streak = 0
+                        user.battles = []
+                    elif reset_type == "ranking":
+                        user.ranking = 0
+                    elif reset_type == "streak":
+                        user.streak = 0
+                    else:
+                        raise ValueError(f"Invalid reset type: {reset_type}")
+                    
+                    reset_count += 1
+                    logger.info(f"[RESET-ALL] Reset {reset_type} for user {user.username}")
+                    
+                except Exception as e:
+                    error_msg = f"Error resetting user {user.username}: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(f"[RESET-ALL] {error_msg}")
+            
+            await db.commit()
+            
+            # Update Redis for all users
+            for user in users:
+                try:
+                    user_dict = {
+                        'username': user.username,
+                        'email': user.email,
+                        'totalBattle': user.totalBattle,
+                        'winRate': user.winRate,
+                        'ranking': user.ranking,
+                        'winBattle': user.winBattle,
+                        'favourite': user.favourite,
+                        'streak': user.streak,
+                        'password': user.password,
+                        'friends': user.friends,
+                        'friendRequests': user.friendRequests,
+                        'avatar': user.avatar,
+                        'battles': user.battles,
+                        'invitations': user.invitations
+                    }
+                    
+                    redis_email.set(user.email, json.dumps(user_dict))
+                    redis_username.set(user.username, json.dumps(user_dict))
+                    
+                except Exception as e:
+                    error_msg = f"Error updating Redis for user {user.username}: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(f"[RESET-ALL] {error_msg}")
+            
+            logger.info(f"[RESET-ALL] Successfully reset {reset_count} users, {len(errors)} errors")
+            
+            # Recalculate rankings for all users after bulk stats reset
+            try:
+                from battle.router import update_user_rankings
+                logger.info(f"[RESET-ALL] Recalculating rankings after bulk stats reset...")
+                ranking_success = await update_user_rankings()
+                if ranking_success:
+                    logger.info(f"[RESET-ALL] Successfully recalculated rankings after bulk stats reset")
+                    
+                    # Update Redis for all users with new rankings
+                    for user in users:
+                        try:
+                            await db.refresh(user)
+                            updated_user_dict = {
+                                'username': user.username,
+                                'email': user.email,
+                                'totalBattle': user.totalBattle,
+                                'winRate': user.winRate,
+                                'ranking': user.ranking,
+                                'winBattle': user.winBattle,
+                                'favourite': user.favourite,
+                                'streak': user.streak,
+                                'password': user.password,
+                                'friends': user.friends,
+                                'friendRequests': user.friendRequests,
+                                'avatar': user.avatar,
+                                'battles': user.battles,
+                                'invitations': user.invitations
+                            }
+                            
+                            redis_email.set(user.email, json.dumps(updated_user_dict))
+                            redis_username.set(user.username, json.dumps(updated_user_dict))
+                            
+                            # Send websocket notification to each user
+                            try:
+                                from websocket import manager
+                                await manager.send_message(json.dumps({
+                                    "type": "stats_reset",
+                                    "data": updated_user_dict
+                                }), user.username)
+                                logger.info(f"[RESET-ALL] Sent stats_reset websocket notification to {user.username} with new ranking {user.ranking}")
+                            except Exception as e:
+                                logger.warning(f"[RESET-ALL] Failed to send websocket notification to {user.username}: {str(e)}")
+                                
+                        except Exception as e:
+                            error_msg = f"Error updating Redis for user {user.username}: {str(e)}"
+                            errors.append(error_msg)
+                            logger.error(f"[RESET-ALL] {error_msg}")
+                else:
+                    logger.warning(f"[RESET-ALL] Failed to recalculate rankings after bulk stats reset")
+                    errors.append("Failed to recalculate rankings")
+            except Exception as e:
+                error_msg = f"Error recalculating rankings after bulk stats reset: {str(e)}"
+                errors.append(error_msg)
+                logger.error(f"[RESET-ALL] {error_msg}\n{traceback.format_exc()}")
+            
+            return {
+                "message": f"Successfully reset {reset_type} statistics for {reset_count} users",
+                "reset_type": reset_type,
+                "users_reset": reset_count,
+                "rankings_recalculated": ranking_success if 'ranking_success' in locals() else False,
+                "errors": errors if errors else None
+            }
+            
+    except Exception as e:
+        logger.error(f"[RESET-ALL] Error in mass reset: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Error resetting all users statistics: {str(e)}")
 
 @db_router.get("/debug-user-stats/{username}", name="debug user statistics")
 async def debug_user_stats(username: str):

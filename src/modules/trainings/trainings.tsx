@@ -99,7 +99,7 @@ export default function TrainingsPage() {
               Sports Training Center
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-400">
-              Practice with AI-generated sports quizzes focusing on traditional sports knowledge
+              Practice with manual sports quizzes focusing on traditional sports knowledge
             </p>
           </div>
 

@@ -1,16 +1,16 @@
-# Celery AI Quiz Generation
+# Celery Manual Quiz Generation
 
-This document explains how to set up and use Celery for AI-powered quiz generation in the Head2Head application.
+This document explains how to set up and use Celery for manual quiz generation in the Head2Head application.
 
 ## Overview
 
-The system uses Celery to generate AI-powered quiz questions asynchronously when battles are created. This prevents blocking the main application while generating questions.
+The system uses Celery to generate manual quiz questions asynchronously when battles are created. This prevents blocking the main application while getting questions from the predefined manual questions database.
 
 ## Architecture
 
-- **Celery Worker**: Processes AI quiz generation tasks in the background
+- **Celery Worker**: Processes manual quiz generation tasks in the background
 - **Redis**: Used as both message broker and result backend
-- **Google Generative AI**: Generates quiz questions using the Gemini Pro model
+- **Manual Questions**: Predefined questions stored in `questions.py` for football, basketball, and tennis
 - **Flower**: Web-based monitoring tool for Celery tasks
 
 ## Setup
@@ -20,7 +20,6 @@ The system uses Celery to generate AI-powered quiz questions asynchronously when
 Make sure you have the following environment variables set:
 
 ```bash
-GOOGLE_API_KEY=your_google_api_key_here
 REDIS_URL=redis://redis:6379/0
 DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
 ```
@@ -32,9 +31,8 @@ The system includes Celery services in `docker-compose.yml`:
 ```yaml
 celery-worker:
   image: head2head-backend
-  command: celery -A celery_app worker --loglevel=info --queues=default,ai_quiz
+  command: celery -A celery_app worker --loglevel=info --queues=default,manual_quiz
   environment:
-    - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     - REDIS_URL=redis://redis:6379/0
     - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
 
@@ -83,7 +81,7 @@ docker run -d -p 6379:6379 redis:7
 python start_celery.py
 
 # Or manually
-celery -A src.celery_app worker --loglevel=info --queues=default,ai_quiz
+celery -A src.celery_app worker --loglevel=info --queues=default,manual_quiz
 ```
 
 ### 4. Start Flower (Optional)
@@ -96,13 +94,13 @@ celery -A src.celery_app flower --port=5555
 
 ### 1. Task Triggering
 
-AI quiz generation is automatically triggered when:
+Manual quiz generation is automatically triggered when:
 - A battle invitation is accepted
 - A player joins a waiting battle
 
 The system will:
 1. Send `quiz_generating` notification to both players
-2. Trigger background AI quiz generation
+2. Trigger background manual quiz generation
 3. Poll for completion (up to 30 seconds)
 4. Store questions in Redis cache
 5. Send `quiz_ready` notification when complete
@@ -120,10 +118,10 @@ Access Flower dashboard at `http://localhost:5555` to monitor:
 You can manually trigger quiz generation:
 
 ```python
-from tasks import generate_ai_quiz
+from tasks import generate_manual_quiz
 
 # Generate questions for a battle
-result = generate_ai_quiz.delay("battle_id", "football", "intermediate")
+result = generate_manual_quiz.delay("battle_id", "football", "intermediate")
 print(f"Task ID: {result.id}")
 
 # Check task status
@@ -136,12 +134,12 @@ print(f"Result: {result.get()}")
 ### Queue Configuration
 
 - **default**: General tasks
-- **ai_quiz**: AI quiz generation tasks
+- **manual_quiz**: Manual quiz generation tasks
 
 ### Task Settings
 
-- **Time Limit**: 30 minutes
-- **Soft Time Limit**: 25 minutes
+- **Time Limit**: 5 minutes (much shorter for manual questions)
+- **Soft Time Limit**: 4 minutes
 - **Worker Prefetch**: 1 task at a time
 - **Max Tasks Per Child**: 1000
 
@@ -151,14 +149,33 @@ print(f"Result: {result.get()}")
 - **Time limit per question**: 30 seconds
 - **Answer options**: 4 (A, B, C, D)
 - **Correct answers**: 1 per question
+- **Sports supported**: Football, Basketball, Tennis
+- **Difficulty levels**: Easy, Medium, Hard
+
+## Manual Questions Structure
+
+### Football Questions (15 total)
+- **Easy (5 questions)**: Basic facts about World Cup, players, rules, match duration
+- **Medium (5 questions)**: Historical facts, Champions League, rules, recent events
+- **Hard (5 questions)**: Premier League records, statistics, historical details
+
+### Basketball Questions (15 total)
+- **Easy (5 questions)**: Basic rules, NBA teams, scoring, court dimensions
+- **Medium (5 questions)**: Player records, NBA history, recent championships
+- **Hard (5 questions)**: Career statistics, historical records, rule changes
+
+### Tennis Questions (15 total)
+- **Easy (5 questions)**: Basic rules, Grand Slams, scoring system, tournaments
+- **Medium (5 questions)**: Player achievements, tournament surfaces, rules
+- **Hard (5 questions)**: Historical records, career statistics, tournament history
 
 ## Error Handling
 
 ### Fallback Mechanism
 
-If AI quiz generation fails or times out:
+If manual quiz generation fails or times out:
 1. System logs the error
-2. Falls back to static questions from `aiquiz.router`
+2. Falls back to static questions from `questions.py`
 3. Continues with battle flow
 
 ### Monitoring
@@ -179,13 +196,13 @@ If AI quiz generation fails or times out:
    - Verify Redis is running and accessible
    - Check `REDIS_URL` environment variable
 
-3. **Google API errors**
-   - Verify `GOOGLE_API_KEY` is set correctly
-   - Check API key permissions and quotas
+3. **Question generation errors**
+   - Verify sport and level combinations exist in manual questions
+   - Check that questions are properly formatted
 
 4. **Task timeouts**
    - Increase task time limits if needed
-   - Check network connectivity to Google API
+   - Check system resources
 
 ### Debug Commands
 
@@ -198,21 +215,13 @@ celery -A celery_app inspect stats
 
 # Purge all queues
 celery -A celery_app purge
-
-# Check Redis connection
-redis-cli ping
 ```
 
-## Performance Considerations
+## Benefits of Manual Questions
 
-- AI quiz generation typically takes 5-15 seconds
-- Questions are cached in Redis for 1 hour
-- System polls for completion every second (max 30 seconds)
-- Fallback to static questions ensures reliability
-
-## Security
-
-- Google API key should be kept secure
-- Redis should be configured with authentication in production
-- Consider rate limiting for AI API calls
-- Monitor API usage and costs 
+- **Reliability**: No dependency on external AI services
+- **Speed**: Instant question generation without API calls
+- **Consistency**: Predictable question quality and format
+- **Cost**: No API costs for question generation
+- **Simplicity**: Easy to maintain and modify questions
+- **Testing**: Perfect for development and testing environments 

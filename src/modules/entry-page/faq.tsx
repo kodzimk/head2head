@@ -50,7 +50,7 @@ export default function FAQ() {
               <CardContent className="p-6">
                 <button
                   onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                  className="w-full flex items-center justify-between text-left group"
+                  className="py-2 w-full flex items-center justify-between text-left group"
                 >
                   <h3 className="text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors duration-300 ">
                     {faq.question}

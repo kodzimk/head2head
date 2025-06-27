@@ -12,23 +12,27 @@ import { sendFriendRequest, sendMessage } from '../../shared/websockets/websocke
 import { cancelFriendRequest } from '../../shared/websockets/websocket'
 import { refreshView } from '../../app/App'
 import { API_BASE_URL } from "../../shared/interface/gloabL_var"
+import { newSocket } from '../../app/App'
 
 export const ViewProfile = ({user}: {user: User}) => {
   const { username } = useParams<{ username: string }>()
   const [isLoading, setIsLoading] = useState(true)
   const [error] = useState<string | null>(null)
   const [requestSent, setRequestSent] = useState(false)
+  const [hasSentRequestToViewUser, setHasSentRequestToViewUser] = useState(false)
   const navigate = useNavigate()
   const [viewUser, setViewUser] = useState<User>(initialUser)
 
   const handleSendRequest = async () => {
       sendFriendRequest(viewUser.username, user.username)
       setRequestSent(true)
+      setHasSentRequestToViewUser(true)
   };
 
   const handleCancelRequest = async () => {
     cancelFriendRequest(viewUser, user.username)
     setRequestSent(false)
+    setHasSentRequestToViewUser(false)
   };
 
   const handleBattle = async () => {
@@ -48,6 +52,7 @@ export const ViewProfile = ({user}: {user: User}) => {
           wins: response.data.winBattle,
           winRate: response.data.winRate,
           totalBattles: response.data.totalBattle,
+          streak: response.data.streak,
           friendRequests: response.data.friendRequests,
           friends: response.data.friends,
           avatar: response.data.avatar ? `${API_BASE_URL}${response.data.avatar}` : undefined
@@ -55,6 +60,7 @@ export const ViewProfile = ({user}: {user: User}) => {
         
         setViewUser(userData)
         setRequestSent(response.data.friendRequests.includes(user.username))
+        setHasSentRequestToViewUser(user.friendRequests.includes(response.data.username))
         setIsLoading(false)
       } catch (error) {
         setIsLoading(false)
@@ -69,25 +75,75 @@ export const ViewProfile = ({user}: {user: User}) => {
     }
   }, [username, user.username, refreshView])
 
-  // Update viewUser and requestSent when global user state changes (from WebSocket)
+  // Handle websocket messages for friend request updates
   useEffect(() => {
-    if (username && !isLoading) {
-      // Update requestSent based on current user's friend requests
-      const newRequestSent = user.friendRequests.includes(username)
-      console.log(`Friend request status update for ${username}:`, {
-        userFriendRequests: user.friendRequests,
-        newRequestSent,
-        currentRequestSent: requestSent
-      })
-      setRequestSent(newRequestSent)
-      
-      // Update viewUser's friends list to reflect current state
-      setViewUser(prev => ({
-        ...prev,
-        friends: prev.friends // Keep the viewed user's friends list as is
-      }))
+    const handleWebSocketMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data)
+        
+        if (data.type === 'friend_request_updated' && data.data) {
+          const updatedUserData = data.data
+          
+          // If the updated user is the viewed user, update the view
+          if (updatedUserData.username === viewUser.username) {
+            setViewUser(prev => ({
+              ...prev,
+              friends: updatedUserData.friends || [],
+              friendRequests: updatedUserData.friendRequests || []
+            }))
+            
+            // Check if the current user is now in the viewed user's friends list
+            const areNowFriends = updatedUserData.friends && updatedUserData.friends.includes(user.username)
+            if (areNowFriends && hasSentRequestToViewUser) {
+              // Friend request was accepted
+              setHasSentRequestToViewUser(false)
+              setRequestSent(false)
+            }
+          }
+          
+          // If the updated user is the current user, update the current user's data
+          if (updatedUserData.username === user.username) {
+            // Update the current user's friendRequests list
+            const updatedFriendRequests = updatedUserData.friendRequests || []
+            
+            // Check if the viewed user is no longer in the current user's friendRequests
+            if (!updatedFriendRequests.includes(viewUser.username) && hasSentRequestToViewUser) {
+              // The viewed user either accepted or rejected the request
+              setHasSentRequestToViewUser(false)
+            }
+          }
+        }
+        
+        if (data.type === 'user_updated' && data.data) {
+          const updatedUserData = data.data
+          
+          // Update current user's data if it's the current user
+          if (updatedUserData.username === user.username) {
+            // Update the current user's friendRequests list
+            const updatedFriendRequests = updatedUserData.friendRequests || []
+            
+            // Check if the viewed user is no longer in the current user's friendRequests
+            if (!updatedFriendRequests.includes(viewUser.username) && hasSentRequestToViewUser) {
+              // The viewed user either accepted or rejected the request
+              setHasSentRequestToViewUser(false)
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing websocket message:', error)
+      }
     }
-  }, [user.friendRequests, user.friends, username, isLoading])
+
+    if (newSocket) {
+      newSocket.addEventListener('message', handleWebSocketMessage)
+    }
+
+    return () => {
+      if (newSocket) {
+        newSocket.removeEventListener('message', handleWebSocketMessage)
+      }
+    }
+  }, [user.username, viewUser.username, hasSentRequestToViewUser])
 
   if (isLoading) {
     return (
@@ -321,9 +377,10 @@ export const ViewProfile = ({user}: {user: User}) => {
                       userFriends: user.friends,
                       areFriends,
                       requestSent,
+                      hasSentRequestToViewUser,
                       shouldShowBattle: areFriends,
-                      shouldShowSendRequest: !requestSent && !areFriends,
-                      shouldShowCancel: requestSent && !areFriends
+                      shouldShowSendRequest: !requestSent && !areFriends && !hasSentRequestToViewUser,
+                      shouldShowCancel: hasSentRequestToViewUser && !areFriends
                     });
                     
                     if (areFriends) {
@@ -333,6 +390,16 @@ export const ViewProfile = ({user}: {user: User}) => {
                       onClick={handleBattle}
                     >
                       Battle
+                    </Button>
+                      );
+                    } else if (hasSentRequestToViewUser) {
+                      return (
+                    <Button 
+                      onClick={handleCancelRequest}
+                      variant="outline"
+                      className="w-full sm:w-auto border-orange-500 text-orange-500 hover:bg-orange-50 dark:text-orange-500 dark:border-orange-500"
+                    >
+                      Cancel Request
                     </Button>
                       );
                     } else if (!requestSent) {

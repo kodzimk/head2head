@@ -4,37 +4,69 @@ import json
 import redis
 import os
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from typing import Dict, List
-from models import BattleModel, UserDataCreate
-from sqlalchemy import select
-from init import engine, SessionLocal, redis_username, redis_email
-from battle.router import battle_result, battle_draw_result, update_user_rankings
-import math
-from db.router import get_user_by_username, update_user_data
-from datetime import datetime
 from websocket import manager
 import traceback
+from questions import get_questions
 
-logger = logging.getLogger("battle_ws")
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Redis client for checking cached questions
+# Redis client for caching questions
 redis_client = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+
+# Global variables for battle management
+battle_connections = {}  # battle_id -> list of websockets
+battle_questions = {}    # battle_id -> list of questions
+battle_states = {}       # battle_id -> battle state
+battle_scores = {}       # battle_id -> {player: score}
+battle_answers = {}      # battle_id -> {player: [answers]}
+battle_current_question = {}  # battle_id -> current question index
+battle_timers = {}       # battle_id -> timer info
+
+# Battle states
+WAITING = "waiting"
+STARTING = "starting"
+IN_PROGRESS = "in_progress"
+FINISHED = "finished"
+
+# Question time limit (5 seconds)
+QUESTION_TIME_LIMIT = 5
 
 async def get_cached_questions(battle_id: str):
     """Get cached questions for a battle"""
     try:
         questions_key = f"battle_questions:{battle_id}"
-        logger.info(f"[BATTLE_WS] Fetching questions with key {questions_key}")
         cached_questions = redis_client.get(questions_key)
         if cached_questions:
-            logger.info(f"[BATTLE_WS] Found cached questions for {battle_id}")
             return json.loads(cached_questions)
-        logger.info(f"[BATTLE_WS] No cached questions found for {battle_id}")
         return None
     except Exception as e:
         logger.error(f"[BATTLE_WS] Error getting cached questions for battle {battle_id}: {str(e)}")
+        return None
+
+async def get_battle_questions(battle_id: str, sport: str, level: str):
+    """Get questions for a battle, either from cache or generate new ones"""
+    try:
+        # Try to get from cache first
+        questions = await get_cached_questions(battle_id)
+        
+        if not questions:
+            # Generate new questions using manual questions
+            questions = get_questions(sport, level, 6)
+            
+            # Cache the questions
+            try:
+                questions_key = f"battle_questions:{battle_id}"
+                redis_client.setex(questions_key, 3600, json.dumps(questions))
+            except Exception as e:
+                logger.error(f"[BATTLE_WS] Error caching questions for battle {battle_id}: {str(e)}")
+        
+        return questions
+    except Exception as e:
+        logger.error(f"[BATTLE_WS] Error getting questions for battle {battle_id}: {str(e)}")
         return None
 
 # Global variables for battle management
@@ -42,7 +74,6 @@ battle_connections = {}  # battle_id -> list of websockets
 battle_questions = {}    # battle_id -> list of questions
 battle_scores = {}       # battle_id -> {username: score}
 battle_progress = {}     # battle_id -> {username: current_question_index}
-battle_answers = {}      # battle_id -> {username: {question_index: answer}}
 battle_question_start_time = {}  # battle_id -> start time
 processed_battles = set()  # Set of battle IDs that have already been processed
 
@@ -202,10 +233,10 @@ async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
                 
                 # Initialize user's answer dict if it doesn't exist
                 if user not in battle_answers[battle_id]:
-                    battle_answers[battle_id][user] = {}
+                    battle_answers[battle_id][user] = []
                 
                 # Store the answer
-                battle_answers[battle_id][user][q_index] = answer
+                battle_answers[battle_id][user].append(answer)
                 
                 question = battle_questions[battle_id][q_index]
                 correct = False

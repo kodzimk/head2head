@@ -30,7 +30,7 @@ export default function Component() {
             Join a global community of sports enthusiasts and test your knowledge in real-time trivia battles.
           </p>
           <Button 
-            className="mt-8 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-3 text-lg font-semibold rounded-lg transition-all duration-300" 
+            className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold rounded-lg transition-all duration-300" 
             onClick={() => navigate('/sign-up')}
           >
             <Play className="w-5 h-5 mr-2" />
@@ -93,13 +93,6 @@ export default function Component() {
                 video: "/placeholder-quick-battle.mp4",
               },
               {
-                name: "Team Battles",
-                icon: <Users className="w-16 h-16 text-white" />,
-                desc: "Team up with friends and compete against other squads in group battles",
-                color: "orange",
-                video: "/placeholder-team-battle.mp4",
-              },
-              {
                 name: "Leaderboard",
                 icon: <Crown className="w-16 h-16 text-white" />,
                 desc: "Compete with other players for the top spot on the leaderboard",
@@ -117,13 +110,6 @@ export default function Component() {
                 name: "Training",
                 icon: <Crown className="w-16 h-16 text-white" />,
                 desc: "Train your skills with our training mode",
-                color: "yellow",
-                video: "/placeholder-tournament.mp4",
-              },
-              {
-                name: "Daily selections",
-                icon: <Crown className="w-16 h-16 text-white" />,
-                desc: "Daily selections of questions between goats from your favorite sports",
                 color: "yellow",
                 video: "/placeholder-tournament.mp4",
               },

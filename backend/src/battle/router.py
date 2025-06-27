@@ -8,6 +8,7 @@ import uuid
 from init import redis_username,redis_email
 from tasks import queue_quiz_generation_task
 from db.router import update_user_data,get_user_by_username,repair_user_battles
+from questions import get_questions
 
 import json
 import math
@@ -33,12 +34,11 @@ async def create_battle(first_opponent: str, sport: str = Query(...), level: str
         
         logger.info(f"Battle {battle_id} created successfully")
         
-        # Trigger AI quiz generation as background task (non-blocking)
+        # Trigger manual quiz generation as background task (non-blocking)
         try:
             task = queue_quiz_generation_task(battle_id, sport, level, 6)
-            logger.info(f"Started AI quiz generation task {task.id} for battle {battle_id} (sport={sport}, level={level})")
         except Exception as e:
-            logger.error(f"Failed to start AI quiz generation for battle {battle_id}: {str(e)}")
+            logger.error(f"Failed to start manual quiz generation for battle {battle_id}: {str(e)}")
             # Don't fail the battle creation if quiz generation fails
             # The battle can still proceed with fallback questions
         
@@ -298,8 +298,8 @@ async def battle_result(battle_id: str, winner: str, loser: str, result: str):
     return True
 
 @battle_router.post("/battle_draw_result", tags=["battle"])
-async def battle_draw_result(battle_id: str, score1: int, score2: int):
-    logger.info(f"[BATTLE_ROUTER] battle_draw_result called for battle_id={battle_id}, scores={score1}-{score2}")
+async def battle_draw_result(battle_id: str, first_opponent: str, second_opponent: str, score1: int, score2: int):
+    logger.info(f"[BATTLE_ROUTER] battle_draw_result called for battle_id={battle_id}, {first_opponent}({score1})-{second_opponent}({score2})")
     try:
         from models import BattleModel
         from init import SessionLocal
@@ -308,8 +308,8 @@ async def battle_draw_result(battle_id: str, score1: int, score2: int):
                 id=battle_id,
                 sport=None,
                 level=None,
-                first_opponent=None,
-                second_opponent=None,
+                first_opponent=first_opponent,
+                second_opponent=second_opponent,
                 first_opponent_score=score1,
                 second_opponent_score=score2
             )
@@ -320,30 +320,42 @@ async def battle_draw_result(battle_id: str, score1: int, score2: int):
     except Exception as e:
         logger.error(f"[BATTLE_ROUTER] Error saving draw battle: {str(e)}\n{traceback.format_exc()}")
         return {"success": False, "error": str(e)}
+    
     # Update user stats for both users
     from db.router import update_user_statistics, get_user_by_username
+    import math
     try:
-        # Assume you have a way to get both usernames for the draw
-        # usernames = ...
+        usernames = [first_opponent, second_opponent]
         for username in usernames:
             user = await get_user_by_username(username)
+            if not user:
+                logger.error(f"[BATTLE_ROUTER] User {username} not found for draw update")
+                continue
+                
             new_total_battle = user['totalBattle'] + 1
-            new_win_battle = user['winBattle']
-            new_streak = 0
+            new_win_battle = user['winBattle']  # No win for draw
+            new_streak = 0  # Draw breaks streak
             new_win_rate = math.floor((new_win_battle / new_total_battle) * 100) if new_total_battle > 0 else 0
-            if battle_id not in user['battles']:
-                user['battles'].append(battle_id)
+            
+            # Update battles list
+            battles_list = user.get('battles', [])
+            if battle_id not in battles_list:
+                battles_list.append(battle_id)
+            
             success = await update_user_statistics(
                 username=username,
                 total_battle=new_total_battle,
                 win_battle=new_win_battle,
                 streak=new_streak,
                 win_rate=new_win_rate,
-                battles_list=user['battles']
+                battles_list=battles_list
             )
             if not success:
                 logger.error(f"[BATTLE_ROUTER] Failed to update user {username} for draw")
                 return {"success": False, "error": f"Failed to update user {username} for draw"}
+            else:
+                logger.info(f"[BATTLE_ROUTER] Successfully updated user {username} for draw: totalBattle={new_total_battle}, winBattle={new_win_battle}, streak={new_streak}, winRate={new_win_rate}")
+                
         logger.info(f"[BATTLE_ROUTER] User stats updated for both users (draw).")
     except Exception as e:
         logger.error(f"[BATTLE_ROUTER] Error updating user stats for draw: {str(e)}\n{traceback.format_exc()}")
@@ -596,7 +608,7 @@ async def recalculate_rankings():
 @battle_router.get("/quiz-status/{battle_id}")
 async def get_quiz_generation_status(battle_id: str):
     """
-    Check the status of AI quiz generation for a battle
+    Check the status of manual quiz generation for a battle
     """
     try:
         # Check if questions are already generated and cached
@@ -630,7 +642,7 @@ async def get_quiz_generation_status(battle_id: str):
 @battle_router.get("/quiz/{battle_id}")
 async def get_battle_quiz(battle_id: str):
     """
-    Get the generated quiz questions for a battle
+    Get the generated manual quiz questions for a battle
     """
     try:
         import redis

@@ -305,11 +305,9 @@ export default function BattlePage() {
                       <SelectItem value="tennis">Tennis</SelectItem>
                       <SelectItem value="cricket">Cricket</SelectItem>
                       <SelectItem value="baseball">Baseball</SelectItem>
-                      <SelectItem value="hockey">Hockey</SelectItem>
                       <SelectItem value="volleyball">Volleyball</SelectItem>
-                      <SelectItem value="rugby">Rugby</SelectItem>
-                      <SelectItem value="golf">Golf</SelectItem>
                       <SelectItem value="boxing">Boxing</SelectItem>
+                      <SelectItem value="mma">MMA</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

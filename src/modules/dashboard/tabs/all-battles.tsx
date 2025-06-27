@@ -297,7 +297,7 @@ export default function AllBattles() {
                         {battle.first_opponent} vs {battle.second_opponent}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {battle.sport} • {battle.level} • {formatDate(battle.created_at)}
+                        {battle.sport} • {battle.level}
                       </p>
                     </div>
                   </div>

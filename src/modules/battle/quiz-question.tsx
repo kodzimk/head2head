@@ -28,12 +28,73 @@ export default function QuizQuestionPage() {
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
   const [showNextQuestion, setShowNextQuestion] = useState(false);
   const [nextQuestionCountdown, setNextQuestionCountdown] = useState(3);
+  const [motivationalMessage, setMotivationalMessage] = useState('');
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
   const navigate = useNavigate();
   const wsRef = useRef<BattleWebSocket | null>(null);
   const questionsRef = useRef<any[]>([]); // Use ref to avoid stale closure
   const currentIndexRef = useRef<number>(0); // Track current index in ref
+
+  // Motivational messages array
+  const motivationalMessages = {
+    winning: [
+      "You're cooking! 🔥",
+      "You're on fire! 🔥",
+      "You're unstoppable! ⚡",
+      "Keep the momentum going! ⚡",
+      "You've got this! 🎯",
+      "Don't let up! 🚀",
+      "Keep pushing! 💯",
+      "Show them what you've got! 🏆",
+      "You're dominating! 👑",
+      "Stay in the zone! 🎯"
+    ],
+    losing: [
+      "Hurry up, you can comeback! 💪",
+      "Don't give up! 💪",
+      "You can turn this around! 🔄",
+      "Stay focused! 🧠",
+      "Keep fighting! ⚔️",
+      "You've got this! 🎯",
+      "Comeback time! 🚀",
+      "Show your strength! 💪",
+      "Never surrender! 🛡️",
+      "Rise to the challenge! ⬆️"
+    ],
+    tied: [
+      "It's anyone's game! 🎯",
+      "Stay focused! 🧠",
+      "You've got this! 🎯",
+      "Keep pushing! 💯",
+      "Don't let up! 🚀",
+      "Show them what you've got! 🏆",
+      "Stay in the zone! 🎯",
+      "Keep the momentum going! ⚡",
+      "You're doing great! 👍",
+      "Stay strong! 💪"
+    ]
+  };
+
+  // Get random motivational message based on score
+  const getRandomMotivationalMessage = () => {
+    const userScore = firstOpponentScore;
+    const opponentScore = secondOpponentScore;
+    
+    if (userScore > opponentScore) {
+      // User is winning
+      const messages = motivationalMessages.winning;
+      return messages[Math.floor(Math.random() * messages.length)];
+    } else if (userScore < opponentScore) {
+      // User is losing
+      const messages = motivationalMessages.losing;
+      return messages[Math.floor(Math.random() * messages.length)];
+    } else {
+      // Scores are tied
+      const messages = motivationalMessages.tied;
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+  };
 
   // Setup per-battle WebSocket
   useEffect(() => {
@@ -58,8 +119,6 @@ export default function QuizQuestionPage() {
     
     // Add connection status handling
     const handleMessage = (data: any) => {
-      console.log('[BATTLE_WS] Received message:', data);
-      
       if (data.type === 'error') {
         console.error('[BATTLE_WS] Error from server:', data.message);
         alert(`Battle error: ${data.message}`);
@@ -67,33 +126,24 @@ export default function QuizQuestionPage() {
       }
       
       if (data.type === 'quiz_ready') {
-        console.log(`[Quiz] Quiz ready with ${data.questions?.length || 0} questions:`, data.questions);
         if (!data.questions || data.questions.length === 0) {
           console.error('[Quiz] No questions received from server!');
           alert('No questions received from server. Please try again.');
           return;
         }
-        console.log('[Quiz] Setting questions state with:', data.questions);
         setQuestions(data.questions);
         questionsRef.current = data.questions; // Store in ref
-        console.log('[Quiz] Setting currentIndex to 0');
         setCurrentIndex(0);
         currentIndexRef.current = 0; // Set ref immediately
-        console.log('[Quiz] Setting currentQuestion to first question');
         setCurrentQuestion(data.questions[0]);
         setSelected(null);
         setShowNextQuestion(false);
         setNextQuestionCountdown(3);
+        setMotivationalMessage(getRandomMotivationalMessage());
         setTimeLeft(QUESTION_TIME_LIMIT);
-        console.log('[Quiz] Quiz ready, first question:', data.questions[0]);
-        console.log('[Quiz] Initial currentIndex set to 0');
       }
       
       if (data.type === 'answer_submitted') {
-        console.log('[Quiz] Answer submitted:', data);
-        console.log('[Quiz] This user answered:', data.user === user.username);
-        console.log('[Quiz] Current state - currentIndex:', currentIndex, 'currentIndexRef.current:', currentIndexRef.current);
-        
         // Update scores immediately
         if (data.scores) {
           // Find the opponent's username and score
@@ -101,29 +151,26 @@ export default function QuizQuestionPage() {
           const userScore = data.scores[user.username] || 0;
           const opponentScore = opponentUsername ? (data.scores[opponentUsername] || 0) : 0;
           
-          console.log(`[Quiz] Score update - User: ${user.username} (${userScore}), Opponent: ${opponentUsername} (${opponentScore})`);
-          
           setFirstOpponentScore(userScore);
           setSecondOpponentScore(opponentScore);
         }
         
         // Start countdown immediately if this user answered
         if (data.user === user.username && data.start_countdown) {
-          console.log('[Quiz] Starting countdown for this user');
           setShowNextQuestion(true);
           setNextQuestionCountdown(3);
+          setMotivationalMessage(getRandomMotivationalMessage());
         }
       }
       
       if (data.type === 'next_question') {
-        console.log('[Quiz] Next question:', data);
-        
         // Update to the new question
         setCurrentIndex(data.question_index);
         setCurrentQuestion(data.question);
         setSelected(null);
         setShowNextQuestion(false);
         setNextQuestionCountdown(0);
+        setMotivationalMessage('');
         setTimeLeft(QUESTION_TIME_LIMIT);
         
         // Update scores
@@ -133,30 +180,23 @@ export default function QuizQuestionPage() {
           const userScore = data.scores[user.username] || 0;
           const opponentScore = opponentUsername ? (data.scores[opponentUsername] || 0) : 0;
           
-          console.log(`[Quiz] Next question score update - User: ${user.username} (${userScore}), Opponent: ${opponentUsername} (${opponentScore})`);
-          
           setFirstOpponentScore(userScore);
           setSecondOpponentScore(opponentScore);
         }
       }
       
       if (data.type === 'waiting_for_opponent') {
-        console.log('[Quiz] Waiting for opponent:', data);
         setWaitingForOpponent(true);
         setShowNextQuestion(false);
       }
       
       if (data.type === 'battle_finished') {
-        console.log('[Quiz] Battle finished:', data);
-        
         // Update final scores
         if (data.final_scores) {
           // Find the opponent's username and score
           const opponentUsername = Object.keys(data.final_scores).find(name => name !== user.username);
           const userScore = data.final_scores[user.username] || 0;
           const opponentScore = opponentUsername ? (data.final_scores[opponentUsername] || 0) : 0;
-          
-          console.log(`[Quiz] Final score update - User: ${user.username} (${userScore}), Opponent: ${opponentUsername} (${opponentScore})`);
           
           setFirstOpponentScore(userScore);
           setSecondOpponentScore(opponentScore);
@@ -183,7 +223,6 @@ export default function QuizQuestionPage() {
         // Update user stats if provided in the event
         if (data.updated_users && data.updated_users[user.username]) {
           const updatedStats = data.updated_users[user.username];
-          console.log('[Quiz] Updating user stats:', updatedStats);
           
           // Update the global user store with new stats
           user.totalBattles = updatedStats.totalBattle;
@@ -201,21 +240,17 @@ export default function QuizQuestionPage() {
         }
         
         // Trigger a global event to refresh battle data in other components
-        console.log('[Quiz] Dispatching battleFinished event with data:', { 
-          battleId: id, 
-          finalScores: data.final_scores,
-          updated_users: data.updated_users,
-          battle: data.battle
-        });
-        window.dispatchEvent(new CustomEvent('battleFinished', { 
-          detail: { 
-            battleId: id, 
+        const battleFinishedEvent = new CustomEvent('battleFinished', {
+          detail: {
+            battleId: id,
             finalScores: data.final_scores,
-            updated_users: data.updated_users,
-            battle: data.battle
-          } 
-        }));
-        console.log('[Quiz] battleFinished event dispatched successfully');
+            winner: data.winner,
+            loser: data.loser,
+            result: data.result,
+            updatedUsers: data.updated_users
+          }
+        });
+        window.dispatchEvent(battleFinishedEvent);
         
         // Navigate to result page
         navigate(`/battle/${id}/result`);
@@ -233,12 +268,12 @@ export default function QuizQuestionPage() {
 
   // Monitor currentIndex changes
   useEffect(() => {
-    console.log(`[Quiz] currentIndex changed to: ${currentIndex}`);
+    // currentIndex changed
   }, [currentIndex]);
 
   // Monitor questions state changes
   useEffect(() => {
-    console.log(`[Quiz] questions state changed: length=${questions.length}`, questions);
+    // questions state changed
   }, [questions]);
 
   // Timer effect - only for auto-submission if no answer selected
@@ -252,10 +287,7 @@ export default function QuizQuestionPage() {
         if (prev <= 1) {
           // Time's up - auto-submit first answer if no answer selected
           if (!selected) {
-            const firstAnswer = currentQuestion.answers?.[0]?.label;
-            if (firstAnswer) {
-              handleAnswerSubmit(firstAnswer);
-            }
+            handleAnswerSubmit('');
           }
           return QUESTION_TIME_LIMIT;
         }
@@ -275,12 +307,14 @@ export default function QuizQuestionPage() {
     const countdownTimer = setInterval(() => {
       setNextQuestionCountdown((prev) => {
         if (prev <= 1) {
-          console.log('[Quiz] Countdown finished, calling advanceToNextQuestion');
           setShowNextQuestion(false);
+          setMotivationalMessage('');
           // Automatically advance to next question
           advanceToNextQuestion();
           return 0;
         }
+        // Change motivational message every second
+        setMotivationalMessage(getRandomMotivationalMessage());
         return prev - 1;
       });
     }, 1000);
@@ -300,56 +334,48 @@ export default function QuizQuestionPage() {
 
   const handleAnswerSubmit = (answer: string) => {
     if (!wsRef.current || !currentQuestion) {
-      console.error('[Quiz] Cannot submit answer: WebSocket not connected or no current question');
       return;
     }
 
     const currentQuestionIndex = currentIndexRef.current;
-    console.log(`[Quiz] Submitting answer: ${answer} for question ${currentQuestionIndex}`);
-    console.log(`[Quiz] Current question index: ${currentQuestionIndex}, questions length: ${questionsRef.current.length}`);
-    console.log(`[Quiz] currentIndex state: ${currentIndex}, currentIndexRef.current: ${currentIndexRef.current}`);
-    console.log(`[Quiz] Current question:`, currentQuestion);
     
-    // Send answer to backend
+    if (currentQuestionIndex >= questionsRef.current.length) {
+      return;
+    }
+
+    // Send answer to server
     wsRef.current.send({
       type: 'submit_answer',
+      battle_id: id,
       username: user.username,
       answer: answer,
       question_index: currentQuestionIndex
     });
 
-    // Don't clear selected here - keep it highlighted
+    // Mark as answered to prevent double submission
+    setSelected(answer);
   };
 
   const advanceToNextQuestion = () => {
-    console.log(`[Quiz] Advancing to next question from index ${currentIndex}`);
-    console.log(`[Quiz] Before advance - currentIndex: ${currentIndex}, currentIndexRef.current: ${currentIndexRef.current}`);
-    
     if (questionsRef.current.length === 0) {
-      console.error('[Quiz] Questions ref is empty! Cannot advance.');
       return;
     }
     
     const nextIndex = currentIndex + 1;
-    console.log(`[Quiz] Next index: ${nextIndex}, total questions: ${questionsRef.current.length}`);
     
     if (nextIndex < questionsRef.current.length) {
       // Move to next question
-      console.log(`[Quiz] Moving to question ${nextIndex}`);
       setCurrentIndex(nextIndex);
       currentIndexRef.current = nextIndex; // Update ref immediately
       setCurrentQuestion(questionsRef.current[nextIndex]);
       setSelected(null);
       setShowNextQuestion(false);
       setNextQuestionCountdown(3);
+      setMotivationalMessage(getRandomMotivationalMessage());
       setTimeLeft(QUESTION_TIME_LIMIT);
       setWaitingForOpponent(false); // Reset waiting state
-      console.log('[Quiz] Advanced to next question successfully');
-      console.log(`[Quiz] After advance - currentIndex: ${nextIndex}, currentIndexRef.current: ${currentIndexRef.current}`);
-      console.log(`[Quiz] New question:`, questionsRef.current[nextIndex]);
     } else {
       // Last question reached - don't set waiting state here, only when actually answering
-      console.log('[Quiz] Last question reached - user can still answer');
     }
   };
 
@@ -410,8 +436,8 @@ export default function QuizQuestionPage() {
             </div>
             <div className="text-center">
               <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full px-3 py-1">
-                {showNextQuestion ? `Next question in ${nextQuestionCountdown} seconds...` :
-                 `Question ${currentIndex + 1} of ${questions.length}`}
+                {showNextQuestion ? motivationalMessage :
+                 motivationalMessage}
               </div>
             </div>
           </div>
@@ -441,10 +467,10 @@ export default function QuizQuestionPage() {
                 )}
               </div>
             ) : showNextQuestion ? (
-              // Show countdown to next question
+              // Show motivational message instead of countdown
               <div className="text-center py-6">
-                <div className="text-lg font-semibold">
-                  Next question in {nextQuestionCountdown} seconds...
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Next question coming up...
                 </div>
               </div>
             ) : waitingForOpponent ? (

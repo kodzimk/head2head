@@ -20,6 +20,7 @@ import NotificationsPage from '../modules/notifications/notifications'
 import AllBattlesPage from '../modules/dashboard/all-battles-page'
 import { initialUser,type User } from '../shared/interface/user'
 import type { Battle } from '../shared/interface/user'
+import AdminPanel from '../modules/dashboard/admin-panel'
 
 import {sendMessage } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
@@ -238,6 +239,28 @@ export default function App() {
            setUser(updatedUser)
            console.log("User state updated with friend request changes");
          }
+         else if (data.type === 'stats_reset') {
+           console.log("Statistics reset notification received:", data.data);
+           // Update user state with reset statistics
+           const updatedUser = {
+             email: data.data.email,
+             username: data.data.username,
+             wins: data.data.winBattle,
+             favoritesSport: data.data.favourite,
+             rank: data.data.ranking,
+             winRate: data.data.winRate,
+             totalBattles: data.data.totalBattle,
+             streak: data.data.streak,
+             password: data.data.password,
+             friends: data.data.friends,
+             friendRequests: data.data.friendRequests,
+             avatar: data.data.avatar,
+             battles: data.data.battles,
+             invitations: data.data.invitations
+           }
+           setUser(updatedUser)
+           console.log("User state updated with reset statistics");
+         }
          // Only keep non-battle, non-creation logic below
          else if(data.type === 'waiting_battles'){
            console.log("Received waiting battles:", data.data); // Debug logging
@@ -357,6 +380,7 @@ export default function App() {
               <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
               <Route path="/battle/:id/result" element={<BattleResultPage user={user} />} />
               <Route path="/:username/all-battles" element={<AllBattlesPage />} />
+              <Route path="/admin-panel" element={<AdminPanel />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>

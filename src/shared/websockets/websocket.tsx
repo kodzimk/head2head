@@ -191,10 +191,12 @@ export const battleResult = (battle_id: string, winner: string, loser: string, r
   }))
 }
 
-export const battleDrawResult = (battle_id: string, first_score?: number, second_score?: number) => {
+export const battleDrawResult = (battle_id: string, first_opponent: string, second_opponent: string, first_score?: number, second_score?: number) => {
   newSocket?.send(JSON.stringify({
     type: "battle_draw_result",
     battle_id: battle_id,
+    first_opponent: first_opponent,
+    second_opponent: second_opponent,
     first_score: first_score,
     second_score: second_score
   }))

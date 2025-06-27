@@ -46,7 +46,6 @@ export default function Battles({
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [battles, setBattles] = useState<RecentBattle[]>([]);
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   const fetchBattles = async () => {
     if (!localStorage.getItem("username")) return;
@@ -102,7 +101,6 @@ export default function Battles({
       });
       
       setBattles(mapped);
-      setLastUpdate(new Date());
       console.log('[Battles Tab] Successfully fetched battles:', mapped.length);
     } catch (error) {
       console.error("[Battles Tab] Error fetching battles:", error);
@@ -166,15 +164,6 @@ export default function Battles({
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="h-9 px-4"
-                    onClick={fetchBattles}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Refreshing...' : 'Refresh'}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
                     className="w-full sm:w-auto h-9 px-4"
                     onClick={() => navigate(`/${user.username}/all-battles`)}
                   >
@@ -212,7 +201,7 @@ export default function Battles({
                             {battle.player1} vs {battle.player2}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {battle.sport} • {lastUpdate.toLocaleTimeString()}
+                            {battle.sport}
                           </p>
                         </div>
                       </div>
