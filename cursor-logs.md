@@ -1372,9 +1372,9 @@ This document tracks all major changes and implementations throughout the develo
 **Changes Made**:
 
 1. **Frontend Configuration Update** (`src/shared/interface/gloabL_var.tsx`):
-   - **API Base URL**: Changed from `http://localhost:8000` to `https://head2head-backend.onrender.com`
-   - **WebSocket Base URL**: Changed from `ws://localhost:8000` to `wss://head2head-backend.onrender.com`
-   - **Impact**: All API calls and WebSocket connections now use production backend
+   - **API Base URL**: Changed from `http://localhost:8000` to `https://api.head2head.dev`
+   - **WebSocket Base URL**: Changed from `ws://localhost:8000` to `wss://api.head2head.dev`
+   - **Impact**: All API calls and WebSocket connections now use production backend with custom domain
 
 2. **Backend CORS Configuration**:
    - **File**: `backend/src/main.py`
@@ -1385,14 +1385,14 @@ This document tracks all major changes and implementations throughout the develo
 
 **Technical Implementation**:
 - **HTTPS/WSS**: Production URLs use secure protocols (https/wss)
-- **Domain**: Using Render.com hosting service for backend
-- **CORS**: Backend already configured to accept requests from production frontend domains
+- **Domain**: Using custom domain `api.head2head.dev` for backend
+- **CORS**: Backend configured to accept requests from production frontend domains
 - **WebSocket**: Automatic protocol conversion handled in `battle-websocket.ts`
 
 **Benefits**:
-- **Production Ready**: Application now works with deployed backend
+- **Production Ready**: Application now works with deployed backend on custom domain
 - **Secure Communication**: All requests use HTTPS/WSS protocols
-- **Scalable**: Using cloud hosting service for backend
+- **Professional Domain**: Using custom domain for better branding and reliability
 - **Development Friendly**: Localhost still available for development
 
 ### Reset Statistics System Implementation (Latest)
