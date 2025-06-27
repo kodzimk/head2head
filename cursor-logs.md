@@ -64,6 +64,201 @@
 
 ---
 
+## Enhanced Battle Completion Detection System - 2024-12-19
+
+### Task Overview
+- **Objective**: Implement automatic detection when both users have finished their questions and trigger battle result handling
+- **Goal**: Improve battle completion detection with better waiting detection and user finished tracking
+- **Changes**: Enhanced backend battle completion logic and frontend waiting feedback
+
+### Changes Made
+
+#### 1. Backend Battle Completion Detection (`backend/src/battle_ws.py`)
+- **New User Finished Tracking**:
+  - Added `user_finished_status` dictionary to track which users have finished all questions
+  - Added `user_finished_timestamps` dictionary to track when users finished for waiting detection
+  - Enhanced `schedule_next_question` to mark users as finished when they reach the last question
+
+- **Improved Completion Detection**:
+  - Enhanced `validate_battle_completion` to use new user finished tracking system
+  - Added fallback to progress checking if finished status not available
+  - Improved waiting time detection using actual finish timestamps
+  - Added more detailed logging for completion status
+
+- **Enhanced Waiting Detection**:
+  - Added waiting time threshold of 30 seconds for users who finished first
+  - Enhanced `delayed_completion_check` to check waiting times and force completion
+  - Improved periodic completion check frequency (15 seconds instead of 30)
+  - Added better waiting time calculation and logging
+
+- **Improved Battle Result Triggering**:
+  - Enhanced `trigger_battle_completion` with better validation
+  - Added immediate completion when both users finish
+  - Improved error handling and retry logic
+  - Added comprehensive cleanup of new tracking variables
+
+#### 2. Frontend Waiting Feedback (`src/modules/battle/quiz-question.tsx`)
+- **Enhanced Waiting Message Handling**:
+  - Improved handling of `waiting_for_opponent` messages
+  - Added better score updates during waiting period
+  - Enhanced waiting message display with opponent name
+  - Increased timeout for waiting feedback (10 seconds)
+
+- **Better User State Management**:
+  - Set `userFinishedAllQuestions` to true when waiting for opponent
+  - Improved score validation and display during waiting
+  - Enhanced waiting state management and cleanup
+
+### Key Features
+
+#### Automatic Detection
+- **User Finished Tracking**: Tracks when each user completes all questions
+- **Immediate Completion**: Triggers battle result when both users finish
+- **Waiting Detection**: Monitors how long users wait for opponents
+- **Timeout Protection**: Forces completion after 30 seconds of waiting
+
+#### Enhanced Feedback
+- **Real-time Status**: Shows which users have finished
+- **Waiting Messages**: Displays specific waiting messages with opponent names
+- **Score Updates**: Updates scores in real-time during waiting period
+- **Timeout Feedback**: Shows appropriate messages for long waits
+
+#### Robust Completion Logic
+- **Multiple Detection Methods**: Uses both finished status and progress tracking
+- **Periodic Checks**: Checks completion every 15 seconds
+- **Delayed Checks**: Performs additional checks after 5 seconds
+- **Timeout Protection**: Forces completion after maximum battle time
+
+### Technical Implementation
+
+#### Backend Flow:
+1. **User Finishes**: When user reaches last question, mark as finished and record timestamp
+2. **Completion Check**: Check if both users have finished
+3. **Immediate Trigger**: If both finished, immediately trigger battle completion
+4. **Waiting Detection**: If one user finished, start waiting time monitoring
+5. **Timeout Protection**: Force completion after waiting time threshold
+6. **Periodic Monitoring**: Regular checks every 15 seconds
+
+#### Frontend Flow:
+1. **Waiting Message**: Receive and display waiting for opponent message
+2. **State Update**: Update user state to show finished status
+3. **Score Display**: Show current scores during waiting period
+4. **Timeout Feedback**: Show appropriate messages for extended waits
+
+### Benefits
+- **Faster Completion**: Immediate detection when both users finish
+- **Better User Experience**: Clear feedback about waiting status
+- **Robust Detection**: Multiple methods ensure completion is detected
+- **Timeout Protection**: Prevents battles from getting stuck
+- **Real-time Updates**: Users see current status and scores
+
+---
+
+## Proper Battle Finish Handler with Enhanced Result Handling - 2024-12-19
+
+### Task Overview
+- **Objective**: Enhance battle finish handler with proper result handling without changing core functionality
+- **Goal**: Improve validation, error handling, and result consistency in battle completion
+- **Changes**: Enhanced backend and frontend battle finish processing with better data validation and error handling
+
+### Changes Made
+
+#### 1. Backend Battle Result Handler (`backend/src/battle_ws.py`)
+- **Enhanced Data Validation**:
+  - Added validation for `final_scores` data structure and type
+  - Added numeric validation for scores with fallback to 0
+  - Improved winner/loser determination logic with proper draw handling
+  - Added validation for user statistics data before processing
+
+- **Improved Error Handling**:
+  - Enhanced error handling for database operations with graceful fallbacks
+  - Added validation for user data before statistics updates
+  - Improved battles list validation and type checking
+  - Added comprehensive error logging with detailed context
+
+- **Enhanced Result Processing**:
+  - Added timestamp and processing status to battle finished messages
+  - Improved websocket message sending with connection tracking
+  - Enhanced cleanup process with better error handling
+  - Added detailed logging for all processing steps
+
+#### 2. Frontend Battle Finish Handler (`src/modules/battle/quiz-question.tsx`)
+- **Enhanced Data Validation**:
+  - Added validation for battle finished message data structure
+  - Added numeric validation for scores with type conversion
+  - Improved winner/loser determination with proper validation
+  - Added validation for updated user statistics
+
+- **Improved Error Handling**:
+  - Added try-catch blocks for localStorage operations
+  - Enhanced error handling for global event dispatching
+  - Added validation for user stats updates
+  - Improved error logging and user feedback
+
+- **Enhanced Result Processing**:
+  - Added enhanced data to battle finished events
+  - Improved user stats validation and type conversion
+  - Added processing status and timestamp to events
+  - Enhanced logging for debugging and monitoring
+
+#### 3. Result Page Enhancement (`src/modules/battle/result.tsx`)
+- **Enhanced User Data Validation**:
+  - Added comprehensive validation for API response data
+  - Added type checking and conversion for all user fields
+  - Improved error handling for localStorage operations
+  - Added fallback values for missing or invalid data
+
+- **Improved Error Handling**:
+  - Enhanced error handling for API calls
+  - Added try-catch blocks for localStorage operations
+  - Improved error logging and user feedback
+  - Added graceful fallbacks for failed operations
+
+### Key Improvements
+
+#### Data Validation
+- **Score Validation**: Ensures all scores are numeric with proper fallbacks
+- **User Stats Validation**: Validates all user statistics before updates
+- **Message Validation**: Validates battle finished message structure
+- **Type Safety**: Added proper type checking and conversion
+
+#### Error Handling
+- **Graceful Fallbacks**: Continues processing even if some operations fail
+- **Comprehensive Logging**: Detailed error logging for debugging
+- **User Feedback**: Better error messages and status updates
+- **Connection Management**: Improved websocket connection handling
+
+#### Result Consistency
+- **Deterministic Results**: Consistent winner/loser determination
+- **Data Integrity**: Ensures data consistency across all operations
+- **State Management**: Proper state updates and synchronization
+- **Event Propagation**: Enhanced event data for other components
+
+### Technical Implementation
+
+#### Backend Flow:
+1. **Data Validation**: Validate all input data before processing
+2. **Result Calculation**: Determine winner/loser with proper validation
+3. **Database Operations**: Save battle and update user stats with error handling
+4. **Message Broadcasting**: Send enhanced battle finished messages
+5. **Cleanup**: Comprehensive cleanup with error handling
+
+#### Frontend Flow:
+1. **Message Validation**: Validate battle finished message data
+2. **Score Processing**: Process and validate final scores
+3. **Result Determination**: Determine user result with validation
+4. **Stats Update**: Update user statistics with validation
+5. **Event Dispatch**: Dispatch enhanced events to other components
+
+### Benefits
+- **Improved Reliability**: Better error handling prevents crashes
+- **Data Consistency**: Enhanced validation ensures data integrity
+- **Better Debugging**: Comprehensive logging for troubleshooting
+- **User Experience**: Graceful handling of edge cases
+- **Maintainability**: Cleaner code with better error handling
+
+---
+
 ## Battle Completion and Question Progression Fixes - 2024-12-19
 
 ### Task Overview
@@ -371,385 +566,6 @@ QUESTION_COUNT=5  # Optional, default number of questions
   - Updated `await asyncio.sleep(3)` to `await asyncio.sleep(5)`
   - Updated function documentation to reflect 5-second delay
   - Ensures backend and frontend are synchronized
-
-### Technical Implementation
-
-#### Countdown Flow
-1. **Battle Start**: 5-second countdown before battle begins
-2. **Question Transitions**: 5-second countdown between questions
-3. **Synchronization**: Frontend and backend timers are aligned
-
-#### Benefits
-- **Consistency**: All countdown timers now use 5 seconds
-- **User Experience**: Shorter wait times for battle start
-- **Synchronization**: Frontend and backend timers match
-- **Maintainability**: Standardized timing across the application
-
-### Testing Recommendations
-1. **Battle Start**: Verify 5-second countdown works correctly
-2. **Question Transitions**: Test countdown between questions
-3. **Synchronization**: Ensure frontend and backend timers match
-4. **User Experience**: Confirm shorter wait times improve UX
-
----
-
-## Manual Questions Implementation - 2024
-
-### Task Overview
-- **Objective**: Remove AI generation logic and replace with manual questions for testing
-- **Goal**: Simplify the system for testing purposes by using predefined questions
-- **Current State**: Using Google Generative AI (Gemini 2.5 Pro) for question generation
-- **Target State**: Using manual questions stored in the codebase
-
-### Changes Made
-
-#### 1. Replaced AI Generation with Manual Questions
-- **File**: `backend/src/tasks.py`
-  - Removed all Google Generative AI imports and configuration
-  - Replaced `generate_ai_quiz` function with `generate_manual_quiz`
-  - Replaced `generate_questions_with_ai` with `generate_questions_manually`
-  - Added comprehensive `MANUAL_QUESTIONS` dictionary with questions for football, basketball, and tennis
-  - Each sport has easy, medium, and hard difficulty levels
-  - Each difficulty level has 5 questions with 4 answer options each
-  - Maintained battle-specific variations for uniqueness
-
-#### 2. Deleted AI Quiz Module
-- **Deleted Files**:
-  - `backend/src/aiquiz/__init__.py`
-  - `backend/src/aiquiz/init.py`
-  - `backend/src/aiquiz/router.py`
-- **Reason**: Complete removal of AI generation logic
-
-#### 3. Updated All References
-- **File**: `backend/src/battle/router.py` - Updated comments and log messages
-- **File**: `backend/src/websocket.py` - Replaced aiquiz imports with manual question generation
-- **File**: `backend/src/celery_app.py` - Updated task route from `ai_quiz` to `manual_quiz`
-- **File**: `backend/src/main.py` - Removed Google API key check from health endpoint
-- **File**: `backend/requirements.txt` - Removed `google-generativeai` dependency
-- **File**: `backend/docker-compose.yml` - Removed GOOGLE_API_KEY environment variables and updated queue name
-- **File**: `backend/CELERY_README.md` - Updated documentation to reflect manual questions
-- **File**: `README.md` - Removed Google API key requirement and updated architecture description
-
-#### 4. Updated Documentation
-- **File**: `cursor-logs.md` - Added comprehensive documentation of the manual questions implementation
-
-### Manual Questions Structure
-
-#### Football Questions (15 total)
-- **Easy (5 questions)**: Basic facts about World Cup, players, rules, match duration
-- **Medium (5 questions)**: Historical facts, Champions League, rules, recent events
-- **Hard (5 questions)**: Premier League records, statistics, historical details
-
-#### Basketball Questions (15 total)
-- **Easy (5 questions)**: Basic rules, NBA teams, scoring, court dimensions
-- **Medium (5 questions)**: Player records, NBA history, recent championships
-- **Hard (5 questions)**: Career statistics, historical records, rule changes
-
-#### Tennis Questions (15 total)
-- **Easy (5 questions)**: Basic rules, Grand Slams, scoring system, tournaments
-- **Medium (5 questions)**: Player achievements, tournament surfaces, rules
-- **Hard (5 questions)**: Historical records, career statistics, tournament history
-
-### Technical Implementation
-
-#### Question Generation Flow
-1. **Battle Creation**: Battle ID passed to question generation functions
-2. **Manual Generation**: Questions selected from predefined manual questions
-3. **Battle Variations**: Questions modified with battle-specific context and answer shuffling
-4. **Uniqueness**: Multiple variations created per question to ensure uniqueness
-5. **Storage**: Questions cached in Redis with battle-specific keys
-
-#### Uniqueness Features
-- **Battle Context**: Each battle gets unique questions based on battle ID
-- **Answer Shuffling**: Random answer option shuffling for additional uniqueness
-- **Question Variations**: Multiple variations of each base question created
-- **Context Prefixing**: Battle context added to question text for identification
-
-#### Benefits of Manual Questions
-- **Reliability**: No dependency on external AI services
-- **Speed**: Instant question generation without API calls
-- **Consistency**: Predictable question quality and format
-- **Testing**: Easy to test and debug with known questions
-- **Cost**: No API costs or rate limits
-- **Offline**: Works without internet connection
-
-### Testing Recommendations
-1. **Question Quality**: Verify all manual questions are accurate and appropriate
-2. **Difficulty Distribution**: Ensure questions match their difficulty levels
-3. **Battle Uniqueness**: Test that different battles get different question variations
-4. **Answer Shuffling**: Verify answer options are properly shuffled
-5. **Fallback System**: Test behavior when sport/level combinations don't exist
-
----
-
-## AI Model Refactoring Task - 2024
-
-### Task Overview
-- **Objective**: Refactor AI model to use Gemini 2.5 Pro (best and fastest model)
-- **Goal**: Ensure every battle has different questions
-- **Current State**: Using gemini-2.5-flash model
-- **Target State**: Using gemini-2.5-pro model with enhanced uniqueness
-
-### Current Implementation Analysis
-- **Model**: Currently using `gemini-2.5-flash` in both `tasks.py` and `aiquiz/init.py`
-- **Question Storage**: Questions stored in Redis with key `battle_questions:{battle_id}`
-- **Uniqueness**: Basic hash-based tracking in `aiquiz/router.py` with `used_questions` dict
-- **Fallback**: Extensive fallback question system in `aiquiz/router.py`
-
-### Files Modified
-1. ✅ `backend/src/tasks.py` - Updated model from `gemini-2.5-flash` to `gemini-2.5-pro`
-2. ✅ `backend/src/aiquiz/init.py` - Updated model configuration and enhanced system instruction
-3. ✅ `backend/src/aiquiz/router.py` - Enhanced uniqueness mechanism with battle-specific generation
-4. ✅ `cursor-logs.md` - Track changes
-
-### Completed Changes
-
-#### 1. Model Upgrade to Gemini 2.5 Pro
-- **File**: `backend/src/tasks.py`
-  - Changed model from `gemini-2.5-flash` to `gemini-2.5-pro`
-  - Enhanced prompt with battle-specific context and timestamp
-  - Added uniqueness strategy instructions
-
-- **File**: `backend/src/aiquiz/init.py`
-  - Updated model configuration to use `gemini-2.5-pro`
-  - Enhanced system instruction with battle-specific uniqueness rules
-  - Added uniqueness strategy guidelines
-
-#### 2. Enhanced Uniqueness Mechanism
-- **File**: `backend/src/aiquiz/router.py`
-  - Modified `generate_expanded_fallback_questions()` to accept `battle_id` parameter
-  - Added battle-specific question variations with context and timestamp
-  - Enhanced `generate_ai_quiz()` function with battle-specific prompts
-  - Implemented question shuffling and variation creation for uniqueness
-
-#### 3. Battle-Specific Question Generation
-- **Context Integration**: Added battle ID and timestamp to all question generation
-- **Variation System**: Created multiple variations of fallback questions per battle
-- **Prompt Enhancement**: Added uniqueness strategy instructions to AI prompts
-- **Fallback Improvement**: Ensured fallback questions are also unique per battle
-
-### Technical Improvements
-
-#### AI Model Benefits
-- **Gemini 2.5 Pro**: Better performance, higher quality responses, faster generation
-- **Enhanced Context**: Battle-specific prompts ensure unique question generation
-- **Improved Reliability**: Better handling of complex sports knowledge requests
-
-#### Uniqueness Features
-- **Battle Context**: Each battle gets unique questions based on battle ID and timestamp
-- **Question Variations**: Multiple variations of fallback questions prevent repetition
-- **Hash Tracking**: Enhanced question hash tracking for duplicate prevention
-- **Timestamp Integration**: Time-based variations ensure temporal uniqueness
-
-#### Fallback System Enhancement
-- **Battle-Specific Fallbacks**: Fallback questions now include battle context
-- **Variation Creation**: Automatic creation of multiple question variations
-- **Answer Shuffling**: Random answer option shuffling for additional uniqueness
-- **Context Prefixing**: Battle context added to question text for identification
-
-### Implementation Details
-
-#### Question Generation Flow
-1. **Battle Creation**: Battle ID passed to question generation functions
-2. **AI Generation**: Gemini 2.5 Pro generates questions with battle-specific context
-3. **Fallback System**: If AI fails, battle-specific fallback questions are used
-4. **Uniqueness Check**: Hash-based duplicate detection ensures no repeated questions
-5. **Storage**: Questions cached in Redis with battle-specific keys
-
-#### Uniqueness Strategies
-- **Specific References**: Use of specific years, dates, players, teams, and events
-- **Statistical Details**: Inclusion of detailed statistics and records
-- **Current Events**: Integration of recent developments and current events
-- **Question Structure**: Variation in question phrasing and structure
-- **Difficulty Distribution**: Different difficulty level distributions per battle
-
-### Testing Recommendations
-1. **Model Performance**: Test Gemini 2.5 Pro response quality and speed
-2. **Uniqueness Verification**: Ensure no duplicate questions across battles
-3. **Fallback System**: Verify battle-specific fallback questions work correctly
-4. **Error Handling**: Test system behavior when AI generation fails
-5. **Performance Impact**: Monitor system performance with new model
-
----
-
-## Battle Result Handling & User Data Update Task - 2024
-
-### Current Issues Identified
-1. **Inconsistent User Data Updates**: User statistics not properly updated after battles
-2. **Battle Result Handling**: Winner/loser data not consistently processed
-3. **Frontend Display Issues**: Battle sections not showing updated data properly
-4. **Redis Cache Inconsistency**: User data in Redis not always synchronized with database
-5. **Battle Count Discrepancy**: Battle count showing incorrect number (still showing 3 battles)
-
-### Files Improved
-1. ✅ `backend/src/battle_ws.py` - Enhanced battle result handling
-2. ✅ `backend/src/db/router.py` - Improved user statistics update functions
-3. ✅ `backend/src/battle/router.py` - Fixed battle endpoints and added missing endpoint
-4. ✅ `src/modules/battle/result.tsx` - Improved result page data handling
-5. ✅ `src/modules/dashboard/tabs/battles.tsx` - Enhanced battle display
-6. ✅ `src/modules/dashboard/tabs/all-battles.tsx` - Improved all battles display
-
-### Completed Improvements
-
-#### 1. Enhanced Battle Result Processing
-- **File**: `backend/src/battle_ws.py`
-  - **Proper Winner/Loser Detection**: Clear logic for determining winner, loser, and draw
-  - **Atomic User Updates**: Both users' statistics updated atomically
-  - **Enhanced Error Handling**: Better error handling and logging for failed updates
-  - **Ranking Recalculation**: Automatic user ranking updates after battles
-  - **Redis Cache Synchronization**: Complete user data synchronization between DB and Redis
-  - **Battle List Management**: Ensure battle_id is properly added to user's battles list
-
-#### 2. Improved User Data Updates
-- **File**: `backend/src/db/router.py`
-  - **Comprehensive Statistics**: Complete user statistics update including all fields
-  - **Database-First Updates**: Update database first, then synchronize Redis
-  - **Complete User Data**: Full user object synchronization in Redis cache
-  - **Error Resilience**: Continue operation even if Redis update fails
-  - **Better Logging**: Enhanced logging for debugging and monitoring
-  - **Debug Endpoints**: Added debug endpoints to check battle count discrepancies
-  - **Force Repair**: Added force repair endpoint to fix battle count issues
-
-#### 3. Fixed Battle Endpoints
-- **File**: `backend/src/battle/router.py`
-  - **Missing Endpoint**: Added `/get_all_battles` endpoint that was missing
-  - **Proper User Filtering**: Ensure endpoints return battles for specific user
-  - **Better Logging**: Enhanced logging for battle retrieval operations
-  - **Consistent Data**: Ensure consistent battle data across all endpoints
-
-#### 4. Better Frontend Battle Display
-- **File**: `src/modules/battle/result.tsx`
-  - **Enhanced User Data Update**: Comprehensive user data refresh after battle
-  - **Proper Field Mapping**: Correct mapping between backend and frontend user fields
-  - **Global Store Updates**: Proper updates to global user store
-  - **LocalStorage Synchronization**: Keep localStorage in sync with updated data
-  - **Better Error Handling**: Graceful handling of API failures
-
-- **File**: `src/modules/dashboard/tabs/battles.tsx`
-  - **Real-time Refresh**: Immediate battle data refresh after battle completion
-  - **User Stats Display**: Real-time user statistics display
-  - **Refresh Button**: Manual refresh capability for battle data
-  - **Better Loading States**: Improved loading and error states
-  - **Enhanced Battle Cards**: Better battle information display with timestamps
-
-- **File**: `src/modules/dashboard/tabs/all-battles.tsx`
-  - **Comprehensive Battle List**: Complete battle history with all details
-  - **Real-time Updates**: Automatic refresh after battle completion
-  - **Better Filtering**: Enhanced sport and result filtering
-  - **Pagination**: Improved pagination with better navigation
-  - **Date Formatting**: Proper date and time display for battles
-
-### Technical Improvements
-
-#### Backend Enhancements
-- **Atomic Operations**: User updates happen atomically to prevent data inconsistency
-- **Complete Data Sync**: Full user object synchronization between database and Redis
-- **Enhanced Logging**: Better logging for debugging and monitoring
-- **Error Resilience**: System continues operation even if some updates fail
-- **Ranking Updates**: Automatic ranking recalculation after battles
-- **Debug Tools**: Added debug endpoints to diagnose battle count issues
-- **Force Repair**: Added ability to force repair user statistics
-
-#### Frontend Enhancements
-- **Real-time Updates**: Immediate data refresh after battle completion
-- **Event-Driven Updates**: Battle finished events trigger data updates
-- **Proper State Management**: Better state management for user data
-- **Enhanced UX**: Better loading states and error handling
-- **Data Consistency**: Ensure frontend data matches backend state
-
-#### Data Flow Improvements
-1. **Battle Completion**: WebSocket sends battle finished event
-2. **Backend Processing**: User statistics updated atomically
-3. **Redis Sync**: Complete user data synchronized to Redis
-4. **Frontend Update**: Battle finished event triggers frontend refresh
-5. **User Data Refresh**: Frontend fetches and displays updated user data
-
-### Key Features Implemented
-
-#### Battle Result Processing
-- **Winner/Loser Detection**: Clear logic for determining battle outcomes
-- **Score Comparison**: Proper score comparison for result determination
-- **Draw Handling**: Proper handling of draw scenarios
-- **Streak Management**: Correct streak calculation and updates
-
-#### User Statistics Updates
-- **Total Battles**: Increment total battle count for both users
-- **Win Count**: Update win count for winner
-- **Win Rate**: Recalculate win rate percentage
-- **Streak Management**: Update current winning streak
-- **Battle History**: Maintain accurate battle history
-
-#### Real-time Data Synchronization
-- **WebSocket Events**: Battle finished events trigger updates
-- **Database Updates**: Atomic updates to prevent inconsistency
-- **Redis Cache**: Complete user data synchronization
-- **Frontend Refresh**: Immediate UI updates after battle completion
-
-#### Debug and Repair Tools
-- **Debug Endpoints**: `/debug-user-battle-count/{username}` to check battle discrepancies
-- **Force Repair**: `/force-repair-user-battles/{username}` to fix battle count issues
-- **Enhanced Logging**: Better logging throughout the battle process
-- **Error Diagnosis**: Tools to identify and fix data inconsistencies
-
-### Battle Count Fixes
-
-#### Issues Identified
-1. **Missing Endpoint**: Frontend was calling `/battle/get_all_battles` but endpoint didn't exist
-2. **Battle List Management**: Battle IDs not properly added to user's battles list
-3. **Data Synchronization**: Redis and database battle counts not synchronized
-4. **Statistics Calculation**: Win/loss calculations not properly updated
-
-#### Fixes Implemented
-1. **Added Missing Endpoint**: Created `/battle/get_all_battles` endpoint for user-specific battles
-2. **Enhanced Battle List Management**: Ensure battle_id is properly added to user's battles list
-3. **Improved Data Sync**: Better synchronization between Redis and database
-4. **Debug Tools**: Added endpoints to diagnose and fix battle count issues
-5. **Force Repair**: Added ability to force repair user statistics
-
-### Testing Recommendations
-1. **Battle Completion**: Test complete battle flow from start to finish
-2. **User Statistics**: Verify all user statistics are updated correctly
-3. **Real-time Updates**: Test real-time data synchronization
-4. **Error Scenarios**: Test system behavior during network failures
-5. **Data Consistency**: Verify data consistency between database and Redis
-6. **Battle Count**: Test battle count accuracy after multiple battles
-7. **Debug Tools**: Test debug endpoints to verify battle count fixes
-
-### Context Notes
-- System uses Celery for background question generation
-- Questions cached in Redis for 1 hour
-- Fallback system ensures battles can proceed even if AI fails
-- Enhanced uniqueness relies on battle context, timestamps, and variation system
-- All changes maintain backward compatibility with existing battle system
-- User data stored in both PostgreSQL database and Redis cache
-- Battle results processed through WebSocket connections
-- Frontend components listen for battle finished events to update data
-- Enhanced error handling ensures system resilience
-- Real-time updates provide immediate feedback to users
-- Debug tools help diagnose and fix battle count discrepancies
-- Force repair functionality can fix data inconsistencies
-
-## Next Question Timeout Update - 2024
-
-### Task Overview
-- **Objective**: Change next question timeout from 5 seconds to 3 seconds
-- **Goal**: Make the battle flow faster and more engaging
-- **Current State**: 5-second countdown between questions
-- **Target State**: 3-second countdown between questions
-
-### Changes Made
-
-#### 1. Frontend Countdown Timer
-- **File**: `src/modules/battle/quiz-question.tsx`
-  - Changed `nextQuestionCountdown` initial state from 5 to 3
-  - Updated all `setNextQuestionCountdown(5)` calls to `setNextQuestionCountdown(3)`
-  - Updated countdown display text to show 3 seconds
-
-#### 2. Backend Question Delay
-- **File**: `backend/src/battle_ws.py`
-  - Changed `start_next_question_after_delay` function delay from 5 to 3 seconds
-  - Updated `await asyncio.sleep(5)` to `await asyncio.sleep(3)`
-  - Updated function documentation to reflect 3-second delay
 
 ### Benefits of 3-Second Timeout
 
@@ -1465,3 +1281,304 @@ This document tracks all major changes and implementations throughout the develo
 - **Consistent Experience**: Both header and main content show appropriate waiting message
 
 ### Development URL Configuration Update (Latest)
+
+## Battle Completion Fix - Missing Battle Object - 2024-12-19
+
+### Task Overview
+- **Objective**: Fix battle completion issue where battle object was missing from battles dict
+- **Goal**: Ensure battle completion can proceed even when battle object is not available in memory
+- **Issue**: Both users finished but battle completion failed due to missing battle object
+- **Changes**: Enhanced battle completion logic with fallback data sources
+
+### Problem Identified
+- **Issue**: Battle completion failed with error "Battle not found in battles dict"
+- **Root Cause**: Battle object was removed from memory before completion check
+- **Impact**: Users finished questions but battle result was not processed
+- **Logs**: 
+  ```
+  [BATTLE_WS] User Hsjsjdd Jsjjsjdjd reached last question, marking as finished
+  [BATTLE_WS] User niga reached last question, marking as finished
+  [BATTLE_WS] Battle 173ad419-d58d-4ef7-a598-f09b39f5c161 not found in battles dict
+  ```
+
+### Changes Made
+
+#### 1. Enhanced Battle Info Retrieval (`backend/src/battle_ws.py`)
+- **Multiple Data Sources**: Added fallback mechanisms to get battle info from different sources
+- **Primary Source**: Try to get battle info from `battles` dict first
+- **Fallback Source**: Use `battle_scores` to extract user information if battle object missing
+- **Validation**: Ensure both users can be determined before proceeding
+
+#### 2. Improved Completion Detection
+- **Robust User Detection**: Enhanced `schedule_next_question` to handle missing battle objects
+- **Fallback Logic**: Use `battle_scores` keys to determine user names when battle object unavailable
+- **Error Handling**: Better error messages and graceful handling of missing data
+- **Logging**: Enhanced logging to track data source used for user detection
+
+#### 3. Enhanced Battle Result Processing
+- **Flexible Data Sources**: `handle_battle_result` can now work with or without battle object
+- **Default Values**: Use "Unknown" for sport/level when battle object not available
+- **User Extraction**: Extract user information from `battle_scores` as fallback
+- **Database Saving**: Ensure battle can be saved to database even without battle object
+
+#### 4. Improved Validation Logic
+- **Multiple Validation Sources**: `validate_battle_completion` uses multiple data sources
+- **Fallback Validation**: Can validate completion using `battle_scores` data
+- **Error Prevention**: Prevents completion failures due to missing battle objects
+
+### Technical Implementation
+
+#### Fallback Data Flow:
+1. **Primary Check**: Try to get battle info from `battles` dict
+2. **Fallback Check**: If not found, extract user info from `battle_scores` keys
+3. **Validation**: Ensure at least 2 users found in battle_scores
+4. **Processing**: Continue with completion using available data
+5. **Database**: Save battle with available info or defaults
+
+#### Enhanced Error Handling:
+- **Graceful Degradation**: System continues even if battle object missing
+- **Data Validation**: Ensures minimum required data is available
+- **Logging**: Clear logging of which data source is being used
+- **Default Values**: Uses sensible defaults for missing information
+
+### Key Improvements
+
+#### Robustness
+- **Multiple Data Sources**: No longer dependent on single data source
+- **Fallback Mechanisms**: Automatic fallback when primary data unavailable
+- **Error Prevention**: Prevents completion failures due to missing objects
+- **Data Integrity**: Ensures battle completion can proceed with available data
+
+#### Reliability
+- **Completion Guarantee**: Battle completion will proceed even if battle object missing
+- **User Detection**: Can determine users from multiple sources
+- **Database Saving**: Battle results saved even with partial data
+- **WebSocket Messaging**: Battle finished messages sent successfully
+
+#### Monitoring
+- **Enhanced Logging**: Clear indication of which data source is used
+- **Error Tracking**: Better error messages for debugging
+- **Status Reporting**: Logs show completion status and data availability
+- **Debug Information**: Detailed logging for troubleshooting
+
+### Benefits
+- **Fixed Completion Issue**: Battle completion now works even when battle object missing
+- **Improved Reliability**: System more robust against data inconsistencies
+- **Better Error Handling**: Graceful handling of missing data scenarios
+- **Enhanced Logging**: Better visibility into completion process
+- **Data Integrity**: Ensures battle results are processed and saved
+
+### Testing Recommendations
+1. **Normal Flow**: Test battle completion with battle object available
+2. **Missing Object**: Test battle completion when battle object removed
+3. **Partial Data**: Test with various combinations of missing data
+4. **Error Scenarios**: Test system behavior with corrupted or missing data
+5. **Database Saving**: Verify battles are saved correctly with fallback data
+
+---
+
+## Enhanced Battle Completion Detection System - 2024-12-19
+
+### Task Overview
+- **Objective**: Implement automatic detection when both users have finished their questions and trigger battle result handling
+- **Goal**: Improve battle completion detection with better waiting detection and user finished tracking
+- **Changes**: Enhanced backend battle completion logic and frontend waiting feedback
+
+### Changes Made
+
+#### 1. Backend Battle Completion Detection (`backend/src/battle_ws.py`)
+- **New User Finished Tracking**:
+  - Added `user_finished_status` dictionary to track which users have finished all questions
+  - Added `user_finished_timestamps` dictionary to track when users finished for waiting detection
+  - Enhanced `schedule_next_question` to mark users as finished when they reach the last question
+
+- **Improved Completion Detection**:
+  - Enhanced `validate_battle_completion` to use new user finished tracking system
+  - Added fallback to progress checking if finished status not available
+  - Improved waiting time detection using actual finish timestamps
+  - Added more detailed logging for completion status
+
+- **Enhanced Waiting Detection**:
+  - Added waiting time threshold of 30 seconds for users who finished first
+  - Enhanced `delayed_completion_check` to check waiting times and force completion
+  - Improved periodic completion check frequency (15 seconds instead of 30)
+  - Added better waiting time calculation and logging
+
+- **Improved Battle Result Triggering**:
+  - Enhanced `trigger_battle_completion` with better validation
+  - Added immediate completion when both users finish
+  - Improved error handling and retry logic
+  - Added comprehensive cleanup of new tracking variables
+
+#### 2. Frontend Waiting Feedback (`src/modules/battle/quiz-question.tsx`)
+- **Enhanced Waiting Message Handling**:
+  - Improved handling of `waiting_for_opponent` messages
+  - Added better score updates during waiting period
+  - Enhanced waiting message display with opponent name
+  - Increased timeout for waiting feedback (10 seconds)
+
+- **Better User State Management**:
+  - Set `userFinishedAllQuestions` to true when waiting for opponent
+  - Improved score validation and display during waiting
+  - Enhanced waiting state management and cleanup
+
+### Key Features
+
+#### Automatic Detection
+- **User Finished Tracking**: Tracks when each user completes all questions
+- **Immediate Completion**: Triggers battle result when both users finish
+- **Waiting Detection**: Monitors how long users wait for opponents
+- **Timeout Protection**: Forces completion after 30 seconds of waiting
+
+#### Enhanced Feedback
+- **Real-time Status**: Shows which users have finished
+- **Waiting Messages**: Displays specific waiting messages with opponent names
+- **Score Updates**: Updates scores in real-time during waiting period
+- **Timeout Feedback**: Shows appropriate messages for long waits
+
+#### Robust Completion Logic
+- **Multiple Detection Methods**: Uses both finished status and progress tracking
+- **Periodic Checks**: Checks completion every 15 seconds
+- **Delayed Checks**: Performs additional checks after 5 seconds
+- **Timeout Protection**: Forces completion after maximum battle time
+
+### Technical Implementation
+
+#### Backend Flow:
+1. **User Finishes**: When user reaches last question, mark as finished and record timestamp
+2. **Completion Check**: Check if both users have finished
+3. **Immediate Trigger**: If both finished, immediately trigger battle completion
+4. **Waiting Detection**: If one user finished, start waiting time monitoring
+5. **Timeout Protection**: Force completion after waiting time threshold
+6. **Periodic Monitoring**: Regular checks every 15 seconds
+
+#### Frontend Flow:
+1. **Waiting Message**: Receive and display waiting for opponent message
+2. **State Update**: Update user state to show finished status
+3. **Score Display**: Show current scores during waiting period
+4. **Timeout Feedback**: Show appropriate messages for extended waits
+
+### Benefits
+- **Faster Completion**: Immediate detection when both users finish
+- **Better User Experience**: Clear feedback about waiting status
+- **Robust Detection**: Multiple methods ensure completion is detected
+- **Timeout Protection**: Prevents battles from getting stuck
+- **Real-time Updates**: Users see current status and scores
+
+---
+
+## Battle Completion Logic Fix - Maximum Checks and Answer Prevention - 2024-12-19
+
+### Task Overview
+- **Objective**: Fix battle completion logic to prevent maximum completion checks from blocking valid completions and prevent answer submissions after completion is triggered
+- **Goal**: Ensure battle completion proceeds when both users finish and prevent further interactions
+- **Issue**: Battle completion blocked by check limits and users could still submit answers after completion
+- **Changes**: Enhanced completion validation logic and answer submission prevention
+
+### Problem Identified
+- **Issue**: Battle completion was being blocked by maximum completion checks even when both users clearly finished
+- **Root Cause**: Completion check counter was preventing valid completions from proceeding
+- **Secondary Issue**: Users could still submit answers after battle completion was triggered
+- **Logs**: 
+  ```
+  [BATTLE_WS] - Both finished: True
+  [BATTLE_WS] Battle exceeded maximum completion checks
+  [BATTLE_WS] Answer submitted by niga for question 6 (total questions: 7)
+  [BATTLE_WS] User niga already answered question 6, ignoring duplicate
+  ```
+
+### Changes Made
+
+#### 1. Enhanced Completion Validation Logic (`backend/src/battle_ws.py`)
+- **Priority Completion**: Allow completion when both users are clearly finished, regardless of check count
+- **Time Expired Priority**: Allow completion when time expired with answers, regardless of check count
+- **Increased Check Limit**: Increased maximum completion checks from 10 to 20 for other scenarios
+- **Clear Logic Flow**: Separated completion conditions to prevent blocking of valid completions
+
+#### 2. Answer Submission Prevention
+- **Completion State Check**: Added check for battles being processed for completion
+- **Early Rejection**: Reject answer submissions if battle is in completion process
+- **User Feedback**: Send battle_finished message to users who try to submit after completion
+- **Logging**: Enhanced logging to track rejected submissions
+
+#### 3. Enhanced Completion Tracking
+- **Processing State**: Added `battles_processing_completion` set to track battles being processed
+- **Duplicate Prevention**: Prevent multiple completion processes for same battle
+- **State Management**: Proper cleanup of processing state after completion
+- **Error Handling**: Better error handling and state cleanup
+
+#### 4. Improved Validation Flow
+- **Clear Conditions**: Separated completion conditions for better logic flow
+- **Priority Handling**: Handle clear cases first before applying limits
+- **Fallback Logic**: Maintain fallback logic for edge cases
+- **Better Logging**: Enhanced logging to show completion decision process
+
+### Technical Implementation
+
+#### Enhanced Validation Logic:
+```python
+# If both users are clearly finished, allow completion regardless of check count
+if both_finished:
+    logger.info(f"[BATTLE_WS] Both users finished, allowing completion for battle {battle_id}")
+    return True
+
+# If time expired with answers, allow completion regardless of check count
+if time_expired_with_answers:
+    logger.info(f"[BATTLE_WS] Time expired with answers, allowing completion for battle {battle_id}")
+    return True
+
+# Only limit completion checks for other scenarios
+if battle_completion_checks[battle_id] > 20:
+    logger.warning(f"[BATTLE_WS] Battle {battle_id} exceeded maximum completion checks")
+    return False
+```
+
+#### Answer Submission Prevention:
+```python
+# Check if battle is being processed for completion
+if battle_id in battle_completion_triggered or battle_id in battles_processing_completion:
+    logger.info(f"[BATTLE_WS] Battle {battle_id} is being processed for completion, ignoring answer submission from {user}")
+    await websocket.send_text(json.dumps({
+        "type": "battle_finished",
+        "message": "Battle is being completed, answer submission ignored"
+    }))
+    continue
+```
+
+### Key Improvements
+
+#### Completion Reliability
+- **Guaranteed Completion**: Battle completion proceeds when both users finish
+- **No False Blocking**: Check limits don't block valid completions
+- **Clear Logic**: Separation of completion conditions for better understanding
+- **Priority Handling**: Handle clear cases first before applying limits
+
+#### Answer Prevention
+- **State Awareness**: System aware of completion processing state
+- **Early Rejection**: Prevent answer submissions during completion
+- **User Feedback**: Clear feedback to users about completion state
+- **Clean State**: Proper state management and cleanup
+
+#### System Robustness
+- **Multiple Safeguards**: Multiple checks to prevent invalid interactions
+- **State Tracking**: Comprehensive state tracking for completion process
+- **Error Prevention**: Prevent race conditions and duplicate processing
+- **Clean Cleanup**: Proper cleanup of all tracking variables
+
+### Benefits
+- **Fixed Completion Blocking**: Battle completion now proceeds when both users finish
+- **Prevented Late Submissions**: Users can't submit answers after completion is triggered
+- **Improved Reliability**: System more robust against edge cases
+- **Better User Experience**: Clear feedback about battle state
+- **Enhanced Logging**: Better visibility into completion process
+
+### Testing Recommendations
+1. **Normal Completion**: Test battle completion when both users finish normally
+2. **Check Limit Scenarios**: Test behavior when completion checks approach limits
+3. **Late Submissions**: Test that answer submissions are rejected after completion
+4. **State Management**: Verify proper cleanup of completion state
+5. **Edge Cases**: Test various completion scenarios and timing
+
+---
+
+## Battle Completion Fix - Missing Battle Object - 2024-12-19

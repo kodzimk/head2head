@@ -157,7 +157,7 @@ To verify the fixes work:
 
 3. **Use debug endpoint** to verify consistency:
    ```bash
-   curl "http://localhost:8000/db/debug-user-stats/your_username"
+   curl "https://head2head-backend.onrender.com/db/debug-user-stats/your_username"
    ```
 
 The implementation is now **fully functional** with proper user stats updates and actual score storage! 🎉 

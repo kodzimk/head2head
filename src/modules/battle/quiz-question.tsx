@@ -207,14 +207,27 @@ export default function QuizQuestionPage() {
       
       if (data.type === 'waiting_for_opponent') {
         console.log('[BATTLE_WS] Waiting for opponent message received:', data);
+        
+        // Set waiting state
         setWaitingForOpponent(true);
         setShowNextQuestion(false);
+        setUserFinishedAllQuestions(true);
         
         // Update scores if provided
         if (data.scores) {
-          setFirstOpponentScore(data.scores[user.username] || 0);
+          const userScore = data.scores[user.username] || 0;
           const opponentUsername = Object.keys(data.scores).find(name => name !== user.username);
-          setSecondOpponentScore(opponentUsername ? data.scores[opponentUsername] : 0);
+          const opponentScore = opponentUsername ? data.scores[opponentUsername] : 0;
+          
+          setFirstOpponentScore(userScore);
+          setSecondOpponentScore(opponentScore);
+        }
+        
+        // Set appropriate waiting message
+        if (data.message) {
+          setText(data.message);
+        } else {
+          setText('Waiting for opponent to finish...');
         }
         
         // Set a timeout to show a message if waiting too long
@@ -222,11 +235,17 @@ export default function QuizQuestionPage() {
           if (waitingForOpponent && !battleFinished) {
             setText('Still waiting for opponent... This may take a moment.');
           }
-        }, 5000);
+        }, 10000); // Increased to 10 seconds
       }
       
       if (data.type === 'battle_finished') {
         console.log('[BATTLE_WS] Battle finished message received:', data);
+        
+        // Validate battle finished data
+        if (!data.final_scores || !data.result) {
+          console.error('[BATTLE_WS] Invalid battle finished data:', data);
+          return;
+        }
         
         // Set battle as finished to prevent further interactions
         setBattleFinished(true);
@@ -234,66 +253,112 @@ export default function QuizQuestionPage() {
         setShowNextQuestion(false);
         setUserFinishedAllQuestions(false); // Reset when battle is finished
         
-        // Set final scores
+        // Set final scores with validation
         const userScore = data.final_scores[user.username] || 0;
         const opponentUsername = Object.keys(data.final_scores).find(name => name !== user.username);
         const opponentScore = opponentUsername ? data.final_scores[opponentUsername] : 0;
         
-        setFirstOpponentScore(userScore);
-        setSecondOpponentScore(opponentScore);
+        // Validate scores are numeric
+        const validatedUserScore = typeof userScore === 'number' ? userScore : parseInt(userScore) || 0;
+        const validatedOpponentScore = typeof opponentScore === 'number' ? opponentScore : parseInt(opponentScore) || 0;
         
-        // Determine winner/loser
-        if (userScore > opponentScore) {
-          setWinner(user.username);
-          setLoser(opponentUsername || 'Unknown');
-          setResult('win');
-          setText('Congratulations! You won the battle!');
-        } else if (userScore < opponentScore) {
-          setWinner(opponentUsername || 'Unknown');
-          setLoser(user.username);
-          setResult('lose');
-          setText('Good luck next time!');
+        setFirstOpponentScore(validatedUserScore);
+        setSecondOpponentScore(validatedOpponentScore);
+        
+        // Determine winner/loser with proper validation
+        let winner = '';
+        let loser = '';
+        let result = 'draw';
+        let resultText = '';
+        
+        if (validatedUserScore > validatedOpponentScore) {
+          winner = user.username;
+          loser = opponentUsername || 'Unknown';
+          result = 'win';
+          resultText = 'Congratulations! You won the battle!';
+        } else if (validatedUserScore < validatedOpponentScore) {
+          winner = opponentUsername || 'Unknown';
+          loser = user.username;
+          result = 'lose';
+          resultText = 'Good luck next time!';
         } else {
-          setWinner('');
-          setLoser('');
-          setResult('draw');
-          setText('It\'s a draw!');
+          // Draw case
+          winner = '';
+          loser = '';
+          result = 'draw';
+          resultText = 'It\'s a draw!';
         }
         
-        // Update user stats if provided in the event
+        setWinner(winner);
+        setLoser(loser);
+        setResult(result);
+        setText(resultText);
+        
+        // Update user stats if provided in the event with validation
         if (data.updated_users && data.updated_users[user.username]) {
           const updatedStats = data.updated_users[user.username];
           
-          // Update the global user store with new stats using setUser
-          const updatedUser = {
-            ...user,
-            totalBattles: updatedStats.totalBattle,
-            wins: updatedStats.winBattle,
-            winRate: updatedStats.winRate,
-            streak: updatedStats.streak,
-          };
-          
-          // Update global store
-          if (setUser) {
-            setUser(updatedUser);
+          // Validate updated stats
+          if (updatedStats && typeof updatedStats === 'object') {
+            const validatedStats = {
+              totalBattle: typeof updatedStats.totalBattle === 'number' ? updatedStats.totalBattle : parseInt(updatedStats.totalBattle) || 0,
+              winBattle: typeof updatedStats.winBattle === 'number' ? updatedStats.winBattle : parseInt(updatedStats.winBattle) || 0,
+              winRate: typeof updatedStats.winRate === 'number' ? updatedStats.winRate : parseInt(updatedStats.winRate) || 0,
+              streak: typeof updatedStats.streak === 'number' ? updatedStats.streak : parseInt(updatedStats.streak) || 0,
+            };
+            
+            console.log('[BATTLE_WS] Updating user stats with validated data:', validatedStats);
+            
+            // Update the global user store with new stats using setUser
+            const updatedUser = {
+              ...user,
+              totalBattles: validatedStats.totalBattle,
+              wins: validatedStats.winBattle,
+              winRate: validatedStats.winRate,
+              streak: validatedStats.streak,
+            };
+            
+            // Update global store
+            if (setUser) {
+              setUser(updatedUser);
+              console.log('[BATTLE_WS] Updated global user store with new stats');
+            }
+            
+            // Update localStorage
+            try {
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+              console.log('[BATTLE_WS] Updated localStorage with new user stats');
+            } catch (error) {
+              console.error('[BATTLE_WS] Error updating localStorage:', error);
+            }
+          } else {
+            console.warn('[BATTLE_WS] Invalid updated stats format:', updatedStats);
           }
-          
-          // Update localStorage
-          localStorage.setItem('user', JSON.stringify(updatedUser));
+        } else {
+          console.log('[BATTLE_WS] No updated user stats provided in battle finished message');
         }
         
-        // Trigger a global event to refresh battle data in other components
-        const battleFinishedEvent = new CustomEvent('battleFinished', {
-          detail: {
-            battleId: id,
-            finalScores: data.final_scores,
-            winner: data.winner,
-            loser: data.loser,
-            result: data.result,
-            updatedUsers: data.updated_users
-          }
-        });
-        window.dispatchEvent(battleFinishedEvent);
+        // Trigger a global event to refresh battle data in other components with enhanced data
+        try {
+          const battleFinishedEvent = new CustomEvent('battleFinished', {
+            detail: {
+              battleId: id,
+              finalScores: data.final_scores,
+              winner: data.winner || winner,
+              loser: data.loser || loser,
+              result: data.result || result,
+              updatedUsers: data.updated_users,
+              timestamp: data.timestamp || Date.now(),
+              processingStatus: data.processing_status || 'completed',
+              userScore: validatedUserScore,
+              opponentScore: validatedOpponentScore
+            }
+          });
+          window.dispatchEvent(battleFinishedEvent);
+          console.log('[BATTLE_WS] Dispatched battleFinished event with enhanced data');
+        } catch (error) {
+          console.error('[BATTLE_WS] Error dispatching battleFinished event:', error);
+        }
         
         console.log('[BATTLE_WS] Navigating to result page immediately...');
         // Navigate to result page immediately after setting battle finished state

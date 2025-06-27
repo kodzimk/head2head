@@ -37,7 +37,7 @@ export default function BattleResultPage({user}: {user: User}) {
     // Show result immediately for better UX
     setShowResult(true);
     
-    // Enhanced user data update after battle completion
+    // Enhanced user data update after battle completion with better error handling
     const updateUserDataAfterBattle = async () => {
       try {
         console.log('[Result] Starting user data update after battle...');
@@ -56,38 +56,42 @@ export default function BattleResultPage({user}: {user: User}) {
             if (updatedUserData) {
               console.log('[Result] Received updated user data:', updatedUserData);
               
-              // Create updated user object with proper field mapping
+              // Validate and create updated user object with proper field mapping
               const updatedUser = {
                 ...user,
-                username: updatedUserData.username,
-                email: updatedUserData.email,
-                totalBattles: updatedUserData.totalBattle || 0,
-                wins: updatedUserData.winBattle || 0,
-                winRate: updatedUserData.winRate || 0,
-                streak: updatedUserData.streak || 0,
-                ranking: updatedUserData.ranking || 0,
-                favourite: updatedUserData.favourite || '',
-                friends: updatedUserData.friends || [],
-                friendRequests: updatedUserData.friendRequests || [],
-                avatar: updatedUserData.avatar || '',
-                battles: updatedUserData.battles || [],
-                invitations: updatedUserData.invitations || []
+                username: updatedUserData.username || user.username,
+                email: updatedUserData.email || user.email,
+                totalBattles: typeof updatedUserData.totalBattle === 'number' ? updatedUserData.totalBattle : parseInt(updatedUserData.totalBattle) || user.totalBattles,
+                wins: typeof updatedUserData.winBattle === 'number' ? updatedUserData.winBattle : parseInt(updatedUserData.winBattle) || user.wins,
+                winRate: typeof updatedUserData.winRate === 'number' ? updatedUserData.winRate : parseInt(updatedUserData.winRate) || user.winRate,
+                rank: typeof updatedUserData.ranking === 'number' ? updatedUserData.ranking : parseInt(updatedUserData.ranking) || user.rank,
+                streak: typeof updatedUserData.streak === 'number' ? updatedUserData.streak : parseInt(updatedUserData.streak) || user.streak,
+                favoritesSport: updatedUserData.favourite || user.favoritesSport,
+                friends: Array.isArray(updatedUserData.friends) ? updatedUserData.friends : user.friends,
+                friendRequests: Array.isArray(updatedUserData.friendRequests) ? updatedUserData.friendRequests : user.friendRequests,
+                avatar: updatedUserData.avatar || user.avatar,
+                battles: Array.isArray(updatedUserData.battles) ? updatedUserData.battles : user.battles,
+                invitations: Array.isArray(updatedUserData.invitations) ? updatedUserData.invitations : user.invitations
               };
               
               // Update global store
               if (setUser) {
                 setUser(updatedUser);
-                console.log('[Result] Updated global user store');
+                console.log('[Result] Updated global user store with validated data');
               }
               
-              // Update localStorage
-              localStorage.setItem('user', JSON.stringify(updatedUser));
-              console.log('[Result] Updated localStorage with new user data');
-              
-              // Also update the username in localStorage if it changed
-              if (updatedUserData.username && updatedUserData.username !== username) {
-                localStorage.setItem('username', updatedUserData.username);
-                console.log('[Result] Updated username in localStorage');
+              // Update localStorage with error handling
+              try {
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                console.log('[Result] Updated localStorage with new user data');
+                
+                // Also update the username in localStorage if it changed
+                if (updatedUserData.username && updatedUserData.username !== username) {
+                  localStorage.setItem('username', updatedUserData.username);
+                  console.log('[Result] Updated username in localStorage');
+                }
+              } catch (localStorageError) {
+                console.error('[Result] Error updating localStorage:', localStorageError);
               }
             } else {
               console.error('[Result] No user data received from API');
@@ -99,7 +103,7 @@ export default function BattleResultPage({user}: {user: User}) {
           console.error('[Result] No username found in localStorage');
         }
         
-        // Optional: Repair user battles in background (non-blocking)
+        // Optional: Repair user battles in background (non-blocking) with better error handling
         try {
           const repairResponse = await fetch(`${API_BASE_URL}/db/repair-user-battles`, {
             method: 'POST',
@@ -114,8 +118,8 @@ export default function BattleResultPage({user}: {user: User}) {
           } else {
             console.warn('[Result] Failed to repair user battles, continuing with direct update');
           }
-        } catch (error) {
-          console.warn('[Result] Error during repair (non-critical):', error);
+        } catch (repairError) {
+          console.warn('[Result] Error during repair (non-critical):', repairError);
         }
         
       } catch (error) {
@@ -125,7 +129,7 @@ export default function BattleResultPage({user}: {user: User}) {
 
     // Update user data immediately
     updateUserDataAfterBattle();
-  }, [user, setUser]);
+  }, [user, setUser, hasResultData, navigate]);
 
   const handleBackToDashboard = () => {
     // Clean up all battle-related state
