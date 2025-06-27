@@ -1,188 +1,176 @@
-# Celery Manual Quiz Generation
-
-This document explains how to set up and use Celery for manual quiz generation in the Head2Head application.
+# Celery Configuration for Head2Head
 
 ## Overview
 
-The system uses Celery to generate manual quiz questions asynchronously when battles are created. This prevents blocking the main application while getting questions from the predefined manual questions database.
+This document describes the Celery configuration for the Head2Head application, specifically for AI-powered quiz question generation using Google's Gemini 2.0 Flash Exp model.
 
 ## Architecture
 
-- **Celery Worker**: Processes manual quiz generation tasks in the background
-- **Redis**: Used as both message broker and result backend
-- **Manual Questions**: Predefined questions stored in `questions.py` for football, basketball, and tennis
-- **Flower**: Web-based monitoring tool for Celery tasks
+### Components
+
+1. **Celery Worker**: Processes background tasks for AI question generation
+2. **Redis**: Message broker and result backend
+3. **Flower**: Web-based monitoring tool for Celery tasks
+4. **AI Quiz Generator**: Uses Gemini 2.0 Flash Exp for question generation
+
+### Queues
+
+- **default**: General tasks
+- **ai_quiz**: AI-powered question generation tasks
+
+## AI Quiz Generation
+
+### Features
+
+- **Real-time Generation**: Questions generated immediately when battles are created
+- **Unique Questions**: Each battle gets unique questions based on battle ID and context
+- **Difficulty Levels**: Support for easy, medium, and hard difficulty levels
+- **Multiple Sports**: Football, basketball, tennis, and other sports
+- **Fallback System**: Graceful fallback to basic questions if AI generation fails
+
+### Question Format
+
+Each generated question follows this structure:
+
+```json
+{
+    "question": "What is the primary objective in football?",
+    "answers": [
+        {"text": "Score more goals than the opponent", "correct": true, "label": "A"},
+        {"text": "Have the most possession time", "correct": false, "label": "B"},
+        {"text": "Make the most passes", "correct": false, "label": "C"},
+        {"text": "Run the fastest", "correct": false, "label": "D"}
+    ],
+    "time_limit": 30,
+    "difficulty": "easy",
+    "battle_id": "unique-battle-id"
+}
+```
+
+### AI Model Configuration
+
+- **Model**: Gemini 2.0 Flash Exp (latest and fastest)
+- **API**: Google Generative AI
+- **Response Format**: Structured JSON
+- **Validation**: Comprehensive question and answer validation
+- **Error Handling**: Graceful fallback to basic questions
+
+### Difficulty Guidelines
+
+#### Easy Questions
+- Basic facts, rules, and common knowledge
+- Most sports fans would know these
+- Simple statistics and general information
+
+#### Medium Questions
+- Historical facts and notable players
+- Championships and intermediate-level knowledge
+- Recent events and achievements
+
+#### Hard Questions
+- Detailed statistics and records
+- Specific dates and advanced rules
+- Expert-level knowledge and obscure facts
 
 ## Setup
 
-### 1. Environment Variables
-
-Make sure you have the following environment variables set:
+### Environment Variables
 
 ```bash
+# Required
+GOOGLE_API_KEY=your_google_api_key_here
 REDIS_URL=redis://redis:6379/0
-DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
+DATABASE_URL=postgresql+asyncpg://user:pass@db:5432/dbname
+
+# Optional
+QUESTION_COUNT=7  # Default number of questions per battle
 ```
 
-### 2. Docker Compose
-
-The system includes Celery services in `docker-compose.yml`:
+### Docker Compose
 
 ```yaml
-celery-worker:
-  image: head2head-backend
-  command: celery -A celery_app worker --loglevel=info --queues=default,manual_quiz
-  environment:
-    - REDIS_URL=redis://redis:6379/0
-    - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
-
-flower:
-  image: head2head-backend
-  command: celery -A celery_app flower --port=5555
-  ports:
-    - "5555:5555"
+services:
+  celery-worker:
+    image: head2head-backend
+    command: celery -A celery_app worker --loglevel=info --concurrency=4 --queues=default,ai_quiz
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
+      - PYTHONPATH=/app/src
 ```
 
-### 3. Start Services
+### Task Configuration
 
-```bash
-# Start all services including Celery
-docker-compose up -d
+```python
+# Task time limits
+task_time_limit=10 * 60      # 10 minutes for AI generation
+task_soft_time_limit=8 * 60  # 8 minutes soft limit
 
-# Or start specific services
-docker-compose up -d redis
-docker-compose up -d celery-worker
-docker-compose up -d flower
-```
-
-## Local Development
-
-### 1. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Start Redis
-
-```bash
-# Using Docker
-docker run -d -p 6379:6379 redis:7
-
-# Or install Redis locally
-# brew install redis (macOS)
-# sudo apt-get install redis-server (Ubuntu)
-```
-
-### 3. Start Celery Worker
-
-```bash
-# Using the provided script
-python start_celery.py
-
-# Or manually
-celery -A src.celery_app worker --loglevel=info --queues=default,manual_quiz
-```
-
-### 4. Start Flower (Optional)
-
-```bash
-celery -A src.celery_app flower --port=5555
+# Task routes
+"tasks.generate_ai_quiz": {"queue": "ai_quiz"}
 ```
 
 ## Usage
 
-### 1. Task Triggering
+### Starting the Worker
 
-Manual quiz generation is automatically triggered when:
-- A battle invitation is accepted
-- A player joins a waiting battle
+```bash
+# Development
+celery -A celery_app worker --loglevel=info --queues=default,ai_quiz
 
-The system will:
-1. Send `quiz_generating` notification to both players
-2. Trigger background manual quiz generation
-3. Poll for completion (up to 30 seconds)
-4. Store questions in Redis cache
-5. Send `quiz_ready` notification when complete
-
-### 2. Task Monitoring
-
-Access Flower dashboard at `http://localhost:5555` to monitor:
-- Task status and progress
-- Worker status
-- Task history and results
-- Queue statistics
-
-### 3. Manual Task Execution
-
-You can manually trigger quiz generation:
-
-```python
-from tasks import generate_manual_quiz
-
-# Generate questions for a battle
-result = generate_manual_quiz.delay("battle_id", "football", "intermediate")
-print(f"Task ID: {result.id}")
-
-# Check task status
-print(f"Status: {result.status}")
-print(f"Result: {result.get()}")
+# Production
+celery -A celery_app worker --loglevel=info --concurrency=4 --queues=default,ai_quiz
 ```
 
-## Task Configuration
+### Monitoring with Flower
 
-### Queue Configuration
+```bash
+celery -A celery_app flower --port=5555
+```
 
-- **default**: General tasks
-- **manual_quiz**: Manual quiz generation tasks
+Access Flower at: http://localhost:5555
 
-### Task Settings
+### Task Execution
 
-- **Time Limit**: 5 minutes (much shorter for manual questions)
-- **Soft Time Limit**: 4 minutes
-- **Worker Prefetch**: 1 task at a time
-- **Max Tasks Per Child**: 1000
-
-### Question Generation
-
-- **Questions per quiz**: 5
-- **Time limit per question**: 30 seconds
-- **Answer options**: 4 (A, B, C, D)
-- **Correct answers**: 1 per question
-- **Sports supported**: Football, Basketball, Tennis
-- **Difficulty levels**: Easy, Medium, Hard
-
-## Manual Questions Structure
-
-### Football Questions (15 total)
-- **Easy (5 questions)**: Basic facts about World Cup, players, rules, match duration
-- **Medium (5 questions)**: Historical facts, Champions League, rules, recent events
-- **Hard (5 questions)**: Premier League records, statistics, historical details
-
-### Basketball Questions (15 total)
-- **Easy (5 questions)**: Basic rules, NBA teams, scoring, court dimensions
-- **Medium (5 questions)**: Player records, NBA history, recent championships
-- **Hard (5 questions)**: Career statistics, historical records, rule changes
-
-### Tennis Questions (15 total)
-- **Easy (5 questions)**: Basic rules, Grand Slams, scoring system, tournaments
-- **Medium (5 questions)**: Player achievements, tournament surfaces, rules
-- **Hard (5 questions)**: Historical records, career statistics, tournament history
+Questions are automatically generated when:
+1. A new battle is created
+2. Questions are requested for a battle that doesn't have cached questions
 
 ## Error Handling
 
 ### Fallback Mechanism
 
-If manual quiz generation fails or times out:
+If AI quiz generation fails or times out:
 1. System logs the error
-2. Falls back to static questions from `questions.py`
+2. Falls back to basic fallback questions
 3. Continues with battle flow
+4. Maintains user experience
+
+### Common Issues
+
+1. **API Key Issues**
+   - Verify GOOGLE_API_KEY is set correctly
+   - Check API key permissions and quotas
+
+2. **Network Issues**
+   - Check internet connectivity
+   - Verify Google API endpoints are accessible
+
+3. **Rate Limiting**
+   - Monitor API usage
+   - Implement retry logic if needed
+
+4. **Task Timeouts**
+   - Increase task time limits if needed
+   - Check system resources
 
 ### Monitoring
 
 - Check Celery worker logs for task errors
 - Monitor Flower dashboard for failed tasks
 - Review application logs for integration issues
+- Monitor Google API usage and quotas
 
 ## Troubleshooting
 
@@ -196,13 +184,14 @@ If manual quiz generation fails or times out:
    - Verify Redis is running and accessible
    - Check `REDIS_URL` environment variable
 
-3. **Question generation errors**
-   - Verify sport and level combinations exist in manual questions
-   - Check that questions are properly formatted
+3. **AI generation errors**
+   - Verify Google API key is valid
+   - Check API quotas and limits
+   - Review error logs for specific issues
 
 4. **Task timeouts**
    - Increase task time limits if needed
-   - Check system resources
+   - Check system resources and network connectivity
 
 ### Debug Commands
 
@@ -215,13 +204,24 @@ celery -A celery_app inspect stats
 
 # Purge all queues
 celery -A celery_app purge
+
+# Check task results
+celery -A celery_app inspect reserved
 ```
 
-## Benefits of Manual Questions
+## Benefits of AI Question Generation
 
-- **Reliability**: No dependency on external AI services
-- **Speed**: Instant question generation without API calls
-- **Consistency**: Predictable question quality and format
-- **Cost**: No API costs for question generation
-- **Simplicity**: Easy to maintain and modify questions
-- **Testing**: Perfect for development and testing environments 
+- **Uniqueness**: Each battle gets unique questions
+- **Variety**: Wide range of topics and difficulty levels
+- **Accuracy**: AI-generated questions are factually correct
+- **Scalability**: Can generate questions for any sport or topic
+- **Engagement**: More interesting and challenging questions
+- **Real-time**: Questions generated on-demand
+
+## Performance Considerations
+
+- **Caching**: Questions cached in Redis for 1 hour
+- **Async Processing**: Non-blocking question generation
+- **Fallback System**: Graceful degradation if AI fails
+- **Resource Management**: Proper task timeouts and limits
+- **Monitoring**: Comprehensive logging and error tracking 

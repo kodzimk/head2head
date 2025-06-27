@@ -10,6 +10,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
       - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
     depends_on:
       db:
         condition: service_healthy
@@ -23,10 +24,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: celery -A celery_app worker --loglevel=info --concurrency=4 --queues=default,manual_quiz
+    command: celery -A celery_app worker --loglevel=info --concurrency=4 --queues=default,ai_quiz
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
       - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - PYTHONPATH=/app/src
     depends_on:
       db:
@@ -47,6 +49,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@db:5432/user_db
       - REDIS_URL=redis://redis:6379/0
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - PYTHONPATH=/app/src
     depends_on:
       redis:

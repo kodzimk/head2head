@@ -1,7 +1,7 @@
 import { Button } from "../../shared/ui/button";
 import { Card, CardContent } from "../../shared/ui/card";
 import { Badge } from "../../shared/ui/badge";
-import { Zap, Users, Crown, Play } from "lucide-react";
+import { Zap, Crown, Play } from "lucide-react";
 import FAQ from "./faq";
 import { useNavigate } from "react-router-dom";
       

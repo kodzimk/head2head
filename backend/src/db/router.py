@@ -284,11 +284,45 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
 async def update_user_statistics(username: str, total_battle: int, win_battle: int, streak: int, win_rate: int, battles_list: list):
     logger.info(f"[DB_ROUTER] update_user_statistics called for {username}: total_battle={total_battle}, win_battle={win_battle}, streak={streak}, win_rate={win_rate}, battles_list={battles_list}")
     try:
-        # Update DB first
+        # First get the user's email from Redis or database
+        user_email = None
+        
+        # Try to get from Redis first
+        try:
+            user_data = redis_username.get(username)
+            if user_data:
+                user_dict = json.loads(user_data)
+                user_email = user_dict.get('email')
+                logger.info(f"[DB_ROUTER] Found user email from Redis: {user_email}")
+        except Exception as e:
+            logger.warning(f"[DB_ROUTER] Error getting user email from Redis: {str(e)}")
+        
+        # If not found in Redis, get from database
+        if not user_email:
+            try:
+                async with SessionLocal() as session:
+                    stmt = select(UserData).where(UserData.username == username)
+                    result = await session.execute(stmt)
+                    user = result.scalar_one_or_none()
+                    if user:
+                        user_email = user.email
+                        logger.info(f"[DB_ROUTER] Found user email from database: {user_email}")
+                    else:
+                        logger.error(f"[DB_ROUTER] User {username} not found in database")
+                        return False
+            except Exception as e:
+                logger.error(f"[DB_ROUTER] Error getting user email from database: {str(e)}")
+                return False
+        
+        if not user_email:
+            logger.error(f"[DB_ROUTER] Could not find email for user {username}")
+            return False
+        
+        # Update DB using email as primary key
         async with SessionLocal() as session:
-            user = await session.get(UserData, username)
+            user = await session.get(UserData, user_email)
             if not user:
-                logger.error(f"[DB_ROUTER] User {username} not found in DB")
+                logger.error(f"[DB_ROUTER] User with email {user_email} not found in DB")
                 return False
             
             # Update all user statistics
@@ -300,13 +334,13 @@ async def update_user_statistics(username: str, total_battle: int, win_battle: i
             
             await session.commit()
             await session.refresh(user)
-            logger.info(f"[DB_ROUTER] DB updated for {username}")
+            logger.info(f"[DB_ROUTER] DB updated for {username} (email: {user_email})")
         
         # Update Redis with complete user data
         try:
             # Get complete user data from database
             async with SessionLocal() as session:
-                user = await session.get(UserData, username)
+                user = await session.get(UserData, user_email)
                 if user:
                     user_dict = {
                         'username': user.username,

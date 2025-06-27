@@ -9,37 +9,40 @@ import { API_BASE_URL, useGlobalStore } from '../../shared/interface/gloabL_var'
 export default function BattleResultPage({user}: {user: User}) {
 
   const { text, setText } = useTextStore();
-  const {  setFirstOpponentScore, setSecondOpponentScore } = useScoreStore();
-  const { setWinner } = useWinnerStore();
-  const { setLoser } = useLoserStore();
+  const { firstOpponentScore, secondOpponentScore, setFirstOpponentScore, setSecondOpponentScore } = useScoreStore();
+  const {  setWinner } = useWinnerStore();
+  const {  setLoser } = useLoserStore();
   const {  setCurrentQuestion } = useCurrentQuestionStore();
   const [showResult, setShowResult] = useState(false);
   const navigate = useNavigate();
   const { result, setResult } = useResultStore();
   const { setUser } = useGlobalStore();
 
+  // Check if we have the necessary data to show results
+  const hasResultData = result && (firstOpponentScore > 0 || secondOpponentScore > 0);
+
   useEffect(() => {
+    // If no result data, redirect to dashboard
+    if (!hasResultData) {
+      console.log('[Result] No result data found, redirecting to dashboard');
+      const username = localStorage.getItem('username');
+      if (username) {
+        navigate(`/${username}`);
+      } else {
+        navigate('/');
+      }
+      return;
+    }
+
+    // Show result immediately for better UX
+    setShowResult(true);
+    
     // Enhanced user data update after battle completion
     const updateUserDataAfterBattle = async () => {
       try {
         console.log('[Result] Starting user data update after battle...');
         
-        // First, repair user battles to ensure data consistency
-        const repairResponse = await fetch(`${API_BASE_URL}/db/repair-user-battles`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (repairResponse.ok) {
-          console.log('[Result] Successfully repaired user battles/stats');
-        } else {
-          console.warn('[Result] Failed to repair user battles, continuing with direct update');
-        }
-        
-        // Fetch updated user data
+        // Fetch updated user data immediately
         const username = localStorage.getItem('username');
         if (username) {
           const userResponse = await fetch(`${API_BASE_URL}/db/get-user-by-username?username=${username}`, {
@@ -95,18 +98,33 @@ export default function BattleResultPage({user}: {user: User}) {
         } else {
           console.error('[Result] No username found in localStorage');
         }
+        
+        // Optional: Repair user battles in background (non-blocking)
+        try {
+          const repairResponse = await fetch(`${API_BASE_URL}/db/repair-user-battles`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (repairResponse.ok) {
+            console.log('[Result] Successfully repaired user battles/stats');
+          } else {
+            console.warn('[Result] Failed to repair user battles, continuing with direct update');
+          }
+        } catch (error) {
+          console.warn('[Result] Error during repair (non-critical):', error);
+        }
+        
       } catch (error) {
         console.error('[Result] Error updating user data after battle:', error);
       }
     };
 
-    // Update user data and show result after a short delay
-    const timer = setTimeout(() => {
-      updateUserDataAfterBattle();
-      setShowResult(true);
-    }, 2000); // Reduced delay for better UX
-
-    return () => clearTimeout(timer);
+    // Update user data immediately
+    updateUserDataAfterBattle();
   }, [user, setUser]);
 
   const handleBackToDashboard = () => {
@@ -118,6 +136,7 @@ export default function BattleResultPage({user}: {user: User}) {
     setLoser('');
     setText('');
     setCurrentQuestion(null);
+    setShowResult(false);
     
     // Navigate back to dashboard
     const username = localStorage.getItem('username');
@@ -134,13 +153,18 @@ export default function BattleResultPage({user}: {user: User}) {
         <Card className="w-full max-w-md shadow-xl animate-pulse">
           <CardHeader>
             <CardTitle className="text-center text-2xl font-bold mb-2">
-              Calculating results...
+              {hasResultData ? 'Calculating results...' : 'Loading battle results...'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center gap-6 py-12">
               <div className="text-4xl">⏳</div>
-              <div className="text-lg text-gray-600">Please wait while we determine the winner and update your statistics.</div>
+              <div className="text-lg text-gray-600">
+                {hasResultData 
+                  ? 'Please wait while we determine the winner and update your statistics.'
+                  : 'Please wait while we load your battle results.'
+                }
+              </div>
             </div>
           </CardContent>
         </Card>

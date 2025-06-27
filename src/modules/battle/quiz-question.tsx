@@ -10,27 +10,30 @@ import { Card, CardContent, CardHeader } from '../../shared/ui/card';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCurrentQuestionStore, useGlobalStore, useScoreStore, useTextStore, useWinnerStore, useLoserStore, useResultStore } from '../../shared/interface/gloabL_var';
 import { BattleWebSocket } from '../../shared/websockets/battle-websocket';
+import type { Question } from '../../shared/interface/question';
 
 const QUESTION_TIME_LIMIT = 10; // 10 seconds per question
 
 export default function QuizQuestionPage() {
   const { id } = useParams() as { id: string };
-  const { user } = useGlobalStore();  
+  const { user, setUser } = useGlobalStore();  
   const { setCurrentQuestion, currentQuestion } = useCurrentQuestionStore();
   const { firstOpponentScore, secondOpponentScore, setFirstOpponentScore, setSecondOpponentScore } = useScoreStore();
   const { setText } = useTextStore();
   const { setWinner } = useWinnerStore();
   const { setLoser } = useLoserStore();
   const { setResult } = useResultStore();
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(QUESTION_TIME_LIMIT);
   const [showNextQuestion, setShowNextQuestion] = useState(false);
-  const [nextQuestionCountdown, setNextQuestionCountdown] = useState(3);
+  const [nextQuestionCountdown, setNextQuestionCountdown] = useState(7);
   const [motivationalMessage, setMotivationalMessage] = useState('');
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+  const [battleFinished, setBattleFinished] = useState(false);
+  const [answerSubmitted, setAnswerSubmitted] = useState(false); // Track if answer was submitted
   const navigate = useNavigate();
   const wsRef = useRef<BattleWebSocket | null>(null);
   const questionsRef = useRef<any[]>([]); // Use ref to avoid stale closure
@@ -138,105 +141,119 @@ export default function QuizQuestionPage() {
         setCurrentQuestion(data.questions[0]);
         setSelected(null);
         setShowNextQuestion(false);
-        setNextQuestionCountdown(3);
+        setNextQuestionCountdown(7);
         setMotivationalMessage(getRandomMotivationalMessage());
         setTimeLeft(QUESTION_TIME_LIMIT);
       }
       
       if (data.type === 'answer_submitted') {
-        // Update scores immediately
+        console.log('[BATTLE_WS] Answer submitted:', data);
+        
+        // Update scores
         if (data.scores) {
-          // Find the opponent's username and score
+          setFirstOpponentScore(data.scores[user.username] || 0);
           const opponentUsername = Object.keys(data.scores).find(name => name !== user.username);
-          const userScore = data.scores[user.username] || 0;
-          const opponentScore = opponentUsername ? (data.scores[opponentUsername] || 0) : 0;
-          
-          setFirstOpponentScore(userScore);
-          setSecondOpponentScore(opponentScore);
+          setSecondOpponentScore(opponentUsername ? data.scores[opponentUsername] : 0);
         }
         
-        // Start countdown immediately if this user answered
-        if (data.user === user.username && data.start_countdown) {
+        // Start 3-second countdown for next question
+        if (data.start_countdown) {
           setShowNextQuestion(true);
           setNextQuestionCountdown(3);
           setMotivationalMessage(getRandomMotivationalMessage());
         }
       }
       
+      if (data.type === 'opponent_answered') {
+        console.log('[BATTLE_WS] Opponent answered:', data);
+        
+        // Only update scores, no other action needed
+        if (data.scores) {
+          setFirstOpponentScore(data.scores[user.username] || 0);
+          const opponentUsername = Object.keys(data.scores).find(name => name !== user.username);
+          setSecondOpponentScore(opponentUsername ? data.scores[opponentUsername] : 0);
+        }
+      }
+      
       if (data.type === 'next_question') {
-        // Update to the new question
-        setCurrentIndex(data.question_index);
-        setCurrentQuestion(data.question);
-        setSelected(null);
-        setShowNextQuestion(false);
-        setNextQuestionCountdown(0);
-        setMotivationalMessage('');
-        setTimeLeft(QUESTION_TIME_LIMIT);
+        console.log('[BATTLE_WS] Next question received:', data);
         
         // Update scores
         if (data.scores) {
-          // Find the opponent's username and score
+          setFirstOpponentScore(data.scores[user.username] || 0);
           const opponentUsername = Object.keys(data.scores).find(name => name !== user.username);
-          const userScore = data.scores[user.username] || 0;
-          const opponentScore = opponentUsername ? (data.scores[opponentUsername] || 0) : 0;
-          
-          setFirstOpponentScore(userScore);
-          setSecondOpponentScore(opponentScore);
+          setSecondOpponentScore(opponentUsername ? data.scores[opponentUsername] : 0);
+        }
+        
+        // Set the new question
+        if (data.question) {
+          setCurrentQuestion(data.question);
+          setCurrentIndex(data.question_index || 0);
+          currentIndexRef.current = data.question_index || 0;
+          setSelected(null);
+          setTimeLeft(QUESTION_TIME_LIMIT);
+          setAnswerSubmitted(false);
         }
       }
       
       if (data.type === 'waiting_for_opponent') {
+        console.log('[BATTLE_WS] Waiting for opponent message received:', data);
         setWaitingForOpponent(true);
         setShowNextQuestion(false);
       }
       
       if (data.type === 'battle_finished') {
-        // Update final scores
-        if (data.final_scores) {
-          // Find the opponent's username and score
-          const opponentUsername = Object.keys(data.final_scores).find(name => name !== user.username);
-          const userScore = data.final_scores[user.username] || 0;
-          const opponentScore = opponentUsername ? (data.final_scores[opponentUsername] || 0) : 0;
-          
-          setFirstOpponentScore(userScore);
-          setSecondOpponentScore(opponentScore);
-          
-          // Determine winner/loser
-          if (userScore > opponentScore) {
-            setWinner(user.username);
-            setLoser(opponentUsername || 'Unknown');
-            setResult('win');
-            setText('Congratulations! You won the battle!');
-          } else if (userScore < opponentScore) {
-            setWinner(opponentUsername || 'Unknown');
-            setLoser(user.username);
-            setResult('lose');
-            setText('Good luck next time!');
-          } else {
-            setWinner('');
-            setLoser('');
-            setResult('draw');
-            setText('It\'s a draw!');
-          }
+        console.log('[BATTLE_WS] Battle finished message received:', data);
+        
+        // Set battle as finished to prevent further interactions
+        setBattleFinished(true);
+        
+        // Set final scores
+        const userScore = data.final_scores[user.username] || 0;
+        const opponentUsername = Object.keys(data.final_scores).find(name => name !== user.username);
+        const opponentScore = opponentUsername ? data.final_scores[opponentUsername] : 0;
+        
+        setFirstOpponentScore(userScore);
+        setSecondOpponentScore(opponentScore);
+        
+        // Determine winner/loser
+        if (userScore > opponentScore) {
+          setWinner(user.username);
+          setLoser(opponentUsername || 'Unknown');
+          setResult('win');
+          setText('Congratulations! You won the battle!');
+        } else if (userScore < opponentScore) {
+          setWinner(opponentUsername || 'Unknown');
+          setLoser(user.username);
+          setResult('lose');
+          setText('Good luck next time!');
+        } else {
+          setWinner('');
+          setLoser('');
+          setResult('draw');
+          setText('It\'s a draw!');
         }
         
         // Update user stats if provided in the event
         if (data.updated_users && data.updated_users[user.username]) {
           const updatedStats = data.updated_users[user.username];
           
-          // Update the global user store with new stats
-          user.totalBattles = updatedStats.totalBattle;
-          user.wins = updatedStats.winBattle;
-          user.winRate = updatedStats.winRate;
-          user.streak = updatedStats.streak;
+          // Update the global user store with new stats using setUser
+          const updatedUser = {
+            ...user,
+            totalBattles: updatedStats.totalBattle,
+            wins: updatedStats.winBattle,
+            winRate: updatedStats.winRate,
+            streak: updatedStats.streak,
+          };
           
-          // Update localStorage if needed
-          const userData = JSON.parse(localStorage.getItem('user') || '{}');
-          userData.totalBattles = updatedStats.totalBattle;
-          userData.wins = updatedStats.winBattle;
-          userData.winRate = updatedStats.winRate;
-          userData.streak = updatedStats.streak;
-          localStorage.setItem('user', JSON.stringify(userData));
+          // Update global store
+          if (setUser) {
+            setUser(updatedUser);
+          }
+          
+          // Update localStorage
+          localStorage.setItem('user', JSON.stringify(updatedUser));
         }
         
         // Trigger a global event to refresh battle data in other components
@@ -252,7 +269,8 @@ export default function QuizQuestionPage() {
         });
         window.dispatchEvent(battleFinishedEvent);
         
-        // Navigate to result page
+        console.log('[BATTLE_WS] Navigating to result page immediately...');
+        // Navigate to result page immediately after setting battle finished state
         navigate(`/battle/${id}/result`);
       }
     };
@@ -261,7 +279,11 @@ export default function QuizQuestionPage() {
     
     return () => {
       console.log('[BATTLE_WS] Cleaning up WebSocket connection');
-      ws.close();
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      // Clean up battle finished state
+      setBattleFinished(false);
     };
     // eslint-disable-next-line
   }, [id, user.username]);
@@ -278,7 +300,7 @@ export default function QuizQuestionPage() {
 
   // Timer effect - only for auto-submission if no answer selected
   useEffect(() => {
-    if (!currentQuestion || showNextQuestion) {
+    if (!currentQuestion || showNextQuestion || battleFinished || answerSubmitted) {
       return;
     }
 
@@ -296,11 +318,11 @@ export default function QuizQuestionPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentQuestion, showNextQuestion, selected]);
+  }, [currentQuestion, showNextQuestion, selected, battleFinished, answerSubmitted]);
 
   // Countdown to next question
   useEffect(() => {
-    if (!showNextQuestion || nextQuestionCountdown <= 0) {
+    if (!showNextQuestion || nextQuestionCountdown <= 0 || battleFinished) {
       return;
     }
 
@@ -309,6 +331,7 @@ export default function QuizQuestionPage() {
         if (prev <= 1) {
           setShowNextQuestion(false);
           setMotivationalMessage('');
+          setAnswerSubmitted(false);
           // Automatically advance to next question
           advanceToNextQuestion();
           return 0;
@@ -320,9 +343,13 @@ export default function QuizQuestionPage() {
     }, 1000);
 
     return () => clearInterval(countdownTimer);
-  }, [showNextQuestion, nextQuestionCountdown]);
+  }, [showNextQuestion, nextQuestionCountdown, battleFinished]);
 
   const handleSelect = (label: string) => {
+    if (battleFinished || answerSubmitted) {
+      return;
+    }
+    
     if (selected === label) {
       setSelected(null);
     } else {
@@ -333,7 +360,7 @@ export default function QuizQuestionPage() {
   };
 
   const handleAnswerSubmit = (answer: string) => {
-    if (!wsRef.current || !currentQuestion) {
+    if (!wsRef.current || !currentQuestion || battleFinished || answerSubmitted) {
       return;
     }
 
@@ -343,6 +370,10 @@ export default function QuizQuestionPage() {
       return;
     }
 
+    // Mark as answered to prevent double submission
+    setAnswerSubmitted(true);
+    setSelected(answer);
+
     // Send answer to server
     wsRef.current.send({
       type: 'submit_answer',
@@ -351,42 +382,25 @@ export default function QuizQuestionPage() {
       answer: answer,
       question_index: currentQuestionIndex
     });
-
-    // Mark as answered to prevent double submission
-    setSelected(answer);
   };
 
   const advanceToNextQuestion = () => {
-    if (questionsRef.current.length === 0) {
+    if (questionsRef.current.length === 0 || battleFinished) {
       return;
     }
     
-    const nextIndex = currentIndex + 1;
+    // Don't advance locally - wait for server to send next question
+    // Just reset the state for the next question
+    setSelected(null);
+    setShowNextQuestion(false);
+    setNextQuestionCountdown(3);
+    setMotivationalMessage(getRandomMotivationalMessage());
+    setTimeLeft(QUESTION_TIME_LIMIT);
+    setWaitingForOpponent(false);
+    setAnswerSubmitted(false);
     
-    if (nextIndex < questionsRef.current.length) {
-      // Move to next question
-      setCurrentIndex(nextIndex);
-      currentIndexRef.current = nextIndex; // Update ref immediately
-      setCurrentQuestion(questionsRef.current[nextIndex]);
-      setSelected(null);
-      setShowNextQuestion(false);
-      setNextQuestionCountdown(3);
-      setMotivationalMessage(getRandomMotivationalMessage());
-      setTimeLeft(QUESTION_TIME_LIMIT);
-      setWaitingForOpponent(false); // Reset waiting state
-    } else {
-      // Last question reached - don't set waiting state here, only when actually answering
-    }
+    console.log('[BATTLE_WS] Waiting for server to send next question...');
   };
-
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, []);
 
   // UI rendering logic (same as before, but uses questions/currentQuestion)
   if (!questions.length || !currentQuestion) {
@@ -404,6 +418,32 @@ export default function QuizQuestionPage() {
         </div>
         <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></span>
         <span className="ml-2">Waiting for questions from server...</span>
+      </div>
+    );
+  }
+
+  // Show battle finished overlay if battle is finished
+  if (battleFinished) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center relative">
+        <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+        <div className="relative z-10 w-full max-w-lg px-4">
+          <Card className="w-full backdrop-blur-sm bg-opacity-95">
+            <CardHeader className="pb-3">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600 mb-2">🏆 Battle Finished! 🏆</div>
+                <div className="text-sm text-gray-600">Redirecting to results...</div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="text-center py-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                <div className="text-lg font-semibold mb-2">Calculating final results...</div>
+                <div className="text-sm text-gray-600">Please wait while we determine the winner and update your statistics.</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -436,8 +476,14 @@ export default function QuizQuestionPage() {
             </div>
             <div className="text-center">
               <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full px-3 py-1">
-                {showNextQuestion ? motivationalMessage :
-                 motivationalMessage}
+                {showNextQuestion ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <span>Next question in:</span>
+                    <span className="text-lg font-bold text-orange-600">{nextQuestionCountdown}</span>
+                  </div>
+                ) : (
+                  motivationalMessage
+                )}
               </div>
             </div>
           </div>
@@ -467,9 +513,9 @@ export default function QuizQuestionPage() {
                 )}
               </div>
             ) : showNextQuestion ? (
-              // Show motivational message instead of countdown
+              // Show countdown to next question
               <div className="text-center py-6">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-lg font-semibold mb-3">
                   Next question coming up...
                 </div>
               </div>
@@ -493,7 +539,7 @@ export default function QuizQuestionPage() {
                       variant={selected === (ans.label || String.fromCharCode(65 + idx)) ? 'default' : 'outline'}
                       className="w-full h-auto min-h-[50px] p-3 text-left whitespace-normal break-words"
                       onClick={() => handleSelect(ans.label || String.fromCharCode(65 + idx))}
-                      disabled={showNextQuestion}
+                      disabled={showNextQuestion || answerSubmitted || battleFinished}
                     >
                       <div className="flex items-start gap-2 w-full">
                         <span className="font-bold text-xs flex-shrink-0">{ans.label || String.fromCharCode(65 + idx)}.</span>

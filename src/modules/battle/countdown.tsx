@@ -7,7 +7,7 @@ import { newSocket } from '../../app/App';
 export default function BattleCountdown() {
   const { id } = useParams() as { id: string };
   const navigate = useNavigate();
-  const [count, setCount] = useState(5);
+  const [count, setCount] = useState(10);
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
   const { currentQuestion } = useCurrentQuestionStore();
   const [countdownFinished, setCountdownFinished] = useState(false);

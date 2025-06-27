@@ -12,7 +12,7 @@ from friends.router import remove_friend
 import asyncio
 import uuid
 from fastapi import HTTPException
-from questions import get_questions
+from ai_quiz_generator import ai_quiz_generator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -560,7 +560,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                             attempts += 1
                                         if not questions:
                                             try:
-                                                questions = get_questions(battle.sport, battle.level, 6)
+                                                questions = ai_quiz_generator.generate_questions(battle.sport, battle.level, 5, battle.id)
                                             except Exception as e:
                                                 logger.error(f"Error getting fallback questions for battle {battle.id}: {str(e)}")
                                                 questions = []
@@ -639,7 +639,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 questions = await get_cached_questions(battle.id)
                                 if not questions or len(questions) < 6:
                                     logger.warning(f"No cached questions found for battle {battle.id}, using fallback questions")
-                                    questions = get_questions(battle.sport, battle.level, 6)
+                                    questions = ai_quiz_generator.generate_questions(battle.sport, battle.level, 5, battle.id)
                                     logger.info(f"Saved fallback questions for battle {battle.id}")
                                 battle.questions = questions
                             asyncio.create_task(ensure_seven_questions())
@@ -680,7 +680,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                         attempts += 1
                                     if not questions:
                                         try:
-                                            questions = get_questions(battle.sport, battle.level, 6)
+                                            questions = ai_quiz_generator.generate_questions(battle.sport, battle.level, 5, battle.id)
                                         except Exception as e:
                                             logger.error(f"Error getting fallback questions for battle {battle.id}: {str(e)}")
                                             questions = []

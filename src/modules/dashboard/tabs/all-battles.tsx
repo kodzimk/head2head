@@ -190,11 +190,6 @@ export default function AllBattles() {
   const endIndex = startIndex + battlesPerPage;
   const currentBattles = filteredBattles.slice(startIndex, endIndex);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">

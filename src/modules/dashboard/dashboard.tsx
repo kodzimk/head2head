@@ -194,7 +194,7 @@ export default function DashboardPage() {
 
           <Overview user={user} recentBattles={recentBattles} />
 
-          <Battles user={user} />
+          <Battles user={user} setUser={setUser} />
 
           <Friends user={user}/>
         </Tabs>

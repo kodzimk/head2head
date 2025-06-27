@@ -6,7 +6,8 @@ import os
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from websocket import manager
 import traceback
-from questions import get_questions
+from ai_quiz_generator import ai_quiz_generator
+import math
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,10 +22,17 @@ redis_client = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0
 battle_connections = {}  # battle_id -> list of websockets
 battle_questions = {}    # battle_id -> list of questions
 battle_states = {}       # battle_id -> battle state
-battle_scores = {}       # battle_id -> {player: score}
+battle_scores = {}       # battle_id -> {username: score}
 battle_answers = {}      # battle_id -> {player: [answers]}
 battle_current_question = {}  # battle_id -> current question index
 battle_timers = {}       # battle_id -> timer info
+battle_progress = {}     # battle_id -> {username: current_question_index}
+battle_question_start_time = {}  # battle_id -> start time
+processed_battles = set()  # Set of battle IDs that have already been processed
+user_websocket_map = {}  # battle_id -> {username: websocket}
+battle_completion_checks = {}  # battle_id -> number of completion checks performed
+battle_start_time = {}  # battle_id -> battle start timestamp
+battle_completion_triggered = set()  # Set of battle IDs that have triggered completion
 
 # Battle states
 WAITING = "waiting"
@@ -36,31 +44,37 @@ FINISHED = "finished"
 QUESTION_TIME_LIMIT = 5
 
 async def get_cached_questions(battle_id: str):
-    """Get cached questions for a battle"""
+    """Get questions from Redis cache"""
     try:
         questions_key = f"battle_questions:{battle_id}"
         cached_questions = redis_client.get(questions_key)
+        
         if cached_questions:
-            return json.loads(cached_questions)
+            questions = json.loads(cached_questions)
+            logger.info(f"[BATTLE_WS] Retrieved {len(questions)} cached questions for battle {battle_id}")
+            return questions
+        
         return None
     except Exception as e:
         logger.error(f"[BATTLE_WS] Error getting cached questions for battle {battle_id}: {str(e)}")
         return None
 
 async def get_battle_questions(battle_id: str, sport: str, level: str):
-    """Get questions for a battle, either from cache or generate new ones"""
+    """Get questions for a battle, either from cache or generate new ones using AI"""
     try:
         # Try to get from cache first
         questions = await get_cached_questions(battle_id)
         
         if not questions:
-            # Generate new questions using manual questions
-            questions = get_questions(sport, level, 6)
+            # Generate new questions using AI
+            logger.info(f"[BATTLE_WS] No cached questions found, generating AI questions for battle {battle_id}")
+            questions = ai_quiz_generator.generate_questions(sport, level, 5, battle_id)
             
             # Cache the questions
             try:
                 questions_key = f"battle_questions:{battle_id}"
                 redis_client.setex(questions_key, 3600, json.dumps(questions))
+                logger.info(f"[BATTLE_WS] Cached {len(questions)} AI-generated questions for battle {battle_id}")
             except Exception as e:
                 logger.error(f"[BATTLE_WS] Error caching questions for battle {battle_id}: {str(e)}")
         
@@ -113,6 +127,8 @@ async def check_battle_timeout(battle_id: str):
                         del battle_answers[battle_id]
                     if battle_id in battle_question_start_time:
                         del battle_question_start_time[battle_id]
+                    if battle_id in user_websocket_map:
+                        del user_websocket_map[battle_id]
                     
                     return
         
@@ -123,9 +139,15 @@ async def check_battle_timeout(battle_id: str):
 async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
     await websocket.accept()
     logger.info(f"[BATTLE_WS] User '{username}' connected to battle {battle_id}")
+    
     if battle_id not in battle_connections:
         battle_connections[battle_id] = []
     battle_connections[battle_id].append(websocket)
+    
+    # Track user-websocket mapping
+    if battle_id not in user_websocket_map:
+        user_websocket_map[battle_id] = {}
+    user_websocket_map[battle_id][username] = websocket
 
     # Generate questions if not already done
     if battle_id not in battle_questions:
@@ -159,6 +181,8 @@ async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
         battle_progress[battle_id] = {}
         battle_answers[battle_id] = {}
         battle_question_start_time[battle_id] = asyncio.get_event_loop().time()
+        battle_start_time[battle_id] = asyncio.get_event_loop().time()  # Initialize battle start time
+        battle_completion_checks[battle_id] = 0  # Initialize completion check counter
         
         # Initialize scores for both users in the battle
         from battle.init import battles
@@ -227,16 +251,20 @@ async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
                     continue
                 
                 # Check if user already answered this question
-                if user in battle_answers[battle_id] and q_index in battle_answers[battle_id][user]:
+                if user in battle_answers[battle_id] and len(battle_answers[battle_id][user]) > q_index:
                     logger.info(f"[BATTLE_WS] User {user} already answered question {q_index}, ignoring duplicate")
                     continue
                 
-                # Initialize user's answer dict if it doesn't exist
+                # Initialize user's answer list if it doesn't exist
                 if user not in battle_answers[battle_id]:
                     battle_answers[battle_id][user] = []
                 
-                # Store the answer
-                battle_answers[battle_id][user].append(answer)
+                # Ensure the answer list is long enough
+                while len(battle_answers[battle_id][user]) <= q_index:
+                    battle_answers[battle_id][user].append(None)
+                
+                # Store the answer at the correct index
+                battle_answers[battle_id][user][q_index] = answer
                 
                 question = battle_questions[battle_id][q_index]
                 correct = False
@@ -287,67 +315,33 @@ async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
                 battle_progress[battle_id][user] = q_index
                 logger.info(f"[BATTLE_WS] User {user} progress: {q_index + 1}/{len(battle_questions[battle_id])} questions completed")
                 
-                # Send immediate answer confirmation to the user who answered
+                # Send answer submission confirmation to the user who answered
+                await websocket.send_text(json.dumps({
+                    "type": "answer_submitted",
+                    "battle_id": battle_id,
+                    "username": username,
+                    "scores": battle_scores[battle_id],
+                    "start_countdown": True  # Start countdown for next question
+                }))
+                
+                # Send updated scores to opponent
                 for ws in battle_connections[battle_id]:
-                    try:
-                        await ws.send_text(json.dumps({
-                            "type": "answer_submitted",
-                            "user": user,
-                            "question_index": q_index,
-                            "correct": correct,
-                            "scores": battle_scores[battle_id],
-                            "start_countdown": True
-                        }))
-                    except Exception as e:
-                        logger.error(f"[BATTLE_WS] Error sending answer confirmation to user in battle {battle_id}: {str(e)}")
-                        battle_connections[battle_id] = [w for w in battle_connections[battle_id] if w != ws]
+                    if ws != websocket:  # Send to opponent only
+                        try:
+                            await ws.send_text(json.dumps({
+                                "type": "opponent_answered",
+                                "battle_id": battle_id,
+                                "scores": battle_scores[battle_id]
+                            }))
+                        except Exception as e:
+                            logger.error(f"[BATTLE_WS] Error sending opponent update: {str(e)}")
+                
+                # Schedule next question after 3 seconds for this user only
+                asyncio.create_task(schedule_next_question(battle_id, username, q_index + 1))
                 
                 # Each user progresses independently - no waiting for opponent
                 logger.info(f"[BATTLE_WS] User {user} answered question {q_index}, they will progress independently")
                 
-                # Check if this was the last question
-                if q_index == len(battle_questions[battle_id]) - 1:
-                    # Last question - check if both users have finished
-                    logger.info(f"[BATTLE_WS] Last question answered by {user}, checking if both users finished")
-                    
-                    # Count how many users have finished all questions
-                    finished_users = 0
-                    for battle_user in battle_progress[battle_id]:
-                        if battle_progress[battle_id][battle_user] >= len(battle_questions[battle_id]) - 1:
-                            finished_users += 1
-                    
-                    logger.info(f"[BATTLE_WS] {finished_users} users have finished the battle")
-                    
-                    if finished_users >= 2:  # Both users finished
-                        logger.info(f"[BATTLE_WS] Both users finished battle {battle_id}, sending final results")
-                        
-                        # Handle battle result and update user statistics
-                        try:
-                            await handle_battle_result(battle_id, battle_scores[battle_id])
-                        except Exception as e:
-                            logger.error(f"[BATTLE_WS] Error handling battle result: {str(e)}")
-                        
-                        # Send battle finished to all users
-                        for ws in battle_connections[battle_id]:
-                            try:
-                                await ws.send_text(json.dumps({
-                                    "type": "battle_finished",
-                                    "final_scores": battle_scores[battle_id]
-                                }))
-                            except Exception as e:
-                                logger.error(f"[BATTLE_WS] Error broadcasting battle finished to user in battle {battle_id}: {str(e)}")
-                                battle_connections[battle_id] = [w for w in battle_connections[battle_id] if w != ws]
-                    else:
-                        # Still waiting for other user to finish
-                        logger.info(f"[BATTLE_WS] Waiting for {2 - finished_users} more user(s) to finish battle")
-                        # Send waiting message only to the user who just finished
-                        try:
-                            await websocket.send_text(json.dumps({
-                                "type": "waiting_for_opponent",
-                                "message": "Waiting for opponent to finish..."
-                            }))
-                        except Exception as e:
-                            logger.error(f"[BATTLE_WS] Error sending waiting message to user {user} in battle {battle_id}: {str(e)}")
     except WebSocketDisconnect:
         logger.info(f"[BATTLE_WS] User '{username}' disconnected from battle {battle_id}")
     finally:
@@ -359,10 +353,19 @@ async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
                 battle_questions.pop(battle_id, None)
                 battle_scores.pop(battle_id, None)
                 battle_progress.pop(battle_id, None)
+                battle_answers.pop(battle_id, None)
+                battle_question_start_time.pop(battle_id, None)
+                battle_start_time.pop(battle_id, None)
+                battle_completion_checks.pop(battle_id, None)
+                user_websocket_map.pop(battle_id, None)
+                battle_completion_triggered.discard(battle_id)
+        # Also remove from user-websocket mapping
+        if battle_id in user_websocket_map and username in user_websocket_map[battle_id]:
+            del user_websocket_map[battle_id][username]
         logger.info(f"[BATTLE_WS] Cleaned up connection for user '{username}' in battle {battle_id}")
 
-async def start_next_question_after_delay(battle_id: str, next_question_index: int):
-    """Start the next question after a 3-second delay"""
+async def schedule_next_question(battle_id: str, username: str, question_index: int):
+    """Schedule the next question after a 3-second delay"""
     try:
         await asyncio.sleep(3)  # 3-second delay
         
@@ -370,37 +373,78 @@ async def start_next_question_after_delay(battle_id: str, next_question_index: i
             logger.warning(f"[BATTLE_WS] Battle {battle_id} no longer exists, skipping next question")
             return
         
-        logger.info(f"[BATTLE_WS] Starting question {next_question_index} for battle {battle_id}")
-        
-        # Check if this was the last question
-        if next_question_index >= len(battle_questions[battle_id]):
-            # Don't advance - let the answer submission handle the last question
-            logger.info(f"[BATTLE_WS] Reached last question, not advancing automatically")
+        if question_index >= len(battle_questions[battle_id]):
+            logger.info(f"[BATTLE_WS] User {username} reached last question, checking battle completion")
+            
+            # Update user progress to mark them as finished
+            if username not in battle_progress[battle_id]:
+                battle_progress[battle_id][username] = 0
+            
+            battle_progress[battle_id][username] = len(battle_questions[battle_id]) - 1
+            
+            # Use the new validation logic to check if battle should be completed
+            if await validate_battle_completion(battle_id):
+                logger.info(f"[BATTLE_WS] Battle {battle_id} ready for completion, triggering result")
+                await trigger_battle_completion(battle_id)
+            else:
+                # Still waiting for other user to finish
+                logger.info(f"[BATTLE_WS] Waiting for other user to finish battle {battle_id}")
+                # Send waiting message to the user who just finished
+                if battle_id in user_websocket_map and username in user_websocket_map[battle_id]:
+                    try:
+                        await user_websocket_map[battle_id][username].send_text(json.dumps({
+                            "type": "waiting_for_opponent",
+                            "message": "Waiting for opponent to finish..."
+                        }))
+                        logger.info(f"[BATTLE_WS] Sent waiting message to user {username} in battle {battle_id}")
+                    except Exception as e:
+                        logger.error(f"[BATTLE_WS] Error sending waiting message to user {username}: {str(e)}")
             return
+        
+        logger.info(f"[BATTLE_WS] Starting question {question_index} for battle {battle_id}")
         
         # Update question start time
         battle_question_start_time[battle_id] = asyncio.get_event_loop().time()
         
-        # Send next question message to all users
-        for ws in battle_connections[battle_id]:
+        # Send next question message to the specific user only
+        if battle_id in user_websocket_map and username in user_websocket_map[battle_id]:
+            target_websocket = user_websocket_map[battle_id][username]
             try:
-                await ws.send_text(json.dumps({
+                await target_websocket.send_text(json.dumps({
                     "type": "next_question",
-                    "question_index": next_question_index,
-                    "question": battle_questions[battle_id][next_question_index],
+                    "question_index": question_index,
+                    "question": battle_questions[battle_id][question_index],
                     "scores": battle_scores[battle_id]
                 }))
+                logger.info(f"[BATTLE_WS] Sent next question {question_index} to user {username} in battle {battle_id}")
             except Exception as e:
-                logger.error(f"[BATTLE_WS] Error sending next question to user in battle {battle_id}: {str(e)}")
-                battle_connections[battle_id] = [w for w in battle_connections[battle_id] if w != ws]
+                logger.error(f"[BATTLE_WS] Error sending next question to user {username} in battle {battle_id}: {str(e)}")
+                # Remove the broken websocket
+                if battle_id in battle_connections:
+                    battle_connections[battle_id] = [w for w in battle_connections[battle_id] if w != target_websocket]
+                if battle_id in user_websocket_map and username in user_websocket_map[battle_id]:
+                    del user_websocket_map[battle_id][username]
+        else:
+            logger.error(f"[BATTLE_WS] No websocket found for user {username} in battle {battle_id}")
                 
     except Exception as e:
-        logger.info(f"[BATTLE_WS] Error in start_next_question_after_delay for battle {battle_id}: {str(e)}")
+        logger.error(f"[BATTLE_WS] Error in schedule_next_question for battle {battle_id}: {str(e)}")
 
 # Remove timeout function since users progress independently 
 
 async def handle_battle_result(battle_id: str, final_scores: dict):
     logger.info(f"[BATTLE_WS] handle_battle_result called for battle_id={battle_id}, final_scores={final_scores}")
+    
+    # Track if this battle has already been processed to prevent duplicate processing
+    if hasattr(handle_battle_result, 'processed_battles'):
+        if battle_id in handle_battle_result.processed_battles:
+            logger.warning(f"[BATTLE_WS] Battle {battle_id} already processed, skipping")
+            return
+    else:
+        handle_battle_result.processed_battles = set()
+    
+    handle_battle_result.processed_battles.add(battle_id)
+    
     try:
         from battle.init import battles
         battle = battles.get(battle_id)
@@ -412,6 +456,8 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
         user2 = battle.second_opponent
         score1 = final_scores.get(user1, 0)
         score2 = final_scores.get(user2, 0)
+        
+        logger.info(f"[BATTLE_WS] Processing battle result: {user1}({score1}) vs {user2}({score2})")
         
         # Determine winner, loser, and result
         winner = None
@@ -566,11 +612,17 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
                 }
             }
             
-            # Send to both users
-            for user in [user1, user2]:
-                await manager.send_message(json.dumps(battle_finished_data), user)
+            # Send to all users in the battle via direct websocket connections
+            if battle_id in battle_connections:
+                for ws in battle_connections[battle_id]:
+                    try:
+                        await ws.send_text(json.dumps(battle_finished_data))
+                        logger.info(f"[BATTLE_WS] Sent battle_finished message to user in battle {battle_id}")
+                    except Exception as e:
+                        logger.error(f"[BATTLE_WS] Failed to send battle_finished message: {str(e)}")
+                        battle_connections[battle_id] = [w for w in battle_connections[battle_id] if w != ws]
             
-            logger.info(f"[BATTLE_WS] Battle finished event broadcasted to users {user1} and {user2}")
+            logger.info(f"[BATTLE_WS] Battle finished event broadcasted to all users in battle {battle_id}")
             
         except Exception as e:
             logger.error(f"[BATTLE_WS] Error broadcasting battle finished event: {str(e)}\n{traceback.format_exc()}")
@@ -579,9 +631,34 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
         if battle_id in battles:
             del battles[battle_id]
             logger.info(f"[BATTLE_WS] Removed battle {battle_id} from memory")
+        
+        # Clean up other battle-related data
+        if battle_id in battle_questions:
+            del battle_questions[battle_id]
+        if battle_id in battle_scores:
+            del battle_scores[battle_id]
+        if battle_id in battle_progress:
+            del battle_progress[battle_id]
+        if battle_id in battle_answers:
+            del battle_answers[battle_id]
+        if battle_id in battle_question_start_time:
+            del battle_question_start_time[battle_id]
+        if battle_id in battle_start_time:
+            del battle_start_time[battle_id]
+        if battle_id in battle_completion_checks:
+            del battle_completion_checks[battle_id]
+        if battle_id in user_websocket_map:
+            del user_websocket_map[battle_id]
+        battle_completion_triggered.discard(battle_id)
+        
+        logger.info(f"[BATTLE_WS] Completed battle result processing for {battle_id}")
             
     except Exception as e:
         logger.error(f"[BATTLE_WS] Fatal error in handle_battle_result: {str(e)}\n{traceback.format_exc()}")
+    finally:
+        # Remove from processed battles set to allow reprocessing if needed
+        if hasattr(handle_battle_result, 'processed_battles') and battle_id in handle_battle_result.processed_battles:
+            handle_battle_result.processed_battles.remove(battle_id)
 
 async def monitor_battle_timeouts():
     """Background task to monitor battle timeouts"""
@@ -616,6 +693,13 @@ async def monitor_battle_timeouts():
                             del battle_answers[battle_id]
                         if battle_id in battle_question_start_time:
                             del battle_question_start_time[battle_id]
+                        if battle_id in battle_start_time:
+                            del battle_start_time[battle_id]
+                        if battle_id in battle_completion_checks:
+                            del battle_completion_checks[battle_id]
+                        if battle_id in user_websocket_map:
+                            del user_websocket_map[battle_id]
+                        battle_completion_triggered.discard(battle_id)
         
         except Exception as e:
             logger.error(f"[BATTLE_WS] Error in monitor_battle_timeouts: {str(e)}")
@@ -623,3 +707,123 @@ async def monitor_battle_timeouts():
 # Start the timeout monitor
 import asyncio
 asyncio.create_task(monitor_battle_timeouts()) 
+
+async def validate_battle_completion(battle_id: str) -> bool:
+    """
+    Validate that a battle is ready to be completed.
+    Returns True if battle should be completed, False otherwise.
+    """
+    try:
+        # Check if battle exists and has all necessary data
+        if battle_id not in battle_questions or battle_id not in battle_scores:
+            logger.warning(f"[BATTLE_WS] Battle {battle_id} missing essential data")
+            return False
+        
+        # Get battle info
+        from battle.init import battles
+        battle = battles.get(battle_id)
+        if not battle:
+            logger.warning(f"[BATTLE_WS] Battle {battle_id} not found in battles dict")
+            return False
+        
+        user1 = battle.first_opponent
+        user2 = battle.second_opponent
+        total_questions = len(battle_questions[battle_id])
+        
+        # Check if both users have answered all questions
+        user1_finished = battle_progress.get(battle_id, {}).get(user1, -1) >= total_questions - 1
+        user2_finished = battle_progress.get(battle_id, {}).get(user2, -1) >= total_questions - 1
+        
+        # Check if both users have all their answers recorded
+        user1_answers = len(battle_answers.get(battle_id, {}).get(user1, []))
+        user2_answers = len(battle_answers.get(battle_id, {}).get(user2, []))
+        
+        # Check if maximum time has expired (15 minutes = 900 seconds)
+        max_battle_time = 900  # 15 minutes
+        battle_duration = asyncio.get_event_loop().time() - battle_start_time.get(battle_id, 0)
+        time_expired = battle_duration >= max_battle_time
+        
+        # Check if both users have all answers and are finished
+        both_finished = user1_finished and user2_finished and user1_answers >= total_questions and user2_answers >= total_questions
+        
+        # Check if time expired and both users have at least some answers
+        time_expired_with_answers = time_expired and user1_answers > 0 and user2_answers > 0
+        
+        logger.info(f"[BATTLE_WS] Battle {battle_id} completion check:")
+        logger.info(f"  - User1 ({user1}): finished={user1_finished}, answers={user1_answers}/{total_questions}")
+        logger.info(f"  - User2 ({user2}): finished={user2_finished}, answers={user2_answers}/{total_questions}")
+        logger.info(f"  - Battle duration: {battle_duration:.1f}s (max: {max_battle_time}s)")
+        logger.info(f"  - Both finished: {both_finished}")
+        logger.info(f"  - Time expired with answers: {time_expired_with_answers}")
+        
+        # Increment completion check counter
+        if battle_id not in battle_completion_checks:
+            battle_completion_checks[battle_id] = 0
+        battle_completion_checks[battle_id] += 1
+        
+        # Only allow completion if conditions are met and we haven't exceeded check limits
+        if battle_completion_checks[battle_id] > 5:  # Maximum 5 completion checks
+            logger.warning(f"[BATTLE_WS] Battle {battle_id} exceeded maximum completion checks")
+            return False
+        
+        return both_finished or time_expired_with_answers
+        
+    except Exception as e:
+        logger.error(f"[BATTLE_WS] Error in validate_battle_completion for battle {battle_id}: {str(e)}")
+        return False
+
+async def trigger_battle_completion(battle_id: str):
+    """
+    Trigger battle completion if not already triggered.
+    """
+    if battle_id in battle_completion_triggered:
+        logger.warning(f"[BATTLE_WS] Battle {battle_id} completion already triggered, skipping")
+        return
+    
+    # Validate completion conditions
+    if not await validate_battle_completion(battle_id):
+        logger.info(f"[BATTLE_WS] Battle {battle_id} not ready for completion")
+        return
+    
+    # Mark as triggered to prevent duplicate processing
+    battle_completion_triggered.add(battle_id)
+    
+    logger.info(f"[BATTLE_WS] Triggering battle completion for {battle_id}")
+    
+    try:
+        await handle_battle_result(battle_id, battle_scores[battle_id])
+        logger.info(f"[BATTLE_WS] Battle {battle_id} completed successfully")
+    except Exception as e:
+        logger.error(f"[BATTLE_WS] Error completing battle {battle_id}: {str(e)}")
+        # Remove from triggered set to allow retry
+        battle_completion_triggered.discard(battle_id) 
+
+async def periodic_battle_completion_check():
+    """Periodic check for battle completion every 30 seconds"""
+    while True:
+        try:
+            await asyncio.sleep(30)  # Check every 30 seconds
+            
+            current_time = asyncio.get_event_loop().time()
+            
+            # Check all active battles
+            for battle_id in list(battle_connections.keys()):
+                if battle_id in battle_completion_triggered:
+                    continue  # Skip battles already triggered for completion
+                
+                # Only check battles that have been running for at least 2 minutes
+                if battle_id in battle_start_time:
+                    battle_duration = current_time - battle_start_time[battle_id]
+                    if battle_duration < 120:  # Less than 2 minutes, skip
+                        continue
+                
+                # Check if battle should be completed
+                if await validate_battle_completion(battle_id):
+                    logger.info(f"[BATTLE_WS] Periodic check: Battle {battle_id} ready for completion")
+                    await trigger_battle_completion(battle_id)
+        
+        except Exception as e:
+            logger.error(f"[BATTLE_WS] Error in periodic battle completion check: {str(e)}")
+
+# Start the periodic completion check
+asyncio.create_task(periodic_battle_completion_check()) 

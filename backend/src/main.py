@@ -31,11 +31,15 @@ async def health_check():
         redis_client = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
         redis_client.ping()
         
+        # Check Google API key
+        google_api_key = os.getenv("GOOGLE_API_KEY")
+        ai_status = "enabled" if google_api_key else "disabled"
+        
         return {
             "status": "healthy",
             "database": "connected",
             "redis": "connected",
-            "manual_questions": "enabled",
+            "ai_quiz_generation": ai_status,
             "timestamp": datetime.now().isoformat()
         }
     except Exception as e:

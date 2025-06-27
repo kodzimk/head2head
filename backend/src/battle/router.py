@@ -8,7 +8,6 @@ import uuid
 from init import redis_username,redis_email
 from tasks import queue_quiz_generation_task
 from db.router import update_user_data,get_user_by_username,repair_user_battles
-from questions import get_questions
 
 import json
 import math
@@ -34,11 +33,12 @@ async def create_battle(first_opponent: str, sport: str = Query(...), level: str
         
         logger.info(f"Battle {battle_id} created successfully")
         
-        # Trigger manual quiz generation as background task (non-blocking)
+        # Trigger AI quiz generation as background task (non-blocking)
         try:
-            task = queue_quiz_generation_task(battle_id, sport, level, 6)
+            task = queue_quiz_generation_task(battle_id, sport, level, 7)
+            logger.info(f"Started AI quiz generation task for battle {battle_id}")
         except Exception as e:
-            logger.error(f"Failed to start manual quiz generation for battle {battle_id}: {str(e)}")
+            logger.error(f"Failed to start AI quiz generation for battle {battle_id}: {str(e)}")
             # Don't fail the battle creation if quiz generation fails
             # The battle can still proceed with fallback questions
         

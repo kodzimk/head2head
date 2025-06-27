@@ -40,8 +40,10 @@ const getSportIcon = (sport: string) => {
 
 export default function Battles({
   user,
+  setUser,
 }: {
   user: User;
+  setUser: (user: User) => void;
 }) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -122,19 +124,22 @@ export default function Battles({
         const updatedStats = event.detail.updated_users[user.username];
         console.log('[Battles Tab] Updating user stats:', updatedStats);
         
-        // Update the user object with new stats
-        user.totalBattles = updatedStats.totalBattle;
-        user.wins = updatedStats.winBattle;
-        user.winRate = updatedStats.winRate;
-        user.streak = updatedStats.streak;
+        // Update the user object with new stats using setUser
+        const updatedUser = {
+          ...user,
+          totalBattles: updatedStats.totalBattle,
+          wins: updatedStats.winBattle,
+          winRate: updatedStats.winRate,
+          streak: updatedStats.streak,
+        };
         
-        // Update localStorage if needed
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        userData.totalBattles = updatedStats.totalBattle;
-        userData.wins = updatedStats.winBattle;
-        userData.winRate = updatedStats.winRate;
-        userData.streak = updatedStats.streak;
-        localStorage.setItem('user', JSON.stringify(userData));
+        // Update global store
+        if (setUser) {
+          setUser(updatedUser);
+        }
+        
+        // Update localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         
         console.log('[Battles Tab] Updated user stats in localStorage');
       }
@@ -150,7 +155,7 @@ export default function Battles({
     return () => {
       window.removeEventListener('battleFinished', handleBattleFinished);
     };
-  }, [user]);
+  }, [user, setUser]);
 
   return (
     <div>
