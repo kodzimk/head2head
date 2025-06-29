@@ -25,13 +25,6 @@ const getSportIcon = (sport: string) => {
     volleyball: <Zap className="w-6 h-6 text-purple-500" />,
     hockey: <Sword className="w-6 h-6 text-blue-500" />,
     cricket: <Target className="w-6 h-6 text-green-500" />,
-    rugby: <Trophy className="w-6 h-6 text-red-500" />,
-    golf: <Target className="w-6 h-6 text-green-500" />,
-    swimming: <Zap className="w-6 h-6 text-blue-500" />,
-    athletics: <Zap className="w-6 h-6 text-orange-500" />,
-    cycling: <Zap className="w-6 h-6 text-yellow-500" />,
-    boxing: <Sword className="w-6 h-6 text-red-500" />,
-    martial_arts: <Sword className="w-6 h-6 text-purple-500" />,
     default: <Trophy className="w-6 h-6 text-gray-500" />
   };
   

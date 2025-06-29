@@ -8,6 +8,9 @@ from websocket import manager
 import traceback
 from ai_quiz_generator import ai_quiz_generator
 import math
+import uuid
+from models import UserAnswer
+from init import SessionLocal
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -45,7 +48,32 @@ QUESTION_TIME_LIMIT = 5
 
 # Add new tracking variables for user finished status
 user_finished_status = {}  # Track which users have finished all questions
-user_finished_timestamps = {}  # Track when users finished for waiting detection
+user_finished_timestamps = {}
+
+async def save_user_answer(username: str, battle_id: str, question_text: str, user_answer: str, correct_answer: str, is_correct: bool, sport: str, level: str, question_index: int):
+    """Save user answer to database for training purposes"""
+    try:
+        async with SessionLocal() as session:
+            user_answer_record = UserAnswer(
+                id=str(uuid.uuid4()),
+                username=username,
+                battle_id=battle_id,
+                question_text=question_text,
+                user_answer=user_answer,
+                correct_answer=correct_answer,
+                is_correct=is_correct,
+                sport=sport,
+                level=level,
+                question_index=question_index
+            )
+            
+            session.add(user_answer_record)
+            await session.commit()
+            logger.info(f"[BATTLE_WS] Saved answer for user {username} in battle {battle_id}")
+            
+    except Exception as e:
+        logger.error(f"[BATTLE_WS] Error saving user answer: {str(e)}")
+        # Don't fail the battle if answer saving fails
 
 async def get_cached_questions(battle_id: str):
     """Get questions from Redis cache"""
@@ -355,6 +383,30 @@ async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
                 # Each user progresses independently - no waiting for opponent
                 logger.info(f"[BATTLE_WS] User {user} answered question {q_index}, they will progress independently")
                 
+                # Save user answer to database for training purposes
+                try:
+                    # Get sport and level from battle info
+                    from battle.init import battles
+                    battle = battles.get(battle_id)
+                    sport = battle.sport if battle else "Unknown"
+                    level = battle.level if battle else "Unknown"
+                    
+                    # Save the answer
+                    await save_user_answer(
+                        username=user,
+                        battle_id=battle_id,
+                        question_text=question.get('question', ''),
+                        user_answer=answer,
+                        correct_answer=correct_answer or '',
+                        is_correct=correct,
+                        sport=sport,
+                        level=level,
+                        question_index=q_index
+                    )
+                except Exception as e:
+                    logger.error(f"[BATTLE_WS] Error saving user answer: {str(e)}")
+                    # Don't fail the battle if answer saving fails
+                
     except WebSocketDisconnect:
         logger.info(f"[BATTLE_WS] User '{username}' disconnected from battle {battle_id}")
     finally:
@@ -640,7 +692,6 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
         # Save battle to database with proper error handling
         try:
             from models import BattleModel
-            from init import SessionLocal
             
             # Get sport and level from battle object or use defaults
             sport = battle.sport if battle else "Unknown"

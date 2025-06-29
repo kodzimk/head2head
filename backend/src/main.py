@@ -3,6 +3,7 @@ from db.router import db_router
 from friends.router import router_friend
 from battle.router import battle_router
 from battle_ws import router as battle_ws_router
+from training.router import training_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from websocket import app
@@ -54,6 +55,7 @@ app.include_router(db_router)
 app.include_router(router_friend)
 app.include_router(battle_router, prefix="/battle")
 app.include_router(battle_ws_router)
+app.include_router(training_router, prefix="/training", tags=["training"])
 
 origins = [
     "https://head2head.dev",

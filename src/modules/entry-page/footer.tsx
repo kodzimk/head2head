@@ -13,9 +13,12 @@ export default function Footer() {
               <a href="https://www.instagram.com/head2head.app" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
                 Instagram
               </a>
-              <a href="https://www.linkedin.com/company/head2head-dev" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
-                LinkedIn
-              </a>
+                <a href="https://www.linkedin.com/company/head2head-dev" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
+                  LinkedIn
+                </a>
+                <a href="#" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
+                  Support
+                </a>           
             </nav>
             <p className="text-xs md:text-sm text-slate-500">
               © {new Date().getFullYear()} head2head. All rights reserved.

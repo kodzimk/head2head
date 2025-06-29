@@ -20,7 +20,6 @@ import NotificationsPage from '../modules/notifications/notifications'
 import AllBattlesPage from '../modules/dashboard/all-battles-page'
 import { initialUser,type User } from '../shared/interface/user'
 import type { Battle } from '../shared/interface/user'
-import AdminPanel from '../modules/dashboard/admin-panel'
 
 import {sendMessage } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
@@ -380,7 +379,6 @@ export default function App() {
               <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
               <Route path="/battle/:id/result" element={<BattleResultPage user={user} />} />
               <Route path="/:username/all-battles" element={<AllBattlesPage />} />
-              <Route path="/admin-panel" element={<AdminPanel />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>

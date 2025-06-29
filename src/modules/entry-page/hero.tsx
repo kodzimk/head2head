@@ -90,19 +90,12 @@ export default function Component() {
                 icon: <Zap className="w-16 h-16 text-white" />,
                 desc: "30-second lightning rounds perfect for quick matches between classes or during breaks",
                 color: "red",
-                video: "/placeholder-quick-battle.mp4",
+                video: "https://www.loom.com/share/cec10a313a0b47bab79b59027891f300?sid=f3773f28-99d4-4ca9-8377-63fdb479e41c",
               },
               {
                 name: "Leaderboard",
                 icon: <Crown className="w-16 h-16 text-white" />,
                 desc: "Compete with other players for the top spot on the leaderboard",
-                color: "yellow",
-                video: "/placeholder-tournament.mp4",
-              },
-              {
-                name: "Rating and Titles",
-                icon: <Crown className="w-16 h-16 text-white" />,
-                desc: "Earn ratings and titles based on your performance",
                 color: "yellow",
                 video: "/placeholder-tournament.mp4",
               },
@@ -121,15 +114,25 @@ export default function Component() {
                 } bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 rounded-xl overflow-hidden h-full`}
               >
                 <div className="w-full md:w-1/2 h-8xl md:h-5xl flex-shrink-0 flex items-center justify-center p-4">
-                  <video
-                    src={mode.video}
-                    className="rounded-lg shadow-lg object-cover w-full h-full"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    poster="/placeholder.svg?height=200&width=320"
-                  />
+                  {mode.video.includes('loom.com') ? (
+                    <iframe
+                      src={mode.video.replace('/share/', '/embed/')}
+                      className="rounded-lg shadow-lg w-full h-full"
+                      frameBorder="0"
+                      allowFullScreen
+                      title={mode.name}
+                    />
+                  ) : (
+                    <video
+                      src={mode.video}
+                      className="rounded-lg shadow-lg object-cover w-full h-full"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      poster="/placeholder.svg?height=200&width=320"
+                    />
+                  )}
                 </div>
                 <CardContent
                   className={`pt-4 w-full md:w-1/2 flex flex-col ${
