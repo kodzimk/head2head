@@ -1,4 +1,3 @@
-import { MobileNav } from "../../shared/mobile-nav";
 import { Button } from "../../shared/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -15,7 +14,7 @@ export default function Header() {
           <span className="font-bold text-lg sm:text-xl text-slate-900">head2head</span>
         </div>
       </a>
-      <nav className="ml-auto hidden md:flex gap-6 items-center mr-10">
+      <nav className="ml-auto  md:flex gap-6 items-center md:mr-10">
         <Button className="max-w-72 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => {
          
           navigate("/sign-up")
@@ -23,9 +22,6 @@ export default function Header() {
           Start Now!
         </Button>
       </nav>
-      <div className="ml-auto md:hidden">
-        <MobileNav />
-      </div>
     </header>
   );
 }

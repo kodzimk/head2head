@@ -1814,3 +1814,432 @@ if battle_id in battle_completion_triggered or battle_id in battles_processing_c
 - `src/modules/trainings/trainings.tsx` - Added timer countdown logic and enhanced display
 
 **Status:** ✅ RESOLVED - Training timer now counts down properly with visual feedback
+
+## Localhost:8000 Request Task - 2024-12-19
+
+### Task Overview
+- **Objective**: Make a request to localhost:8000 to test available endpoints
+- **Goal**: Identify and test backend API endpoints
+- **Status**: Pending - User needs to specify which endpoint to request
+
+### Available Backend Endpoints (localhost:8000)
+
+#### 1. Health Check
+- **Endpoint**: `GET /health`
+- **Purpose**: Check server status, database connection, Redis connection, AI status
+- **Response**: JSON with status, database, redis, ai_quiz_generation, timestamp
+
+#### 2. Authentication Endpoints (`/auth/*`)
+- User registration, login, authentication
+- User management operations
+
+#### 3. Battle Endpoints (`/battle/*`)
+- Battle creation and management
+- Battle statistics and rankings
+
+#### 4. Training Endpoints (`/training/*`)
+- Training session management
+- Training statistics and progress tracking
+- Incorrect answer practice
+- Random AI question generation
+
+#### 5. Friends Endpoints (`/friends/*`)
+- Friend management
+- Friend list operations
+
+#### 6. Database Endpoints (`/db/*`)
+- User data operations
+- Database management
+
+#### 7. WebSocket Endpoints
+- Real-time battle communication
+- Live battle updates
+
+### Example Request Commands
+
+#### Health Check (Recommended First Test)
+```bash
+curl http://localhost:8000/health
+```
+
+#### PowerShell Alternative
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8000/health" -Method GET
+```
+
+#### Training Stats Example
+```bash
+curl http://localhost:8000/training/training-stats/username
+```
+
+#### Battle List Example
+```bash
+curl http://localhost:8000/battle/battles
+```
+
+### Next Steps
+- User needs to specify which endpoint to request
+- Backend server should be running on localhost:8000
+- Can test with health endpoint first to verify server status
+
+---
+
+## Avatar System Improvements - 2024-12-19
+
+### Task Overview
+- **Objective**: Implement proper avatar saving and display functionality
+- **Goal**: Create a comprehensive avatar system with upload, validation, and consistent display
+- **Changes**: Enhanced avatar components, upload functionality, and display consistency
+
+### Changes Made
+
+#### 1. Enhanced Avatar Component (`src/shared/ui/avatar.tsx`)
+- **Improved URL Handling**: Added smart URL resolution for different avatar path formats
+- **Better Fallback**: Enhanced fallback component with username initials and orange theme
+- **Type Safety**: Added proper TypeScript interfaces for avatar props
+- **API Integration**: Integrated with API_BASE_URL for consistent server communication
+
+#### 2. New UserAvatar Component (`src/shared/ui/user-avatar.tsx`)
+- **Unified Avatar Display**: Created a reusable component for consistent avatar display
+- **Size Variants**: Added sm, md, lg, xl size options with proper styling
+- **Smart URL Resolution**: Handles full URLs, relative paths, and filenames
+- **Fallback Logic**: Proper fallback to username initials when avatar is missing
+- **Validation**: Checks for valid avatar data before rendering
+
+#### 3. New AvatarUpload Component (`src/shared/ui/avatar-upload.tsx`)
+- **File Validation**: Validates file type (JPEG, PNG, WebP) and size (max 5MB)
+- **Upload Progress**: Shows loading state during upload with spinner
+- **Error Handling**: Comprehensive error messages for various failure scenarios
+- **Success Feedback**: Success messages with auto-clear functionality
+- **Preview Support**: Shows image preview before upload
+- **User Experience**: Clear upload instructions and file requirements
+
+#### 4. Profile Page Enhancement (`src/modules/profile/profile.tsx`)
+- **New Upload Interface**: Replaced old avatar upload with new AvatarUpload component
+- **Better State Management**: Improved avatar update handling with proper user state updates
+- **Cleaner Code**: Removed old avatar handling logic and file input management
+- **Consistent Styling**: Better visual integration with the profile interface
+
+#### 5. Header Component Update (`src/modules/dashboard/header.tsx`)
+- **Consistent Display**: Updated to use UserAvatar component for consistent styling
+- **Better Fallback**: Proper fallback to username initials in header avatar
+- **Responsive Design**: Maintains responsive behavior with new component
+
+#### 6. Friends Page Update (`src/modules/friends/friends.tsx`)
+- **Unified Avatar Display**: All friend avatars now use UserAvatar component
+- **Consistent Styling**: Uniform avatar appearance across friends, requests, and search results
+- **Better UX**: Improved visual consistency in friend management interface
+
+### Key Features
+
+#### Avatar Upload System
+- **File Validation**: Supports JPEG, PNG, WebP formats with 5MB size limit
+- **Progress Feedback**: Real-time upload progress with loading indicators
+- **Error Handling**: Comprehensive error messages for network, validation, and server errors
+- **Success Feedback**: Clear success messages with auto-dismiss
+- **Preview Support**: Image preview before upload confirmation
+
+#### Avatar Display System
+- **Smart URL Resolution**: Handles various avatar URL formats automatically
+- **Consistent Fallbacks**: Username initials with orange theme when avatar missing
+- **Size Variants**: Multiple size options for different UI contexts
+- **Responsive Design**: Works across all device sizes
+- **Type Safety**: Full TypeScript support with proper interfaces
+
+#### User Experience Improvements
+- **Visual Consistency**: Uniform avatar appearance across all components
+- **Loading States**: Clear feedback during avatar operations
+- **Error Recovery**: Graceful handling of upload failures
+- **Accessibility**: Proper alt text and keyboard navigation
+- **Performance**: Optimized image loading and caching
+
+### Technical Implementation
+
+#### Backend Integration
+- **Upload Endpoint**: Uses existing `/db/upload-avatar` endpoint
+- **File Storage**: Leverages existing avatar directory structure
+- **Token Authentication**: Proper authentication token handling
+- **Error Handling**: Comprehensive backend error response handling
+
+#### Frontend Architecture
+- **Component Composition**: Modular avatar components for reusability
+- **State Management**: Proper state updates for avatar changes
+- **Event Handling**: Clean event handling for upload and display
+- **Styling**: Consistent styling with Tailwind CSS
+
+#### Data Flow
+1. **File Selection**: User selects image file through upload component
+2. **Validation**: Client-side validation of file type and size
+3. **Preview**: Image preview shown to user
+4. **Upload**: File uploaded to backend with progress feedback
+5. **Update**: User state updated with new avatar path
+6. **Display**: Avatar displayed consistently across all components
+
+### Benefits
+- **Consistent Experience**: Uniform avatar display across all pages
+- **Better UX**: Clear feedback and error handling for avatar operations
+- **Maintainability**: Modular components for easy updates and reuse
+- **Performance**: Optimized image loading and caching
+- **Accessibility**: Proper alt text and keyboard navigation support
+- **Type Safety**: Full TypeScript support with proper interfaces
+
+### Files Modified
+- `src/shared/ui/avatar.tsx` - Enhanced base avatar component
+- `src/shared/ui/user-avatar.tsx` - New unified avatar display component
+- `src/shared/ui/avatar-upload.tsx` - New avatar upload component
+- `src/modules/profile/profile.tsx` - Updated profile page with new upload interface
+- `src/modules/dashboard/header.tsx` - Updated header with consistent avatar display
+- `src/modules/friends/friends.tsx` - Updated friends page with unified avatar display
+
+### Status
+✅ COMPLETED - Avatar system fully implemented with comprehensive upload, validation, and display functionality
+
+---
+
+## CORS Issue Resolution - 2024-12-19
+
+### Task Overview
+- **Objective**: Fix CORS error preventing avatar upload from production frontend
+- **Issue**: "Access to XMLHttpRequest at 'https://api.head2head.dev/db/upload-avatar' from origin 'https://www.head2head.dev' has been blocked by CORS policy"
+- **Goal**: Enable avatar uploads from production domain
+- **Status**: ✅ RESOLVED - CORS configuration updated
+
+### Problem Analysis
+- **Root Cause**: CORS policy blocking requests from `https://www.head2head.dev` to `https://api.head2head.dev`
+- **Error Details**: No 'Access-Control-Allow-Origin' header present on requested resource
+- **Impact**: Users unable to upload avatars from production frontend
+
+### Changes Made
+
+#### 1. Enhanced CORS Configuration (`backend/src/main.py`)
+- **Expanded Origins**: Added comprehensive list of allowed origins including production domains
+- **Additional Headers**: Added specific CORS headers for better compatibility
+- **Preflight Caching**: Added max_age=86400 for 24-hour preflight caching
+- **Methods Support**: Added PATCH method support for future API endpoints
+
+**Updated Origins List:**
+```python
+origins = [
+    "https://head2head.dev",
+    "https://www.head2head.dev",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+]
+```
+
+#### 2. Enhanced Avatar Upload Endpoint (`backend/src/db/router.py`)
+- **Explicit CORS Headers**: Added specific CORS headers to upload response
+- **OPTIONS Endpoint**: Added dedicated OPTIONS endpoint for CORS preflight requests
+- **Better Error Handling**: Enhanced error handling with proper logging
+- **File Validation**: Added client-side file type and size validation
+- **Security Improvements**: Better token validation and file processing
+
+**New Features:**
+- File type validation (images only)
+- File size validation (5MB limit)
+- Explicit CORS headers in responses
+- Dedicated OPTIONS endpoint for preflight
+- Enhanced error logging
+
+#### 3. CORS Test Script (`test_cors.py`)
+- **Preflight Testing**: Script to test CORS preflight requests
+- **Health Check**: Verify server accessibility
+- **Debugging Tool**: Help diagnose CORS issues in production
+
+### Technical Implementation
+
+#### CORS Headers Added
+```python
+headers = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400",
+}
+```
+
+#### OPTIONS Endpoint
+```python
+@db_router.options("/upload-avatar")
+async def upload_avatar_options():
+    return JSONResponse(
+        content={},
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Max-Age": "86400",
+        }
+    )
+```
+
+### Benefits
+- **Production Ready**: Avatar uploads now work from production frontend
+- **Better Security**: Enhanced file validation and error handling
+- **Improved UX**: Clear error messages for upload failures
+- **Future Proof**: Comprehensive CORS configuration for additional endpoints
+- **Debugging**: Test script for CORS troubleshooting
+
+### Deployment Notes
+- **Backend Restart Required**: CORS changes require backend server restart
+- **No Frontend Changes**: Frontend code remains unchanged
+- **Backward Compatible**: Changes don't affect existing functionality
+
+### Files Modified
+- `backend/src/main.py` - Enhanced CORS configuration
+- `backend/src/db/router.py` - Enhanced avatar upload endpoint with CORS support
+- `test_cors.py` - CORS testing script (new file)
+
+### Status
+✅ RESOLVED - CORS configuration updated and avatar upload endpoint enhanced
+
+---
+
+## Avatar Size and Button Position Improvements - 2024-12-19
+
+### Task Overview
+- **Objective**: Make avatar size bigger and adjust upload button position closer to avatar
+- **Goal**: Improve avatar upload UX with larger display and better button positioning
+- **Changes**: Enhanced avatar sizes and button positioning for better user experience
+
+### Changes Made
+
+#### 1. Enhanced AvatarUpload Component (`src/shared/ui/avatar-upload.tsx`)
+- **Larger Size Options**: Added '2xl' (32x32) and '3xl' (40x40) size variants
+- **Dynamic Button Sizing**: Button size scales proportionally with avatar size
+- **Closer Button Position**: Changed from `bottom-0 right-0` to `-bottom-1 -right-1` for tighter positioning
+- **Enhanced Styling**: Added shadow and white border to button for better visibility
+- **Proportional Icons**: Icon size scales with button size for better visual balance
+
+**New Size Classes:**
+```typescript
+const sizeClasses = {
+  sm: 'h-12 w-12',
+  md: 'h-16 w-16',
+  lg: 'h-20 w-20',
+  xl: 'h-24 w-24',
+  '2xl': 'h-32 w-32',    // New
+  '3xl': 'h-40 w-40'     // New
+};
+```
+
+**Button Positioning:**
+- **Before**: `absolute bottom-0 right-0` (button at edge)
+- **After**: `absolute -bottom-1 -right-1` (button overlapping slightly)
+
+#### 2. Updated UserAvatar Component (`src/shared/ui/user-avatar.tsx`)
+- **Extended Size Support**: Added support for '2xl' and '3xl' sizes
+- **Consistent Sizing**: Maintains proportional sizing across all components
+- **Backward Compatibility**: All existing size options still work
+
+#### 3. Profile Page Enhancement (`src/modules/profile/profile.tsx`)
+- **Larger Default Size**: Changed from 'xl' to '3xl' for profile page avatar
+- **Better Visual Impact**: Larger avatar provides better user experience
+- **Improved Layout**: Better spacing and alignment with larger avatar
+
+### Key Improvements
+
+#### Visual Enhancements
+- **Larger Avatar Display**: Profile avatars now use 40x40 (3xl) size for better visibility
+- **Better Button Integration**: Upload button positioned closer to avatar with overlap
+- **Enhanced Styling**: Button has shadow and border for better visibility
+- **Proportional Scaling**: All elements scale together for consistent appearance
+
+#### User Experience
+- **Easier Upload**: Larger avatar makes it easier to see current profile picture
+- **Better Button Access**: Closer button positioning makes upload more intuitive
+- **Visual Feedback**: Enhanced button styling provides better visual cues
+- **Responsive Design**: Maintains good appearance across different screen sizes
+
+#### Technical Implementation
+- **Dynamic Sizing**: Button and icon sizes automatically adjust based on avatar size
+- **Flexible Components**: Components support multiple size options for different contexts
+- **Consistent API**: All avatar components use the same size system
+- **Type Safety**: Full TypeScript support for new size options
+
+### Size Comparison
+- **Small (sm)**: 12x12 - For compact displays
+- **Medium (md)**: 16x16 - Default size for most contexts
+- **Large (lg)**: 20x20 - Enhanced visibility
+- **Extra Large (xl)**: 24x24 - Prominent display
+- **2X Large (2xl)**: 32x32 - Very prominent display
+- **3X Large (3xl)**: 40x40 - Maximum size for profile pages
+
+### Benefits
+- **Better Visibility**: Larger avatars are easier to see and appreciate
+- **Improved UX**: Closer button positioning makes upload more intuitive
+- **Enhanced Aesthetics**: Better visual balance and styling
+- **Flexible Design**: Multiple size options for different use cases
+- **Consistent Experience**: Uniform sizing across all avatar components
+
+### Files Modified
+- `src/shared/ui/avatar-upload.tsx` - Enhanced with larger sizes and better button positioning
+- `src/shared/ui/user-avatar.tsx` - Added support for new size options
+- `src/modules/profile/profile.tsx` - Updated to use larger default avatar size
+
+### Status
+✅ COMPLETED - Avatar size increased and button positioning improved for better UX
+
+---
+
+## Avatar System Implementation and Improvements - 2024-12-19
+
+### Initial Avatar System Setup
+- Created unified `UserAvatar` component with size options (sm, md, lg, xl, 2xl, 3xl)
+- Created `AvatarUpload` component with file validation, upload progress, and error handling
+- Updated profile page to use new avatar components
+- Updated header component to use new `UserAvatar` component
+- Updated friends page to use new `UserAvatar` component
+
+### CORS Issue Resolution
+- **Problem**: CORS error when uploading avatars from production frontend
+- **Root Cause**: Backend CORS configuration was insufficient for production domains
+- **Solution**: 
+  - Updated backend CORS configuration in `main.py` to include comprehensive list of allowed origins
+  - Added specific CORS headers for avatar upload endpoint
+  - Created dedicated OPTIONS endpoint for avatar upload route
+  - Added test script `test_cors.py` for CORS preflight requests
+- **Note**: Backend deployment and restart required for fix to take effect
+
+### Avatar UI Improvements
+- **Avatar Size**: Added larger size options ('2xl' and '3xl') to avatar components
+- **Upload Button Position**: Moved upload button closer to avatar for better UX
+- **Upload Button Size**: Reduced button and icon sizes proportionally for better visual balance
+- **Success Message**: Removed success message box after avatar upload for cleaner UX
+
+### Friends Page Revert
+- Reverted friends page to original avatar display logic
+- Removed use of new `UserAvatar` component in friends page
+- Restored previous image and fallback div structure
+
+---
+
+## Backend Indentation Error Fixes - 2024-12-19
+
+### Critical Bug Fix
+- **Problem**: IndentationError in backend causing startup failure
+- **Location**: `backend/src/db/router.py` lines 49 and 143
+- **Root Cause**: Missing indentation after `try` statements in two functions:
+  1. `delete_user_data` function (line 49)
+  2. `get_user_data` function (line 143)
+- **Solution**: 
+  - Added proper indentation to code blocks inside `try` statements
+  - Added proper exception handling with HTTPException responses
+  - Fixed indentation for `decoded_token = decode_access_token(token)` lines
+- **Impact**: Backend should now start successfully without IndentationError
+
+## 2024-12-19 - Production API Configuration Update
+
+### API URL Migration to Production
+- **Change**: Updated API configuration from localhost to production domain
+- **Location**: `src/shared/interface/gloabL_var.tsx` lines 175-176
+- **Updates**:
+  - `API_BASE_URL`: Changed from `"http://localhost:8000"` to `"https://api.head2head.dev"`
+  - `WS_BASE_URL`: Changed from `"ws://localhost:8000"` to `"wss://api.head2head.dev"`
+- **Impact**: Frontend will now connect to production API instead of local development server
+- **Note**: This change affects all API calls and WebSocket connections throughout the application

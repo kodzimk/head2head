@@ -65,18 +65,10 @@ export default function DashboardPage() {
       setRecentBattles(mapped);
     };
     fetchBattles();
-    
-    // Listen for battle finished events to refresh data
+
     const handleBattleFinished = (event: any) => {
-      console.log('[Dashboard] Battle finished event received:', event.detail);
-      console.log('[Dashboard] Refreshing battle data...');
-      
-      // Update user stats if provided in the event
       if (event.detail.updated_users && event.detail.updated_users[user.username]) {
         const updatedStats = event.detail.updated_users[user.username];
-        console.log('[Dashboard] Updating user stats:', updatedStats);
-        
-        // Update the global user store with new stats (use new object, correct mapping)
         const updatedUser = {
           ...user,
           totalBattles: updatedStats.totalBattle,
@@ -85,7 +77,6 @@ export default function DashboardPage() {
           streak: updatedStats.streak,
         };
         setUser(updatedUser);
-        // Update localStorage if needed
         localStorage.setItem('user', JSON.stringify(updatedUser));
       }
       
@@ -107,8 +98,8 @@ export default function DashboardPage() {
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-[25px] md:text-3xl font-bold text-gray-900 dark:text-white">
-                Welcome back, {user.username}! 👋
+              <h1 className="text-[23px] md:text-3xl font-bold text-gray-900 dark:text-white">
+                Welcome back, {user.username}! 
               </h1>
               <p className="text-gray-600 dark:text-gray-300 mt-1">
                 Ready to dominate the sports trivia world?

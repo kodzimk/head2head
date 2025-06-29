@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar";
+import { UserAvatar } from "../../shared/ui/user-avatar";
 import type { User } from "../../shared/interface/user";
 import { Button } from "../../shared/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +13,6 @@ import {
 import { LogOut, User as UserIcon, BookOpen, Trophy, List, Users, Play, Home, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { API_BASE_URL } from "../../shared/interface/gloabL_var";
 
 
 export default function Header({ user }: { user: User }) {
@@ -98,15 +97,11 @@ export default function Header({ user }: { user: User }) {
               variant="ghost"
               className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100"
             >
-              <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                <AvatarImage
-                  src={`${API_BASE_URL}${user.avatar}`}
-                  alt={user.username}
-                />
-                <AvatarFallback className="bg-orange-500 text-white">
-                  {user.username.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                user={user}
+                size="lg"
+                className="h-10 w-10 sm:h-12 sm:w-12"
+              />
               {(friendRequests.length > 0 || user.invitations.length > 0) && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                   {friendRequests.length + user.invitations.length}

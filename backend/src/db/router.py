@@ -3,6 +3,8 @@ from init import SessionLocal, redis_email, redis_username
 from .init import db_router
 import json
 from fastapi import HTTPException, UploadFile, File
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import aiofiles
 import os
 from datetime import datetime
@@ -45,90 +47,93 @@ async def update_battles_username(old_username: str, new_username: str):
     
 @db_router.delete("/delete-user",name="delete user")
 async def delete_user_data(token: str):
-    decoded_token = decode_access_token(token)
-    email = decoded_token.get("sub")
-    async with SessionLocal() as db:
-        data = await db.get(UserData, email)
-        friends = data.friends
-        
-        for friend in data.friends:
-                friend_data = redis_username.get(friend)
-                if friend_data:
-                    friend_model = json.loads(friend_data)
-                    if data.username in friend_model['friends']:
-                        friend_model['friends'].remove(data.username)
-                        redis_username.set(friend, json.dumps(friend_model))
-                        redis_email.set(friend_model['email'], json.dumps(friend_model))
-                        
-                        async with SessionLocal() as friend_db:
-                            db_friend = await friend_db.get(UserData, friend_model['email'])
-                            if db_friend:
-                                db_friend.friends = friend_model['friends']
-                                await friend_db.commit()
-                                await friend_db.refresh(db_friend)
+    try:
+        decoded_token = decode_access_token(token)
+        email = decoded_token.get("sub")
+        async with SessionLocal() as db:
+            data = await db.get(UserData, email)
+            friends = data.friends
+            
+            for friend in data.friends:
+                    friend_data = redis_username.get(friend)
+                    if friend_data:
+                        friend_model = json.loads(friend_data)
+                        if data.username in friend_model['friends']:
+                            friend_model['friends'].remove(data.username)
+                            redis_username.set(friend, json.dumps(friend_model))
+                            redis_email.set(friend_model['email'], json.dumps(friend_model))
+                            
+                            async with SessionLocal() as friend_db:
+                                db_friend = await friend_db.get(UserData, friend_model['email'])
+                                if db_friend:
+                                    db_friend.friends = friend_model['friends']
+                                    await friend_db.commit()
+                                    await friend_db.refresh(db_friend)
 
-        # Delete the user
-        await db.delete(data)
-        await db.commit()
-        redis_email.delete(email)
-        redis_username.delete(data.username)
-        
-        # Recalculate rankings for all remaining users after account deletion
-        try:
-            from battle.router import update_user_rankings
-            logger.info(f"[DELETE] Recalculating rankings after account deletion...")
-            ranking_success = await update_user_rankings()
-            if ranking_success:
-                logger.info(f"[DELETE] Successfully recalculated rankings after account deletion")
-                
-                # Update Redis cache for all remaining users with new rankings
-                async with SessionLocal() as ranking_db:
-                    stmt = select(UserData)
-                    result = await ranking_db.execute(stmt)
-                    remaining_users = result.scalars().all()
+            # Delete the user
+            await db.delete(data)
+            await db.commit()
+            redis_email.delete(email)
+            redis_username.delete(data.username)
+            
+            # Recalculate rankings for all remaining users after account deletion
+            try:
+                from battle.router import update_user_rankings
+                logger.info(f"[DELETE] Recalculating rankings after account deletion...")
+                ranking_success = await update_user_rankings()
+                if ranking_success:
+                    logger.info(f"[DELETE] Successfully recalculated rankings after account deletion")
                     
-                    for user in remaining_users:
-                        try:
-                            await ranking_db.refresh(user)
-                            updated_user_dict = {
-                                'username': user.username,
-                                'email': user.email,
-                                'totalBattle': user.totalBattle,
-                                'winRate': user.winRate,
-                                'ranking': user.ranking,
-                                'winBattle': user.winBattle,
-                                'favourite': user.favourite,
-                                'streak': user.streak,
-                                'password': user.password,
-                                'friends': user.friends,
-                                'friendRequests': user.friendRequests,
-                                'avatar': user.avatar,
-                                'battles': user.battles,
-                                'invitations': user.invitations
-                            }
-                            
-                            redis_email.set(user.email, json.dumps(updated_user_dict))
-                            redis_username.set(user.username, json.dumps(updated_user_dict))
-                            
-                            # Send websocket notification to each remaining user
+                    # Update Redis cache for all remaining users with new rankings
+                    async with SessionLocal() as ranking_db:
+                        stmt = select(UserData)
+                        result = await ranking_db.execute(stmt)
+                        remaining_users = result.scalars().all()
+                        
+                        for user in remaining_users:
                             try:
-                                from websocket import manager
-                                await manager.send_message(json.dumps({
-                                    "type": "user_updated",
-                                    "data": updated_user_dict
-                                }), user.username)
-                                logger.info(f"[DELETE] Sent user_updated websocket notification to {user.username} with new ranking {user.ranking}")
-                            except Exception as e:
-                                logger.warning(f"[DELETE] Failed to send websocket notification to {user.username}: {str(e)}")
+                                await ranking_db.refresh(user)
+                                updated_user_dict = {
+                                    'username': user.username,
+                                    'email': user.email,
+                                    'totalBattle': user.totalBattle,
+                                    'winRate': user.winRate,
+                                    'ranking': user.ranking,
+                                    'winBattle': user.winBattle,
+                                    'favourite': user.favourite,
+                                    'streak': user.streak,
+                                    'password': user.password,
+                                    'friends': user.friends,
+                                    'friendRequests': user.friendRequests,
+                                    'avatar': user.avatar,
+                                    'battles': user.battles,
+                                    'invitations': user.invitations
+                                }
                                 
-                        except Exception as e:
-                            logger.error(f"[DELETE] Error updating Redis for user {user.username}: {str(e)}")
-            else:
-                logger.warning(f"[DELETE] Failed to recalculate rankings after account deletion")
-        except Exception as e:
-            logger.error(f"[DELETE] Error recalculating rankings after account deletion: {str(e)}\n{traceback.format_exc()}")
-        
-        return friends
+                                redis_email.set(user.email, json.dumps(updated_user_dict))
+                                redis_username.set(user.username, json.dumps(updated_user_dict))
+                                
+                                # Send websocket notification to each remaining user
+                                try:
+                                    from websocket import manager
+                                    await manager.send_message(json.dumps({
+                                        "type": "user_updated",
+                                        "data": updated_user_dict
+                                    }), user.username)
+                                    logger.info(f"[DELETE] Sent user_updated websocket notification to {user.username} with new ranking {user.ranking}")
+                                except Exception as e:
+                                    logger.warning(f"[DELETE] Failed to send websocket notification to {user.username}: {str(e)}")
+                                    
+                            except Exception as e:
+                                logger.error(f"[DELETE] Error updating Redis for user {user.username}: {str(e)}")
+                else:
+                    logger.warning(f"[DELETE] Failed to recalculate rankings after account deletion")
+            except Exception as e:
+                logger.error(f"[DELETE] Error recalculating rankings after account deletion: {str(e)}\n{traceback.format_exc()}")
+            
+            return friends
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting user: {str(e)}")
 
 @db_router.on_event("shutdown")
 async def end_event():
@@ -137,10 +142,13 @@ async def end_event():
 
 @db_router.get("/get-user")
 async def get_user_data(token: str):
+    try:
         decoded_token = decode_access_token(token)
         email = decoded_token.get("sub")
         redis_data = redis_email.get(email)
         return json.loads(redis_data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting user data: {str(e)}")
 
 @db_router.get("/get-user-by-username",name="get user by username")
 async def get_user_by_username(username: str):
@@ -211,53 +219,71 @@ async def get_battle_stats(username: str):
                 else:
                     draws += 1
             
+            win_rate = round((wins / total_battles * 100) if total_battles > 0 else 0, 1)
+            
             return {
-                "username": username,
                 "total_battles": total_battles,
-                "battles_as_first_opponent": len(battles_as_first),
-                "battles_as_second_opponent": len(battles_as_second),
                 "wins": wins,
                 "losses": losses,
                 "draws": draws,
-                "win_rate": round((wins / total_battles * 100) if total_battles > 0 else 0, 2)
+                "win_rate": win_rate
             }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting battle stats: {str(e)}")
+        logger.error(f"[DB_ROUTER] Error getting battle stats for {username}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting battle statistics: {str(e)}")
 
 @db_router.post("/upload-avatar")
 async def upload_avatar(token: str, file: UploadFile = File(...)):
-    decoded_token = decode_access_token(token)
-    email = decoded_token.get("sub")
+    """
+    Upload avatar with enhanced CORS support
+    """
     try:
+        decoded_token = decode_access_token(token)
+        email = decoded_token.get("sub")
+        
+        if not email:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Validate file size (5MB limit)
+        content = await file.read()
+        if len(content) > 5 * 1024 * 1024:  # 5MB
+            raise HTTPException(status_code=400, detail="File size must be less than 5MB")
+        
         avatar_dir = "avatars"
         os.makedirs(avatar_dir, exist_ok=True)
         
-        
+        # Generate unique filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         file_extension = os.path.splitext(file.filename)[1]
         filename = f"{email}_{timestamp}{file_extension}"
         file_path = os.path.join(avatar_dir, filename)
         
-        
+        # Save file
         async with aiofiles.open(file_path, 'wb') as out_file:
-            content = await file.read()
             await out_file.write(content)
         
-        
+        # Update user record
         async with SessionLocal() as db:
             user_model = await db.get(UserData, email)
             if user_model is None:
                 raise HTTPException(status_code=404, detail="User not found")
             
-
+            # Remove old avatar if exists
             if user_model.avatar and os.path.exists(os.path.join(avatar_dir, os.path.basename(user_model.avatar))):
+                try:
                     os.remove(os.path.join(avatar_dir, os.path.basename(user_model.avatar)))
+                except Exception as e:
+                    logger.warning(f"Failed to remove old avatar: {e}")
             
             relative_path = f"/avatars/{filename}"
             user_model.avatar = relative_path
             await db.commit()
             
-            
+            # Update Redis cache
             user_dict = {
                 'username': user_model.username,
                 'email': user_model.email,
@@ -277,9 +303,37 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
             redis_email.set(email, json.dumps(user_dict))
             redis_username.set(user_model.username, json.dumps(user_dict))
             
-        return {"message": "Avatar uploaded successfully", "avatar_path": relative_path}
+        # Return response with CORS headers
+        response_data = {"message": "Avatar uploaded successfully", "avatar_path": relative_path}
+        return JSONResponse(
+            content=response_data,
+            status_code=200,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            }
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Avatar upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload avatar: {str(e)}")
+
+# Add OPTIONS endpoint for CORS preflight
+@db_router.options("/upload-avatar")
+async def upload_avatar_options():
+    return JSONResponse(
+        content={},
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Max-Age": "86400",
+        }
+    )
 
 async def update_user_statistics(username: str, total_battle: int, win_battle: int, streak: int, win_rate: int, battles_list: list):
     logger.info(f"[DB_ROUTER] update_user_statistics called for {username}: total_battle={total_battle}, win_battle={win_battle}, streak={streak}, win_rate={win_rate}, battles_list={battles_list}")

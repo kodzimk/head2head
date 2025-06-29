@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom'
 import { removeFriend } from '../../shared/websockets/websocket'
 import { refreshView } from '../../app/App'
 import { API_BASE_URL } from "../../shared/interface/gloabL_var"
+import { UserAvatar } from "../../shared/ui/user-avatar"
 
 
 export default function FriendsPage({user}: {user: User}) {
@@ -124,17 +125,11 @@ export default function FriendsPage({user}: {user: User}) {
                       onClick={() => navigate(`/profile/${item.username}`)}
                     >
                       <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
-                        {item.avatar ? (
-                          <img
-                            src={item.avatar}
-                            alt={item.username}
-                            className="w-20 h-20 sm:w-14 sm:h-14 rounded-full object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-20 h-20 sm:w-14 sm:h-14 rounded-full bg-orange-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-                            {item.username.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
+                        <UserAvatar
+                          user={item}
+                          size="lg"
+                          className="flex-shrink-0"
+                        />
                         <div className="flex-grow min-w-0 text-center sm:text-left">
                           <h3 className="font-medium text-gray-900 dark:text-white truncate text-lg">
                             {item.username}

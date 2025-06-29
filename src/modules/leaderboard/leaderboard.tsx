@@ -30,7 +30,7 @@ export default function LeaderboardPage() {
   const { user } = useGlobalStore();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [,setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -73,28 +73,7 @@ export default function LeaderboardPage() {
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-gray-900">
-        <Header user={user} />
-        <main className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
+  
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <Header user={user} />
@@ -113,8 +92,8 @@ export default function LeaderboardPage() {
           {/* Stats Cards */}
           <div className="flex justify-center w-full">
             <Card className="bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 w-full">
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-center justify-between">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between p-2">
                   <div>
                     <p className="text-blue-100 text-xs sm:text-sm">Your Rank</p>
                     <p className="text-xl sm:text-2xl font-bold">#{currentUserRank || "Unranked"}</p>

@@ -12,7 +12,6 @@ import {
   Settings,
   AlertTriangle,
   Save,
-  Camera,
   Loader2,
   User,
   RefreshCw,
@@ -29,6 +28,7 @@ import Header from "../dashboard/header"
 import { deleteUser, sendMessage } from "../../shared/websockets/websocket"
 import { initializeWebSocketForNewUser } from "../../app/App"
 import { API_BASE_URL } from "../../shared/interface/gloabL_var"
+import { AvatarUpload } from "../../shared/ui/avatar-upload"
 
 export default function ProfileSettingsPage(  ) {
   const navigate = useNavigate()
@@ -41,7 +41,6 @@ export default function ProfileSettingsPage(  ) {
     return savedTheme === 'dark';
   });
   const [isLoading, setIsLoading] = useState(false)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [nickname, setNickname] = useState(user.nickname || "");
@@ -69,12 +68,15 @@ export default function ProfileSettingsPage(  ) {
     }
   }, [isDarkMode]);
 
+  const handleAvatarUpdate = (newAvatarPath: string) => {
+    const updatedUser = { ...user, avatar: newAvatarPath };
+    setUser(updatedUser);
+  };
+
   const handleSave = async () => {
-    // Clear previous messages
     setError(null)
     setSuccessMessage(null)
     
-    // Validate username
     if (!username.trim()) {
       setError("Username cannot be empty")
       return
@@ -100,19 +102,16 @@ export default function ProfileSettingsPage(  ) {
     localStorage.setItem('username', username)
     sendMessage(user, "user_update")
 
-    // If username changed, reinitialize websocket connection and navigate
     if (oldUsername !== username) {
       console.log("Username changed, reinitializing websocket connection");
       console.log("Old username:", oldUsername);
       console.log("New username:", username);
       setSuccessMessage(`Username successfully changed from "${oldUsername}" to "${username}"!`);
       
-      // Add a small delay to ensure backend has processed the update
       setTimeout(() => {
         initializeWebSocketForNewUser(username);
       }, 500);
       
-      // Don't redirect - let user stay on the same page
     } else {
       setSuccessMessage("Profile updated successfully!");
     }
@@ -147,7 +146,6 @@ export default function ProfileSettingsPage(  ) {
         setMessage(`Statistics reset successfully! ${response.data.message}`)
         setMessageType('success')
         
-        // Update the user object with reset stats
         const updatedUser = {
           ...user,
           totalBattles: response.data.new_stats.totalBattle,
@@ -161,11 +159,9 @@ export default function ProfileSettingsPage(  ) {
         setUser(updatedUser)
         localStorage.setItem('user', JSON.stringify(updatedUser))
         
-        // Reset confirmation state
         setShowResetConfirm(false)
         setShowResetSection(false)
         
-        // Clear message after 5 seconds
         setTimeout(() => {
           setMessage('')
         }, 5000)
@@ -228,42 +224,6 @@ export default function ProfileSettingsPage(  ) {
     navigate("/sign-up")  
   }
 
-  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string)
-    }
-    reader.readAsDataURL(file)
-
-    try {
-      setIsLoading(true)
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await axios.post(
-        `${API_BASE_URL}/db/upload-avatar?token=${localStorage.getItem("access_token")?.replace(/"/g, '')}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      )
-
-      if (response.status === 200) {
-        const updatedUser = { ...user, avatar: response.data.avatar_path }
-        setUser(updatedUser)
-      }
-    } catch (error) {
-      setError('Failed to upload avatar')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <Header user={user} />  
@@ -294,36 +254,13 @@ export default function ProfileSettingsPage(  ) {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-                  <div className="relative">
-                    <div className="relative w-24 h-24">
-                      <img
-                        src={avatarPreview || (user.avatar ? `https://api.head2head.dev${user.avatar}` : "/placeholder.svg?height=100&width=100")}
-                        alt="Profile"
-                        className="w-24 h-24 rounded-full object-cover border-4 border-orange-500"
-                      />
-                    </div>
-                    <button
-                      onClick={() => document.getElementById('avatar-upload')?.click()}
-                      disabled={isLoading}
-                      className="absolute bottom-0 right-0 bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Camera className="w-4 h-4" />
-                    </button>
-                    <input
-                      id="avatar-upload"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleAvatarChange}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="font-medium">Profile Picture</h3>
-                    <p className="text-xs text-gray-500">Click the camera icon to upload a new profile picture. Recommended: Square image, at least 300x300px</p>
-                  </div>
+                  <AvatarUpload
+                    user={user}
+                    onAvatarUpdate={handleAvatarUpdate}
+                    className="flex-shrink-0"
+                    size="2xl"
+                  />
                 </div>
-
                 <Separator />
 
                 <div className="grid md:grid-cols-2 gap-6">
@@ -369,6 +306,10 @@ export default function ProfileSettingsPage(  ) {
                         <SelectItem value="Basketball">Basketball</SelectItem>
                         <SelectItem value="Baseball">Baseball</SelectItem>
                         <SelectItem value="Tennis">Tennis</SelectItem>
+                        <SelectItem value="Hockey">Hockey</SelectItem>
+                        <SelectItem value="Golf">Golf</SelectItem>
+                        <SelectItem value="Cricket">Cricket</SelectItem>
+                        <SelectItem value="Volleyball">Volleyball</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
