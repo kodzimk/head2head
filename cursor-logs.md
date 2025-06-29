@@ -1,5 +1,41 @@
 # Cursor Development Logs
 
+## API URLs Changed to Localhost:8000 - 2024-12-19
+
+### Task Overview
+- **Objective**: Change all API endpoints from production URLs to localhost:8000 for local development
+- **Goal**: Enable local development and testing with backend running on localhost:8000
+- **Changes**: Updated API configuration across multiple files
+
+### Changes Made
+
+#### 1. Global API Configuration (`src/shared/interface/gloabL_var.tsx`)
+- **API_BASE_URL**: Changed from `"https://api.head2head.dev"` to `"http://localhost:8000"`
+- **WS_BASE_URL**: Changed from `"wss://api.head2head.dev"` to `"ws://localhost:8000"`
+- **Impact**: All API calls now point to local development server
+
+#### 2. Avatar URL Configuration (`src/modules/dashboard/tabs/friends.tsx`)
+- **Avatar URLs**: Changed from `https://api.head2head.dev${avatar}` to `http://localhost:8000${avatar}`
+- **Impact**: User avatars now load from local server
+
+#### 3. Test Configuration (`test_cors.py`)
+- **Upload Avatar URL**: Changed from `"https://api.head2head.dev/db/upload-avatar"` to `"http://localhost:8000/db/upload-avatar"`
+- **Health Check URL**: Changed from `"https://api.head2head.dev/health"` to `"http://localhost:8000/health"`
+- **Impact**: Test scripts now target local development server
+
+### Technical Details
+- **Protocol Changes**: HTTPS/WSS → HTTP/WS for local development
+- **Domain Changes**: api.head2head.dev → localhost:8000
+- **Consistency**: All API endpoints now consistently point to local server
+
+### Benefits
+- **Local Development**: Full local development environment
+- **Testing**: Easy testing with local backend
+- **Debugging**: Direct access to local server logs
+- **Development Workflow**: No dependency on production infrastructure
+
+---
+
 ## Training Module Implementation - 2024-12-19
 
 ### Task Overview
@@ -2243,3 +2279,246 @@ const sizeClasses = {
   - `WS_BASE_URL`: Changed from `"ws://localhost:8000"` to `"wss://api.head2head.dev"`
 - **Impact**: Frontend will now connect to production API instead of local development server
 - **Note**: This change affects all API calls and WebSocket connections throughout the application
+
+---
+
+## Friend Request Response Data Update Enhancement - 2024-12-19
+
+### Task Overview
+- **Objective**: Ensure both users' data is properly updated when a friend request is responded to (accepted/rejected)
+- **Goal**: Improve the friend request system to maintain data consistency between both users
+- **Changes**: Enhanced frontend and backend handling of friend request responses
+
+### Changes Made
+
+#### 1. Frontend Notifications Page (`src/modules/notifications/notifications.tsx`)
+- **Processing State Management**: Added `processingRequests` state to track requests being processed
+- **Real-time Updates**: Added websocket message listener to handle `user_updated` and `friend_request_updated` events
+- **UI Feedback**: Buttons show "Processing..." state and are disabled during request processing
+- **State Synchronization**: Global user state is updated when websocket messages are received
+- **Improved UX**: Users see immediate feedback and processing state prevents duplicate requests
+
+#### 2. Backend WebSocket Handler (`backend/src/websocket.py`)
+- **Enhanced Message Handling**: Improved `accept_friend_request` and `reject_friend_request` handlers
+- **Consistent Updates**: Both users now receive `user_updated` messages with their updated data
+- **Dual Message Types**: Added both `user_updated` and `friend_request_updated` messages for compatibility
+- **Data Consistency**: Ensures both the requester and responder see updated friend lists and request states
+
+#### 3. Key Improvements
+- **Real-time Synchronization**: Both users see updates immediately when a request is responded to
+- **Processing Feedback**: Users see "Processing..." state to prevent confusion
+- **Error Prevention**: Prevents duplicate requests and race conditions
+- **Data Integrity**: Ensures friend lists and request states are consistent across both users
+
+### Technical Implementation
+
+#### Frontend Changes
+- **WebSocket Integration**: Added message listener to handle real-time updates
+- **State Management**: Enhanced local state handling with processing indicators
+- **User Experience**: Immediate visual feedback for request actions
+
+#### Backend Changes
+- **Message Broadcasting**: Both users receive appropriate update messages
+- **Data Consistency**: Database updates are reflected in real-time for both users
+- **Error Handling**: Improved error handling and message delivery
+
+### Benefits
+- **Data Consistency**: Both users see the same updated state
+- **Real-time Updates**: No need to refresh to see changes
+- **Better UX**: Clear processing states and immediate feedback
+- **Reliability**: Prevents data inconsistencies between users
+
+---
+
+## Friend Request UI Update Debugging - 2024-12-19
+
+### Task Overview
+- **Objective**: Debug and fix issue where friend request UI text doesn't change after accepting/rejecting requests
+- **Goal**: Ensure the UI properly reflects state changes when friend requests are processed
+- **Changes**: Added debugging logs and improved state management
+
+### Changes Made
+
+#### 1. Enhanced State Management (`src/modules/notifications/notifications.tsx`)
+- **Processing State Cleanup**: Improved logic to clear processing state when websocket messages are received
+- **Real-time State Updates**: Enhanced websocket message handling to properly update local state
+- **Debug Logging**: Added comprehensive console logging to track state changes
+- **UI State Synchronization**: Ensured local friendRequests state properly reflects global user state changes
+
+#### 2. Debug Features Added
+- **State Change Logging**: Console logs show when friend requests are updated from user state
+- **WebSocket Message Logging**: Track all websocket messages received in notifications page
+- **Processing State Logging**: Monitor when processing state is cleared for processed requests
+- **UI Rendering Logging**: Track what status and processing state each request has when rendering
+
+#### 3. Key Improvements
+- **Immediate Feedback**: UI shows "Processing..." state immediately when request is sent
+- **Proper Cleanup**: Processing state is cleared when websocket confirms the action
+- **State Consistency**: Local state properly syncs with global state changes
+- **Debug Visibility**: Full visibility into state changes for troubleshooting
+
+### Technical Implementation
+
+#### State Flow
+1. User clicks Accept/Reject → Local state shows "Processing..."
+2. WebSocket message sent to backend → Backend processes request
+3. Backend sends confirmation to both users → Frontend receives websocket message
+4. Global user state updated → Local friendRequests state updated
+5. Processing state cleared → UI shows final state (request removed or status changed)
+
+#### Debug Information
+- **Console Logs**: Track all state changes and websocket messages
+- **Processing State**: Monitor which requests are being processed
+- **UI State**: See what status each request has when rendering
+- **WebSocket Flow**: Track message flow from frontend to backend and back
+
+### Benefits
+- **Better Debugging**: Full visibility into state changes
+- **Improved UX**: Clear processing feedback and proper state updates
+- **Reliability**: Proper cleanup of processing states
+- **Consistency**: Local and global state stay synchronized
+
+---
+
+## Friend Request Real-time Text Update Fix - 2024-12-19
+
+### Task Overview
+- **Objective**: Fix issue where friend request UI text doesn't change in real-time after accepting/rejecting
+- **Goal**: Ensure immediate visual feedback when friend requests are processed
+- **Changes**: Enhanced immediate state updates and real-time synchronization
+
+### Changes Made
+
+#### 1. Immediate State Updates (`src/modules/notifications/notifications.tsx`)
+- **Instant Removal**: Friend requests are immediately removed from local state when accept/reject is clicked
+- **Real-time Synchronization**: Local state is updated immediately when websocket messages are received
+- **Dual Update Strategy**: Both immediate local update and websocket-triggered global update
+- **Processing State Management**: Proper cleanup of processing states when requests are handled
+
+#### 2. Enhanced WebSocket Handling
+- **Immediate Local Updates**: Local friendRequests state is updated immediately when websocket messages arrive
+- **State Consistency**: Ensures local and global state stay synchronized
+- **Debug Logging**: Comprehensive logging to track state changes and updates
+- **Error Prevention**: Proper TypeScript typing to prevent runtime errors
+
+#### 3. Key Improvements
+- **Instant Feedback**: UI immediately shows request removal when user clicks accept/reject
+- **Real-time Updates**: No delay between user action and visual feedback
+- **State Synchronization**: Local state properly reflects global state changes
+- **Reliable Updates**: Multiple update mechanisms ensure UI stays current
+
+### Technical Implementation
+
+#### Immediate Update Flow
+1. User clicks Accept/Reject → Request immediately removed from local state
+2. Processing state set → Prevents duplicate actions
+3. WebSocket message sent → Backend processes request
+4. WebSocket response received → Global state updated
+5. Local state synchronized → Ensures consistency
+
+#### State Management Strategy
+- **Local State**: Immediate updates for instant feedback
+- **Global State**: Updated via websocket for data consistency
+- **Processing State**: Prevents race conditions and duplicate actions
+- **Synchronization**: Multiple update points ensure reliability
+
+### Benefits
+- **Instant Feedback**: Users see immediate response to their actions
+- **Real-time Updates**: No waiting for server response to see changes
+- **Data Consistency**: Local and global state stay synchronized
+- **Better UX**: Smooth, responsive interface with immediate visual feedback
+
+---
+
+## Friend Request Avatar Display Enhancement - 2024-12-19
+
+### Task Overview
+- **Objective**: Properly display user avatars in friend request notifications
+- **Goal**: Show actual user avatars instead of empty placeholders
+- **Changes**: Added avatar fetching functionality for friend request notifications
+
+### Changes Made
+
+#### 1. Avatar Fetching Implementation (`src/modules/notifications/notifications.tsx`)
+- **User Avatar API Integration**: Added `fetchUserAvatar()` function to get user avatar data
+- **Batch Avatar Loading**: Implemented `fetchFriendRequestAvatars()` to load all avatars efficiently
+- **Real-time Avatar Updates**: Avatars are fetched when friend requests are updated via websocket
+- **Error Handling**: Graceful fallback to empty avatar if fetch fails
+
+#### 2. API Integration
+- **Endpoint Usage**: Uses `/db/get-user-by-username` endpoint to fetch user data
+- **Avatar URL Construction**: Properly constructs full avatar URLs with API_BASE_URL
+- **Async Processing**: Handles multiple avatar requests in parallel for performance
+- **Caching Strategy**: Avatars are fetched once and cached in local state
+
+#### 3. Enhanced User Experience
+- **Visual Improvement**: Users see actual profile pictures instead of generic placeholders
+- **Personalization**: Friend requests feel more personal with real avatars
+- **Consistency**: Matches avatar display patterns used throughout the application
+- **Performance**: Efficient batch loading prevents multiple individual requests
+
+### Technical Implementation
+
+#### Avatar Fetching Flow
+1. **Initial Load**: Fetch avatars for all existing friend requests
+2. **Real-time Updates**: Fetch avatars when new friend requests arrive
+3. **URL Construction**: Build full avatar URLs using API_BASE_URL
+4. **Fallback Handling**: Show username initials if avatar is not available
+
+#### API Integration Details
+- **Endpoint**: `/db/get-user-by-username?username={username}`
+- **Response**: User data including avatar path
+- **URL Format**: `${API_BASE_URL}${avatar_path}`
+- **Error Handling**: Graceful degradation to empty avatar
+
+### Benefits
+- **Better UX**: Users can recognize friends by their profile pictures
+- **Visual Appeal**: More engaging and professional appearance
+- **Consistency**: Matches avatar display in other parts of the application
+- **Performance**: Efficient batch loading of avatars
+
+---
+
+## Friend Request Real-time Text Update Fix - 2024-12-19
+
+// ... existing code ...
+
+## API URLs Changed to Production - 2024-12-19
+
+### Task Overview
+- **Objective**: Change all API endpoints from localhost:8000 back to production URLs
+- **Goal**: Deploy application to production environment with correct API endpoints
+- **Changes**: Updated API configuration across multiple files to use production URLs
+
+### Changes Made
+
+#### 1. Global API Configuration (`src/shared/interface/gloabL_var.tsx`)
+- **API_BASE_URL**: Changed from `"http://localhost:8000"` to `"https://api.head2head.dev"`
+- **WS_BASE_URL**: Changed from `"ws://localhost:8000"` to `"wss://api.head2head.dev"`
+- **Impact**: All API calls now point to production server
+
+#### 2. Avatar URL Configuration (`src/modules/dashboard/tabs/friends.tsx`)
+- **Avatar URLs**: Changed from `http://localhost:8000${avatar}` to `https://api.head2head.dev${avatar}`
+- **Impact**: User avatars now load from production server
+
+#### 3. Test Configuration (`test_cors.py`)
+- **Upload Avatar URL**: Changed from `"http://localhost:8000/db/upload-avatar"` to `"https://api.head2head.dev/db/upload-avatar"`
+- **Health Check URL**: Changed from `"http://localhost:8000/health"` to `"https://api.head2head.dev/health"`
+- **Impact**: Test scripts now target production server
+
+### Technical Details
+- **Protocol Changes**: HTTP/WS → HTTPS/WSS for production security
+- **Domain Changes**: localhost:8000 → api.head2head.dev
+- **Consistency**: All API endpoints now consistently point to production server
+
+### Benefits
+- **Production Ready**: Application is now configured for production deployment
+- **Security**: HTTPS/WSS protocols for secure communication
+- **Reliability**: Production infrastructure with proper scaling
+- **User Experience**: Fast, reliable production environment
+
+---
+
+## Friend Request Avatar Display Enhancement - 2024-12-19
+
+// ... existing code ...
