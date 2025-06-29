@@ -92,6 +92,13 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
         throw new Error('Authentication token not found');
       }
 
+      console.log('Starting avatar upload to:', `${API_BASE_URL}/db/upload-avatar`);
+      console.log('File details:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+
       const response = await axios.post(
         `${API_BASE_URL}/db/upload-avatar?token=${token.replace(/"/g, '')}`,
         formData,
@@ -99,13 +106,16 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
           headers: {
             'Content-Type': 'multipart/form-data',
           },
+          timeout: 30000, // 30 second timeout
         }
       );
 
+      console.log('Avatar upload response:', response.data);
+
       if (response.status === 200) {
         const newAvatarPath = response.data.avatar_path;
+        console.log('New avatar path:', newAvatarPath);
         onAvatarUpdate(newAvatarPath);
-        // Remove success message - just update the avatar silently
         
         // Clear preview after successful upload
         setTimeout(() => {
@@ -114,7 +124,27 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       }
     } catch (error: any) {
       console.error('Avatar upload error:', error);
-      setError(error.response?.data?.detail || 'Failed to upload avatar. Please try again.');
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
+      
+      let errorMessage = 'Failed to upload avatar. Please try again.';
+      
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (error.response?.status === 413) {
+        errorMessage = 'File is too large. Please select a smaller image.';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Invalid file type. Please select a valid image.';
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Upload timed out. Please try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
       setPreviewUrl(null);
     } finally {
       setIsUploading(false);

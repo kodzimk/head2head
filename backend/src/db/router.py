@@ -235,76 +235,116 @@ async def get_battle_stats(username: str):
 @db_router.post("/upload-avatar")
 async def upload_avatar(token: str, file: UploadFile = File(...)):
     """
-    Upload avatar with enhanced CORS support
+    Upload avatar with enhanced CORS support and production-ready error handling
     """
     try:
+        logger.info(f"[AVATAR_UPLOAD] Starting avatar upload for token: {token[:10]}...")
+        
         decoded_token = decode_access_token(token)
         email = decoded_token.get("sub")
         
         if not email:
+            logger.error("[AVATAR_UPLOAD] Invalid token - no email found")
             raise HTTPException(status_code=401, detail="Invalid token")
+        
+        logger.info(f"[AVATAR_UPLOAD] Processing upload for email: {email}")
         
         # Validate file type
         if not file.content_type or not file.content_type.startswith('image/'):
+            logger.error(f"[AVATAR_UPLOAD] Invalid file type: {file.content_type}")
             raise HTTPException(status_code=400, detail="File must be an image")
         
         # Validate file size (5MB limit)
         content = await file.read()
         if len(content) > 5 * 1024 * 1024:  # 5MB
+            logger.error(f"[AVATAR_UPLOAD] File too large: {len(content)} bytes")
             raise HTTPException(status_code=400, detail="File size must be less than 5MB")
         
+        # Ensure avatars directory exists and is writable
         avatar_dir = "avatars"
-        os.makedirs(avatar_dir, exist_ok=True)
+        try:
+            os.makedirs(avatar_dir, exist_ok=True)
+            # Test write permissions
+            test_file = os.path.join(avatar_dir, "test_write.tmp")
+            with open(test_file, 'w') as f:
+                f.write("test")
+            os.remove(test_file)
+            logger.info(f"[AVATAR_UPLOAD] Avatar directory {avatar_dir} is writable")
+        except Exception as e:
+            logger.error(f"[AVATAR_UPLOAD] Cannot write to avatar directory: {str(e)}")
+            raise HTTPException(status_code=500, detail="Server storage error")
         
         # Generate unique filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_extension = os.path.splitext(file.filename)[1]
+        file_extension = os.path.splitext(file.filename)[1] if file.filename else ".jpg"
         filename = f"{email}_{timestamp}{file_extension}"
         file_path = os.path.join(avatar_dir, filename)
         
+        logger.info(f"[AVATAR_UPLOAD] Saving file to: {file_path}")
+        
         # Save file
-        async with aiofiles.open(file_path, 'wb') as out_file:
-            await out_file.write(content)
+        try:
+            async with aiofiles.open(file_path, 'wb') as out_file:
+                await out_file.write(content)
+            logger.info(f"[AVATAR_UPLOAD] File saved successfully: {file_path}")
+        except Exception as e:
+            logger.error(f"[AVATAR_UPLOAD] Failed to save file: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to save file")
         
         # Update user record
-        async with SessionLocal() as db:
-            user_model = await db.get(UserData, email)
-            if user_model is None:
-                raise HTTPException(status_code=404, detail="User not found")
-            
-            # Remove old avatar if exists
-            if user_model.avatar and os.path.exists(os.path.join(avatar_dir, os.path.basename(user_model.avatar))):
-                try:
-                    os.remove(os.path.join(avatar_dir, os.path.basename(user_model.avatar)))
-                except Exception as e:
-                    logger.warning(f"Failed to remove old avatar: {e}")
-            
-            relative_path = f"/avatars/{filename}"
-            user_model.avatar = relative_path
-            await db.commit()
-            
-            # Update Redis cache
-            user_dict = {
-                'username': user_model.username,
-                'email': user_model.email,
-                'totalBattle': user_model.totalBattle,
-                'winRate': user_model.winRate,
-                'ranking': user_model.ranking,
-                'winBattle': user_model.winBattle,
-                'favourite': user_model.favourite,
-                'streak': user_model.streak,
-                'password': user_model.password,
-                'friends': user_model.friends,
-                'friendRequests': user_model.friendRequests,
-                'avatar': relative_path,
-                'battles': user_model.battles,
-                'invitations': user_model.invitations
-            }
-            redis_email.set(email, json.dumps(user_dict))
-            redis_username.set(user_model.username, json.dumps(user_dict))
+        try:
+            async with SessionLocal() as db:
+                user_model = await db.get(UserData, email)
+                if user_model is None:
+                    logger.error(f"[AVATAR_UPLOAD] User not found for email: {email}")
+                    raise HTTPException(status_code=404, detail="User not found")
+                
+                # Remove old avatar if exists
+                if user_model.avatar:
+                    old_avatar_path = os.path.join(avatar_dir, os.path.basename(user_model.avatar))
+                    if os.path.exists(old_avatar_path):
+                        try:
+                            os.remove(old_avatar_path)
+                            logger.info(f"[AVATAR_UPLOAD] Removed old avatar: {old_avatar_path}")
+                        except Exception as e:
+                            logger.warning(f"[AVATAR_UPLOAD] Failed to remove old avatar: {e}")
+                
+                relative_path = f"/avatars/{filename}"
+                user_model.avatar = relative_path
+                await db.commit()
+                logger.info(f"[AVATAR_UPLOAD] Database updated with new avatar: {relative_path}")
+                
+                # Update Redis cache
+                user_dict = {
+                    'username': user_model.username,
+                    'email': user_model.email,
+                    'totalBattle': user_model.totalBattle,
+                    'winRate': user_model.winRate,
+                    'ranking': user_model.ranking,
+                    'winBattle': user_model.winBattle,
+                    'favourite': user_model.favourite,
+                    'streak': user_model.streak,
+                    'password': user_model.password,
+                    'friends': user_model.friends,
+                    'friendRequests': user_model.friendRequests,
+                    'avatar': relative_path,
+                    'battles': user_model.battles,
+                    'invitations': user_model.invitations
+                }
+                redis_email.set(email, json.dumps(user_dict))
+                redis_username.set(user_model.username, json.dumps(user_dict))
+                logger.info(f"[AVATAR_UPLOAD] Redis cache updated")
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[AVATAR_UPLOAD] Database/Redis update error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Failed to update user record")
             
         # Return response with CORS headers
         response_data = {"message": "Avatar uploaded successfully", "avatar_path": relative_path}
+        logger.info(f"[AVATAR_UPLOAD] Upload completed successfully for {email}")
+        
         return JSONResponse(
             content=response_data,
             status_code=200,
@@ -318,8 +358,8 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Avatar upload error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload avatar: {str(e)}")
+        logger.error(f"[AVATAR_UPLOAD] Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload avatar")
 
 # Add OPTIONS endpoint for CORS preflight
 @db_router.options("/upload-avatar")
