@@ -2050,3 +2050,38 @@ Battle creators now receive immediate notifications when their invitations are r
     - Custom events (when battle not found errors occur)
   - Improved logging for better debugging
 - **Result**: Waiting battles list now stays current and users no longer encounter "battle not found" errors
+
+### Fixed CORS Issues for Avatar Upload
+- **Issue**: Avatar upload failing with CORS errors - "No 'Access-Control-Allow-Origin' header is present"
+- **Problem**: Frontend at `https://www.head2head.dev` unable to upload to API at `https://api.head2head.dev`
+- **Root Cause**: CORS middleware not properly configured for file uploads and credential conflicts
+- **Solution**: Enhanced CORS configuration for production compatibility:
+  - **Global CORS**: Modified `backend/src/main.py` to allow all origins with `allow_origins=["*"]`
+  - **Credentials Fix**: Set `allow_credentials=False` to avoid conflicts with wildcard origins
+  - **Enhanced Headers**: Added comprehensive headers including file upload specific ones
+  - **Endpoint CORS**: Enhanced `backend/src/db/router.py` upload endpoints with explicit CORS headers
+  - **OPTIONS Support**: Improved preflight handling for `/upload-avatar` endpoint
+- **Implementation**:
+  - Added `HEAD` method support for file upload requests
+  - Included file-specific headers: `X-File-Name`, `Content-Length`, `Content-MD5`
+  - Added CORS test endpoint for debugging
+  - Enhanced logging for avatar upload debugging
+- **Result**: Avatar uploads now work correctly from production frontend to production API
+
+## API URLs Changed Back to Production - 2024-12-19
+
+### Changes Made:
+- **API_BASE_URL**: Changed from `"http://localhost:8000"` back to `"https://api.head2head.dev"`
+- **WS_BASE_URL**: Changed from `"ws://localhost:8000"` back to `"wss://api.head2head.dev"`
+- **Vite Config**: Updated proxy targets to point to production API
+- **Backend CORS**: Removed localhost:8000 from allowed origins
+
+### Files Modified:
+1. `src/shared/interface/gloabL_var.tsx` - Updated API and WebSocket base URLs
+2. `backend/src/main.py` - Removed localhost:8000 from CORS origins
+3. `vite.config.ts` - Updated proxy configuration for production
+
+### Result:
+- All components now communicate with production API at api.head2head.dev
+- Local development will proxy through Vite to production backend
+- CORS configuration optimized for production usage

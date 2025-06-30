@@ -50,6 +50,11 @@ async def health_check():
             "timestamp": datetime.now().isoformat()
         }
 
+@app.get("/cors-test")
+async def cors_test():
+    """Simple CORS test endpoint"""
+    return {"message": "CORS is working", "timestamp": datetime.now().isoformat()}
+
 app.include_router(auth_router,prefix="/auth",tags=["auth"])
 app.include_router(db_router)
 app.include_router(router_friend)
@@ -64,7 +69,6 @@ origins = [
     "https://api.head2head.dev",
     "http://localhost:5173",
     "http://localhost:3000",
-    "http://localhost:8000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",
@@ -73,9 +77,9 @@ origins = [
 # Add CORS middleware with comprehensive configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_origins=["*"],  # Allow all origins for debugging CORS issues
+    allow_credentials=False,  # Must be False when using wildcard origins
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     allow_headers=[
         "Accept",
         "Accept-Language",
@@ -89,6 +93,14 @@ app.add_middleware(
         "Cache-Control",
         "Pragma",
         "Expires",
+        "X-CSRF-Token",
+        "X-Requested-With",
+        "Accept-Version",
+        "Content-Length",
+        "Content-MD5",
+        "Date",
+        "X-Api-Version",
+        "X-File-Name",
     ],
     expose_headers=["*"],
     max_age=86400,  # Cache preflight requests for 24 hours

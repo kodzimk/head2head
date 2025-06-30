@@ -3,7 +3,7 @@ from init import SessionLocal, redis_email, redis_username
 from .init import db_router
 import json
 from fastapi import HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 import aiofiles
 import os
@@ -239,6 +239,7 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
     """
     try:
         logger.info(f"[AVATAR_UPLOAD] Starting avatar upload for token: {token[:10]}...")
+        logger.info(f"[AVATAR_UPLOAD] File details - name: {file.filename}, content_type: {file.content_type}")
         
         decoded_token = decode_access_token(token)
         email = decoded_token.get("sub")
@@ -351,7 +352,8 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
             headers={
                 "Access-Control-Allow-Origin": "*",
                 "Access-Control-Allow-Methods": "POST, OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin",
+                "Content-Type": "application/json",
             }
         )
         
@@ -364,13 +366,14 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
 # Add OPTIONS endpoint for CORS preflight
 @db_router.options("/upload-avatar")
 async def upload_avatar_options():
-    return JSONResponse(
-        content={},
+    """Handle CORS preflight for avatar upload"""
+    logger.info("[AVATAR_UPLOAD] CORS preflight request received")
+    return Response(
         status_code=200,
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin",
             "Access-Control-Max-Age": "86400",
         }
     )

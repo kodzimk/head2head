@@ -34,7 +34,7 @@ export default function NotificationsPage() {
   const [processingInvitations, setProcessingInvitations] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
-  const { refreshView, setRefreshView } = useRefreshViewStore()
+  const { setRefreshView } = useRefreshViewStore()
 
   const fetchUserAvatar = async (username: string): Promise<string> => {
     try {

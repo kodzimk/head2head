@@ -17,7 +17,7 @@ export const ViewProfile = ({user}: {user: User}) => {
   const { username } = useParams<{ username: string }>()
   const [isLoading, setIsLoading] = useState(true)
   const [error] = useState<string | null>(null)
-  const [requestSent, setRequestSent] = useState(false)
+  const [,setRequestSent] = useState(false)
   const [hasSentRequestToViewUser, setHasSentRequestToViewUser] = useState(false)
   const navigate = useNavigate()
   const [viewUser, setViewUser] = useState<User>(initialUser)
