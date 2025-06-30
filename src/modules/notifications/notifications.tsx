@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom"
 import { acceptFriendRequest, acceptInvitation, rejectFriendRequest, sendMessage } from "../../shared/websockets/websocket"
 import { newSocket } from "../../app/App"
 import axios from "axios"
-import { API_BASE_URL } from "../../shared/interface/gloabL_var"
+import { API_BASE_URL, useRefreshViewStore } from "../../shared/interface/gloabL_var"
 
 interface FriendRequest {
   sender: {
@@ -29,64 +29,77 @@ export default function NotificationsPage() {
   const { user, setUser } = useGlobalStore()
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
   const [invitations, setInvitations] = useState<Invitation[]>([])
-  const [isLoading] = useState(false)
-  const [processingRequests, setProcessingRequests] = useState<Set<string>>(new Set())
+  const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
+  const { refreshView, setRefreshView } = useRefreshViewStore()
 
-  // Function to fetch user avatar data
   const fetchUserAvatar = async (username: string): Promise<string> => {
     try {
       const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${username}`)
-      const userData = response.data
-      if (userData && userData.avatar) {
-        return `${API_BASE_URL}${userData.avatar}`
-      }
+      return response.data.avatar ? `${API_BASE_URL}${response.data.avatar}` : ''
     } catch (error) {
       console.error(`Error fetching avatar for ${username}:`, error)
+      return ''
     }
-    return ''
   }
 
-  // Function to fetch avatars for all friend requests
   const fetchFriendRequestAvatars = async (usernames: string[]) => {
+    const avatarMap = new Map<string, string>()
     const avatarPromises = usernames.map(async (username) => {
       const avatar = await fetchUserAvatar(username)
-      return { username, avatar }
+      avatarMap.set(username, avatar)
     })
-    
-    const avatarResults = await Promise.all(avatarPromises)
-    const avatarMap = new Map(avatarResults.map(result => [result.username, result.avatar]))
-    
+    await Promise.all(avatarPromises)
     return avatarMap
   }
 
   useEffect(() => {
     const loadFriendRequestsWithAvatars = async () => {
-      if (user.friendRequests.length > 0) {
-        // Fetch avatars for all friend requests
-        const avatarMap = await fetchFriendRequestAvatars(user.friendRequests)
+      try {
+        if (user.friendRequests.length > 0) {
+          const avatarMap = await fetchFriendRequestAvatars(user.friendRequests)
+          const friendRequestsWithAvatars = user.friendRequests.map((request: string) => ({
+            sender: {
+              username: request,
+              avatar: avatarMap.get(request) || ''       
+            },
+            status: 'pending' as const
+          }))
+          console.log('Loaded friend requests with avatars:', friendRequestsWithAvatars)
+          setFriendRequests(friendRequestsWithAvatars)
+        } else {
+          setFriendRequests([])
+        }
         
-        const newFriendRequests = user.friendRequests.map(request => ({
-          sender: {
-            username: request,
-            avatar: avatarMap.get(request) || ''       
-          },
-          status: 'pending' as const
-        }))
-        console.log('Updating friend requests from user state with avatars:', user.friendRequests, 'to:', newFriendRequests)
-        setFriendRequests(newFriendRequests)
-      } else {
-        setFriendRequests([])
+        if (user.invitations.length > 0) {
+          const invitationPromises = user.invitations.map(async (battle_id: string) => {
+            try {
+              const response = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
+              return {
+                battle_id,
+                sport: response.data.sport,
+                duration: response.data.duration
+              }
+            } catch (error) {
+              console.error(`Error fetching battle ${battle_id}:`, error)
+              return null
+            }
+          })
+          
+          const invitationResults = await Promise.all(invitationPromises)
+          const validInvitations = invitationResults.filter(inv => inv !== null) as Invitation[]
+          setInvitations(validInvitations)
+        } else {
+          setInvitations([])
+        }
+        
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Error loading notifications:', error)
+        setIsLoading(false)
       }
-
-      const newInvitations = user.invitations.map(invitation => ({
-        battle_id: invitation,
-        sport: '',
-        duration: 0
-      }))
-      setInvitations(newInvitations)
     }
-    
+
     loadFriendRequestsWithAvatars()
   }, [user.friendRequests, user.invitations])
 
@@ -120,19 +133,8 @@ export default function NotificationsPage() {
               invitations: updatedUserData.invitations
             }
             setUser(updatedUser)
-            
-            // Immediately update local friendRequests state to reflect the change
-            const updatedFriendRequests = updatedUserData.friendRequests.map((request: string) => ({
-              sender: {
-                username: request,
-                avatar: ''       
-              },
-              status: 'pending' as const
-            }))
-            console.log('Immediately updating local friendRequests:', updatedFriendRequests)
-            setFriendRequests(updatedFriendRequests)
-            
-            // Fetch avatars for the updated friend requests
+            setRefreshView(true)
+            // Update local friendRequests state to reflect the change
             if (updatedUserData.friendRequests.length > 0) {
               const avatarMap = await fetchFriendRequestAvatars(updatedUserData.friendRequests)
               const friendRequestsWithAvatars = updatedUserData.friendRequests.map((request: string) => ({
@@ -144,20 +146,10 @@ export default function NotificationsPage() {
               }))
               console.log('Updating friend requests with avatars:', friendRequestsWithAvatars)
               setFriendRequests(friendRequestsWithAvatars)
+            } else {
+              // Clear friend requests if none exist
+              setFriendRequests([])
             }
-            
-            // Clear processing state for any requests that were processed
-            setProcessingRequests(prev => {
-              const newSet = new Set(prev)
-              // Remove any usernames that are no longer in friendRequests (they were processed)
-              friendRequests.forEach(req => {
-                if (!updatedUserData.friendRequests.includes(req.sender.username)) {
-                  console.log('Clearing processing state for:', req.sender.username)
-                  newSet.delete(req.sender.username)
-                }
-              })
-              return newSet
-            })
           }
         }
         
@@ -184,19 +176,8 @@ export default function NotificationsPage() {
               invitations: updatedUserData.invitations
             }
             setUser(updatedUser)
-            
-            // Immediately update local friendRequests state to reflect the change
-            const updatedFriendRequests = updatedUserData.friendRequests.map((request: string) => ({
-              sender: {
-                username: request,
-                avatar: ''       
-              },
-              status: 'pending' as const
-            }))
-            console.log('Immediately updating local friendRequests from friend_request_updated:', updatedFriendRequests)
-            setFriendRequests(updatedFriendRequests)
-            
-            // Fetch avatars for the updated friend requests
+            setRefreshView(true)
+            // Update local friendRequests state to reflect the change
             if (updatedUserData.friendRequests.length > 0) {
               const avatarMap = await fetchFriendRequestAvatars(updatedUserData.friendRequests)
               const friendRequestsWithAvatars = updatedUserData.friendRequests.map((request: string) => ({
@@ -208,20 +189,10 @@ export default function NotificationsPage() {
               }))
               console.log('Updating friend requests with avatars:', friendRequestsWithAvatars)
               setFriendRequests(friendRequestsWithAvatars)
+            } else {
+              // Clear friend requests if none exist
+              setFriendRequests([])
             }
-            
-            // Clear processing state for any requests that were processed
-            setProcessingRequests(prev => {
-              const newSet = new Set(prev)
-              // Remove any usernames that are no longer in friendRequests (they were processed)
-              friendRequests.forEach(req => {
-                if (!updatedUserData.friendRequests.includes(req.sender.username)) {
-                  console.log('Clearing processing state for:', req.sender.username)
-                  newSet.delete(req.sender.username)
-                }
-              })
-              return newSet
-            })
           }
         }
       } catch (error) {
@@ -242,30 +213,23 @@ export default function NotificationsPage() {
 
   const handleAcceptRequest = async (username: string) => {
       const request = friendRequests.find(request => request.sender.username === username)
-      if (!request || processingRequests.has(username)) return
+      if (!request) return
 
-      // Mark request as being processed
-      setProcessingRequests(prev => new Set(prev).add(username))
-      
-      // Immediately remove the request from local state to show it's been processed
       setFriendRequests(prev => prev.filter(req => req.sender.username !== username))
-
-      // Send the accept request
       acceptFriendRequest(user, request.sender.username)
+      setRefreshView(true)
   }
 
   const handleRejectRequest = async (username: string) => {
       const request = friendRequests.find(request => request.sender.username === username)
-      if (!request || processingRequests.has(username)) return
+      if (!request) return
 
-      // Mark request as being processed
-      setProcessingRequests(prev => new Set(prev).add(username))
-      
-      // Immediately remove the request from local state to show it's been processed
+      // Immediately remove the request from local state
       setFriendRequests(prev => prev.filter(req => req.sender.username !== username))
 
       // Send the reject request
       rejectFriendRequest(user, request.sender.username)
+      setRefreshView(true)
   }
 
   const handleViewProfile = (username: string) => {
@@ -299,7 +263,7 @@ export default function NotificationsPage() {
           (
             <div className="space-y-4">
               {friendRequests.map((request) => {
-                console.log('Rendering request:', request.sender.username, 'status:', request.status, 'processing:', processingRequests.has(request.sender.username))
+                console.log('Rendering request:', request.sender.username, 'status:', request.status)
                 return (
                 <Card key={request.sender.username} className="bg-white dark:bg-gray-800">
                   <CardHeader className="flex flex-row items-center gap-4">
@@ -327,19 +291,17 @@ export default function NotificationsPage() {
                           size="sm"
                           className="text-red-500 hover:text-red-600 hover:bg-red-50"
                           onClick={() => handleRejectRequest(request.sender.username)}
-                          disabled={processingRequests.has(request.sender.username)}
                         >
                           <X className="h-4 w-4 mr-2" />
-                          {processingRequests.has(request.sender.username) ? 'Processing...' : 'Reject'}
+                          Reject
                         </Button>
                         <Button
                           size="sm"
                           className="bg-orange-500 text-white dark:text-black  hover:bg-orange-600"
                           onClick={() => handleAcceptRequest(request.sender.username)}
-                          disabled={processingRequests.has(request.sender.username)}
                         >
                           <Check className="h-4 w-4 mr-2" />
-                          {processingRequests.has(request.sender.username) ? 'Processing...' : 'Accept'}
+                          Accept
                         </Button>
                       </>
                     ) : (

@@ -173,8 +173,8 @@ export const useBattleStore = () => {
 }
 
 // API Configuration
-export const API_BASE_URL = "https://api.head2head.dev";
-export const WS_BASE_URL = "wss://api.head2head.dev"
+export const API_BASE_URL = "http://localhost:8000";
+export const WS_BASE_URL = "ws://localhost:8000"
 
 // Battle-specific state management
 interface BattleState {
@@ -210,6 +210,24 @@ export const useBattleStateStore = () => {
   const context = useContext(BattleStateStore)
   if (!context) {
     throw new Error('useBattleStateStore must be used within a BattleStateProvider')
+  }
+  return context
+}
+
+interface RefreshViewStoreType {
+  refreshView: boolean;
+  setRefreshView: (refreshView: boolean) => void;
+}
+
+export const RefreshViewStore = createContext<RefreshViewStoreType>({
+  refreshView: false,
+  setRefreshView: () => {}
+})
+
+export const useRefreshViewStore = () => {
+  const context = useContext(RefreshViewStore)
+  if (!context) {
+    throw new Error("useRefreshViewStore must be used within a RefreshViewStoreProvider")
   }
   return context
 }

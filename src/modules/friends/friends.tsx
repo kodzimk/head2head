@@ -8,8 +8,7 @@ import Header from '../dashboard/header'
 import type { Friend, User } from "../../shared/interface/user"
 import { useNavigate } from 'react-router-dom'
 import { removeFriend } from '../../shared/websockets/websocket'
-import { refreshView } from '../../app/App'
-import { API_BASE_URL } from "../../shared/interface/gloabL_var"
+import { API_BASE_URL, useRefreshViewStore } from "../../shared/interface/gloabL_var"
 import { UserAvatar } from "../../shared/ui/user-avatar"
 
 
@@ -19,7 +18,8 @@ export default function FriendsPage({user}: {user: User}) {
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const navigate = useNavigate()
-
+  const {refreshView} = useRefreshViewStore()
+  const {setRefreshView} = useRefreshViewStore()
   useEffect(() => {
     setFriends([])
       user.friends.map(async (friend: string) => {
@@ -40,7 +40,7 @@ export default function FriendsPage({user}: {user: User}) {
           }])
         }
       });
-  }, [user,refreshView])
+  }, [user,refreshView,setRefreshView])
 
   const handleRemoveFriend = async (username: string) => {
     removeFriend(user, username)

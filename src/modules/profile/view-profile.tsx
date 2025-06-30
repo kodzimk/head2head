@@ -10,8 +10,7 @@ import type { User } from '../../shared/interface/user'
 import { initialUser } from '../../shared/interface/user'
 import { sendFriendRequest, sendMessage } from '../../shared/websockets/websocket'
 import { cancelFriendRequest } from '../../shared/websockets/websocket'
-import { refreshView } from '../../app/App'
-import { API_BASE_URL } from "../../shared/interface/gloabL_var"
+import { API_BASE_URL, useGlobalStore } from "../../shared/interface/gloabL_var"
 import { newSocket } from '../../app/App'
 
 export const ViewProfile = ({user}: {user: User}) => {
@@ -22,6 +21,8 @@ export const ViewProfile = ({user}: {user: User}) => {
   const [hasSentRequestToViewUser, setHasSentRequestToViewUser] = useState(false)
   const navigate = useNavigate()
   const [viewUser, setViewUser] = useState<User>(initialUser)
+  const { setUser } = useGlobalStore()
+  const [areFriends, setAreFriends] = useState(false)
 
   const handleSendRequest = async () => {
       sendFriendRequest(viewUser.username, user.username)
@@ -33,6 +34,7 @@ export const ViewProfile = ({user}: {user: User}) => {
     cancelFriendRequest(viewUser, user.username)
     setRequestSent(false)
     setHasSentRequestToViewUser(false)
+
   };
 
   const handleBattle = async () => {
@@ -73,16 +75,48 @@ export const ViewProfile = ({user}: {user: User}) => {
         fetchUser()
       }, 100)
     }
-  }, [username, user.username, refreshView])
+  }, [username, user.username])
 
-  // Handle websocket messages for friend request updates
+
+  useEffect(() => {
+    if (user.friends.includes(viewUser.username)) {
+      setAreFriends(true)
+    } else {
+      setAreFriends(false)
+    }
+  }, [user.friends])
+
+ 
+
   useEffect(() => {
     const handleWebSocketMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data)
-        
-        if (data.type === 'friend_request_updated' && data.data) {
+        if (data.type === 'user_updated' && data.data) {
           const updatedUserData = data.data
+          
+          // Update current user's data if it's the current user
+          if (updatedUserData.username === user.username) {
+            
+            // Update the global user state
+            const updatedUser = {
+              email: updatedUserData.email,
+              username: updatedUserData.username,
+              wins: updatedUserData.winBattle,
+              favoritesSport: updatedUserData.favourite,
+              rank: updatedUserData.ranking,
+              winRate: updatedUserData.winRate,
+              totalBattles: updatedUserData.totalBattle,
+              streak: updatedUserData.streak,
+              password: updatedUserData.password,
+              friends: updatedUserData.friends,
+              friendRequests: updatedUserData.friendRequests,
+              avatar: updatedUserData.avatar,
+              battles: updatedUserData.battles,
+              invitations: updatedUserData.invitations
+            }
+            setUser(updatedUser)
+          }
           
           // If the updated user is the viewed user, update the view
           if (updatedUserData.username === viewUser.username) {
@@ -91,42 +125,42 @@ export const ViewProfile = ({user}: {user: User}) => {
               friends: updatedUserData.friends || [],
               friendRequests: updatedUserData.friendRequests || []
             }))
-            
-            // Check if the current user is now in the viewed user's friends list
-            const areNowFriends = updatedUserData.friends && updatedUserData.friends.includes(user.username)
-            if (areNowFriends && hasSentRequestToViewUser) {
-              // Friend request was accepted
-              setHasSentRequestToViewUser(false)
-              setRequestSent(false)
-            }
-          }
-          
-          // If the updated user is the current user, update the current user's data
-          if (updatedUserData.username === user.username) {
-            // Update the current user's friendRequests list
-            const updatedFriendRequests = updatedUserData.friendRequests || []
-            
-            // Check if the viewed user is no longer in the current user's friendRequests
-            if (!updatedFriendRequests.includes(viewUser.username) && hasSentRequestToViewUser) {
-              // The viewed user either accepted or rejected the request
-              setHasSentRequestToViewUser(false)
-            }
           }
         }
         
-        if (data.type === 'user_updated' && data.data) {
+        if (data.type === 'friend_request_updated' && data.data) {
           const updatedUserData = data.data
           
           // Update current user's data if it's the current user
           if (updatedUserData.username === user.username) {
-            // Update the current user's friendRequests list
-            const updatedFriendRequests = updatedUserData.friendRequests || []
             
-            // Check if the viewed user is no longer in the current user's friendRequests
-            if (!updatedFriendRequests.includes(viewUser.username) && hasSentRequestToViewUser) {
-              // The viewed user either accepted or rejected the request
-              setHasSentRequestToViewUser(false)
+            // Update the global user state
+            const updatedUser = {
+              email: updatedUserData.email,
+              username: updatedUserData.username,
+              wins: updatedUserData.winBattle,
+              favoritesSport: updatedUserData.favourite,
+              rank: updatedUserData.ranking,
+              winRate: updatedUserData.winRate,
+              totalBattles: updatedUserData.totalBattle,
+              streak: updatedUserData.streak,
+              password: updatedUserData.password,
+              friends: updatedUserData.friends,
+              friendRequests: updatedUserData.friendRequests,
+              avatar: updatedUserData.avatar,
+              battles: updatedUserData.battles,
+              invitations: updatedUserData.invitations
             }
+            setUser(updatedUser)
+          }
+          
+          // If the updated user is the viewed user, update the view
+          if (updatedUserData.username === viewUser.username) {
+            setViewUser(prev => ({
+              ...prev,
+              friends: updatedUserData.friends || [],
+              friendRequests: updatedUserData.friendRequests || []
+            }))
           }
         }
       } catch (error) {
@@ -143,7 +177,8 @@ export const ViewProfile = ({user}: {user: User}) => {
         newSocket.removeEventListener('message', handleWebSocketMessage)
       }
     }
-  }, [user.username, viewUser.username, hasSentRequestToViewUser])
+  }, [user.username, viewUser.username, setUser])
+
 
   if (isLoading) {
     return (
@@ -159,6 +194,7 @@ export const ViewProfile = ({user}: {user: User}) => {
       </div>
     )
   }
+
   if (error || !user) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -370,57 +406,35 @@ export const ViewProfile = ({user}: {user: User}) => {
 
               {viewUser.email !== user.email && (
                 <div className="flex justify-center gap-4 mt-6">
-                  {(() => {
-                    const areFriends = viewUser.friends && viewUser.friends.includes(user.username) && user.friends && user.friends.includes(viewUser.username) && user.username !== '';
-                    console.log(`Button logic for ${viewUser.username}:`, {
-                      viewUserFriends: viewUser.friends,
-                      userFriends: user.friends,
-                      areFriends,
-                      requestSent,
-                      hasSentRequestToViewUser,
-                      shouldShowBattle: areFriends,
-                      shouldShowSendRequest: !requestSent && !areFriends && !hasSentRequestToViewUser,
-                      shouldShowCancel: hasSentRequestToViewUser && !areFriends
-                    });
-                    
+                  {(() => {                     
                     if (areFriends) {
                       return (
-                    <Button 
-                      className="w-full sm:w-auto bg-orange-500 text-white  dark:text-black hover:bg-orange-600"
-                      onClick={handleBattle}
-                    >
-                      Battle
-                    </Button>
+                        <Button 
+                          className="w-full sm:w-auto bg-orange-500 text-white  dark:text-black hover:bg-orange-600"
+                          onClick={handleBattle}
+                        >
+                          Battle
+                        </Button>
                       );
                     } else if (hasSentRequestToViewUser) {
                       return (
-                    <Button 
-                      onClick={handleCancelRequest}
-                      variant="outline"
-                      className="w-full sm:w-auto border-orange-500 text-orange-500 hover:bg-orange-50 dark:text-orange-500 dark:border-orange-500"
-                    >
-                      Cancel Request
-                    </Button>
-                      );
-                    } else if (!requestSent) {
-                      return (
-                    <Button 
-                      onClick={handleSendRequest}
-                      className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Send Request
-                    </Button>
+                        <Button 
+                          onClick={handleCancelRequest}
+                          variant="outline"
+                          className="w-full sm:w-auto border-orange-500 text-orange-500 hover:bg-orange-50 dark:text-orange-500 dark:border-orange-500"
+                        >
+                          Cancel Request
+                        </Button>
                       );
                     } else {
                       return (
-                    <Button 
-                      onClick={handleCancelRequest}
-                      variant="outline"
-                      className="w-full sm:w-auto border-orange-500 text-orange-500 hover:bg-orange-50 dark:text-orange-500 dark:border-orange-500"
-                    >
-                      Cancel Friend Request
-                    </Button>
+                        <Button 
+                          onClick={handleSendRequest}
+                          className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
+                        >
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Send Request
+                        </Button>
                       );
                     }
                   })()}

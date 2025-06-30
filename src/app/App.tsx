@@ -11,7 +11,7 @@ import BattlesPage from '../modules/battle/battle'
 import WaitingPage from '../modules/battle/waiting-room'
 import { useState, useEffect } from 'react'
 
-import { BattleStore, CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore } from '../shared/interface/gloabL_var'
+import { BattleStore, CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore, RefreshViewStore, useRefreshViewStore } from '../shared/interface/gloabL_var'
 import { ViewProfile } from '../modules/profile/view-profile'
 import LeaderboardPage from '../modules/leaderboard/leaderboard'
 import SelectionPage from '../modules/selection/selection'
@@ -101,7 +101,6 @@ export const initializeWebSocketForNewUser = (username: string) => {
   return newSocket;
 };
 
-export let refreshView = false;
 
 export default function App() {
   const [user, setUser] = useState<User>(initialUser)
@@ -116,7 +115,7 @@ export default function App() {
   const [battle, setBattle] = useState<Battle[]>([]);
   const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
   const navigate = useNavigate()
-
+  const {refreshView, setRefreshView} = useRefreshViewStore()
   // Handle manual page reload
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -190,13 +189,7 @@ export default function App() {
     newSocket.onmessage = (event) => {
        try {       
          const data = JSON.parse(event.data);
-         console.log("WebSocket message received:", data); // Debug logging
-         
-         // Log specific battle-related messages for debugging
-         if (data.type === 'battle_created' || data.type === 'battle_removed' || data.type === 'battle_joined') {
-           console.log(`🎯 Battle event received: ${data.type}`, data.data);
-         }
-         
+
          if (data.type === 'user_updated') {
            const updatedUser = {
              email: data.data.email,
@@ -215,10 +208,10 @@ export default function App() {
              invitations: data.data.invitations
            }
            setUser(updatedUser)
+           setRefreshView(true)
+           console.log("User state updated with user changes", refreshView)
          }
          else if (data.type === 'friend_request_updated') {
-           console.log("Friend request updated:", data.data);
-           // Update user state with the new data
            const updatedUser = {
              email: data.data.email,
              username: data.data.username,
@@ -236,11 +229,10 @@ export default function App() {
              invitations: data.data.invitations
            }
            setUser(updatedUser)
-           console.log("User state updated with friend request changes");
+           setRefreshView(true)
+           console.log("User state updated with friend request changes", refreshView)
          }
          else if (data.type === 'stats_reset') {
-           console.log("Statistics reset notification received:", data.data);
-           // Update user state with reset statistics
            const updatedUser = {
              email: data.data.email,
              username: data.data.username,
@@ -258,53 +250,44 @@ export default function App() {
              invitations: data.data.invitations
            }
            setUser(updatedUser)
-           console.log("User state updated with reset statistics");
+           setRefreshView(true)
+           console.log("User state updated with stats reset", refreshView)
          }
          // Only keep non-battle, non-creation logic below
          else if(data.type === 'waiting_battles'){
-           console.log("Received waiting battles:", data.data); // Debug logging
            setBattle(data.data);
          }
          else if(data.type === 'battle_created'){
-           console.log("Received battle created notification:", data.data); // Debug logging
            // Add the new battle to the existing list
            setBattle(prevBattles => {
              // Check if battle already exists to avoid duplicates
              const battleExists = prevBattles.some(b => b.id === data.data.id);
              if (!battleExists) {
-               console.log("Adding new battle to list:", data.data);
                return [...prevBattles, data.data];
              }
-             console.log("Battle already exists in list, skipping duplicate");
              return prevBattles;
            });
          }
          else if(data.type === 'battle_removed'){
-           console.log("Received battle removed notification:", data.data); // Debug logging
            // Remove the battle from the list
            setBattle(prevBattles => {
              const filteredBattles = prevBattles.filter(b => b.id !== data.data);
-             console.log("Removed battle from list, remaining battles:", filteredBattles.length);
              return filteredBattles;
            });
          }
          else if(data.type === 'battle_joined'){
-           console.log("Received battle joined notification:", data.data); // Debug logging
            // Remove the battle from the waiting list since it's no longer waiting
            setBattle(prevBattles => {
              const filteredBattles = prevBattles.filter(b => b.id !== data.data.battle_id);
-             console.log("Battle joined, removed from waiting list, remaining battles:", filteredBattles.length);
              return filteredBattles;
            });
          }
          else if(data.type === 'battle_started'){
-           console.log("Received battle started notification:", data.data); // Debug logging
            // Redirect to countdown page for the battle
            navigate(`/battle/${data.data}/countdown`);
          }
          else if(data.type === 'battle_cancelled'){
            // Battle was successfully cancelled
-           console.log("Battle cancelled successfully:", data.data);
            // Clear active battle if it was cancelled
            if (activeBattleId === data.data) {
              setActiveBattleId(null);
@@ -325,8 +308,7 @@ export default function App() {
            console.error("WebSocket error received:", data.message);
            alert(data.message || "An error occurred");
          }
-         else if(data.type === 'test_connection_response'){
-           console.log("WebSocket connection test successful:", data.data);
+         else if(data.type === 'test_connection_response'){         
          }
          // Remove all battle/quiz/battle creation message handling here
        } catch (error) {
@@ -357,6 +339,7 @@ export default function App() {
           <LoserStore.Provider value={{loser, setLoser: (loser: string) => setLoser(loser)}}>
           <ResultStore.Provider value={{result, setResult: (result: string) => setResult(result)}}>
           <BattleStore.Provider value={{battle, setBattle: (battle: Battle[]) => setBattle(battle)}}>
+          <RefreshViewStore.Provider value={{refreshView, setRefreshView: (view: boolean) => setRefreshView(view)}}>
             <div className={theme ? 'dark' : ''}>
             <Routes>
             <Route path='/training' element={<TrainingPage />} />
@@ -382,6 +365,7 @@ export default function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </div>
+          </RefreshViewStore.Provider>
           </BattleStore.Provider>
           </ResultStore.Provider>
           </LoserStore.Provider>

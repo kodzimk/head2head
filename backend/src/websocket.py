@@ -483,16 +483,32 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     elif message.get("type") == "send_friend_request":
                         await send_friend_request(message["username"], message["friend_username"])
                         try:
-                                await manager.send_message(json.dumps({
-                                    "type": "user_updated",
-                                    "data": await get_user_by_username(message["friend_username"])
-                                }), message["friend_username"])
-                                await manager.send_message(json.dumps({
-                                    "type": "user_updated",
-                                    "data": await  get_user_by_username(message["username"])
-                                }), message["username"])
+                            # Get updated data for both users
+                            sender_data = await get_user_by_username(message["username"])
+                            receiver_data = await get_user_by_username(message["friend_username"])
+                            
+                            # Send updates to both users
+                            await manager.send_message(json.dumps({
+                                "type": "user_updated",
+                                "data": receiver_data
+                            }), message["friend_username"])
+                            
+                            await manager.send_message(json.dumps({
+                                "type": "user_updated",
+                                "data": sender_data
+                            }), message["username"])
+                            
+                            # Also send friend_request_updated for consistency
+                            await manager.send_message(json.dumps({
+                                "type": "friend_request_updated",
+                                "data": receiver_data
+                            }), message["friend_username"])
+                            
+                            await manager.send_message(json.dumps({
+                                "type": "friend_request_updated",
+                                "data": sender_data
+                            }), message["username"])
                         except Exception as e:
-                            manager.disconnect(message["friend_username"])
                             logger.error(f"Error in send_friend_request: {str(e)}")
                     elif message.get("type") == "remove_friend":
                         await remove_friend(message["username"], message["friend_username"])
@@ -506,16 +522,27 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                         }), message["username"])
                     elif message.get("type") == "cancel_friend_request":               
                         user_data = await cancel_friend_request(message["username"], message["friend_username"])
-                        user_data = await get_user_by_username(message["friend_username"])
                         if user_data:
+                            # Send user_updated to the user who cancelled the request
                             await manager.send_message(json.dumps({
                                 "type": "user_updated",
                                 "data": user_data
-                            }), message["friend_username"])
-                            await manager.send_message(json.dumps({
-                                "type": "user_updated",
-                                "data": await get_user_by_username(message["username"])
                             }), message["username"])
+                            
+                            # Get the updated data for the friend who received the request
+                            friend_data = await get_user_by_username(message["friend_username"])
+                            if friend_data:
+                                # Send user_updated to the friend who received the request
+                                await manager.send_message(json.dumps({
+                                    "type": "user_updated",
+                                    "data": friend_data
+                                }), message["friend_username"])
+                                
+                                # Also send friend_request_updated for consistency
+                                await manager.send_message(json.dumps({
+                                    "type": "friend_request_updated",
+                                    "data": friend_data
+                                }), message["friend_username"])
                     elif message.get("type") == "invite_friend":
                         await invite_friend(message["battle_id"], message["friend_username"])
                         await manager.send_message(json.dumps({
