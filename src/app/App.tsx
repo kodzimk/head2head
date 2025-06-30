@@ -335,9 +335,24 @@ export default function App() {
          else if(data.type === 'error'){
            // Show error message to user
            console.error("WebSocket error received:", data.message);
-           alert(data.message || "An error occurred");
+           
+           // Check if this is a battle not found error
+           if (data.message && data.message.includes("Battle not found")) {
+             console.log("Battle not found error detected, refreshing waiting battles list");
+             // Dispatch custom event to refresh waiting battles
+             window.dispatchEvent(new CustomEvent('refreshWaitingBattles'));
+           } else {
+             // Show alert for other errors
+             alert(data.message || "An error occurred");
+           }
          }
          else if(data.type === 'test_connection_response'){         
+         }
+         else if(data.type === 'battle_not_found'){
+           // Battle was not found, refresh the waiting battles list
+           console.log("Battle not found, refreshing waiting battles list");
+           // Dispatch custom event to refresh waiting battles
+           window.dispatchEvent(new CustomEvent('refreshWaitingBattles'));
          }
          // Remove all battle/quiz/battle creation message handling here
        } catch (error) {

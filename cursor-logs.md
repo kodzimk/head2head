@@ -2033,3 +2033,20 @@ Battle creators now receive immediate notifications when their invitations are r
   - Added custom event listener in `src/modules/battle/waiting-room.tsx` to update local state
   - Maintained localStorage updates for persistence
 - **Result**: Waiting room now properly updates invited friends list when invitations are rejected, regardless of websocket connection timing
+
+### Improved Waiting Battles List Management
+- **Issue**: After completing battles, users returned to battles page with stale waiting battles list showing battles that no longer exist
+- **Problem**: Users got "battle not found" errors when trying to join or cancel non-existent battles
+- **Solution**: Implemented comprehensive refresh mechanisms for waiting battles list:
+  - **Error Detection**: Added handling for "Battle not found" websocket errors in `src/app/App.tsx`
+  - **Automatic Refresh**: When battle not found error is detected, automatically refresh waiting battles list
+  - **Navigation Refresh**: Added listeners for page visibility changes and navigation events
+  - **Custom Events**: Implemented `refreshWaitingBattles` custom event system for coordinated refreshes
+- **Implementation**:
+  - Enhanced error handling in App.tsx to detect battle not found errors
+  - Added multiple refresh triggers in `src/modules/battle/battle.tsx`:
+    - Page visibility changes (when user returns from completed battle)
+    - Navigation events (when user navigates to battles page)
+    - Custom events (when battle not found errors occur)
+  - Improved logging for better debugging
+- **Result**: Waiting battles list now stays current and users no longer encounter "battle not found" errors

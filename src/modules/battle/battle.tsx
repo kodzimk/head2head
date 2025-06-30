@@ -72,6 +72,49 @@ export default function BattlePage() {
       window.removeEventListener('focus', handleFocus);
     };
   }, [user.username]);
+
+  // Listen for battle not found events to refresh the list
+  useEffect(() => {
+    const handleRefreshWaitingBattles = () => {
+      console.log('Received refreshWaitingBattles event, refreshing list');
+      refreshWaitingBattles();
+    };
+
+    window.addEventListener('refreshWaitingBattles', handleRefreshWaitingBattles);
+    return () => {
+      window.removeEventListener('refreshWaitingBattles', handleRefreshWaitingBattles);
+    };
+  }, [user.username]);
+
+  // Refresh battles when user returns from a completed battle
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page became visible, refreshing waiting battles');
+        refreshWaitingBattles();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user.username]);
+
+  // Refresh battles when navigating to this page
+  useEffect(() => {
+    const handlePopState = () => {
+      if (window.location.pathname === '/battles') {
+        console.log('Navigated to battles page, refreshing waiting battles');
+        refreshWaitingBattles();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [user.username]);
   
   const handleCreateBattle = async () => {
     // Allow multiple battles but with reasonable limits
@@ -169,6 +212,7 @@ export default function BattlePage() {
   const handleCancelBattle = async (battle_id: string) => {
     if (confirm("Are you sure you want to cancel this battle?")) {
       try {
+        console.log(`Attempting to cancel battle: ${battle_id}`);
         cancelBattle(battle_id, user.username);
         // The battle will be removed from the list when the backend processes the cancellation
       } catch (error) {

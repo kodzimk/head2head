@@ -129,7 +129,7 @@ export default function BattleResultPage({user}: {user: User}) {
 
     // Update user data immediately
     updateUserDataAfterBattle();
-  }, [user, setUser, hasResultData, navigate]);
+  }, [hasResultData, navigate]);
 
   const handleBackToDashboard = () => {
     // Clean up all battle-related state
