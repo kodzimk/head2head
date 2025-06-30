@@ -79,16 +79,6 @@ export const ViewProfile = ({user}: {user: User}) => {
 
 
   useEffect(() => {
-    if (user.friends.includes(viewUser.username)) {
-      setAreFriends(true)
-    } else {
-      setAreFriends(false)
-    }
-  }, [user.friends])
-
- 
-
-  useEffect(() => {
     const handleWebSocketMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data)
@@ -125,6 +115,17 @@ export const ViewProfile = ({user}: {user: User}) => {
               friends: updatedUserData.friends || [],
               friendRequests: updatedUserData.friendRequests || []
             }))
+          }
+
+          if(data.response_value === "accepted") {
+            setRequestSent(false)
+            setHasSentRequestToViewUser(false)
+            setAreFriends(true)
+          }
+          if(data.response_value === "rejected") {
+            setRequestSent(false)
+            setHasSentRequestToViewUser(false)
+            setAreFriends(false)
           }
         }
         

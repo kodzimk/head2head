@@ -440,7 +440,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             # Send user_updated to the user who accepted the request
                             await manager.send_message(json.dumps({
                                 "type": "user_updated",
-                                "data": user_data
+                                "data": user_data,
+                                "response_value": "accepted"
                             }), message["username"])
                             
                             # Get the updated data for the friend who sent the request
@@ -449,7 +450,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 # Send user_updated to the friend who sent the request
                                 await manager.send_message(json.dumps({
                                     "type": "user_updated",
-                                    "data": friend_data
+                                    "data": friend_data,
+                                    "response_value": "accepted"
                                 }), message["friend_username"])
                                 
                                 # Also send friend_request_updated for consistency
@@ -463,7 +465,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                             # Send user_updated to the user who rejected the request
                             await manager.send_message(json.dumps({
                                 "type": "user_updated",
-                                "data": user_data
+                                "data": user_data,
+                                "response_value": "rejected"
                             }), message["username"])
                             
                             # Get the updated data for the friend who sent the request
@@ -472,7 +475,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                 # Send user_updated to the friend who sent the request
                                 await manager.send_message(json.dumps({
                                     "type": "user_updated",
-                                    "data": friend_data
+                                    "data": friend_data,
+                                    "response_value": "rejected"
                                 }), message["friend_username"])
                                 
                                 # Also send friend_request_updated for consistency
