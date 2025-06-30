@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Trophy, Zap, Target, Play, ArrowRight, TrendingUp, Award } from 'lucide-react'
+import { Trophy, Zap, Target, Play, ArrowRight, Award } from 'lucide-react'
 import { Button } from '../../shared/ui/button'
 import { Badge } from '../../shared/ui/badge'
 

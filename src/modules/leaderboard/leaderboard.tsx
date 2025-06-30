@@ -7,6 +7,7 @@ import { Badge } from "../../shared/ui/badge";
 import { Trophy, Medal, Award, TrendingUp } from "lucide-react";
 import axios from "axios";
 import { API_BASE_URL } from "../../shared/interface/gloabL_var";
+import AvatarStorage from "../../shared/utils/avatar-storage";
 
 interface LeaderboardUser {
   rank: number;
@@ -55,6 +56,53 @@ export default function LeaderboardPage() {
 
     fetchLeaderboard();
   }, []);
+
+  // Fetch and cache avatars for all leaderboard users
+  useEffect(() => {
+    const fetchAndCacheAvatars = async () => {
+      if (leaderboardData.length === 0) return;
+
+      console.log('[Leaderboard] Fetching and caching avatars for', leaderboardData.length, 'users');
+      
+      // Process avatars in batches to avoid overwhelming the system
+      const batchSize = 5;
+      for (let i = 0; i < leaderboardData.length; i += batchSize) {
+        const batch = leaderboardData.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (player) => {
+          if (!player.username || !player.avatar) return;
+          
+          const persistentAvatar = await AvatarStorage.getAvatar(player.username);
+          if (persistentAvatar === null) {
+            try {
+              // Build full avatar URL
+              const fullAvatarUrl = player.avatar.startsWith('http') 
+                ? player.avatar 
+                : `${API_BASE_URL}${player.avatar}`;
+              
+              // Fetch and cache the server avatar
+              const response = await fetch(fullAvatarUrl);
+              if (response.ok) {
+                const blob = await response.blob();
+                const file = new File([blob], 'avatar.jpg', { type: blob.type });
+                await AvatarStorage.saveAvatar(player.username, file);
+                console.log('[Leaderboard] Cached server avatar for', player.username);
+              }
+            } catch (error) {
+              console.warn('[Leaderboard] Failed to cache server avatar for', player.username, ':', error);
+            }
+          }
+        }));
+        
+        // Small delay between batches to be gentle on the system
+        if (i + batchSize < leaderboardData.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+    };
+
+    fetchAndCacheAvatars();
+  }, [leaderboardData]);
 
   const currentUserRank = leaderboardData.find(u => u.username === user.username)?.rank || 0;
 
@@ -141,7 +189,7 @@ export default function LeaderboardPage() {
                           {/* Avatar */}
                           <Avatar className="leaderboard-avatar">
                             <AvatarImage
-                              src={player.avatar ? `${API_BASE_URL}${player.avatar}` : undefined}
+                              src={AvatarStorage.resolveAvatarUrl({ username: player.username, avatar: player.avatar }) || "/images/placeholder-user.jpg"}
                               alt={player.username}
                             />
                             <AvatarFallback className="bg-primary text-primary-foreground text-responsive-xs font-semibold">

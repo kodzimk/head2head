@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
-import { Play, Clock, Trophy, RefreshCw, Undo, UserPlus } from 'lucide-react'
+import { Play, Clock, Trophy, RefreshCw, Undo, UserPlus, AlertCircle } from 'lucide-react'
 import Header from '../dashboard/header'
 import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
 import { joinBattle, sendMessage, cancelBattle } from '../../shared/websockets/websocket'
@@ -14,6 +14,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from "../../shared/interface/gloabL_var"
 import axios from 'axios'
 import { Badge } from '../../shared/ui/badge'
+import AvatarStorage from '../../shared/utils/avatar-storage'
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
@@ -28,7 +29,55 @@ export default function BattlePage() {
   const [isBattleBeingCreated, setIsBattleBeingCreated] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const navigate = useNavigate()
+  const [refreshMessage] = useState<string | null>(null)
   
+
+  // Fetch and cache avatars for all battle creators
+  useEffect(() => {
+    const fetchAndCacheAvatars = async () => {
+      if (battle.length === 0) return;
+
+      console.log('[Battle] Fetching and caching avatars for', battle.length, 'battle creators');
+      
+      // Process avatars in batches to avoid overwhelming the system
+      const batchSize = 3;
+      for (let i = 0; i < battle.length; i += batchSize) {
+        const batch = battle.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (battleData) => {
+          if (!battleData.first_opponent || !battleData.creator_avatar) return;
+          
+          const persistentAvatar = await AvatarStorage.getAvatar(battleData.first_opponent);
+          if (persistentAvatar === null) {
+            try {
+              // Build full avatar URL
+              const fullAvatarUrl = battleData.creator_avatar.startsWith('http') 
+                ? battleData.creator_avatar 
+                : `${API_BASE_URL}${battleData.creator_avatar}`;
+              
+              // Fetch and cache the server avatar
+              const response = await fetch(fullAvatarUrl);
+              if (response.ok) {
+                const blob = await response.blob();
+                const file = new File([blob], 'avatar.jpg', { type: blob.type });
+                await AvatarStorage.saveAvatar(battleData.first_opponent, file);
+                console.log('[Battle] Cached server avatar for', battleData.first_opponent);
+              }
+            } catch (error) {
+              console.warn('[Battle] Failed to cache server avatar for', battleData.first_opponent, ':', error);
+            }
+          }
+        }));
+        
+        // Small delay between batches to be gentle on the system
+        if (i + batchSize < battle.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+    };
+
+    fetchAndCacheAvatars();
+  }, [battle]);
 
   const refreshWaitingBattles = async (showNotification = false) => {
     if (user.username) {
@@ -251,6 +300,26 @@ export default function BattlePage() {
     }
   }, [user.username]);
 
+  useEffect(() => {
+    const handleWebSocketMessage = (event: MessageEvent) => {
+      const data = JSON.parse(event.data)
+      
+      if (data.type === 'battle_started') {
+        console.log('Battle started:', data.data)
+        navigate(`/battle/${data.data}/countdown`)
+      }
+    }
+
+    if (newSocket) {
+      newSocket.addEventListener('message', handleWebSocketMessage)
+    }
+
+    return () => {
+      if (newSocket) {
+        newSocket.removeEventListener('message', handleWebSocketMessage)
+      }
+    }
+  }, [navigate])
 
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
@@ -296,6 +365,16 @@ export default function BattlePage() {
             </Card>
           )}
 
+          {/* Notification */}
+          {refreshMessage && (
+            <div className="mx-auto max-w-md">
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-primary flex-shrink-0" />
+                <span className="text-sm text-primary">{refreshMessage}</span>
+              </div>
+            </div>
+          )}
+
           {/* Battle Creation Form */}
           <Card className="card-surface">
             <CardHeader className="responsive-padding">
@@ -315,7 +394,7 @@ export default function BattlePage() {
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border">
                       <SelectItem value="football">🏈 Football</SelectItem>
-                      <SelectItem value="basketball">�� Basketball</SelectItem>
+                      <SelectItem value="basketball">🏀 Basketball</SelectItem>
                       <SelectItem value="baseball">⚾ Baseball</SelectItem>
                       <SelectItem value="soccer">⚽ Soccer</SelectItem>
                       <SelectItem value="hockey">🏒 Hockey</SelectItem>
@@ -432,7 +511,7 @@ export default function BattlePage() {
                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 mb-3 sm:mb-0">
                           <Avatar className="leaderboard-avatar" variant="faceit">
                             <AvatarImage
-                              src={battle_data.creator_avatar ? `${API_BASE_URL}${battle_data.creator_avatar}` : undefined}
+                              src={AvatarStorage.resolveAvatarUrl({ username: battle_data.first_opponent, avatar: battle_data.creator_avatar }) || "/images/placeholder-user.jpg"}
                               alt={battle_data.first_opponent}
                             />
                             <AvatarFallback className={`${

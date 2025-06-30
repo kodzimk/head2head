@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "../../shared/ui/input"
 import { Label } from "../../shared/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../shared/ui/tabs"
-import { Switch } from "../../shared/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../shared/ui/select"
 import { Separator } from "../../shared/ui/separator"
 import { Alert, AlertDescription } from "../../shared/ui/alert"
@@ -58,22 +57,26 @@ export default function ProfileSettingsPage(  ) {
 
   // Load persistent avatar when component mounts
   useEffect(() => {
-    if (user?.username) {
-      const persistentAvatar = AvatarStorage.getAvatar(user.username);
-      if (persistentAvatar) {
-        console.log('[Profile] Found persistent avatar for', user.username);
-        // Don't store base64 data in user object, just mark that avatar exists
-        if (!user.avatar || !user.avatar.includes('data:image')) {
-          const updatedUser = { ...user, avatar: `persistent_${user.username}` };
-          setUser(updatedUser);
-          // Store user without base64 data
-          localStorage.setItem('user', JSON.stringify(updatedUser));
+    const loadPersistentAvatar = async () => {
+      if (user?.username) {
+        const persistentAvatar = await AvatarStorage.getAvatar(user.username);
+        if (persistentAvatar) {
+          console.log('[Profile] Found persistent avatar for', user.username);
+          // Don't store base64 data in user object, just mark that avatar exists
+          if (!user.avatar || !user.avatar.includes('data:image')) {
+            const updatedUser = { ...user, avatar: `persistent_${user.username}` };
+            setUser(updatedUser);
+            // Store user without base64 data
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          }
         }
       }
-    }
+    };
+
+    loadPersistentAvatar();
   }, [user?.username])
 
-  const handleAvatarUpdate = (newAvatarPath: string) => {
+  const handleAvatarUpdate = () => {
     // Don't store base64 data in user object to avoid localStorage quota issues
     // Instead, store a reference that indicates the user has a persistent avatar
     const updatedUser = { ...user, avatar: `persistent_${user.username}` };
@@ -125,6 +128,13 @@ export default function ProfileSettingsPage(  ) {
     user.favoritesSport = favourite;
     user.nickname = nickname;
     user.username = username;
+    
+    // Handle avatar reference update for username change
+    if (oldUsername !== username && user.avatar && user.avatar.startsWith('persistent_')) {
+      user.avatar = `persistent_${username}`;
+      console.log(`Updated avatar reference from "${oldUsername}" to "${username}"`);
+    }
+    
     setUser(user)
     setIsLoading(true)
     localStorage.setItem('username', username)
@@ -134,6 +144,10 @@ export default function ProfileSettingsPage(  ) {
       console.log("Username changed, reinitializing websocket connection");
       console.log("Old username:", oldUsername);
       console.log("New username:", username);
+      
+      // Migrate avatar data to new username
+      AvatarStorage.migrateAvatar(oldUsername, username);
+      
       setSuccessMessage(`Username successfully changed from "${oldUsername}" to "${username}"!`);
       
       setTimeout(() => {

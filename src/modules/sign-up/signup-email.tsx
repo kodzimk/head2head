@@ -30,7 +30,7 @@ export default function EmailSignUpPage() {
     agreeToTerms: false,
   })
 
-  const {user, setUser} = useGlobalStore()
+  const { setUser} = useGlobalStore()
 
   useEffect(() => {
     document.title = "Sign Up with Email";

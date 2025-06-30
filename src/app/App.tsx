@@ -192,6 +192,9 @@ export default function App() {
          const data = JSON.parse(event.data);
 
          if (data.type === 'user_updated') {
+           const oldUsername = user.username;
+           const newUsername = data.data.username;
+           
            const updatedUser = {
              email: data.data.email,
              username: data.data.username,
@@ -208,55 +211,80 @@ export default function App() {
              battles: data.data.battles,
              invitations: data.data.invitations
            }
+           
+           // Handle username change
+           if (oldUsername !== newUsername && data.data.email === user.email) {
+             console.log(`Username changed from "${oldUsername}" to "${newUsername}"`);
+             // Update username in localStorage
+             localStorage.setItem('username', newUsername);
+             // Update avatar storage with new username
+             AvatarStorage.migrateAvatar(oldUsername, newUsername);
+             // Update avatar reference in user object if needed
+             if (updatedUser.avatar && updatedUser.avatar.startsWith('persistent_')) {
+               updatedUser.avatar = `persistent_${newUsername}`;
+             }
+             // Update user data in localStorage
+             localStorage.setItem('user', JSON.stringify(updatedUser));
+           } else if (data.data.email === user.email) {
+             // Regular update for the current user
+             localStorage.setItem('user', JSON.stringify(updatedUser));
+           }
+           
            setUser(updatedUser)
            setRefreshView(true)
            console.log("User state updated with user changes", refreshView)
          }
          else if (data.type === 'friend_request_updated') {
-           const updatedUser = {
-             email: data.data.email,
-             username: data.data.username,
-             nickname: data.data.username,
-             wins: data.data.winBattle,
-             favoritesSport: data.data.favourite,
-             rank: data.data.ranking,
-             winRate: data.data.winRate,
-             totalBattles: data.data.totalBattle,
-             streak: data.data.streak,
-             password: data.data.password,
-             friends: data.data.friends,
-             friendRequests: data.data.friendRequests,
-             avatar: data.data.avatar,
-             battles: data.data.battles,
-             invitations: data.data.invitations
+           // Only update if this is for the current user (compare by email since username might change)
+           if (data.data.email === user.email) {
+             const updatedUser = {
+               email: data.data.email,
+               username: data.data.username,
+               nickname: data.data.username,
+               wins: data.data.winBattle,
+               favoritesSport: data.data.favourite,
+               rank: data.data.ranking,
+               winRate: data.data.winRate,
+               totalBattles: data.data.totalBattle,
+               streak: data.data.streak,
+               password: data.data.password,
+               friends: data.data.friends,
+               friendRequests: data.data.friendRequests,
+               avatar: data.data.avatar,
+               battles: data.data.battles,
+               invitations: data.data.invitations
+             }
+             setUser(updatedUser)
+             localStorage.setItem('user', JSON.stringify(updatedUser))
+             setRefreshView(true)
+             console.log("User state updated with friend request changes", refreshView)
            }
-           setUser(updatedUser)
-           localStorage.setItem('user', JSON.stringify(updatedUser))
-           setRefreshView(true)
-           console.log("User state updated with friend request changes", refreshView)
          }
          else if (data.type === 'stats_reset') {
-           const updatedUser = {
-             email: data.data.email,
-             username: data.data.username,
-             nickname: data.data.username,
-             wins: data.data.winBattle,
-             favoritesSport: data.data.favourite,
-             rank: data.data.ranking,
-             winRate: data.data.winRate,
-             totalBattles: data.data.totalBattle,
-             streak: data.data.streak,
-             password: data.data.password,
-             friends: data.data.friends,
-             friendRequests: data.data.friendRequests,
-             avatar: data.data.avatar,
-             battles: data.data.battles,
-             invitations: data.data.invitations
+           // Only update if this is for the current user (compare by email since username might change)
+           if (data.data.email === user.email) {
+             const updatedUser = {
+               email: data.data.email,
+               username: data.data.username,
+               nickname: data.data.username,
+               wins: data.data.winBattle,
+               favoritesSport: data.data.favourite,
+               rank: data.data.ranking,
+               winRate: data.data.winRate,
+               totalBattles: data.data.totalBattle,
+               streak: data.data.streak,
+               password: data.data.password,
+               friends: data.data.friends,
+               friendRequests: data.data.friendRequests,
+               avatar: data.data.avatar,
+               battles: data.data.battles,
+               invitations: data.data.invitations
+             }
+             setUser(updatedUser)
+             localStorage.setItem('user', JSON.stringify(updatedUser))
+             setRefreshView(true)
+             console.log("User state updated with stats reset", refreshView)
            }
-           setUser(updatedUser)
-           localStorage.setItem('user', JSON.stringify(updatedUser))
-           setRefreshView(true)
-           console.log("User state updated with stats reset", refreshView)
          }
          // Only keep non-battle, non-creation logic below
          else if(data.type === 'waiting_battles'){

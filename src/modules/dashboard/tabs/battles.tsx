@@ -32,13 +32,11 @@ const getSportIcon = (sport: string) => {
 };
 
 export default function Battles({
-  user,
-  setUser,
+  user,  
   battles,
   setBattles,
 }: {
   user: User;
-  setUser: (user: User) => void;
   battles: RecentBattle[];
   setBattles: (battles: RecentBattle[]) => void;
 }) {

@@ -62,8 +62,8 @@ export const ViewProfile = ({user}: {user: User}) => {
         }
         
         // Check for persistent avatar and cache server avatar if available
-        const persistentAvatar = AvatarStorage.getAvatar(userData.username);
-        if (!persistentAvatar && userData.avatar) {
+        const persistentAvatar = await AvatarStorage.getAvatar(userData.username);
+        if (persistentAvatar === null && userData.avatar) {
           // Cache server avatar locally for faster future access
           try {
             const fullAvatarUrl = userData.avatar.startsWith('http') 
@@ -102,16 +102,20 @@ export const ViewProfile = ({user}: {user: User}) => {
 
   // Load persistent avatar for the viewed user
   useEffect(() => {
-    if (viewUser?.username) {
-      const persistentAvatar = AvatarStorage.getAvatar(viewUser.username);
-      if (persistentAvatar) {
-        console.log('[ViewProfile] Found persistent avatar for', viewUser.username);
-        // Just mark that the user has a persistent avatar, don't store base64
-        if (!viewUser.avatar || !viewUser.avatar.includes('persistent_')) {
-          setViewUser({ ...viewUser, avatar: `persistent_${viewUser.username}` });
+    const loadViewUserAvatar = async () => {
+      if (viewUser?.username) {
+        const persistentAvatar = await AvatarStorage.getAvatar(viewUser.username);
+        if (persistentAvatar) {
+          console.log('[ViewProfile] Found persistent avatar for', viewUser.username);
+          // Just mark that the user has a persistent avatar, don't store base64
+          if (!viewUser.avatar || !viewUser.avatar.includes('persistent_')) {
+            setViewUser({ ...viewUser, avatar: `persistent_${viewUser.username}` });
+          }
         }
       }
-    }
+    };
+
+    loadViewUserAvatar();
   }, [viewUser?.username, setViewUser])
 
   useEffect(() => {
@@ -121,8 +125,8 @@ export const ViewProfile = ({user}: {user: User}) => {
         if (data.type === 'user_updated' && data.data) {
           const updatedUserData = data.data
           
-          // Update current user's data if it's the current user
-          if (updatedUserData.username === user.username) {
+          // Update current user's data if it's the current user (compare by email)
+          if (updatedUserData.email === user.email) {
             
             // Update the global user state
             const updatedUser = {
@@ -168,8 +172,8 @@ export const ViewProfile = ({user}: {user: User}) => {
         if (data.type === 'friend_request_updated' && data.data) {
           const updatedUserData = data.data
           
-          // Update current user's data if it's the current user
-          if (updatedUserData.username === user.username) {
+          // Update current user's data if it's the current user (compare by email)
+          if (updatedUserData.email === user.email) {
             
             // Update the global user state
             const updatedUser = {

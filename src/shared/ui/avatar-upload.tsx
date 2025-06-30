@@ -136,12 +136,12 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
           style={{ clipPath: 'circle(50%)' }}
         >
           {currentAvatar ? (
-            <img
-              src={previewUrl || AvatarStorage.resolveAvatarUrl(user) || ''}
-              alt="Avatar"
-              className="w-full h-full object-cover object-center"
-              style={{ clipPath: 'circle(50%)' }}
-            />
+                                    <img
+                          src={previewUrl || AvatarStorage.resolveAvatarUrl(user) || '/images/placeholder-user.jpg'}
+                          alt="Avatar"
+                          className="w-full h-full object-cover object-center"
+                          style={{ clipPath: 'circle(50%)' }}
+                        />
           ) : (
             <div className="w-full h-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
               {user.username.slice(0, 2).toUpperCase()}

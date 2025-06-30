@@ -77,6 +77,18 @@ export default function QuizQuestionPage() {
       "Keep the momentum going! ⚡",
       "You're doing great! 👍",
       "Stay strong! 💪"
+    ],
+    drawPending: [
+      "Perfect balance! 🤝",
+      "Evenly matched! ⚖️",
+      "What a battle! 🔥",
+      "Neck and neck! 🏁",
+      "This is intense! ⚡",
+      "Both playing great! 👏",
+      "Anyone's game! 🎯",
+      "So close! 🤏",
+      "Amazing competition! 🏆",
+      "Keep it up! 💪"
     ]
   };
 
@@ -93,8 +105,12 @@ export default function QuizQuestionPage() {
       // User is losing
       const messages = motivationalMessages.losing;
       return messages[Math.floor(Math.random() * messages.length)];
+    } else if (userScore === opponentScore && userScore > 0) {
+      // Tied with score > 0 (active draw situation)
+      const messages = motivationalMessages.drawPending;
+      return messages[Math.floor(Math.random() * messages.length)];
     } else {
-      // Scores are tied
+      // Scores are tied at 0 or default case
       const messages = motivationalMessages.tied;
       return messages[Math.floor(Math.random() * messages.length)];
     }
@@ -282,11 +298,33 @@ export default function QuizQuestionPage() {
           result = 'lose';
           resultText = 'Good luck next time!';
         } else {
-          // Draw case
+          // Enhanced Draw case with detailed analysis
           winner = '';
           loser = '';
           result = 'draw';
-          resultText = 'It\'s a draw!';
+          
+          // Enhanced draw messages based on score
+          const drawMessages = [
+            'It\'s a perfect draw!',
+            'Evenly matched opponents!',
+            'What a close battle!',
+            'Both players showed great knowledge!',
+            'A tie shows equal expertise!',
+            'Perfectly balanced battle!'
+          ];
+          
+          // Special messages for different score ranges
+          if (validatedUserScore === 0 && validatedOpponentScore === 0) {
+            resultText = 'Neither player scored - time to practice more!';
+          } else if (validatedUserScore >= 8) {
+            resultText = 'High-scoring draw! Both players are experts!';
+          } else if (validatedUserScore >= 5) {
+            resultText = 'Solid performance from both players - it\'s a draw!';
+          } else {
+            resultText = drawMessages[Math.floor(Math.random() * drawMessages.length)];
+          }
+          
+          console.log(`[BATTLE_WS] Draw detected: ${user.username} (${validatedUserScore}) vs ${opponentUsername} (${validatedOpponentScore})`);
         }
         
         setWinner(winner);

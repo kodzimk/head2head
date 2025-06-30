@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "../../shared/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";

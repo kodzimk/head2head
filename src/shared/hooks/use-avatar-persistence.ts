@@ -19,7 +19,7 @@ export const useAvatarPersistence = (user: User) => {
       const localAvatar = AvatarStorage.getAvatar(user.username);
       
       if (localAvatar) {
-        setPersistentAvatarUrl(localAvatar);
+        setPersistentAvatarUrl('http://localhost:8000/avatars/'+localAvatar);
         setIsLoading(false);
       } else if (user.avatar) {
         // If no local avatar but server avatar exists, cache it
@@ -39,7 +39,7 @@ export const useAvatarPersistence = (user: User) => {
             if (serverUrl) {
               await AvatarStorage.cacheServerAvatar(user.username, serverUrl);
               const cachedAvatar = AvatarStorage.getAvatar(user.username);
-              setPersistentAvatarUrl(cachedAvatar);
+              setPersistentAvatarUrl('http://localhost:8000/avatars/'+cachedAvatar);
             }
           } catch (error) {
             console.warn('[useAvatarPersistence] Failed to cache server avatar:', error);
@@ -63,7 +63,7 @@ export const useAvatarPersistence = (user: User) => {
   const updateAvatar = async (file: File) => {
     try {
       const localAvatarUrl = await AvatarStorage.saveAvatar(user.username, file);
-      setPersistentAvatarUrl(localAvatarUrl);
+      setPersistentAvatarUrl('http://localhost:8000/avatars/'+localAvatarUrl);
       return localAvatarUrl;
     } catch (error) {
       console.error('[useAvatarPersistence] Failed to update avatar:', error);

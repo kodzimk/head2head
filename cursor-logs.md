@@ -1,5 +1,571 @@
 # Cursor Development Logs
 
+## API URL Configuration Update - December 2024
+
+### Complete API Base URL Standardization
+
+**Objective**: Ensure all API fetch requests use the standardized `api.head2head.dev` domain across the entire application.
+
+#### What Was Updated:
+
+1. **API Base URL Configuration** (`src/shared/interface/gloabL_var.tsx`):
+   - **Current Configuration**: `API_BASE_URL = "https://api.head2head.dev"`
+   - **WebSocket Configuration**: `WS_BASE_URL = "wss://api.head2head.dev"`
+   - All components import and use these centralized constants
+
+2. **Training Component Updates** (`src/modules/trainings/trainings.tsx`):
+   - **Import Added**: Added `API_BASE_URL` to imports from global variables
+   - **URL Updates**: Updated all relative API paths to use full API base URL:
+     - `/api/training/training-stats/${username}` → `${API_BASE_URL}/api/training/training-stats/${username}`
+     - `/api/training/incorrect-answers/${username}` → `${API_BASE_URL}/api/training/incorrect-answers/${username}`
+     - `/api/training/generate-random-questions` → `${API_BASE_URL}/api/training/generate-random-questions`
+     - `/api/training/start-session` → `${API_BASE_URL}/api/training/start-session`
+     - `/api/training/submit-answer` → `${API_BASE_URL}/api/training/submit-answer`
+     - `/api/training/complete-session` → `${API_BASE_URL}/api/training/complete-session`
+
+#### Components Already Using Correct API URL:
+
+**All Major Components Verified**:
+- ✅ **Authentication**: `src/modules/sign-in/sign-in.tsx`, `src/modules/sign-up/signup-email.tsx`
+- ✅ **Dashboard**: `src/modules/dashboard/dashboard.tsx` and all tab components
+- ✅ **Battle System**: `src/modules/battle/battle.tsx`, `src/modules/battle/result.tsx`
+- ✅ **Profile Management**: `src/modules/profile/profile.tsx`, `src/modules/profile/view-profile.tsx`
+- ✅ **Friends System**: `src/modules/friends/friends.tsx`
+- ✅ **Notifications**: `src/modules/notifications/notifications.tsx`
+- ✅ **Leaderboard**: `src/modules/leaderboard/leaderboard.tsx`
+- ✅ **Avatar System**: `src/shared/ui/avatar-upload.tsx`, `src/shared/utils/avatar-storage.ts`
+- ✅ **WebSocket**: `src/shared/websockets/battle-websocket.ts`
+
+#### Technical Benefits:
+
+**Centralized Configuration**:
+- Single source of truth for API base URL
+- Easy to update for different environments
+- Consistent across all components
+
+**Production Ready**:
+- All requests point to production API domain
+- No hardcoded localhost or development URLs
+- Proper HTTPS and WSS protocols
+
+**Scalability**:
+- Easy deployment across different environments
+- Configurable API endpoints
+- Consistent error handling and logging
+
+#### Verification:
+
+**API Endpoints Confirmed**:
+- ✅ Authentication: `https://api.head2head.dev/auth/*`
+- ✅ Database: `https://api.head2head.dev/db/*`
+- ✅ Battle System: `https://api.head2head.dev/battle/*`
+- ✅ Friends: `https://api.head2head.dev/friends/*`
+- ✅ Training: `https://api.head2head.dev/api/training/*`
+- ✅ WebSocket: `wss://api.head2head.dev/ws/*`
+
+**No Remaining Issues**:
+- ❌ No localhost URLs found
+- ❌ No hardcoded development domains
+- ❌ No relative API paths without base URL
+- ❌ No mixed HTTP/HTTPS protocols
+
+This update ensures complete consistency in API communication and eliminates any potential issues with mixed domains or development URLs in production.
+
+## Enhanced Draw Logic Implementation - December 2024
+
+### Comprehensive Draw Logic Enhancement
+
+**Objective**: Implement and enhance draw logic across the entire battle system to provide better user experience and detailed statistics for draw scenarios.
+
+#### What Was Implemented:
+
+1. **Enhanced Result Component (`src/modules/battle/result.tsx`)**:
+   - Added detailed draw-specific messaging and statistics
+   - Implemented draw insights section showing:
+     - Number of questions both players answered correctly
+     - Information about response times and accuracy
+     - Explanation that draws count toward total battles but don't break win streaks
+   - Enhanced visual feedback with proper draw-specific messaging
+
+2. **Improved Quiz Question Component (`src/modules/battle/quiz-question.tsx`)**:
+   - Enhanced draw detection with detailed score analysis
+   - Added dynamic draw messages based on score ranges:
+     - Special messages for 0-0 draws (encourage practice)
+     - High-scoring draws (8+ correct answers) - "Both players are experts!"
+     - Mid-range draws (5-7 correct) - "Solid performance from both players"
+     - Random encouraging messages for other score ranges
+   - Added comprehensive motivational message system with draw-specific encouragement:
+     - "drawPending" category for tied games in progress
+     - Messages like "Perfect balance! 🤝", "Evenly matched! ⚖️", "Neck and neck! 🏁"
+   - Improved logging for draw detection scenarios
+
+3. **Enhanced Dashboard Statistics (`src/modules/dashboard/dashboard.tsx`)**:
+   - Added dedicated draw statistics card in the quick stats grid
+   - Implemented comprehensive battle statistics breakdown showing:
+     - Wins with percentage
+     - Draws with percentage  
+     - Losses with percentage
+     - Current streak status
+   - Added draw insights section providing meaningful feedback about draw performance
+   - Enhanced draw detection logic with explicit logging
+   - Better visual representation of draw statistics with 🤝 emoji and warning color scheme
+
+4. **Updated User Interface (`src/shared/interface/user.tsx`)**:
+   - Added optional `draws` and `losses` fields to User interface for comprehensive statistics tracking
+   - Updated initial user object to include draw and loss counters
+
+#### Technical Benefits:
+
+**Enhanced User Experience**:
+- More engaging and variety in draw result messages
+- Clear explanation of what draws mean for statistics
+- Detailed insights into draw performance
+- Better understanding of competitive balance
+
+**Improved Statistics Tracking**:
+- Comprehensive battle breakdown (wins/draws/losses with percentages)
+- Clear distinction between different result types
+- Better analytics for user performance assessment
+- Draw-specific insights and encouragement
+
+**Better Visual Design**:
+- Dedicated draw statistics display with appropriate warning/orange color scheme
+- Emoji-based iconography for draws (🤝) 
+- Clear percentage breakdowns for all battle results
+- Enhanced result messages based on score ranges
+
+**Enhanced Motivational System**:
+- Draw-specific motivational messages during battles
+- Context-aware encouragement based on current score situation
+- More engaging feedback for tied game scenarios
+- Positive reinforcement for competitive balance
+
+#### Implementation Details:
+
+The draw logic now provides:
+1. **Dynamic Result Messages**: 6 different draw message variations plus special messages for different score ranges
+2. **Real-time Motivation**: Draw-specific motivational messages during active battles when scores are tied
+3. **Comprehensive Statistics**: Full breakdown of wins/draws/losses with percentages and insights
+4. **Enhanced UI Feedback**: Better visual representation and user understanding of draw scenarios
+5. **Proper Logging**: Enhanced logging for draw detection and debugging
+
+This implementation makes draws feel like a meaningful and positive part of the competitive experience rather than just a "non-result", providing users with clear feedback about their performance and encouraging continued engagement.
+
+## Username Update Synchronization Fix - 2024-01-10
+
+### Task Overview
+- **Issue**: When username was updated, only battle names and profile names were updating, but other components weren't handling the username change properly
+- **Root Cause**: Components were comparing `updatedUserData.username === user.username` which would fail when username changed
+- **Solution**: Compare by email instead of username and add proper username change handling
+
+### Problems Identified
+
+#### 1. WebSocket Message Handling Issues
+- **Comparison Problem**: `updatedUserData.username === user.username` failed when username changed
+- **localStorage Inconsistency**: Username in localStorage wasn't always updated properly
+- **Avatar Migration**: Old username avatars weren't migrated to new username
+
+#### 2. Component-Level Issues
+Multiple components had the same problematic pattern:
+- `src/modules/profile/view-profile.tsx`
+- `src/modules/notifications/notifications.tsx`
+- `src/modules/friends/friends.tsx`
+- `src/modules/dashboard/tabs/friends.tsx`
+
+### Solutions Implemented
+
+#### 1. Fixed Main App WebSocket Handling (`src/app/App.tsx`)
+```javascript
+// BEFORE:
+if (data.type === 'user_updated') {
+  const updatedUser = { ... }
+  setUser(updatedUser)
+}
+
+// AFTER:
+if (data.type === 'user_updated') {
+  const oldUsername = user.username;
+  const newUsername = data.data.username;
+  
+  const updatedUser = { ... }
+  
+  // Handle username change
+  if (oldUsername !== newUsername && data.data.email === user.email) {
+    console.log(`Username changed from "${oldUsername}" to "${newUsername}"`);
+    // Update username in localStorage
+    localStorage.setItem('username', newUsername);
+    // Update user data in localStorage
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+    // Update avatar storage with new username
+    AvatarStorage.migrateAvatar(oldUsername, newUsername);
+  } else if (data.data.email === user.email) {
+    // Regular update for the current user
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  }
+  
+  setUser(updatedUser)
+}
+```
+
+#### 2. Added Avatar Migration Method (`src/shared/utils/avatar-storage.ts`)
+```javascript
+/**
+ * Migrate avatar from old username to new username
+ */
+static migrateAvatar(oldUsername: string, newUsername: string): void {
+  try {
+    const stored = this.getAllAvatars();
+    
+    if (stored[oldUsername]) {
+      // Copy avatar data to new username
+      stored[newUsername] = {
+        ...stored[oldUsername],
+        username: newUsername, // Update the username in the stored data
+      };
+      
+      // Remove old username entry
+      delete stored[oldUsername];
+      
+      // Save updated storage
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(stored));
+      
+      console.log(`[AvatarStorage] Migrated avatar from "${oldUsername}" to "${newUsername}"`);
+    }
+  } catch (error) {
+    console.error('[AvatarStorage] Error migrating avatar:', error);
+  }
+}
+```
+
+#### 3. Fixed Component Comparison Logic
+Updated all components to compare by email instead of username:
+
+```javascript
+// BEFORE:
+if (updatedUserData.username === user.username) {
+
+// AFTER:
+if (updatedUserData.email === user.email) {
+```
+
+**Components Fixed:**
+- `src/modules/profile/view-profile.tsx` (2 instances)
+- `src/modules/notifications/notifications.tsx` (2 instances)
+- `src/modules/friends/friends.tsx` (2 instances)
+- `src/modules/dashboard/tabs/friends.tsx` (2 instances)
+
+#### 4. Enhanced Username Change Detection
+Added proper email-based comparison to all WebSocket handlers:
+- `friend_request_updated` events
+- `stats_reset` events
+- All user update scenarios
+
+### Technical Implementation
+
+#### Email-Based User Identification
+- **Reliable Identifier**: Email doesn't change, unlike username
+- **Consistent Comparisons**: All components now use `updatedUserData.email === user.email`
+- **Future-Proof**: Works even if usernames change multiple times
+
+#### localStorage Management
+- **Username Key**: Always updated when username changes
+- **User Object**: Updated with new username data
+- **Avatar Storage**: Migrated to new username key
+
+#### Avatar Persistence
+- **Migration Logic**: Automatically moves avatar from old to new username
+- **No Data Loss**: Users keep their uploaded avatars after username change
+- **Storage Cleanup**: Removes old username entries to prevent orphaned data
+
+### Benefits
+
+#### 1. Complete Username Synchronization
+- **All Components**: Every component now properly handles username updates
+- **Real-Time Updates**: Navigation links update immediately when username changes
+- **Avatar Persistence**: User avatars follow username changes seamlessly
+
+#### 2. Robust State Management
+- **Email-Based Logic**: Reliable user identification that doesn't break on username changes
+- **localStorage Consistency**: Username and user data always stay in sync
+- **WebSocket Reliability**: Proper message handling for all username update scenarios
+
+#### 3. Enhanced User Experience
+- **Seamless Updates**: Username changes reflect immediately across entire app
+- **Data Integrity**: No lost avatars or broken state during username updates
+- **Consistent Navigation**: All links and components update automatically
+
+#### 4. Developer Benefits
+- **Future-Proof**: Pattern works for any user property changes
+- **Maintainable**: Clear, consistent comparison logic across all components
+- **Debuggable**: Detailed logging for username change tracking
+
+### Production Ready Features
+- **Cross-Component Synchronization**: All components stay in sync during username updates
+- **Data Migration**: Avatar and user data properly migrated on username changes
+- **Error Handling**: Graceful fallbacks if migration fails
+- **Performance**: Efficient updates with minimal re-renders
+
+### Profile Image URL Updates
+
+#### 1. Enhanced Avatar Migration (`src/shared/utils/avatar-storage.ts`)
+Added comprehensive avatar URL handling for username changes:
+
+```javascript
+/**
+ * Update user avatar references when username changes
+ */
+private static updateUserAvatarReference(oldUsername: string, newUsername: string): void {
+  // Update user object in localStorage if it contains persistent avatar reference
+  if (userData.avatar === `persistent_${oldUsername}`) {
+    userData.avatar = `persistent_${newUsername}`;
+    localStorage.setItem('user', JSON.stringify(userData));
+  }
+}
+
+/**
+ * Update avatar URL for username change - ensures all cached references are updated
+ */
+static updateAvatarUrlForUsernameChange(oldUsername: string, newUsername: string, userObject: any): any {
+  // If user has a persistent avatar, update the reference
+  if (userObject.avatar && userObject.avatar.startsWith('persistent_')) {
+    userObject.avatar = `persistent_${newUsername}`;
+  }
+  
+  // Migrate the actual avatar data
+  this.migrateAvatar(oldUsername, newUsername);
+  
+  return userObject;
+}
+```
+
+#### 2. Profile Component Updates (`src/modules/profile/profile.tsx`)
+Added avatar reference updating during username save:
+
+```javascript
+// Handle avatar reference update for username change
+if (oldUsername !== username && user.avatar && user.avatar.startsWith('persistent_')) {
+  user.avatar = `persistent_${username}`;
+  console.log(`Updated avatar reference from "${oldUsername}" to "${username}"`);
+}
+
+// Migrate avatar data to new username
+AvatarStorage.migrateAvatar(oldUsername, username);
+```
+
+#### 3. Main App WebSocket Handler (`src/app/App.tsx`)
+Enhanced username change handling with avatar reference updates:
+
+```javascript
+// Update avatar reference in user object if needed
+if (updatedUser.avatar && updatedUser.avatar.startsWith('persistent_')) {
+  updatedUser.avatar = `persistent_${newUsername}`;
+}
+```
+
+### Automatic Avatar URL Resolution
+
+#### Component Coverage
+All avatar-displaying components automatically handle username changes through:
+- **Header Component**: Uses `AvatarStorage.resolveAvatarUrl(user)` - ✅ Auto-updates
+- **User Avatar Component**: Uses `AvatarStorage.resolveAvatarUrl(user)` - ✅ Auto-updates  
+- **Avatar Upload Component**: Uses `AvatarStorage.resolveAvatarUrl(user)` - ✅ Auto-updates
+- **View Profile Component**: Uses `AvatarStorage.resolveAvatarUrl(user/viewUser)` - ✅ Auto-updates
+- **Overview Component**: Uses `AvatarStorage.resolveAvatarUrl(user)` - ✅ Auto-updates
+
+#### Resolution Logic
+The `resolveAvatarUrl` method handles all username-based resolution:
+1. **localStorage First**: Checks for persistent avatar using current username
+2. **Server Fallback**: Uses server avatar URLs (don't contain usernames in path)
+3. **Automatic Update**: All components receive updated user object with new username
+
+### Testing Validation
+- **Username Change Flow**: Complete update cycle from profile to all components
+- **Avatar Persistence**: Avatars remain after username changes and URLs update
+- **Navigation Updates**: All links update to new username immediately
+- **WebSocket Handling**: Proper message processing for username updates
+- **Avatar URL Updates**: All avatar displays automatically reflect new username
+- **localStorage Consistency**: Avatar references and data migrate seamlessly
+
+---
+
+## Avatar Storage Quota and Empty Src Fix - 2024-01-10
+
+### Task Overview
+- **Issue 1**: Empty string ("") passed to img src attribute causing browser to reload page
+- **Issue 2**: QuotaExceededError when saving avatars to localStorage
+- **Solution**: Fixed empty src fallbacks and implemented robust storage quota management
+
+### Problems Identified
+
+#### 1. Empty String Src Attribute
+```javascript
+// PROBLEMATIC CODE:
+src={previewUrl || AvatarStorage.resolveAvatarUrl(user) || ''}
+```
+- Browser interprets empty string as relative URL, causing page reload
+- Console warning about network requests for empty src
+
+#### 2. localStorage Quota Issues
+```
+[AvatarStorage] Storage quota would be exceeded
+QuotaExceededError: Failed to execute 'setItem' on 'Storage': Setting the value of 'h2h_user_avatars' exceeded the quota.
+```
+- 50MB limit was too aggressive for browser localStorage (typically 5-10MB)
+- Insufficient cleanup before saving new avatars
+- No emergency fallback when quota exceeded
+
+### Solutions Implemented
+
+#### 1. Fixed Empty Src Attribute (`src/shared/ui/avatar-upload.tsx`)
+```javascript
+// BEFORE:
+src={previewUrl || AvatarStorage.resolveAvatarUrl(user) || ''}
+
+// AFTER:
+src={previewUrl || AvatarStorage.resolveAvatarUrl(user) || '/images/placeholder-user.jpg'}
+```
+
+**Benefits:**
+- No more empty src attributes causing browser reloads
+- Proper fallback to placeholder image when no avatar available
+- Eliminates console warnings about empty src
+
+#### 2. Comprehensive Storage Quota Management (`src/shared/utils/avatar-storage.ts`)
+
+**Reduced Storage Limits:**
+```javascript
+// BEFORE:
+private static readonly MAX_STORAGE_SIZE = 50 * 1024 * 1024; // 50MB
+
+// AFTER:
+private static readonly MAX_STORAGE_SIZE = 10 * 1024 * 1024; // 10MB
+private static readonly SAFE_STORAGE_LIMIT = 4 * 1024 * 1024; // 4MB safe limit
+```
+
+**Aggressive Pre-Cleanup:**
+```javascript
+static async aggressiveCleanup(newDataSize: number): Promise<void> {
+  // Clean up user storage data first
+  this.cleanupUserStorageData();
+  
+  // Remove oldest avatars until under safe limit
+  if (currentSize + newDataSize > this.SAFE_STORAGE_LIMIT) {
+    const avatarEntries = Object.entries(stored);
+    avatarEntries.sort(([, a], [, b]) => a.timestamp - b.timestamp); // Oldest first
+    
+    for (const [avatarUsername, data] of avatarEntries) {
+      delete stored[avatarUsername];
+      removedSize += data.dataUrl.length;
+      
+      if (currentSize - removedSize + newDataSize <= this.SAFE_STORAGE_LIMIT) {
+        break;
+      }
+    }
+  }
+}
+```
+
+**Emergency Cleanup:**
+```javascript
+static async emergencyCleanup(newDataSize: number): Promise<void> {
+  // Get current username to preserve
+  const currentUsername = localStorage.getItem('username')?.replace(/"/g, '');
+  
+  if (currentUsername && stored[currentUsername]) {
+    // Keep only current user's avatar
+    const preservedAvatar = stored[currentUsername];
+    const minimalStorage = { [currentUsername]: preservedAvatar };
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(minimalStorage));
+  } else {
+    // Clear all avatars as last resort
+    localStorage.removeItem(this.STORAGE_KEY);
+  }
+}
+```
+
+**Enhanced Save Method with Fallbacks:**
+```javascript
+static async saveAvatar(username: string, file: File): Promise<string> {
+  try {
+    // Aggressive pre-cleanup to ensure space
+    await this.aggressiveCleanup(dataUrl.length);
+    
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(stored));
+      return dataUrl;
+    } catch (quotaError) {
+      // Emergency cleanup if quota still exceeded
+      await this.emergencyCleanup(dataUrl.length);
+      
+      // Try again with minimal storage
+      const minimalStored = { [username]: avatarData };
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(minimalStored));
+      return dataUrl;
+    }
+  } catch (error) {
+    throw new Error('Failed to save avatar. Storage quota exceeded and cleanup unsuccessful.');
+  }
+}
+```
+
+**Storage Usage Monitoring:**
+```javascript
+static getStorageUsage(): { totalBytes: number; avatarBytes: number; percentage: number } {
+  // Monitor total localStorage usage
+  // Track avatar-specific storage
+  // Calculate percentage of estimated limit
+  // Return usage statistics for debugging
+}
+```
+
+### Technical Benefits
+
+#### 1. Robust Error Handling
+- **Graceful Degradation**: App continues working even if avatar save fails
+- **User Feedback**: Clear error messages for storage issues
+- **Automatic Recovery**: Emergency cleanup preserves essential data
+
+#### 2. Efficient Storage Management
+- **Proactive Cleanup**: Removes old avatars before space runs out
+- **LRU Strategy**: Oldest avatars removed first (Least Recently Used)
+- **Conservative Limits**: Uses browser-safe storage limits (4MB safe, 10MB max)
+
+#### 3. Enhanced User Experience
+- **No Page Reloads**: Fixed empty src attribute issues
+- **Faster Performance**: Smaller storage footprint
+- **Consistent Behavior**: Avatars always display properly with fallbacks
+
+#### 4. Production Reliability
+- **Quota Prevention**: Proactive cleanup prevents QuotaExceededError
+- **Data Preservation**: Current user's avatar always preserved in emergency
+- **Monitoring Tools**: Storage usage tracking for debugging
+
+### Implementation Results
+
+#### Before Fix:
+- ❌ Empty src causing page reloads
+- ❌ Storage quota exceeded errors
+- ❌ App crashes when localStorage full
+- ❌ No storage usage visibility
+
+#### After Fix:
+- ✅ Proper placeholder fallbacks for images
+- ✅ Robust storage quota management
+- ✅ Graceful handling of storage limits
+- ✅ Emergency cleanup preserves essential data
+- ✅ Storage usage monitoring and statistics
+- ✅ Clear error messages for users
+- ✅ Automatic cleanup of old avatars
+
+### Benefits
+- **Reliability**: No more storage quota crashes
+- **Performance**: Optimized storage usage with cleanup
+- **User Experience**: Proper image fallbacks, no page reloads
+- **Maintainability**: Clear error handling and monitoring
+- **Scalability**: Automatic management of storage limits
+
+---
+
 ## Design System Consistency for Notifications and View-Profile Pages - 2024-01-10
 
 ### Task Overview
@@ -5177,3 +5743,348 @@ interface StoredAvatar {
 - Performance optimization
 
 This implementation ensures users never lose their avatars and provides instant, reliable avatar display across all components and sessions.
+
+# Mode: ACT
+
+## Avatar Fetching and Caching Implementation for Additional Components
+
+### Task Completed
+Implemented avatar fetching and caching in leaderboard, battle pages, and view-profile components similar to the pattern used in overview and profile components.
+
+### Components Updated
+
+#### 1. Leaderboard Component (`src/modules/leaderboard/leaderboard.tsx`)
+**Added Features:**
+- **Batch Avatar Fetching**: Processes leaderboard users in batches of 5 to avoid overwhelming the system
+- **Smart Caching**: Only fetches avatars if they're not already cached locally
+- **Graceful Error Handling**: Continues processing other avatars if one fails
+- **Performance Optimization**: 100ms delay between batches to be gentle on the system
+
+**Avatar Display Updated:**
+- Changed from: `src={player.avatar ? \`${API_BASE_URL}${player.avatar}\` : undefined}`
+- Changed to: `src={AvatarStorage.resolveAvatarUrl({ username: player.username, avatar: player.avatar }) || "/images/placeholder-user.jpg"}`
+
+**Technical Implementation:**
+```javascript
+useEffect(() => {
+  const fetchAndCacheAvatars = async () => {
+    if (leaderboardData.length === 0) return;
+    
+    const batchSize = 5;
+    for (let i = 0; i < leaderboardData.length; i += batchSize) {
+      const batch = leaderboardData.slice(i, i + batchSize);
+      
+      await Promise.all(batch.map(async (player) => {
+        if (!player.username || !player.avatar) return;
+        
+        const persistentAvatar = AvatarStorage.getAvatar(player.username);
+        if (!persistentAvatar) {
+          // Fetch and cache server avatar
+          const fullAvatarUrl = player.avatar.startsWith('http') 
+            ? player.avatar 
+            : `${API_BASE_URL}${player.avatar}`;
+          
+          const response = await fetch(fullAvatarUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            const file = new File([blob], 'avatar.jpg', { type: blob.type });
+            await AvatarStorage.saveAvatar(player.username, file);
+          }
+        }
+      }));
+      
+      // Delay between batches
+      if (i + batchSize < leaderboardData.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  };
+
+  fetchAndCacheAvatars();
+}, [leaderboardData]);
+```
+
+#### 2. Battle Component (`src/modules/battle/battle.tsx`)
+**Added Features:**
+- **Creator Avatar Fetching**: Caches avatars of all battle creators automatically
+- **Batch Processing**: Processes in smaller batches of 3 (since battles are typically fewer)
+- **Real-time Updates**: Fetches avatars when new battles are loaded
+- **Improved UX**: Users see cached avatars instantly on subsequent visits
+
+**Avatar Display Updated:**
+- Changed from: `src={battle_data.creator_avatar ? \`${API_BASE_URL}${battle_data.creator_avatar}\` : undefined}`
+- Changed to: `src={AvatarStorage.resolveAvatarUrl({ username: battle_data.first_opponent, avatar: battle_data.creator_avatar }) || "/images/placeholder-user.jpg"}`
+
+**Technical Implementation:**
+```javascript
+useEffect(() => {
+  const fetchAndCacheAvatars = async () => {
+    if (battle.length === 0) return;
+    
+    const batchSize = 3;
+    for (let i = 0; i < battle.length; i += batchSize) {
+      const batch = battle.slice(i, i + batchSize);
+      
+      await Promise.all(batch.map(async (battleData) => {
+        if (!battleData.first_opponent || !battleData.creator_avatar) return;
+        
+        const persistentAvatar = AvatarStorage.getAvatar(battleData.first_opponent);
+        if (!persistentAvatar) {
+          // Fetch and cache server avatar
+          const fullAvatarUrl = battleData.creator_avatar.startsWith('http') 
+            ? battleData.creator_avatar 
+            : `${API_BASE_URL}${battleData.creator_avatar}`;
+          
+          const response = await fetch(fullAvatarUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            const file = new File([blob], 'avatar.jpg', { type: blob.type });
+            await AvatarStorage.saveAvatar(battleData.first_opponent, file);
+          }
+        }
+      }));
+      
+      // Delay between batches
+      if (i + batchSize < battle.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  };
+
+  fetchAndCacheAvatars();
+}, [battle]);
+```
+
+#### 3. View Profile Component (`src/modules/profile/view-profile.tsx`)
+**Status**: ✅ **Already Properly Implemented**
+- Avatar fetching and caching was already implemented correctly
+- Uses `AvatarStorage.resolveAvatarUrl(viewUser)` for avatar display
+- Includes server avatar caching when viewing other users' profiles
+- No changes needed - component was already following best practices
+
+### Benefits Achieved
+
+#### Performance Improvements
+- **Instant Avatar Loading**: Cached avatars load immediately from localStorage
+- **Reduced Server Load**: Each avatar is only fetched once per user
+- **Bandwidth Savings**: No repeated downloads of the same avatar files
+- **Offline Resilience**: Cached avatars work even when server is unreachable
+
+#### User Experience Enhancements
+- **Consistent Avatar Display**: All components now use the same avatar resolution logic
+- **Graceful Fallbacks**: Proper placeholder images when avatars fail to load
+- **Fast Page Transitions**: No loading delays for previously viewed users
+- **Visual Consistency**: Unified avatar handling across all battle and profile components
+
+#### Technical Architecture
+- **Centralized Storage**: All avatars managed through AvatarStorage utility
+- **Smart Caching Strategy**: Only fetches what's needed, when it's needed
+- **Error Resilience**: Graceful handling of network failures and storage issues
+- **Memory Efficient**: Uses localStorage with quota management to prevent browser issues
+
+### Pattern Consistency
+All avatar-displaying components now follow the same pattern:
+1. **Fetch and Cache**: Check for cached avatar, fetch from server if needed
+2. **Batch Processing**: Handle multiple users efficiently without overwhelming system
+3. **Unified Display**: Use `AvatarStorage.resolveAvatarUrl()` for consistent avatar resolution
+4. **Fallback Handling**: Graceful degradation to placeholder images
+
+### Future Benefits
+- **Easy Maintenance**: All avatar logic centralized in AvatarStorage utility
+- **Scalability**: Batch processing prevents performance issues as user base grows
+- **Extensibility**: New components can easily adopt the same pattern
+- **Reliability**: Robust error handling prevents avatar issues from breaking components
+
+This implementation ensures that users across leaderboards, battle pages, and profile views have instant avatar loading and a consistent experience throughout the application.
+
+// ... existing code ...
+
+# Mode: ACT
+
+## Avatar Storage System Refactored: localStorage to IndexedDB with File-Based Organization
+
+### Major System Change Completed
+Completely refactored the avatar storage system from localStorage-based base64 storage to IndexedDB-based file storage with organized folder paths by username.
+
+### Key Changes Made
+
+#### 1. Storage Technology Migration
+**From:** localStorage with base64 data URLs  
+**To:** IndexedDB with actual File objects  
+
+**Benefits:**
+- **Better Performance**: File objects are more efficient than base64 strings
+- **Larger Storage Capacity**: IndexedDB can handle much larger amounts of data (50MB vs 5-10MB)
+- **True File Organization**: Structured storage with paths like `avatars/username/avatar.jpg`
+- **Type Safety**: Actual File objects instead of string manipulation
+
+#### 2. Folder Structure Implementation
+**Avatar Path Organization:**
+```
+avatars/
+├── john_doe/
+│   └── avatar.jpg
+├── jane_smith/
+│   └── avatar.png
+└── user123/
+    └── avatar.gif
+```
+
+**Path Creation Logic:**
+- Sanitizes usernames: `john.doe@email.com` → `john_doe`
+- Maintains file extensions: `.jpg`, `.png`, `.gif`, `.webp`
+- Consistent naming: `avatar.{extension}`
+
+#### 3. Database Schema
+**IndexedDB Structure:**
+```javascript
+Database: 'h2h_avatars_db'
+ObjectStore: 'avatars'
+Key: username (string)
+Indexes:
+  - path: Non-unique index on file paths
+  - timestamp: Non-unique index for cleanup operations
+
+StoredAvatar Interface:
+{
+  file: File,           // Actual file object
+  timestamp: number,    // For LRU cleanup
+  username: string,     // User identifier
+  path: string,        // e.g., "avatars/john_doe/avatar.jpg"
+  originalPath?: string // Optional server path reference
+}
+```
+
+#### 4. API Changes - Now Async
+**Methods That Became Async:**
+- `saveAvatar()` → Returns Promise<string> (object URL)
+- `getAvatar()` → Returns Promise<string | null>
+- `hasAvatar()` → Returns Promise<boolean>
+- `removeAvatar()` → Returns Promise<void>
+- `getAllAvatars()` → Returns Promise<Record<string, StoredAvatar>>
+- `getStorageStats()` → Returns Promise<{...}>
+- `clearAll()` → Returns Promise<void>
+- `migrateAvatar()` → Returns Promise<void>
+
+**New Async Methods Added:**
+- `getAvatarUrl(username)` → Returns Promise<string | null>
+- `getDB()` → Returns Promise<IDBDatabase>
+
+#### 5. Component Updates for Async Support
+
+**Updated Components:**
+1. **Overview Component** (`src/modules/dashboard/tabs/overview.tsx`)
+   - Wrapped `AvatarStorage.getAvatar()` in async function
+   - Added proper error handling for async operations
+
+2. **Profile Component** (`src/modules/profile/profile.tsx`)
+   - Created `loadPersistentAvatar()` async function
+   - Updated avatar loading logic
+
+3. **View Profile Component** (`src/modules/profile/view-profile.tsx`)
+   - Updated both avatar fetching locations with async/await
+   - Added proper null checking for async results
+
+4. **Leaderboard Component** (`src/modules/leaderboard/leaderboard.tsx`)
+   - Updated batch avatar fetching with async/await
+   - Changed condition from `!persistentAvatar` to `persistentAvatar === null`
+
+5. **Battle Component** (`src/modules/battle/battle.tsx`)
+   - Updated creator avatar fetching with async/await
+   - Improved error handling for async operations
+
+6. **Avatar UI Component** (`src/shared/ui/avatar.tsx`)
+   - Added React state management for async avatar loading
+   - Implemented `useEffect` for async avatar fetching
+   - Added loading state management
+
+#### 6. Enhanced Storage Management
+
+**Improved Quota Management:**
+- Increased limits: 50MB max, 30MB safe limit (previously 10MB/4MB)
+- Better suited for IndexedDB storage capabilities
+- More efficient cleanup using actual file sizes
+
+**Enhanced Cleanup Strategies:**
+```javascript
+aggressiveCleanup(newFileSize) {
+  // Uses actual file.size instead of string.length
+  // More accurate space calculations
+  // Batch removal based on timestamp (LRU)
+}
+
+emergencyCleanup(currentUsername, newFileSize) {
+  // Preserves only current user's avatar
+  // Complete database clearing with selective restore
+}
+```
+
+**Storage Statistics:**
+```javascript
+getStorageStats() → {
+  totalAvatars: number,
+  storageSize: string,    // Human readable (e.g., "15.2 MB")
+  usernames: string[],
+  paths: string[]        // NEW: File path tracking
+}
+```
+
+#### 7. Migration and Backward Compatibility
+
+**Legacy Data Cleanup:**
+- `cleanupUserStorageData()` removes old localStorage avatar keys
+- Automatic detection and removal of obsolete storage
+
+**Avatar Reference System:**
+- Maintains `persistent_${username}` markers in user objects
+- `resolveAvatarUrl()` kept for backward compatibility
+- Graceful fallback to server avatars when local storage unavailable
+
+**Migration Process:**
+```javascript
+migrateAvatar(oldUsername, newUsername) {
+  // 1. Retrieves old avatar from IndexedDB
+  // 2. Creates new path: avatars/new_username/avatar.ext
+  // 3. Updates all metadata (username, path, timestamp)
+  // 4. Removes old entry
+  // 5. Logs path changes for debugging
+}
+```
+
+### Technical Benefits Achieved
+
+#### Performance Improvements
+- **Faster Loading**: Object URLs load faster than base64 data
+- **Memory Efficiency**: File objects use less memory than base64 strings
+- **Better Caching**: Browser can optimize file object handling
+- **Reduced Main Thread Blocking**: IndexedDB operations are asynchronous
+
+#### Scalability Enhancements
+- **5x Storage Capacity**: 50MB vs 10MB previous limit
+- **Organized Structure**: Easy to locate and manage specific user avatars
+- **File Type Preservation**: Maintains original image formats and quality
+- **Path-Based Organization**: Logical folder structure for better management
+
+#### Developer Experience
+- **Clearer APIs**: Path-based organization is more intuitive
+- **Better Debugging**: File paths make it easy to track avatar locations
+- **Type Safety**: File objects provide better TypeScript support
+- **Error Handling**: More granular error handling for file operations
+
+### Future-Proofing Features
+
+1. **Extensible Structure**: Easy to add avatar versioning or multiple sizes
+2. **Migration Ready**: Path-based system supports future storage backends
+3. **Analytics Friendly**: Timestamp and path tracking for usage analytics
+4. **Backup Compatible**: File-based storage easier to export/import
+
+### User Experience Impact
+
+- **Instant Loading**: Cached avatars load immediately from IndexedDB
+- **Better Quality**: Preserves original image quality without base64 degradation
+- **Reliable Storage**: IndexedDB is more stable than localStorage for large data
+- **Cross-Session Persistence**: Better reliability across browser sessions
+
+This refactoring provides a solid foundation for avatar management that can scale with the application's growth while maintaining excellent performance and user experience.
+
+// ... existing code ...

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from './avatar';
-import { API_BASE_URL } from '../interface/gloabL_var';
 import AvatarStorage from '../utils/avatar-storage';
 
 interface UserAvatarProps {

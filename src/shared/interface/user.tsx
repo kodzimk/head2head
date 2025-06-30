@@ -11,9 +11,11 @@ export interface User {
     password: string;
     friends: string[];
     friendRequests: string[];
-    avatar?: string;
-    battles: string[];
+    avatar?: string | null;
+    battles: RecentBattle[];
     invitations: string[];
+    draws?: number;
+    losses?: number;
 }
 
 export interface Battle {
@@ -30,19 +32,21 @@ export const initialUser: User = {
     email: "",
     username: "",
     nickname: "",
-    avatar: "/placeholder.svg?height=100&width=100",
-    rank: 1,
+    avatar: null,
+    rank: 0,
     winRate: 0,
     totalBattles: 0,
     wins: 0,
     streak: 0,
-    favoritesSport: "Football",
+    favoritesSport: "",
     password: "",
     friends: [],
     friendRequests: [],
     battles: [],
     invitations: [],
-  }
+    draws: 0,
+    losses: 0,
+}
 
 export interface RecentBattle {
     id: number,

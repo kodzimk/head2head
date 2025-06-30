@@ -132,8 +132,8 @@ export default function NotificationsPage() {
         if (data.type === 'user_updated' && data.data) {
           const updatedUserData = data.data
           
-          // Update the global user state if it's the current user
-          if (updatedUserData.username === user.username) {
+          // Update the global user state if it's the current user (compare by email)
+          if (updatedUserData.email === user.email) {
             console.log('Updating user state from websocket:', updatedUserData.friendRequests)
             const updatedUser = {
               email: updatedUserData.email,
@@ -211,8 +211,8 @@ export default function NotificationsPage() {
         if (data.type === 'friend_request_updated' && data.data) {
           const updatedUserData = data.data
           
-          // Update the global user state if it's the current user
-          if (updatedUserData.username === user.username) {
+          // Update the global user state if it's the current user (compare by email)
+          if (updatedUserData.email === user.email) {
             console.log('Updating user state from friend_request_updated:', updatedUserData.friendRequests)
             const updatedUser = {
               email: updatedUserData.email,

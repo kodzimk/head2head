@@ -5,12 +5,12 @@ import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, 
 import { useNavigate } from 'react-router-dom';
 import type { User } from '../../shared/interface/user';
 import { API_BASE_URL, useGlobalStore } from '../../shared/interface/gloabL_var';
-import { Trophy, Target, TrendingUp, Home, RefreshCw } from 'lucide-react';
-import { UserAvatar, FaceitAvatar } from '../../shared/ui/user-avatar';
+import { Trophy, Target, TrendingUp, Home } from 'lucide-react';
+import { FaceitAvatar } from '../../shared/ui/user-avatar';
 
 export default function BattleResultPage({user}: {user: User}) {
 
-  const { text, setText } = useTextStore();
+  const {  setText } = useTextStore();
   const { firstOpponentScore, secondOpponentScore, setFirstOpponentScore, setSecondOpponentScore } = useScoreStore();
   const {  setWinner } = useWinnerStore();
   const {  setLoser } = useLoserStore();
@@ -153,19 +153,6 @@ export default function BattleResultPage({user}: {user: User}) {
     }
   };
 
-  const handlePlayAgain = () => {
-    // Clean up state and navigate to battle selection
-    setResult('');
-    setFirstOpponentScore(0);
-    setSecondOpponentScore(0);
-    setWinner('');
-    setLoser('');
-    setText('');
-    setCurrentQuestion(null);
-    setShowResult(false);
-    
-    navigate('/battles');
-  };
 
   if (!showResult) {
     return (
@@ -300,13 +287,24 @@ export default function BattleResultPage({user}: {user: User}) {
               <div className="font-semibold mb-1">
                 {isWin ? 'Incredible knowledge and speed!' :
                  isLose ? 'Every battle makes you stronger!' :
-                 'Well matched opponents!'}
+                 isDraw ? 'Perfectly matched knowledge!' : 'Well matched opponents!'}
               </div>
               <div className="text-sm opacity-80">
                 {isWin ? 'You dominated this trivia challenge!' :
                  isLose ? 'Keep practicing and learning!' :
-                 'Great effort from both players!'}
+                 isDraw ? 'Both players showed equal expertise!' : 'Great effort from both players!'}
               </div>
+              
+              {/* Enhanced Draw Statistics */}
+              {isDraw && (
+                <div className="mt-3 pt-3 border-t border-warning/20">
+                  <div className="text-xs text-warning/70 space-y-1">
+                    <div>🎯 Both players answered {firstOpponentScore} questions correctly</div>
+                    <div>⏱️ Similar response times and accuracy</div>
+                    <div>🤝 Draws count toward total battles but don't break win streaks</div>
+                  </div>
+                </div>
+              )}
             </div>
             
             {/* Action Buttons */}

@@ -36,14 +36,14 @@ const getSportIcon = (sport: string) => {
 
 
   
-  export default function Overview({user, setUser, battles, setBattles}: {user: User, setUser: (user: User) => void, battles: RecentBattle[], setBattles: (battles: RecentBattle[]) => void}) {
+  export default function Overview({user, battles}: {user: User, battles: RecentBattle[]}) {
     const navigate = useNavigate()  
    
     // Fetch and cache user avatar if needed
     useEffect(() => {
       const fetchAndCacheAvatar = async () => {
         if (user?.username) {
-          const persistentAvatar = AvatarStorage.getAvatar(user.username);
+          const persistentAvatar = await AvatarStorage.getAvatar(user.username);
           if (!persistentAvatar && user.avatar) {
             try {
               // Build full avatar URL

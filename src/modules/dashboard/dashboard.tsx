@@ -6,13 +6,9 @@ import {
   Users,
   Target, 
   Zap, 
-  Plus, 
-  TrendingUp,
-  Crown,
+  TrendingUp, 
   Flame,
-  Star,
-  ArrowRight,
-  Calendar,
+  ArrowRight, 
   Award,
   Play
 } from 'lucide-react';
@@ -132,19 +128,28 @@ export function Dashboard() {
         const currentUser = localStorage.getItem("username");
         
         const firstScore = parseInt(battle.first_opponent_score) || 0;
-        const secondScore = parseInt(battle.second_opponent_score) || 0
+        const secondScore = parseInt(battle.second_opponent_score) || 0;
         
+        // Enhanced draw detection and result calculation
         if (battle.first_opponent === currentUser) {
           if (firstScore > secondScore) {
             result = "win";
           } else if (firstScore < secondScore) {
             result = "lose";
-          } 
+          } else {
+            // Explicit draw case
+            result = "draw";
+            console.log(`[Dashboard] Draw detected for ${currentUser}: ${firstScore} vs ${secondScore}`);
+          }
         } else if (battle.second_opponent === currentUser) {
           if (secondScore > firstScore) {
             result = "win";
           } else if (secondScore < firstScore) {
             result = "lose";
+          } else {
+            // Explicit draw case
+            result = "draw";
+            console.log(`[Dashboard] Draw detected for ${currentUser}: ${secondScore} vs ${firstScore}`);
           }
         } 
         
@@ -292,7 +297,7 @@ export function Dashboard() {
               <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               <Badge variant="secondary" className="bg-success/15 text-success border-success/25">
                 <TrendingUp className="w-3 h-3 mr-1" />
-                +12
+                #{user?.rank || 'N/A'}
               </Badge>
             </div>
             <div className="stat-value">{user?.rank || 'N/A'}</div>
@@ -322,16 +327,88 @@ export function Dashboard() {
             <div className="stat-label">Battles Played</div>
           </div>
 
+          {/* Enhanced Draw Statistics Card */}
           <div className="stat-card animate-scale-in" style={{ animationDelay: '0.3s' }}>
             <div className="flex items-center justify-between mb-3">
-              <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
+              <div className="w-5 h-5 sm:w-6 sm:h-6 text-warning flex items-center justify-center">
+                🤝
+              </div>
               <Badge variant="secondary" className="bg-warning/15 text-warning border-warning/25">
-                <Star className="w-3 h-3 mr-1" />
-                Active
+                <span className="text-xs">DRAWS</span>
               </Badge>
             </div>
-            <div className="stat-value text-warning">{user?.streak || 0}</div>
-            <div className="stat-label">Win Streak</div>
+            <div className="stat-value text-warning">
+              {(() => {
+                // Calculate draws from battles
+                const drawCount = battles.filter(battle => battle.result === 'draw').length;
+                return drawCount;
+              })()}
+            </div>
+            <div className="stat-label">Total Draws</div>
+          </div>
+        </div>
+
+        {/* Enhanced Battle Statistics Summary */}
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4 sm:p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-primary" />
+              Battle Statistics Breakdown
+            </h3>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-success mb-1">{user?.wins || 0}</div>
+                <div className="text-sm text-muted-foreground">Wins</div>
+                <div className="text-xs text-success/70">
+                  {user?.totalBattles ? Math.round(((user.wins || 0) / user.totalBattles) * 100) : 0}%
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-2xl font-bold text-warning mb-1">
+                  {(() => {
+                    const drawCount = battles.filter(battle => battle.result === 'draw').length;
+                    return drawCount;
+                  })()}
+                </div>
+                <div className="text-sm text-muted-foreground">Draws</div>
+                <div className="text-xs text-warning/70">
+                  {user?.totalBattles ? Math.round((battles.filter(battle => battle.result === 'draw').length / user.totalBattles) * 100) : 0}%
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-2xl font-bold text-destructive mb-1">
+                  {(() => {
+                    const losses = (user?.totalBattles || 0) - (user?.wins || 0) - battles.filter(battle => battle.result === 'draw').length;
+                    return Math.max(0, losses);
+                  })()}
+                </div>
+                <div className="text-sm text-muted-foreground">Losses</div>
+                <div className="text-xs text-destructive/70">
+                  {user?.totalBattles ? Math.round((((user?.totalBattles || 0) - (user?.wins || 0) - battles.filter(battle => battle.result === 'draw').length) / user.totalBattles) * 100) : 0}%
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary mb-1">{user?.streak || 0}</div>
+                <div className="text-sm text-muted-foreground">Streak</div>
+                <div className="text-xs text-primary/70">
+                  {user?.streak && user.streak > 0 ? 'Win Streak' : 'No Streak'}
+                </div>
+              </div>
+            </div>
+            
+            {/* Draw Insights */}
+            {battles.filter(battle => battle.result === 'draw').length > 0 && (
+              <div className="mt-4 pt-4 border-t border-border/50">
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium text-warning">Draw Insights:</span> You've had {battles.filter(battle => battle.result === 'draw').length} evenly matched battle{battles.filter(battle => battle.result === 'draw').length !== 1 ? 's' : ''}, 
+                  showing consistent performance against skilled opponents. Draws indicate competitive gameplay!
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -365,11 +442,11 @@ export function Dashboard() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4 sm:space-y-6 animate-fade-in">
-            <Overview user={user} setUser={setUser} battles={battles} setBattles={setBattles} />
+            <Overview user={user} battles={battles} />
           </TabsContent>
 
           <TabsContent value="battles" className="space-y-4 sm:space-y-6 animate-fade-in">
-            <Battles user={user} setUser={setUser} battles={battles} setBattles={setBattles} />
+            <Battles user={user} battles={battles} setBattles={setBattles} />
           </TabsContent>
 
           <TabsContent value="friends" className="space-y-4 sm:space-y-6 animate-fade-in">

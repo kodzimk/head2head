@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import {useGlobalStore } from "../../shared/interface/gloabL_var";
+import {useGlobalStore, API_BASE_URL } from "../../shared/interface/gloabL_var";
 import Header from "../dashboard/header";
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card";
 import { Button } from "../../shared/ui/button";
@@ -119,7 +119,7 @@ export default function TrainingsPage() {
     }
     
     try {
-      const url = `/api/training/training-stats/${user.username}`;
+      const url = `${API_BASE_URL}/api/training/training-stats/${user.username}`;
       const response = await fetch(url);
       
       if (response.ok) {
@@ -155,7 +155,7 @@ export default function TrainingsPage() {
       if (selectedLevel && selectedLevel !== "all") params.append('level', selectedLevel);
       params.append('limit', '50');
 
-      const url = `/api/training/incorrect-answers/${user.username}?${params}`;
+      const url = `${API_BASE_URL}/api/training/incorrect-answers/${user.username}?${params}`;
       
       const response = await fetch(url);
       
@@ -176,7 +176,7 @@ export default function TrainingsPage() {
       params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
       params.append('count', '5');
 
-      const url = `/api/training/generate-random-questions?${params}`;
+      const url = `${API_BASE_URL}/api/training/generate-random-questions?${params}`;
       
       const response = await fetch(url, {
         method: 'POST',
@@ -206,7 +206,7 @@ export default function TrainingsPage() {
       if (selectedSport !== "all") params.append('sport', selectedSport);
       if (selectedLevel !== "all") params.append('level', selectedLevel);
 
-      const response = await fetch(`/api/training/start-session?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/api/training/start-session?${params}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -324,7 +324,7 @@ export default function TrainingsPage() {
         params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
         params.append('count', '1');
 
-        const url = `/api/training/generate-random-questions?${params}`;
+        const url = `${API_BASE_URL}/api/training/generate-random-questions?${params}`;
         
         const response = await fetch(url, {
           method: 'POST',
@@ -460,7 +460,7 @@ export default function TrainingsPage() {
         params.append('original_answer_id', question.originalAnswerId);
       }
 
-      const response = await fetch(`/api/training/submit-answer?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/api/training/submit-answer?${params}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -505,7 +505,7 @@ export default function TrainingsPage() {
         params.append('original_answer_id', question.originalAnswerId);
       }
 
-      const response = await fetch(`/api/training/submit-answer?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/api/training/submit-answer?${params}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -539,7 +539,7 @@ export default function TrainingsPage() {
     if (!currentSession) return;
 
     try {
-      const response = await fetch(`/api/training/complete-session/${currentSession}`, {
+      const response = await fetch(`${API_BASE_URL}/api/training/complete-session/${currentSession}`, {
         method: 'POST'
       });
 

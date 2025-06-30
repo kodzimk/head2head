@@ -90,8 +90,8 @@ export default function Friends({user}: {user: User}) {
         if (data.type === 'user_updated' && data.data) {
           const updatedUserData = data.data;
           
-          // Update friends list if the current user's data was updated
-          if (updatedUserData.username === user.username) {
+          // Update friends list if the current user's data was updated (compare by email)
+          if (updatedUserData.email === user.email) {
             console.log('Updating friends list from websocket:', updatedUserData.friends);
             updateFriendsList(updatedUserData.friends || []);
           }
@@ -100,8 +100,8 @@ export default function Friends({user}: {user: User}) {
         if (data.type === 'friend_request_updated' && data.data) {
           const updatedUserData = data.data;
           
-          // Update friends list if the current user's data was updated
-          if (updatedUserData.username === user.username) {
+          // Update friends list if the current user's data was updated (compare by email)
+          if (updatedUserData.email === user.email) {
             console.log('Updating friends list from friend_request_updated:', updatedUserData.friends);
             updateFriendsList(updatedUserData.friends || []);
           }

@@ -59,14 +59,34 @@ const AvatarImage = React.forwardRef<
     avatarUrl?: string
   }
 >(({ className, username, avatarUrl, ...props }, ref) => {
+  const [localAvatarUrl, setLocalAvatarUrl] = React.useState<string | null>(null);
+  const [, setIsLoading] = React.useState(false);
+
+  // Load local avatar asynchronously
+  React.useEffect(() => {
+    const loadLocalAvatar = async () => {
+      if (username) {
+        setIsLoading(true);
+        try {
+          const localAvatar = await AvatarStorage.getAvatar(username);
+          setLocalAvatarUrl(localAvatar);
+        } catch (error) {
+          console.error('[AvatarImage] Failed to load local avatar:', error);
+          setLocalAvatarUrl(null);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadLocalAvatar();
+  }, [username]);
+
   // Determine the correct avatar URL with localStorage priority
   const getAvatarUrl = () => {
-    // If username is provided, try localStorage first
-    if (username) {
-      const localAvatar = AvatarStorage.getAvatar(username);
-      if (localAvatar) {
-        return localAvatar;
-      }
+    // If we have a local avatar from IndexedDB, use it first
+    if (localAvatarUrl) {
+      return localAvatarUrl;
     }
     
     if (avatarUrl) {
