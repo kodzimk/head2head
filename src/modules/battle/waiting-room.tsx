@@ -62,9 +62,9 @@ export default function WaitingRoom() {
     resetInactivityTimer()
   }
 
-
-
   useEffect(() => {
+    console.log('Waiting room component mounted for battle:', id)
+    
     const savedInvitedFriends = localStorage.getItem(`invitedFriends_${id}`)
     if (savedInvitedFriends) {
       setInvitedFriends(JSON.parse(savedInvitedFriends))
@@ -75,7 +75,7 @@ export default function WaitingRoom() {
     }, 1000)
 
     // Set up inactivity detection
-    resetInactivityTimer()
+    resetInactivityTimer() 
 
     // Add event listeners for user activity
     const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click']
@@ -84,7 +84,10 @@ export default function WaitingRoom() {
     })
 
     const handleWebSocketMessage = (event: MessageEvent) => {
+        console.log('Waiting room received websocket message:', event.data)
         const data = JSON.parse(event.data)
+        console.log('Waiting room parsed data:', data)
+        
         if (data.type === 'battle_started') {
           if (data.data === id) {
             navigate(`/battle/${data.data}/countdown`)
@@ -94,11 +97,45 @@ export default function WaitingRoom() {
           console.log("Battle was removed, redirecting to battle page"); // Debug logging
           navigate('/battles')
         }
+        else if(data.type === 'invitation_rejected'){
+          console.log('Waiting room received invitation_rejected:', data.data)
+          setInvitedFriends(prev => {
+            const newInvitedFriends = prev.filter(friend => friend !== data.data.rejected_by)
+            console.log('Filtered invited friends:', newInvitedFriends)
+            localStorage.setItem(`invitedFriends_${id}`, JSON.stringify(newInvitedFriends))
+            return newInvitedFriends
+          })
+          console.log("Invited friends updated")
+        }
     }
 
+
     if (newSocket) {
+      console.log('Adding websocket event listener to waiting room')
       newSocket.addEventListener('message', handleWebSocketMessage)
+    } else {
+      console.log('No websocket connection available in waiting room')
     }
+
+    // Listen for localStorage changes from App.tsx
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `invitedFriends_${id}` && e.newValue) {
+        console.log('LocalStorage updated for invited friends:', e.newValue)
+        setInvitedFriends(JSON.parse(e.newValue))
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Listen for custom invitation rejection event from App.tsx
+    const handleInvitationRejected = (e: CustomEvent) => {
+      if (e.detail.battleId === id) {
+        console.log('Waiting room received invitation rejection event:', e.detail)
+        setInvitedFriends(e.detail.updatedInvitedFriends)
+      }
+    }
+    
+    window.addEventListener('invitationRejected', handleInvitationRejected as EventListener)
 
     return () => {
       clearInterval(interval)
@@ -110,6 +147,12 @@ export default function WaitingRoom() {
       activityEvents.forEach(event => {
         document.removeEventListener(event, handleUserActivity, true)
       })
+      
+      // Remove storage event listener
+      window.removeEventListener('storage', handleStorageChange)
+      
+      // Remove custom invitation rejection event listener
+      window.removeEventListener('invitationRejected', handleInvitationRejected as EventListener)
       
       if (newSocket) {
         newSocket.removeEventListener('message', handleWebSocketMessage)
@@ -132,8 +175,11 @@ export default function WaitingRoom() {
 
   const inviteFriend = async (friendUsername: string) => {
     invitebattleFriend(friendUsername, id)
-    setInvitedFriends(prev => [...prev, friendUsername])
-    localStorage.setItem(`invitedFriends_${id}`, JSON.stringify([...invitedFriends, friendUsername]))
+    setInvitedFriends(prev => {
+      const newInvitedFriends = [...prev, friendUsername]
+      localStorage.setItem(`invitedFriends_${id}`, JSON.stringify(newInvitedFriends))
+      return newInvitedFriends
+    })
   }
 
   const undoInvite = async (friendUsername: string) => {

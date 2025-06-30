@@ -1764,3 +1764,272 @@ Simplified the button logic to have clear, non-overlapping conditions:
 
 ### Result
 The button now properly changes to "Cancel Request" when a friend request is sent, and the logic is cleaner and more maintainable.
+
+## 2024-12-19 - Battle Invitation Display Fix
+
+### Issue
+When a user sends a battle invitation to a friend, the indicator shows but the list of invitations is not displaying in the notifications page.
+
+### Root Cause
+1. **Missing Backend Endpoint**: The frontend was calling `/battle/get-battle?battle_id=${battle_id}` but this endpoint didn't exist in the backend
+2. **Incomplete Websocket Handling**: The notifications component wasn't properly handling invitation updates from websocket messages
+3. **Missing Debugging**: No visibility into what was happening with invitation loading
+
+### Solution
+1. **Added Missing Backend Endpoint**: Created `/get-battle` endpoint in `backend/src/battle/router.py` to retrieve battle information by battle_id
+2. **Enhanced Websocket Handling**: Added invitation update logic to both `user_updated` and `friend_request_updated` websocket message handlers
+3. **Added Comprehensive Debugging**: Added logging throughout the invitation loading and rendering process
+4. **Improved Invitation Display**: Enhanced the invitation cards to show more information (sport, duration, battle ID)
+
+### Files Modified
+- `backend/src/battle/router.py` - Added get-battle endpoint
+- `src/modules/notifications/notifications.tsx` - Enhanced invitation handling and debugging
+
+### Backend Changes
+- Added `get_battle()` function that returns battle information including sport, level, duration, and opponents
+- Proper error handling for non-existent battles
+
+### Frontend Changes
+- Added debugging logs to track invitation loading process
+- Enhanced websocket message handlers to update invitations in real-time
+- Improved invitation card display with more details
+- Added state change tracking for debugging
+
+### Result
+Battle invitations should now properly display in the notifications page with real-time updates when invitations are sent, accepted, or rejected.
+
+## 2024-12-19 - Battle Invitation Debugging Improvements
+
+### Issue
+The `/battle/get-battle` endpoint was returning 404 errors for battle IDs that should exist.
+
+### Investigation
+Added comprehensive debugging to track battle lifecycle and identify why battles are not found:
+
+### Debugging Improvements Added
+1. **Enhanced get-battle endpoint**: Now checks both in-memory battles and database
+2. **Added debug-battles endpoint**: Lists all battles in memory and database
+3. **Battle creation logging**: Tracks when battles are created and what IDs are available
+4. **Battle deletion logging**: Tracks when battles are deleted and why
+5. **Invitation process logging**: Tracks the invitation flow and available battles
+
+### Files Modified
+- `backend/src/battle/router.py` - Added comprehensive debugging throughout battle lifecycle
+
+### Debug Endpoints Added
+- `/battle/debug-battles` - Lists all battles in memory and database
+- Enhanced `/battle/get-battle` - Checks both memory and database
+- Enhanced `/battle/create` - Logs battle creation details
+- Enhanced `/battle/delete` - Logs battle deletion details
+- Enhanced `/battle/invite-friend` - Logs invitation process
+
+### Expected Outcome
+The debugging will help identify:
+- Whether battles are being created properly
+- Whether battles are being deleted unexpectedly
+- Whether the battle ID in the invitation matches an existing battle
+- Whether there's a mismatch between memory and database storage
+
+## 2024-12-19 - Battle Invitation Response Improvements
+
+### Issue
+When users respond to battle invitations (accept/reject), the invitation immediately disappears without showing the response status or providing an undo option.
+
+### Solution
+Enhanced the invitation system to show response status and provide undo functionality:
+
+### Improvements Made
+1. **Enhanced Invitation Interface**: Added `status` field to track 'pending', 'accepted', or 'rejected' states
+2. **Response State Management**: Added state tracking for invitation responses and processing states
+3. **Visual Status Display**: Shows the response status with color-coded indicators
+4. **Undo Functionality**: Allows users to undo their accept/reject response
+5. **Processing States**: Shows "Processing..." during API calls and disables buttons
+6. **Improved UX**: Better visual feedback for user actions
+
+### Features Added
+- **Status Display**: Shows "Accepted" (green) or "Rejected" (red) after response
+- **Undo Button**: Appears after response to allow undoing the action
+- **Processing States**: Buttons show "Processing..." and are disabled during API calls
+- **State Persistence**: Response states are tracked and maintained
+- **Real-time Updates**: Properly handles websocket updates for invitation changes
+
+### Files Modified
+- `src/modules/notifications/notifications.tsx` - Enhanced invitation handling and UI
+
+### User Experience
+1. **User sees invitation** with Accept/Reject buttons
+2. **User clicks Accept/Reject** → Button shows "Processing..." and is disabled
+3. **Response is sent** → Status changes to "Accepted" or "Rejected"
+4. **Undo button appears** → User can undo their response if needed
+5. **After undo** → Returns to original Accept/Reject buttons
+
+### Result
+Users now have clear feedback about their invitation responses and can undo their actions if needed, providing a much better user experience.
+
+## 2024-12-19 - Battle Invitation Error Handling Improvements
+
+### Issue
+Battle invitations were failing to load because some battle IDs in the user's invitation list referenced battles that no longer exist in the backend, causing 404 errors.
+
+### Root Cause
+- Battles can be deleted or expire, leaving orphaned invitation references
+- The frontend was trying to fetch battle details for non-existent battles
+- No fallback mechanism for missing battles
+
+### Solution
+Implemented robust error handling and fallback mechanisms:
+
+### Improvements Made
+1. **Fallback Invitation Objects**: When a battle can't be fetched, create a fallback invitation with "Unknown Sport"
+2. **Graceful Error Handling**: Catch 404 errors and other API failures without breaking the UI
+3. **TypeScript Fixes**: Added proper type annotations to prevent linter errors
+4. **Better Logging**: Enhanced error logging to track missing battles
+
+### Technical Changes
+- **Error Handling**: Wrapped battle fetching in try-catch blocks
+- **Fallback Creation**: Generate basic invitation objects for missing battles
+- **Type Safety**: Fixed TypeScript linter errors with proper type annotations
+- **Logging**: Added detailed logging for debugging missing battles
+
+### User Experience
+- **No More Crashes**: UI continues to work even when battles are missing
+- **Visible Invitations**: Users can still see and respond to invitations even if battle details are incomplete
+- **Better Debugging**: Clear logs help identify which battles are missing
+
+### Files Modified
+- `src/modules/notifications/notifications.tsx` - Enhanced error handling and fallback mechanisms
+
+### Result
+The invitation system is now more robust and can handle missing battles gracefully, providing a better user experience even when backend data is inconsistent.
+
+## 2024-12-19 - Battle Invitation Rejection Notification System
+
+### Issue
+When a friend rejects a battle invitation, the battle creator is not notified about the rejection.
+
+### Solution
+Implemented a comprehensive rejection notification system:
+
+### Backend Changes
+1. **Added `/reject-invitation` endpoint**: Properly handles invitation rejections
+2. **WebSocket notification**: Sends rejection notifications to battle creators
+3. **Enhanced logging**: Tracks rejection events and notifications
+
+### Frontend Changes
+1. **Updated rejection handler**: Uses proper API endpoint instead of generic user update
+2. **WebSocket message handling**: Processes rejection notifications in both App.tsx and notifications.tsx
+3. **User notifications**: Shows alert when invitation is rejected
+
+### Technical Implementation
+- **Backend endpoint**: `/battle/reject-invitation` with proper error handling
+- **WebSocket message type**: `invitation_rejected` with battle details
+- **Notification data**: Includes battle_id, rejected_by, battle_creator, sport, and level
+- **Real-time updates**: Immediate notification when rejection occurs
+
+### User Experience
+1. **Friend rejects invitation** → Backend processes rejection
+2. **Battle creator notified** → Receives real-time notification via WebSocket
+3. **Alert shown** → Displays who rejected which battle invitation
+4. **Logging** → Detailed logs for debugging
+
+### Files Modified
+- `backend/src/battle/router.py` - Added reject-invitation endpoint
+- `backend/src/websocket.py` - Added rejection message handler
+- `src/modules/notifications/notifications.tsx` - Updated rejection handling
+- `src/app/App.tsx` - Added rejection notification handler
+
+### Result
+Battle creators now receive immediate notifications when their invitations are rejected, providing better user feedback and communication.
+
+## 2024-12-19 - Fixed API Parameter Format and UI Improvements
+
+### Fixed 422 Error in Reject Invitation
+- **Issue**: Frontend was sending parameters as JSON body, but backend expected query parameters
+- **Fix**: Changed API call in `src/modules/notifications/notifications.tsx` from:
+  ```javascript
+  axios.post(`${API_BASE_URL}/battle/reject-invitation`, {
+    friend_username: user.username,
+    battle_id: battle_id
+  })
+  ```
+  to:
+  ```javascript
+  axios.post(`${API_BASE_URL}/battle/reject-invitation?friend_username=${user.username}&battle_id=${battle_id}`)
+  ```
+
+### Removed Alert for Invitation Rejection
+- **Issue**: Users were getting annoying alert popups when their battle invitations were rejected
+- **Fix**: Removed the alert in `src/app/App.tsx` for `invitation_rejected` websocket messages
+- **Result**: Rejection notifications are now logged to console only, providing a cleaner user experience
+
+### Changed "Undo" Button to "Invite" Button
+- **Issue**: The "Undo" button was confusing and didn't clearly indicate its purpose
+- **Fix**: 
+  - Changed button text from "Undo Accept/Reject" to "Invite"
+  - Updated `handleUndoInvitationResponse` function to send a new invitation instead of undoing the previous response
+  - The button now fetches battle details and sends a new invitation to the battle creator
+- **Result**: Clearer user interface that allows users to request a new invitation after rejecting one
+
+### Technical Details
+- The backend `/battle/reject-invitation` endpoint expects `friend_username` and `battle_id` as query parameters
+- The new "Invite" functionality uses the existing `/battle/invite-friend` endpoint
+- All changes maintain proper state synchronization and websocket communication
+
+## 2024-12-19 - Improved Invitation Rejection State Management
+
+### Enhanced Invitation Rejection Handling
+- **Issue**: When users rejected battle invitations, the UI state wasn't properly updated for both the battle creator and the rejecting user
+- **Fix**: 
+  - Updated frontend websocket handler in `src/modules/notifications/notifications.tsx` to handle both scenarios:
+    - When current user is the battle creator who was rejected
+    - When current user is the one who rejected the invitation
+  - Both users now have their local invitation lists properly updated
+  - Global user state is synchronized for both users
+- **Backend Enhancement**: Modified `backend/src/battle/router.py` to send rejection notifications to both users:
+  - Battle creator receives notification that their invitation was rejected
+  - User who rejected receives confirmation notification for state synchronization
+- **Result**: Proper state management ensures both users see accurate invitation lists in real-time
+
+### Technical Implementation
+- Frontend checks `data.data.battle_creator` and `data.data.rejected_by` to determine which user should update their state
+- Backend sends the same rejection message to both users for consistency
+- Local state updates include both `user.invitations` array and `setInvitations` state
+- Global user state is updated via `setUser` to ensure consistency across all components
+
+### Fixed Waiting Room Invitation Rejection
+- **Issue**: Waiting room component was trying to access `data.data.username` but rejection notifications contain `data.data.rejected_by`
+- **Fix**: Updated `src/modules/battle/waiting-room.tsx` to use the correct field name:
+  ```javascript
+  // Before (incorrect)
+  setInvitedFriends(prev => prev.filter(friend => friend !== data.data.username))
+  
+  // After (correct)
+  setInvitedFriends(prev => prev.filter(friend => friend !== data.data.rejected_by))
+  ```
+- **Result**: Waiting room now properly removes rejected friends from the invited friends list
+
+### Enhanced Waiting Room Debugging and State Management
+- **Issue**: Waiting room invitation rejection handling wasn't working despite correct field names
+- **Debugging Added**: 
+  - Added comprehensive logging to websocket message handler in `src/modules/battle/waiting-room.tsx`
+  - Logs raw websocket messages and parsed data structure
+  - Logs when invitation_rejected messages are received
+  - Logs filtered invited friends list after rejection
+- **State Management Fixes**:
+  - Fixed localStorage update to use updated state instead of stale state
+  - Updated `inviteFriend` function to use functional state updates
+  - Ensured all state updates use the functional pattern to avoid stale closures
+- **Result**: Better debugging visibility and more reliable state management for invitation handling
+
+### Fixed Waiting Room Websocket Connection Issue
+- **Issue**: Waiting room component was not receiving websocket messages because `newSocket` was null
+- **Root Cause**: Timing issue where waiting room component mounted before websocket was initialized in App.tsx
+- **Solution**: Implemented custom event system for invitation rejection handling:
+  - App.tsx handles `invitation_rejected` websocket messages and dispatches custom `invitationRejected` event
+  - Waiting room listens for custom event instead of trying to access websocket directly
+  - Custom event includes battle ID, rejected user, and updated invited friends list
+- **Implementation**:
+  - Added custom event dispatch in `src/app/App.tsx` when invitation is rejected
+  - Added custom event listener in `src/modules/battle/waiting-room.tsx` to update local state
+  - Maintained localStorage updates for persistence
+- **Result**: Waiting room now properly updates invited friends list when invitations are rejected, regardless of websocket connection timing

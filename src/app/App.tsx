@@ -297,6 +297,35 @@ export default function App() {
            // Show error message when invitation cannot be accepted
            alert(data.data.message || "Unable to accept invitation");
          }
+         else if(data.type === 'invitation_rejected'){
+           console.log("App.tsx received invitation_rejected:", data.data)
+           // Check if we're in a waiting room and need to update invited friends
+           if (window.location.pathname.includes('/waiting/')) {
+             console.log("Currently in waiting room, should update invited friends")
+             // Extract battle ID from URL
+             const pathParts = window.location.pathname.split('/')
+             const battleId = pathParts[pathParts.length - 1]
+             console.log("Battle ID from URL:", battleId)
+             
+             // Update localStorage for invited friends
+             const currentInvitedFriends = localStorage.getItem(`invitedFriends_${battleId}`)
+             if (currentInvitedFriends) {
+               const invitedFriends = JSON.parse(currentInvitedFriends)
+               const updatedInvitedFriends = invitedFriends.filter((friend: string) => friend !== data.data.rejected_by)
+               localStorage.setItem(`invitedFriends_${battleId}`, JSON.stringify(updatedInvitedFriends))
+               console.log("Updated invited friends in localStorage:", updatedInvitedFriends)
+               
+               // Dispatch custom event for waiting room to listen to
+               window.dispatchEvent(new CustomEvent('invitationRejected', {
+                 detail: {
+                   battleId: battleId,
+                   rejectedBy: data.data.rejected_by,
+                   updatedInvitedFriends: updatedInvitedFriends
+                 }
+               }))
+             }
+           }
+         }
          else if(data.type === 'waiting_room_inactivity'){
            // Redirect to battle page when waiting battle is removed due to inactivity
            alert(data.data.message || "You were inactive in the waiting room");

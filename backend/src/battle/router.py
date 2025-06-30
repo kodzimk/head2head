@@ -86,8 +86,13 @@ async def create_battle(first_opponent: str, sport: str = Query(...), level: str
 
 @battle_router.delete("/delete")
 async def delete_battle(battle_id: str):
+    logger.info(f"Attempting to delete battle {battle_id}")
+    logger.info(f"Available battles before deletion: {list(battles.keys())}")
+    
     if battle_id in battles:
         battles.pop(battle_id)
+        logger.info(f"Battle {battle_id} deleted successfully")
+        logger.info(f"Available battles after deletion: {list(battles.keys())}")
 
         # Broadcast battle removal to all connected users
         try:
@@ -110,6 +115,8 @@ async def delete_battle(battle_id: str):
                     
         except Exception as e:
             logger.error(f"Failed to broadcast battle removal: {str(e)}")
+    else:
+        logger.warning(f"Battle {battle_id} not found in memory for deletion")
 
     return {"message": "Battle deleted successfully"}
 
@@ -187,6 +194,80 @@ async def accept_invitation(friend_username: str, battle_id: str):
     
     battle.second_opponent = friend_username
     return True
+
+@battle_router.post("/reject-invitation")
+async def reject_invitation(friend_username: str, battle_id: str):
+    """
+    Reject a battle invitation and notify the battle creator
+    """
+    try:
+        logger.info(f"Rejecting invitation for {friend_username} to battle {battle_id}")
+        
+        # Get the friend who is rejecting
+        friend_user = await get_user_by_username(friend_username)
+        if not friend_user:
+            logger.error(f"Friend {friend_username} not found")
+            raise HTTPException(status_code=401, detail="Friend not found")
+
+        if battle_id not in friend_user['invitations']:
+            logger.warning(f"Battle {battle_id} not found in {friend_username}'s invitations")
+            return False
+            
+        # Remove the invitation from the friend's list
+        friend_user['invitations'].remove(battle_id)
+        
+        # Update the friend's data
+        user_data = UserDataCreate(**friend_user)
+        await update_user_data(user_data)
+        
+        # Get the battle to find the creator
+        battle = battles.get(battle_id)
+        if battle:
+            battle_creator = battle.first_opponent
+            logger.info(f"Battle creator {battle_creator} will be notified of rejection")
+            
+            # Notify the battle creator via websocket
+            try:
+                from websocket import manager
+                
+                # Create rejection notification message
+                rejection_message = {
+                    "type": "invitation_rejected",
+                    "data": {
+                        "battle_id": battle_id,
+                        "rejected_by": friend_username,
+                        "battle_creator": battle_creator,
+                        "sport": battle.sport,
+                        "level": battle.level
+                    }
+                }
+                
+                # Send notification to battle creator if they're connected
+                if battle_creator in manager.active_connections:
+                    await manager.send_message(json.dumps(rejection_message), battle_creator)
+                    logger.info(f"Sent rejection notification to battle creator {battle_creator}")
+                else:
+                    logger.info(f"Battle creator {battle_creator} is not connected, notification will be sent when they connect")
+                
+                # Also send notification to the user who rejected the invitation
+                if friend_username in manager.active_connections:
+                    await manager.send_message(json.dumps(rejection_message), friend_username)
+                    logger.info(f"Sent rejection notification to user who rejected {friend_username}")
+                else:
+                    logger.info(f"User who rejected {friend_username} is not connected, notification will be sent when they connect")
+                    
+            except Exception as e:
+                logger.error(f"Failed to send rejection notification: {str(e)}")
+                # Don't fail the rejection if notification fails
+        
+        logger.info(f"Successfully rejected invitation for {friend_username} to battle {battle_id}")
+        return True
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error rejecting invitation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to reject invitation: {str(e)}")
 
 @battle_router.post("/battle_result")
 async def battle_result(battle_id: str, winner: str, loser: str, result: str):
@@ -701,3 +782,41 @@ async def get_all_battles():
         for battle in battles:
             battles_list.append(battle.to_json())
     return {"total_battles": len(battles_list), "battles": battles_list}
+
+@battle_router.get("/get-battle")
+async def get_battle(battle_id: str):
+    try:
+        if battle_id in battles:
+            battle = battles[battle_id]
+            
+            battle_data = {
+                "battle_id": battle.id,
+                "sport": battle.sport,
+                "level": battle.level,
+                "duration": battle.duration if hasattr(battle, 'duration') else 0,
+                "first_opponent": battle.first_opponent,
+                "second_opponent": battle.second_opponent,
+                "status": battle.status if hasattr(battle, 'status') else "waiting"
+            }
+            
+            return battle_data
+        
+        async with SessionLocal() as session:
+            battle_data = await session.get(BattleModel, battle_id)
+            if battle_data:
+                return {
+                    "battle_id": battle_data.id,
+                    "sport": battle_data.sport,
+                    "level": battle_data.level,
+                    "duration": getattr(battle_data, 'duration', 0),
+                    "first_opponent": battle_data.first_opponent,
+                    "second_opponent": battle_data.second_opponent,
+                    "status": getattr(battle_data, 'status', 'waiting')
+                }
+        
+        raise HTTPException(status_code=404, detail="Battle not found")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get battle: {str(e)}")

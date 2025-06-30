@@ -557,8 +557,10 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                         await cancel_invitation(message["friend_username"], message["battle_id"])
                         await manager.send_message(json.dumps({
                             "type": "user_updated",
-                            "data": await get_user_by_username(message["friend_username"])
+                            "data": await get_user_by_username(message["friend_username"]),
+                            "response_value": "cancelled"
                         }), message["friend_username"])
+                        
                     elif message.get("type") == "accept_invitation":
                         try:
                             success = await accept_invitation(message["friend_username"], message["battle_id"])
@@ -641,6 +643,24 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                                         "type": "battle_removed",
                                         "data": message["battle_id"]
                                     }), connected_user)
+                    elif message.get("type") == "reject_invitation":
+                        try:
+                            from battle.router import reject_invitation
+                            success = await reject_invitation(message["friend_username"], message["battle_id"])
+                            if success:
+                                logger.info(f"[WS] Successfully rejected invitation for {message['friend_username']} to battle {message['battle_id']}")
+                                # The rejection notification will be sent to the battle creator by the reject_invitation function
+                            else:
+                                logger.warning(f"[WS] Failed to reject invitation for {message['friend_username']} to battle {message['battle_id']}")
+                        except Exception as e:
+                            logger.error(f"[WS] Error rejecting invitation: {str(e)}")
+                            await manager.send_message(json.dumps({
+                                "type": "invitation_error",
+                                "data": {
+                                    "message": "Failed to reject invitation",
+                                    "battle_id": message["battle_id"]
+                                }
+                            }), message["friend_username"])
                     elif message.get("type") == "join_battle":
                         battle = battles.get(message["battle_id"])
                         if battle and not battle.second_opponent:

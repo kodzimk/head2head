@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import Header from "../dashboard/header"
 import { Button } from "../../shared/ui/button"
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "../../shared/ui/card"
+import { Card, CardDescription, CardFooter, CardHeader, CardTitle, CardContent } from "../../shared/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar"
 import { Check, X } from "lucide-react"
 import { useNavigate } from "react-router-dom"
@@ -23,12 +23,15 @@ interface Invitation {
   battle_id: string
   sport: string
   duration: number
+  status?: 'pending' | 'accepted' | 'rejected'
 }
 
 export default function NotificationsPage() {
   const { user, setUser } = useGlobalStore()
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
   const [invitations, setInvitations] = useState<Invitation[]>([])
+  const [invitationResponses, setInvitationResponses] = useState<Map<string, 'accepted' | 'rejected'>>(new Map())
+  const [processingInvitations, setProcessingInvitations] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(true)
   const navigate = useNavigate()
   const { refreshView, setRefreshView } = useRefreshViewStore()
@@ -72,24 +75,39 @@ export default function NotificationsPage() {
         }
         
         if (user.invitations.length > 0) {
+          console.log('Loading invitations for user:', user.invitations)
           const invitationPromises = user.invitations.map(async (battle_id: string) => {
             try {
+              console.log('Fetching battle details for:', battle_id)
               const response = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
+              console.log('Battle response for', battle_id, ':', response.data)
               return {
                 battle_id,
                 sport: response.data.sport,
-                duration: response.data.duration
+                duration: response.data.duration,
+                status: 'pending' as const
               }
             } catch (error) {
               console.error(`Error fetching battle ${battle_id}:`, error)
-              return null
+              // Create a fallback invitation object for missing battles
+              console.log(`Creating fallback invitation for missing battle ${battle_id}`)
+              return {
+                battle_id,
+                sport: 'Unknown Sport',
+                duration: 0,
+                status: 'pending' as const
+              }
             }
           })
           
           const invitationResults = await Promise.all(invitationPromises)
-          const validInvitations = invitationResults.filter(inv => inv !== null) as Invitation[]
+          const validInvitations = invitationResults as Invitation[]
+          console.log('Valid invitations loaded:', validInvitations)
+          
+          // All invitations are now valid (either real or fallback)
           setInvitations(validInvitations)
         } else {
+          console.log('No invitations to load')
           setInvitations([])
         }
         
@@ -102,6 +120,7 @@ export default function NotificationsPage() {
 
     loadFriendRequestsWithAvatars()
   }, [user.friendRequests, user.invitations])
+
 
   // Handle websocket messages for real-time updates
   useEffect(() => {
@@ -150,6 +169,42 @@ export default function NotificationsPage() {
               // Clear friend requests if none exist
               setFriendRequests([])
             }
+            
+            // Update invitations if they changed
+            if (updatedUserData.invitations && updatedUserData.invitations.length > 0) {
+              console.log('Updating invitations from websocket:', updatedUserData.invitations)
+              const invitationPromises = updatedUserData.invitations.map(async (battle_id: string) => {
+                try {
+                  const response = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
+                  return {
+                    battle_id,
+                    sport: response.data.sport,
+                    duration: response.data.duration,
+                    status: 'pending' as const
+                  }
+                } catch (error) {
+                  console.error(`Error fetching battle ${battle_id}:`, error)
+                  // Create a fallback invitation object for missing battles
+                  console.log(`Creating fallback invitation for missing battle ${battle_id}`)
+                  return {
+                    battle_id,
+                    sport: 'Unknown Sport',
+                    duration: 0,
+                    status: 'pending' as const
+                  }
+                }
+              })
+              
+              const invitationResults = await Promise.all(invitationPromises)
+              const validInvitations = invitationResults as Invitation[]
+              console.log('Updated invitations from websocket:', validInvitations)
+              
+              // All invitations are now valid (either real or fallback)
+              setInvitations(validInvitations)
+            } else {
+              console.log('Clearing invitations from websocket')
+              setInvitations([])
+            }
           }
         }
         
@@ -193,6 +248,88 @@ export default function NotificationsPage() {
               // Clear friend requests if none exist
               setFriendRequests([])
             }
+            
+            // Update invitations if they changed
+            if (updatedUserData.invitations && updatedUserData.invitations.length > 0) {
+              console.log('Updating invitations from websocket:', updatedUserData.invitations)
+              const invitationPromises = updatedUserData.invitations.map(async (battle_id: string) => {
+                try {
+                  const response = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
+                  return {
+                    battle_id,
+                    sport: response.data.sport,
+                    duration: response.data.duration,
+                    status: 'pending' as const
+                  }
+                } catch (error) {
+                  console.error(`Error fetching battle ${battle_id}:`, error)
+                  // Create a fallback invitation object for missing battles
+                  console.log(`Creating fallback invitation for missing battle ${battle_id}`)
+                  return {
+                    battle_id,
+                    sport: 'Unknown Sport',
+                    duration: 0,
+                    status: 'pending' as const
+                  }
+                }
+              })
+              
+              const invitationResults = await Promise.all(invitationPromises)
+              const validInvitations = invitationResults as Invitation[]
+              console.log('Updated invitations from websocket:', validInvitations)
+              
+              // All invitations are now valid (either real or fallback)
+              setInvitations(validInvitations)
+            } else {
+              console.log('Clearing invitations from websocket')
+              setInvitations([])
+            }
+          }
+        }
+        
+        // Handle invitation rejection notifications
+        if (data.type === 'invitation_rejected' && data.data) {
+          console.log('Received invitation rejection notification:', data.data)
+          
+          // If the current user is the battle creator who was rejected
+          if (data.data.battle_creator === user.username) {
+            console.log('Your battle invitation was rejected by:', data.data.rejected_by)
+            
+            // Remove the invitation from the user's invitations list
+            const updatedInvitations = user.invitations.filter(invitation => invitation !== data.data.battle_id)
+            user.invitations = updatedInvitations
+            
+            // Update the local invitations state to remove the rejected invitation
+            setInvitations(prev => prev.filter(inv => inv.battle_id !== data.data.battle_id))
+            
+            // Update the global user state
+            const updatedUser = {
+              ...user,
+              invitations: updatedInvitations
+            }
+            setUser(updatedUser)
+            
+            console.log(`Battle invitation for ${data.data.sport} (${data.data.level}) was rejected by ${data.data.rejected_by}`)
+          }
+          // If the current user is the one who rejected the invitation
+          else if (data.data.rejected_by === user.username) {
+            console.log('You rejected the battle invitation for:', data.data.battle_id)
+            
+            // Remove the invitation from the user's invitations list
+            const updatedInvitations = user.invitations.filter(invitation => invitation !== data.data.battle_id)
+            user.invitations = updatedInvitations
+            
+            // Update the local invitations state to remove the rejected invitation
+            setInvitations(prev => prev.filter(inv => inv.battle_id !== data.data.battle_id))
+            
+            // Update the global user state
+            const updatedUser = {
+              ...user,
+              invitations: updatedInvitations
+            }
+            setUser(updatedUser)
+            
+            console.log(`You rejected the battle invitation for ${data.data.sport} (${data.data.level})`)
           }
         }
       } catch (error) {
@@ -237,15 +374,107 @@ export default function NotificationsPage() {
   }
 
   const handleAcceptInvitation = async (battle_id: string) => {
-      setInvitations(prev => prev.filter(invitation => invitation.battle_id !== battle_id))
+      console.log('Accepting invitation for battle:', battle_id)
+      
+      // Set processing state
+      setProcessingInvitations(prev => new Set(prev).add(battle_id))
+      
+      // Update invitation status
+      setInvitations(prev => prev.map(inv => 
+        inv.battle_id === battle_id ? { ...inv, status: 'accepted' as const } : inv
+      ))
+      
+      // Store response
+      setInvitationResponses(prev => new Map(prev).set(battle_id, 'accepted'))
+      
+      // Remove from user's invitations
       user.invitations = user.invitations.filter(invitation => invitation !== battle_id)
+      
+      // Send acceptance to backend
       acceptInvitation(user.username, battle_id)
+      
+      // Clear processing state after a delay
+      setTimeout(() => {
+        setProcessingInvitations(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(battle_id)
+          return newSet
+        })
+      }, 2000)
   }
 
   const handleRejectInvitation = async (battle_id: string) => {
-      setInvitations(prev => prev.filter(invitation => invitation.battle_id !== battle_id))
+      console.log('Rejecting invitation for battle:', battle_id)
+      
+      // Set processing state
+      setProcessingInvitations(prev => new Set(prev).add(battle_id))
+      
+      // Update invitation status
+      setInvitations(prev => prev.map(inv => 
+        inv.battle_id === battle_id ? { ...inv, status: 'rejected' as const } : inv
+      ))
+      
+      // Store response
+      setInvitationResponses(prev => new Map(prev).set(battle_id, 'rejected'))
+      
+      // Remove from user's invitations
       user.invitations = user.invitations.filter(invitation => invitation !== battle_id)
-      sendMessage(user, "user_update")
+      
+      // Send rejection to backend using the proper endpoint
+      try {
+        const response = await axios.post(`${API_BASE_URL}/battle/reject-invitation?friend_username=${user.username}&battle_id=${battle_id}`)
+        console.log('Rejection sent successfully:', response.data)
+      } catch (error) {
+        console.error('Error rejecting invitation:', error)
+        // If the API call fails, we can still show the rejection in the UI
+      }
+      
+      // Clear processing state after a delay
+      setTimeout(() => {
+        setProcessingInvitations(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(battle_id)
+          return newSet
+        })
+      }, 2000)
+  }
+
+  const handleUndoInvitationResponse = async (battle_id: string) => {
+      console.log('Sending new invitation for battle:', battle_id)
+      
+      // Get the battle details to find the creator
+      try {
+        const battleResponse = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
+        const battle = battleResponse.data
+        
+        if (battle && battle.first_opponent) {
+          // Send new invitation to the battle creator
+          const inviteResponse = await axios.post(`${API_BASE_URL}/battle/invite-friend?battle_id=${battle_id}&friend_username=${user.username}`)
+          console.log('New invitation sent successfully:', inviteResponse.data)
+          
+          // Reset invitation status to pending
+          setInvitations(prev => prev.map(inv => 
+            inv.battle_id === battle_id ? { ...inv, status: 'pending' as const } : inv
+          ))
+          
+          // Remove from responses
+          setInvitationResponses(prev => {
+            const newMap = new Map(prev)
+            newMap.delete(battle_id)
+            return newMap
+          })
+          
+          // Add back to user's invitations
+          if (!user.invitations.includes(battle_id)) {
+            user.invitations.push(battle_id)
+          }
+          
+          // Send user update to refresh the global state
+          sendMessage(user, "user_update")
+        }
+      } catch (error) {
+        console.error('Error sending new invitation:', error)
+      }
   }
 
   return (
@@ -319,29 +548,53 @@ export default function NotificationsPage() {
               {invitations.length > 0 && (
                 <div className="mt-6">
                   <h2 className="text-xl font-semibold mb-4">Battle Invitations</h2>
-                  {invitations.map((invitation, index) => (
+                  {invitations.map((invitation, index) => {
+                    console.log('Rendering invitation:', invitation)
+                    const isProcessing = processingInvitations.has(invitation.battle_id)
+                    const hasResponse = invitationResponses.has(invitation.battle_id)
+                    
+                    return (
                     <Card key={`${invitation.battle_id}-${index}`} className="bg-white dark:bg-gray-800 mb-4">
                       <CardHeader className="flex flex-row justify-center items-center gap-4">
-                        <CardTitle>Battle Invitation</CardTitle>
+                        <CardTitle>Battle Invitation - {invitation.sport}</CardTitle>
                       </CardHeader>
+                      <CardContent>
+                        <p>Sport: {invitation.sport}</p>
+                      </CardContent>
                       <CardFooter className="flex justify-center gap-2">
-                        <Button 
-                          size="sm" 
-                          className="bg-orange-500 text-white dark:text-black hover:bg-orange-600" 
-                          onClick={() => handleAcceptInvitation(invitation.battle_id)}
-                        >
-                          Accept
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="bg-red-500 text-white dark:text-black hover:bg-red-600" 
-                          onClick={() => handleRejectInvitation(invitation.battle_id)}
-                        >
-                          Reject
-                        </Button>
+                        {invitation.status === 'pending' ? (
+                          <>
+                            <Button 
+                              size="sm" 
+                              className="bg-orange-500 text-white dark:text-black hover:bg-orange-600" 
+                              onClick={() => handleAcceptInvitation(invitation.battle_id)}
+                              disabled={isProcessing}
+                            >
+                              {isProcessing ? 'Processing...' : 'Accept'}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="bg-red-500 text-white dark:text-black hover:bg-red-600" 
+                              onClick={() => handleRejectInvitation(invitation.battle_id)}
+                              disabled={isProcessing}
+                            >
+                              {isProcessing ? 'Processing...' : 'Reject'}
+                            </Button>
+                          </>
+                        ) : hasResponse ? (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="border-gray-300 text-gray-700 hover:bg-gray-50" 
+                            onClick={() => handleUndoInvitationResponse(invitation.battle_id)}
+                          >
+                            Invite
+                          </Button>
+                        ) : null}
                       </CardFooter>
                     </Card>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
