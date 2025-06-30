@@ -28,6 +28,7 @@ import BattleResultPage from '../modules/battle/result'
 import TrainingPage from '../modules/trainings/trainings'
 import NotFoundPage from '../modules/entry-page/not-found'
 import { WS_BASE_URL } from "../shared/interface/gloabL_var";
+import AvatarStorage from '../shared/utils/avatar-storage';
 
 export let newSocket: WebSocket | null = null;
 let isManualReload = false; // Track if user manually reloaded
@@ -215,6 +216,7 @@ export default function App() {
            const updatedUser = {
              email: data.data.email,
              username: data.data.username,
+             nickname: data.data.username,
              wins: data.data.winBattle,
              favoritesSport: data.data.favourite,
              rank: data.data.ranking,
@@ -229,6 +231,7 @@ export default function App() {
              invitations: data.data.invitations
            }
            setUser(updatedUser)
+           localStorage.setItem('user', JSON.stringify(updatedUser))
            setRefreshView(true)
            console.log("User state updated with friend request changes", refreshView)
          }
@@ -236,6 +239,7 @@ export default function App() {
            const updatedUser = {
              email: data.data.email,
              username: data.data.username,
+             nickname: data.data.username,
              wins: data.data.winBattle,
              favoritesSport: data.data.favourite,
              rank: data.data.ranking,
@@ -250,6 +254,7 @@ export default function App() {
              invitations: data.data.invitations
            }
            setUser(updatedUser)
+           localStorage.setItem('user', JSON.stringify(updatedUser))
            setRefreshView(true)
            console.log("User state updated with stats reset", refreshView)
          }
@@ -371,6 +376,13 @@ export default function App() {
       document.documentElement.classList.remove('dark')
     }
   }, [theme])
+
+  useEffect(() => {
+    // Clean up any base64 avatar data in user localStorage on app start
+    AvatarStorage.cleanupUserStorageData();
+    
+    // ... existing initialization code ...
+  }, []);
 
   return (
 

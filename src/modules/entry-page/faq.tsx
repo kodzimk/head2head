@@ -30,43 +30,44 @@ export default function FAQ() {
   ]
 
   return (
-    <section id="faq" className="w-full py-16 md:py-24 bg-gradient-to-b from-gray-50 to-orange-50 scroll-mt-16">
-      <div className="container px-4 md:px-6">
-        <div className="text-center mb-12 animate-fade-in">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 tracking-tight">
+    <section id="faq" className="w-full py-8 sm:py-12 md:py-16 lg:py-24 bg-gradient-to-br from-surface-1/60 via-primary/8 to-orange-500/10 scroll-mt-16">
+      <div className="container responsive-padding">
+        <div className="text-center mb-8 sm:mb-10 lg:mb-12 animate-fade-in">
+          <h2 className="text-responsive-lg font-bold text-foreground mb-2 sm:mb-4 tracking-tight">
             Frequently Asked Questions
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          <div className="w-16 h-1 bg-gradient-to-r from-primary to-orange-500 mx-auto mb-3 sm:mb-4 rounded-full"></div>
+          <p className="text-responsive-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             Everything you need to know about Head2Head
           </p>
         </div>
 
-        <div className="max-w-3xl mx-auto space-y-4">
+        <div className="max-w-3xl mx-auto space-y-3 sm:space-y-4">
           {faqs.map((faq, index) => (
             <Card
               key={index}
-              className="bg-white/80 backdrop-blur-sm border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+              className="card-surface backdrop-blur-sm border-border hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-300 hover:-translate-y-1 hover:border-orange-500/30"
             >
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <button
                   onClick={() => setOpenIndex(openIndex === index ? null : index)}
                   className="py-2 w-full flex items-center justify-between text-left group"
                 >
-                  <h3 className="text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors duration-300 ">
+                  <h3 className="text-responsive-base font-semibold text-foreground group-hover:text-primary transition-colors duration-300">
                     {faq.question}
                   </h3>
                   <ChevronDown
-                    className={`w-5 h-5 text-gray-500 transition-all duration-300 group-hover:text-orange-600 ${
+                    className={`w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground transition-all duration-300 group-hover:text-primary ${
                       openIndex === index ? 'transform rotate-180' : ''
                     }`}
                   />
                 </button>
                 <div
-                  className={`mt-4 text-gray-600 overflow-hidden transition-all duration-500 ease-in-out ${
+                  className={`mt-3 sm:mt-4 text-muted-foreground overflow-hidden transition-all duration-500 ease-in-out ${
                     openIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                   }`}
                 >
-                  <p className="leading-relaxed">{faq.answer}</p>
+                  <p className="text-responsive-sm leading-relaxed">{faq.answer}</p>
                 </div>
               </CardContent>
             </Card>

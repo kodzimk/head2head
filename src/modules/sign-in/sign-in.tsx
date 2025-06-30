@@ -4,7 +4,7 @@ import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card"
 import { Input } from "../../shared/ui/input"
 import { Label } from "../../shared/ui/label"
-import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft, AlertCircle } from "lucide-react"
 import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { GoogleLogin } from '@react-oauth/google'
@@ -90,12 +90,13 @@ export default function SignInPage() {
           ...user,
           email: userData.email,
           username: userData.username,
+          nickname: userData.username,
           wins: userData.winBattle,
           favoritesSport: userData.favourite,
           rank: userData.ranking,
           winRate: userData.winRate,
           totalBattles: userData.totalBattle,
-          streak: userData.winBattle,
+          streak: userData.streak,
           password: userData.password,
           avatar: userData.avatar,
           friends: userData.friends,
@@ -105,7 +106,8 @@ export default function SignInPage() {
         };
         setUser(updatedUser);
         localStorage.setItem('access_token', response.data.access_token);
-        localStorage.setItem("username", userData.username); 
+        localStorage.setItem("username", userData.username);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         navigate(`/${userData.username}`);
         initializeWebSocketForNewUser(userData.username);
       }
@@ -208,12 +210,13 @@ export default function SignInPage() {
           ...user,
           email: userData.email,
           username: userData.username,
+          nickname: userData.username,
           wins: userData.winBattle,
           favoritesSport: userData.favourite,
           rank: userData.ranking,
           winRate: userData.winRate,
           totalBattles: userData.totalBattle,
-          streak: userData.winBattle,
+          streak: userData.streak,
           password: userData.password,
           avatar: userData.avatar,
           friends: userData.friends,
@@ -224,6 +227,7 @@ export default function SignInPage() {
         setUser(updatedUser);
         localStorage.setItem('access_token', response.data.access_token);
         localStorage.setItem("username", userData.username);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
         navigate(`/${userData.username}`);
         initializeWebSocketForNewUser(userData.username);
       }
@@ -259,12 +263,13 @@ export default function SignInPage() {
               ...user,
               email: userData.email,
               username: userData.username,
+              nickname: userData.username,
               wins: userData.winBattle,
               favoritesSport: userData.favourite,
               rank: userData.ranking,
               winRate: userData.winRate,
               totalBattles: userData.totalBattle,
-              streak: userData.winBattle,
+              streak: userData.streak,
               password: userData.password,
               avatar: userData.avatar,
               friends: userData.friends,
@@ -275,6 +280,7 @@ export default function SignInPage() {
             setUser(updatedUser);
             localStorage.setItem('access_token', signUpResponse.data.access_token);
             localStorage.setItem("username", userData.username);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
             navigate(`/${userData.username}`);
             initializeWebSocketForNewUser(userData.username);
           }
@@ -295,63 +301,70 @@ export default function SignInPage() {
   
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-surface-1/30 via-background to-primary/5 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-gaming-pattern opacity-5"></div>
+      
       {/* Header */}
-      <header className="px-4 lg:px-6 h-16 flex items-center bg-white/80 backdrop-blur-sm border-b border-orange-200">
-        <div className="flex items-center gap-4">
+      <header className="relative z-10 px-3 sm:px-4 lg:px-6 h-14 sm:h-16 flex items-center backdrop-blur-md border-b border-border/50"
+              style={{ backgroundColor: 'hsl(220 13% 12% / 0.95)' }}>
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center text-gray-600 hover:text-orange-600 transition-colors"
+            className="flex items-center text-muted-foreground hover:text-primary transition-colors p-1 sm:p-2 rounded-lg hover:bg-card/20"
           >
-            <ArrowLeft className="w-5 h-5 mr-1" />
-            <span className="text-sm">Back</span>
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
+            <span className="text-xs sm:text-sm font-medium">Back</span>
           </button>
         </div>  
       </header>
 
-      <main className="flex py-12 px-4 justify-center items-center">
-        <div className="container mx-auto max-w-3xl">
+      <main className="relative z-10 flex py-4 sm:py-8 lg:py-12 px-3 sm:px-4 justify-center items-center min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)]">
+        <div className="container mx-auto max-w-sm sm:max-w-md lg:max-w-2xl xl:max-w-3xl">
           <div className="relative">
-            <Card className="bg-white/80 backdrop-blur-sm border border-white/50 shadow-2xl">
-              <CardHeader className="text-center pb-6">
-                <CardTitle className="text-2xl font-bold text-gray-900">Welcome Back</CardTitle>
+            <Card className="card-surface backdrop-blur-sm border-border/50 shadow-xl sm:shadow-2xl">
+              <CardHeader className="text-center pb-4 sm:pb-6 px-4 sm:px-6 pt-6 sm:pt-8">
+                <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Welcome Back</CardTitle>
+                <p className="text-sm sm:text-base text-muted-foreground mt-2">Sign in to continue your sports journey</p>
               </CardHeader>
 
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6 pb-6 sm:pb-8">
                 {/* Social Sign In */}
                 <div className="space-y-3">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => {
-                      console.log('Login Failed');
-                      setValidationErrors({
-                        submit: 'Google sign-in failed. Please try again.'
-                      });
-                    }}
-                    useOneTap
-                    theme="filled_blue"
-                    shape="rectangular"
-                    text="continue_with"
-                    width="100%"
-                  />
+                  <div className="w-full">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => {
+                        console.log('Login Failed');
+                        setValidationErrors({
+                          submit: 'Google sign-in failed. Please try again.'
+                        });
+                      }}
+                      useOneTap
+                      theme="filled_blue"
+                      shape="rectangular"
+                      text="continue_with"
+                      width="100%"
+                    />
+                  </div>
                 </div>
 
-                <div className="relative">
+                <div className="relative my-4 sm:my-6">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300"></div>
+                    <div className="w-full border-t border-border"></div>
                   </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Or sign in with email</span>
+                  <div className="relative flex justify-center text-xs sm:text-sm">
+                    <span className="px-3 sm:px-4 bg-card text-muted-foreground font-medium">Or sign in with email</span>
                   </div>
                 </div>
 
                 {/* Email Sign In Form */}
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                   {/* Email */}
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email" className="text-sm sm:text-base font-medium text-foreground">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
                       <Input
                         id="email"
                         name="email"
@@ -359,28 +372,31 @@ export default function SignInPage() {
                         placeholder="Enter your email"
                         value={formData.email}
                         onChange={handleInputChange}
-                        className="pl-10 h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                        className="w-full pl-10 sm:pl-12 h-10 sm:h-12 lg:h-14 text-sm sm:text-base border-border focus:border-primary focus:ring-primary/20 bg-background"
                         required
                       />
                     </div>
                     {validationErrors.email && (
-                      <p className="text-sm text-red-500 mt-1">{validationErrors.email}</p>
+                      <p className="text-xs sm:text-sm text-destructive mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />
+                        {validationErrors.email}
+                      </p>
                     )}
                   </div>
 
                   {/* Password */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
+                      <Label htmlFor="password" className="text-sm sm:text-base font-medium text-foreground">Password</Label>
                       <Link
                         to="/forgot-password"
-                        className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                        className="text-xs sm:text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                       >
                         Forgot password?
                       </Link>
                     </div>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
                       <Input
                         id="password"
                         name="password"
@@ -388,34 +404,57 @@ export default function SignInPage() {
                         placeholder="Enter your password"
                         value={formData.password}
                         onChange={handleInputChange}
-                        className="pl-10 pr-10 h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                        className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 h-10 sm:h-12 lg:h-14 text-sm sm:text-base border-border focus:border-primary focus:ring-primary/20 bg-background"
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                       </button>
                     </div>
                   </div>
 
                   {/* Submit Button */}
                   {validationErrors.submit && (
-                    <div className="text-sm text-red-500 text-center">
-                      {validationErrors.submit}
+                    <div className="text-xs sm:text-sm text-destructive text-center bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-center justify-center gap-2">
+                      <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                      <span>{validationErrors.submit}</span>
                     </div>
                   )}
                   <Button
                     type="submit"
                     disabled={!canSubmit() || isLoading}
-                    className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full h-10 sm:h-12 lg:h-14 btn-neon text-sm sm:text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02]"
                   >
-                    {isLoading ? 'Signing In...' : 'Sign In'}
-                    {!isLoading && <ArrowRight className="w-5 h-5 ml-2" />}
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        Signing In...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2">
+                        Sign In
+                        <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </div>
+                    )}
                   </Button>
                 </form>
+                
+                {/* Sign Up Link */}
+                <div className="text-center pt-4 border-t border-border/50">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    Don't have an account?{" "}
+                    <Link
+                      to="/sign-up"
+                      className="text-primary hover:text-primary/80 font-medium transition-colors"
+                    >
+                      Sign up now
+                    </Link>
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>

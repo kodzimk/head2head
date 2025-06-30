@@ -36,7 +36,7 @@ export default function Friends({user}: {user: User}) {
     }
   };
 
-  // Function to update friends list
+  // Function to update friends list with deduplication
   const updateFriendsList = async (friendUsernames: string[]) => {
     if (friendUsernames.length === 0) {
       setFriends([]);
@@ -44,9 +44,21 @@ export default function Friends({user}: {user: User}) {
     }
 
     try {
-      const friendPromises = friendUsernames.map(fetchFriendData);
+      // Remove duplicates from friendUsernames
+      const uniqueFriends = [...new Set(friendUsernames)];
+      console.log('Dashboard - Fetching data for unique friends:', uniqueFriends);
+      
+      const friendPromises = uniqueFriends.map(fetchFriendData);
       const friendResults = await Promise.all(friendPromises);
-      setFriends(friendResults);
+      
+      // Filter out any null results and ensure no duplicates
+      const validFriends = friendResults.filter(friend => friend !== null);
+      const uniqueValidFriends = validFriends.filter((friend, index, self) => 
+        index === self.findIndex(f => f.username === friend.username)
+      );
+      
+      console.log('Dashboard - Setting friends list:', uniqueValidFriends);
+      setFriends(uniqueValidFriends);
     } catch (error) {
       console.error('Error updating friends list:', error);
     }
@@ -143,13 +155,22 @@ export default function Friends({user}: {user: User}) {
                       >
                         <div className="flex items-center gap-4 w-full">
                           {friend.avatar ? (
-                            <img
-                              src={friend.avatar}
-                              alt={friend.username}
-                              className="w-14 h-14 rounded-full object-cover flex-shrink-0"
-                            />
+                            <div 
+                              className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-14 lg:h-14 rounded-full overflow-hidden flex-shrink-0 aspect-square"
+                              style={{ clipPath: 'circle(50%)' }}
+                            >
+                              <img
+                                src={friend.avatar}
+                                alt={friend.username}
+                                className="w-full h-full object-cover object-center"
+                                style={{ clipPath: 'circle(50%)' }}
+                              />
+                            </div>
                           ) : (
-                            <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                            <div 
+                              className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-14 lg:h-14 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm sm:text-lg md:text-xl lg:text-lg font-bold flex-shrink-0 aspect-square"
+                              style={{ clipPath: 'circle(50%)' }}
+                            >
                               {friend.username.slice(0, 2).toUpperCase()}
                             </div>
                           )}

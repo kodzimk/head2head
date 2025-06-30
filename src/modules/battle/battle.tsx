@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
-import { Play, Clock, Trophy, RefreshCw } from 'lucide-react'
+import { Play, Clock, Trophy, RefreshCw, Undo, UserPlus } from 'lucide-react'
 import Header from '../dashboard/header'
 import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
 import { joinBattle, sendMessage, cancelBattle } from '../../shared/websockets/websocket'
@@ -13,6 +13,7 @@ import { useBattleStore } from '../../shared/interface/gloabL_var'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from "../../shared/interface/gloabL_var"
 import axios from 'axios'
+import { Badge } from '../../shared/ui/badge'
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
@@ -72,7 +73,7 @@ export default function BattlePage() {
       window.removeEventListener('focus', handleFocus);
     };
   }, [user.username]);
-
+  
   // Listen for battle not found events to refresh the list
   useEffect(() => {
     const handleRefreshWaitingBattles = () => {
@@ -252,150 +253,121 @@ export default function BattlePage() {
 
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-background bg-gaming-pattern">
       <Header user={user} />
       <main className="container mx-auto px-4 py-8">
         <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Play className="w-5 h-5 text-orange-500" />
+          <div className="text-center space-y-4 sm:space-y-6">
+            <h1 className="text-heading-1 text-white text-foreground">
+              Battle Arena
+            </h1>
+            <p className="text-responsive-sm text-muted-foreground max-w-2xl mx-auto">
+              Challenge yourself against other players in real-time trivia battles. Choose your sport and difficulty level to get started.
+            </p>
+          </div>
+
+          {/* Error Display */}
+          {creationError && (
+            <Card className="card-surface-1 border-destructive/30 bg-destructive/5">
+              <CardContent className="responsive-padding">
+                <div className="flex items-start gap-3">
+                  <div className="text-destructive">⚠️</div>
+                  <div>
+                    <p className="text-responsive-sm text-destructive font-medium">Error</p>
+                    <p className="text-responsive-xs text-muted-foreground mt-1">{creationError}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Success Display */}
+          {creationSuccess && (
+            <Card className="card-surface-1 border-success/30 bg-success/5">
+              <CardContent className="responsive-padding">
+                <div className="flex items-start gap-3">
+                  <div className="text-success">✅</div>
+                  <div>
+                    <p className="text-responsive-sm text-success font-medium">Success</p>
+                    <p className="text-responsive-xs text-muted-foreground mt-1">Battle created successfully! Redirecting to waiting room...</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Battle Creation Form */}
+          <Card className="card-surface">
+            <CardHeader className="responsive-padding">
+              <CardTitle className="text-responsive-lg flex items-center gap-2">
+                <Play className="w-5 h-5 text-primary" />
                 Create New Battle
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4">
-                {/* Battle Status Indicator */}
-                {(() => {
-                  const userActiveBattles = battle.filter(b => b.first_opponent === user.username && b.second_opponent === '');
-                  if (userActiveBattles.length > 0) {
-                    return (
-                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" />
-                          <span className="font-medium">Your Active Battles: {userActiveBattles.length}/3</span>
-                        </div>
-                        <div className="mt-2 text-sm">
-                          {userActiveBattles.map((battle) => (
-                            <div key={battle.id} className="flex items-center justify-between">
-                              <span>• {battle.sport} ({battle.level})</span>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleCancelBattle(battle.id)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                Cancel
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-                {isBattleBeingCreated && !creationSuccess && (
-                  <div className="mb-4 p-3 bg-blue-100 border border-blue-400 text-blue-700 rounded flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700"></div>
-                    Creating your battle... Please wait while we set up your challenge.
-                  </div>
-                )}
-
-                {/* Error Message */}
-                {creationError && (
-                  <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                    {creationError}
-                    {creationError.includes("WebSocket may not be connected") && (
-                      <div className="mt-2">
-                        <Button 
-                          onClick={() => window.location.reload()}
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                        >
-                          Reconnect (Refresh Page)
-                        </Button>
-                      </div>
-                    )}
-                    {creationError.includes("taking longer than expected") && (
-                      <div className="mt-2 flex gap-2">
-                        <Button 
-                          onClick={handleCreateBattle}
-                          disabled={isCreatingBattle}
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                        >
-                          {isCreatingBattle ? "Creating..." : "Retry Battle Creation"}
-                        </Button>
-                        <Button 
-                          onClick={() => refreshWaitingBattles(true)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          Check Waiting Battles
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="grid gap-2">
-                  <Label htmlFor="sport">Select Sport</Label>
+            <CardContent className="responsive-padding space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                {/* Sport Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="sport" className="text-responsive-sm font-medium">Sport Category</Label>
                   <Select value={selectedSport} onValueChange={setSelectedSport}>
-                    <SelectTrigger className={!selectedSport ? "border-red-300" : ""}>
-                      <SelectValue placeholder="Choose sport" />
+                    <SelectTrigger className="input-gaming">
+                      <SelectValue placeholder="Choose your sport" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="football">Football</SelectItem>
-                      <SelectItem value="basketball">Basketball</SelectItem>
-                      <SelectItem value="tennis">Tennis</SelectItem>
-                      <SelectItem value="cricket">Cricket</SelectItem>
-                      <SelectItem value="baseball">Baseball</SelectItem>
-                      <SelectItem value="volleyball">Volleyball</SelectItem>
-                      <SelectItem value="boxing">Boxing</SelectItem>
-                      <SelectItem value="mma">MMA</SelectItem>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="football">🏈 Football</SelectItem>
+                      <SelectItem value="basketball">�� Basketball</SelectItem>
+                      <SelectItem value="baseball">⚾ Baseball</SelectItem>
+                      <SelectItem value="soccer">⚽ Soccer</SelectItem>
+                      <SelectItem value="hockey">🏒 Hockey</SelectItem>
+                      <SelectItem value="tennis">🎾 Tennis</SelectItem>
+                      <SelectItem value="golf">⛳ Golf</SelectItem>
+                      <SelectItem value="cricket">🏏 Cricket</SelectItem>
+                      <SelectItem value="rugby">🏉 Rugby</SelectItem>
+                      <SelectItem value="volleyball">🏐 Volleyball</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="level">Battle Level</Label>
-                  <Select
-                    value={selectedLevel.toString()}
-                    onValueChange={(value) => setSelectedLevel(value)}
-                  >
-                    <SelectTrigger className={!selectedLevel ? "border-red-300" : ""}>
-                      <SelectValue placeholder="Choose level" />
+                {/* Difficulty Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="level" className="text-responsive-sm font-medium">Difficulty Level</Label>
+                  <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                    <SelectTrigger className="input-gaming">
+                      <SelectValue placeholder="Select difficulty" />
                     </SelectTrigger>
-                    <SelectContent defaultValue="1">
+                    <SelectContent className="bg-card border-border">
                       <SelectItem value="easy">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          <span>Easy</span>
+                          <div className="w-2 h-2 rounded-full bg-success"></div>
+                          Easy
                         </div>
                       </SelectItem>
                       <SelectItem value="medium">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                          <span>Medium</span>
+                          <div className="w-2 h-2 rounded-full bg-warning"></div>
+                          Medium
                         </div>
                       </SelectItem>
                       <SelectItem value="hard">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                          <span>Hard</span>
+                          <div className="w-2 h-2 rounded-full bg-destructive"></div>
+                          Hard
                         </div>
                       </SelectItem>      
                     </SelectContent>
                   </Select>
                 </div>
+                </div>
 
                 <Button 
                   onClick={handleCreateBattle}
-                  disabled={!selectedSport || !selectedLevel || isCreatingBattle}
-                  className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                disabled={isCreatingBattle || !selectedSport || !selectedLevel}
+                className="btn-neon w-full sm:w-auto"
+                size="lg"
                 >
                   {isCreatingBattle ? (
                     <div className="flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <div className="loading-gaming w-4 h-4 rounded"></div>
                       Creating Battle...
                     </div>
                   ) : (
@@ -405,82 +377,82 @@ export default function BattlePage() {
                     </div>
                   )}
                 </Button>
-              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-lg sm:text-xl">Waiting Battles</CardTitle>
-                  <span className="bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    {battle.length}
-                  </span>
-                </div>
+          {/* Waiting Battles Section */}
+          <Card className="card-surface">
+            <CardHeader className="responsive-padding">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <CardTitle className="text-responsive-lg flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-primary" />
+                  Available Battles ({battle.length})
+                </CardTitle>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => refreshWaitingBattles(true)}
                   disabled={isRefreshing}
-                  className="flex items-center gap-2 w-full sm:w-auto"
+                  className="border-primary/30 hover:border-primary/60 hover:bg-primary/5"
                 >
                   {isRefreshing ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                    <div className="loading-gaming w-4 h-4 rounded mr-2"></div>
                   ) : (
-                    <RefreshCw className="w-4 h-4" />
+                    <RefreshCw className="w-4 h-4 mr-2" />
                   )}
-                  <span className="hidden sm:inline">{isRefreshing ? "Refreshing..." : "Refresh"}</span>
-                  <span className="sm:hidden">{isRefreshing ? "..." : "Refresh"}</span>
+                  Refresh
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="responsive-padding">
               {battle.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <svg className="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-lg font-medium mb-2">No waiting battles</p>
-                  <p className="text-sm">Create a new battle or wait for others to join</p>
+                <div className="text-center py-8 sm:py-12 space-y-4">
+                  <div className="flex justify-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-muted/30 flex items-center justify-center">
+                      <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground/50" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-responsive-base text-muted-foreground font-medium">No battles available</p>
+                    <p className="text-responsive-xs text-muted-foreground/70 mt-1">Be the first to create a battle and challenge other players!</p>
+                  </div>
                 </div>
               ) : (
-                <div className="grid gap-3 sm:gap-4">
-                  {battle.map((battle_data) => {
+                <div className="grid-leaderboard">
+                  {battle.map((battle_data: any) => {
                     const isUserBattle = battle_data.first_opponent === user.username;
+                    
                     return (
                       <div
                         key={battle_data.id}
-                        className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 rounded-lg shadow gap-3 sm:gap-4 ${
-                          isUserBattle 
-                            ? 'bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800' 
-                            : 'bg-white dark:bg-gray-800'
+                        className={`battle-card ${
+                          isUserBattle ? 'battle-card-user' : ''
                         }`}
                       >
-                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                          <Avatar className="w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0">
+                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 mb-3 sm:mb-0">
+                          <Avatar className="leaderboard-avatar" variant="faceit">
                             <AvatarImage
                               src={battle_data.creator_avatar ? `${API_BASE_URL}${battle_data.creator_avatar}` : undefined}
                               alt={battle_data.first_opponent}
                             />
                             <AvatarFallback className={`${
-                              isUserBattle ? 'bg-orange-500' : 'bg-blue-500'
-                            } text-white text-sm sm:text-base`}>
+                              isUserBattle ? 'bg-primary' : 'bg-secondary'
+                            } text-primary-foreground text-responsive-xs font-semibold`}>
                               {battle_data.first_opponent.slice(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
-                              <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">
+                              <h3 className="font-semibold text-foreground text-responsive-sm truncate">
                                 {battle_data.first_opponent}
                               </h3>
                               {isUserBattle && (
-                                <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full w-fit">
+                                <Badge variant="secondary" className="text-xs bg-primary/15 text-primary border-primary/25 w-fit">
                                   Your Battle
-                                </span>
+                                </Badge>
                               )}
                             </div>
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-500">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-responsive-xs text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Trophy className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <span className="capitalize">{battle_data.sport}</span>
@@ -489,9 +461,9 @@ export default function BattlePage() {
                                 <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <div className="flex items-center gap-1">
                                   <div className={`w-2 h-2 rounded-full ${
-                                    battle_data.level === 'easy' ? 'bg-green-500' :
-                                    battle_data.level === 'medium' ? 'bg-yellow-500' :
-                                    'bg-red-500'
+                                    battle_data.level === 'easy' ? 'bg-success' :
+                                    battle_data.level === 'medium' ? 'bg-warning' :
+                                    'bg-destructive'
                                   }`}></div>
                                   <span className="capitalize">{battle_data.level}</span>
                                 </div>
@@ -499,22 +471,26 @@ export default function BattlePage() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex gap-2 w-full sm:w-auto">
+                                
+                                <div className="flex items-center justify-end gap-2 sm:gap-3 mt-3 sm:mt-0">
                           {isUserBattle ? (
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleCancelBattle(battle_data.id)}
-                              className="text-red-600 border-red-300 hover:bg-red-50 flex-1 sm:flex-none text-xs sm:text-sm"
+                                      className="border-destructive/30 text-destructive hover:bg-destructive/5"
                             >
-                              Cancel
+                                      <Undo className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                                      <span className="hidden sm:inline">Cancel</span>
                             </Button>
                           ) : (
                             <Button
                               onClick={() => handleJoinBattle(battle_data.id)}
-                              className="bg-orange-500 hover:bg-orange-600 flex-1 sm:flex-none text-xs sm:text-sm"
+                                      size="sm"
+                                      className="btn-neon"
                             >
-                              Join Battle
+                                      <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                                      <span className="hidden sm:inline">Join Battle</span>
                             </Button>
                           )}
                         </div>
@@ -526,7 +502,6 @@ export default function BattlePage() {
             </CardContent>
           </Card>
         </div>
-        
       </main>
     </div>
   )

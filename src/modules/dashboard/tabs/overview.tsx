@@ -7,40 +7,79 @@ import { Settings, Sword, Trophy, Target, Zap } from "lucide-react"
 import type { User, RecentBattle } from '../../../shared/interface/user'
 import { useNavigate } from "react-router-dom"
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var"
+import AvatarStorage from "../../../shared/utils/avatar-storage"
+import { useEffect } from "react"
+
 
 const getSportIcon = (sport: string) => {
   const sportIcons: { [key: string]: React.ReactNode } = {
-    football: <Trophy className="w-5 h-5 text-orange-500" />,
-    basketball: <Target className="w-5 h-5 text-orange-500" />,
-    tennis: <Zap className="w-5 h-5 text-orange-500" />,
-    soccer: <Trophy className="w-5 h-5 text-green-500" />,
-    baseball: <Target className="w-5 h-5 text-blue-500" />,
-    volleyball: <Zap className="w-5 h-5 text-purple-500" />,
-    hockey: <Sword className="w-5 h-5 text-blue-500" />,
-    cricket: <Target className="w-5 h-5 text-green-500" />,
-    rugby: <Trophy className="w-5 h-5 text-red-500" />,
-    golf: <Target className="w-5 h-5 text-green-500" />,
-    swimming: <Zap className="w-5 h-5 text-blue-500" />,
-    athletics: <Zap className="w-5 h-5 text-orange-500" />,
-    cycling: <Zap className="w-5 h-5 text-yellow-500" />,
-    boxing: <Sword className="w-5 h-5 text-red-500" />,
-    martial_arts: <Sword className="w-5 h-5 text-purple-500" />,
-    default: <Trophy className="w-5 h-5 text-gray-500" />
+    football: <Trophy className="w-6 h-6 text-orange-500" />,
+    basketball: <Target className="w-6 h-6 text-orange-500" />,
+    tennis: <Zap className="w-6 h-6 text-orange-500" />,
+    soccer: <Trophy className="w-6 h-6 text-green-500" />,
+    baseball: <Target className="w-6 h-6 text-blue-500" />,
+    volleyball: <Zap className="w-6 h-6 text-purple-500" />,
+    hockey: <Sword className="w-6 h-6 text-blue-500" />,
+    cricket: <Target className="w-6 h-6 text-green-500" />,
+    rugby: <Trophy className="w-6 h-6 text-red-500" />,
+    golf: <Target className="w-6 h-6 text-green-500" />,
+    swimming: <Zap className="w-6 h-6 text-blue-500" />,
+    athletics: <Zap className="w-6 h-6 text-orange-500" />,
+    cycling: <Zap className="w-6 h-6 text-yellow-500" />,
+    boxing: <Sword className="w-6 h-6 text-red-500" />,
+    martial_arts: <Sword className="w-6 h-6 text-purple-500" />,
+    default: <Trophy className="w-6 h-6 text-gray-500" />
   };
   
   return sportIcons[sport.toLowerCase()] || sportIcons.default;
 };
+
+
   
-export default function Overview({ user, recentBattles }: { user: User, recentBattles: RecentBattle[] }) {
-    const navigate = useNavigate()
+  export default function Overview({user, setUser, battles, setBattles}: {user: User, setUser: (user: User) => void, battles: RecentBattle[], setBattles: (battles: RecentBattle[]) => void}) {
+    const navigate = useNavigate()  
+   
+    // Fetch and cache user avatar if needed
+    useEffect(() => {
+      const fetchAndCacheAvatar = async () => {
+        if (user?.username) {
+          const persistentAvatar = AvatarStorage.getAvatar(user.username);
+          if (!persistentAvatar && user.avatar) {
+            try {
+              // Build full avatar URL
+              const fullAvatarUrl = user.avatar.startsWith('http') 
+                ? user.avatar 
+                : `${API_BASE_URL}${user.avatar}`;
+              
+              // Fetch and cache the server avatar
+              const response = await fetch(fullAvatarUrl);
+              if (response.ok) {
+                const blob = await response.blob();
+                const file = new File([blob], 'avatar.jpg', { type: blob.type });
+                await AvatarStorage.saveAvatar(user.username, file);
+                console.log('[Overview] Cached server avatar for', user.username);
+              }
+            } catch (error) {
+              console.warn('[Overview] Failed to cache server avatar:', error);
+            }
+          }
+        }
+      };
+
+      fetchAndCacheAvatar();
+    }, [user?.username, user?.avatar]);
+   
+
+
+
     return (
         <TabsContent value="overview" className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Avatar className="w-10 h-10 lg:w-12 lg:h-12">
-                  <AvatarImage src={user.avatar ? `${API_BASE_URL}${user.avatar}` : "/placeholder.svg"} alt={user.username} />
+                <Avatar className="w-10 h-10 md:w-12 md:h-10 lg:w-12 lg:h-12">
+                  <AvatarImage src={AvatarStorage.resolveAvatarUrl(user) || "/placeholder.svg"} alt={user.username} />
                   <AvatarFallback className="bg-orange-500 text-white text-xs lg:text-sm">
                     {user.username.slice(0, 2).toUpperCase()}
                   </AvatarFallback>
@@ -97,7 +136,7 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
             </CardHeader>
             <CardContent>
               <div className="space-y-3 lg:space-y-4">
-                {recentBattles.length === 0 ? (
+                {battles.length === 0 ? (
                   <div className="text-center py-6 lg:py-8">
                     <p className="text-gray-500 text-base lg:text-lg mb-4">There are no battles yet</p>
                     <Button variant="outline" className="gap-2 text-xs lg:text-sm">
@@ -106,28 +145,34 @@ export default function Overview({ user, recentBattles }: { user: User, recentBa
                     </Button>
                   </div>
                 ) : (
-                  recentBattles.map((battle) => (
-                    <div key={battle.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:shadow-sm transition-shadow">
-                      <div className="flex items-center gap-3 mb-2 sm:mb-0">
+                  battles.map((battle) => (
+                    <div
+                      key={battle.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 border rounded-lg hover:shadow-sm transition-shadow bg-card"
+                    >
+                      <div className="flex items-center gap-3 mb-3 sm:mb-0">
                         <div className="flex-shrink-0">
                           {getSportIcon(battle.sport)}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm lg:text-base truncate">{battle.player1} vs {battle.player2}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {battle.sport}
+                          </p>
                         </div>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                        <Badge 
+                        <Badge
                           variant={
                             battle.result === "win" ? "default" : 
                             battle.result === "lose" ? "destructive" : "secondary"
-                          } 
+                          }
                           className="w-fit text-xs lg:text-sm"
                         >
-                          {battle.result === "win" ? "Won" : 
-                           battle.result === "lose" ? "Lost" : "Draw"}
+                          {battle.result === "win" ? "Victory" : 
+                           battle.result === "lose" ? "Defeat" : "Draw"}
                         </Badge>
-                        <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 font-semibold text-right">{battle.score}</p>
+                        <p className="text-sm lg:text-lg font-bold text-right">{battle.score}</p>
                       </div>
                     </div>
                   ))

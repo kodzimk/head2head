@@ -55,25 +55,25 @@ export default function BattleCountdown() {
   }, [countdownFinished, currentQuestion, id, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <div className="text-6xl font-bold text-orange-500 mb-4">{count === 0 ? 'Go!' : count}</div>
-      <div className="text-xl text-gray-700 dark:text-gray-200 mb-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-surface-1 to-surface-2">
+      <div className="text-6xl font-bold text-primary mb-4 animate-pulse">{count === 0 ? 'Go!' : count}</div>
+      <div className="text-xl text-muted-foreground mb-4">
         Prepare yourself. 
       </div>
       
       <div className={`text-sm px-3 py-1 rounded-full ${
         connectionStatus === 'connected' 
-          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+          ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
           : connectionStatus === 'disconnected'
-          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+          ? 'bg-destructive/20 text-destructive border border-destructive/30'
+          : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
       }`}>
         {connectionStatus === 'connected' ? 'Connected' : 
          connectionStatus === 'disconnected' ? 'Disconnected' : 'Checking...'}
       </div>
       
       {connectionStatus === 'disconnected' && (
-        <div className="text-sm text-gray-500 mt-2">
+        <div className="text-sm text-muted-foreground mt-2">
           Trying to reconnect...
         </div>
       )}

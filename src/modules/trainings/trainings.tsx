@@ -599,17 +599,17 @@ export default function TrainingsPage() {
     const currentQuestion = trainingQuestions[currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-background bg-gaming-pattern">
       <Header user={user} />
-      <main className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
+      <main className="container-gaming py-8">
         <div className="max-w-4xl mx-auto">
             {/* Training Header */}
             <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-heading-2 text-foreground">
                   Training Session
                 </h1>
-                <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+                <p className="text-responsive-sm text-muted-foreground">
                   Question {currentQuestionIndex + 1} of {trainingQuestions.length}
                 </p>
               </div>
@@ -626,7 +626,7 @@ export default function TrainingsPage() {
                   }`}>
                     {timeLeft}s
                   </div>
-                  <div className="text-xs sm:text-sm text-gray-500">Time Left</div>
+                  <div className="text-responsive-xs text-muted-foreground">Time Left</div>
                 </div>
               </div>
               
@@ -654,7 +654,7 @@ export default function TrainingsPage() {
               <CardContent className="space-y-4">
                 {currentQuestion && (
                   <>
-                    <div className="text-sm sm:text-base font-semibold p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg break-words leading-relaxed">
+                    <div className="text-responsive-sm font-semibold p-3 sm:p-4 bg-card rounded-lg break-words leading-relaxed border">
                       {currentQuestion.question}
                     </div>
                     
@@ -731,27 +731,27 @@ export default function TrainingsPage() {
                           <div className="mb-4 space-y-2">
                             {selectedAnswer ? (
                               <>
-                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                                  Your answer: <span className="font-semibold text-red-600">
+                                <p className="text-responsive-xs text-muted-foreground">
+                                  Your answer: <span className="font-semibold text-destructive">
                                     {currentQuestion.answers.find(ans => ans.label === selectedAnswer)?.text || selectedAnswer}
                                   </span>
                                 </p>
-                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                <p className="text-responsive-xs text-muted-foreground">
                                   Correct answer: <span className="font-semibold text-green-600">{currentQuestion.correctAnswer}</span>
                                 </p>
-                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 italic">
+                                <p className="text-responsive-xs text-muted-foreground/70 italic">
                                   Don't worry! This is a learning opportunity. Review the correct answer and try to understand why it's right.
                                 </p>
                               </>
                             ) : (
                               <>
-                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                <p className="text-responsive-xs text-muted-foreground">
                                   <span className="font-semibold text-orange-600">⏰ Time's up!</span> You didn't select an answer in time.
                                 </p>
-                                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                <p className="text-responsive-xs text-muted-foreground">
                                   Correct answer: <span className="font-semibold text-green-600">{currentQuestion.correctAnswer}</span>
                                 </p>
-                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 italic">
+                                <p className="text-responsive-xs text-muted-foreground/70 italic">
                                   Try to answer faster next time! The timer is set to 15 seconds per question.
                                 </p>
                               </>
@@ -759,9 +759,9 @@ export default function TrainingsPage() {
                           </div>
                         )}
                         {isCorrect && (
-                          <p className="text-xs sm:text-sm text-green-700 dark:text-green-300 mb-4">
-                            Great job! You got this one right! 🎯
-                          </p>
+                                                  <p className="text-responsive-xs text-green-600 dark:text-green-400 mb-4">
+                          Great job! You got this one right! 🎯
+                        </p>
                         )}
                         
                         {/* Next Question Button */}
@@ -800,19 +800,19 @@ export default function TrainingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-background bg-gaming-pattern">
       <Header user={user} />
-      <main className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
+      <main className="container-gaming py-8">
         <div className="max-w-4xl mx-auto">
 
           {/* Only show training content if user is authenticated */}
           {user?.username && user.username.trim() !== "" && (
             <>
               <div className="text-center mb-6 sm:mb-8">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-4">
+                <h1 className="text-heading-1 text-foreground mb-2 sm:mb-4">
                   Sports Training Center
                 </h1>
-                <p className="text-sm sm:text-base md:text-xl text-gray-600 dark:text-gray-400 px-2">
+                <p className="text-responsive-base text-muted-foreground px-2">
                   Practice with your previously incorrect answers and improve your knowledge
                 </p>
               </div>
@@ -936,20 +936,20 @@ export default function TrainingsPage() {
                       <>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                           <div className="text-center">
-                            <div className="text-xl sm:text-2xl font-bold text-blue-600">{trainingStats.total_answers || 0}</div>
-                            <div className="text-xs sm:text-sm text-gray-600">Total Answers</div>
+                            <div className="text-responsive-lg font-bold text-blue-600">{trainingStats.total_answers || 0}</div>
+                            <div className="text-responsive-xs text-muted-foreground">Total Answers</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-xl sm:text-2xl font-bold text-red-600">{trainingStats.total_incorrect || 0}</div>
-                            <div className="text-xs sm:text-sm text-gray-600">Incorrect</div>
+                            <div className="text-responsive-lg font-bold text-destructive">{trainingStats.total_incorrect || 0}</div>
+                            <div className="text-responsive-xs text-muted-foreground">Incorrect</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-xl sm:text-2xl font-bold text-green-600">{trainingStats.accuracy_rate || 0}%</div>
-                            <div className="text-xs sm:text-sm text-gray-600">Accuracy</div>
+                            <div className="text-responsive-lg font-bold text-green-600">{trainingStats.accuracy_rate || 0}%</div>
+                            <div className="text-responsive-xs text-muted-foreground">Accuracy</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-xl sm:text-2xl font-bold text-purple-600">{trainingStats.training_sessions || 0}</div>
-                            <div className="text-xs sm:text-sm text-gray-600">Sessions</div>
+                            <div className="text-responsive-lg font-bold text-primary">{trainingStats.training_sessions || 0}</div>
+                            <div className="text-responsive-xs text-muted-foreground">Sessions</div>
                           </div>
                         </div>
                         
@@ -958,10 +958,10 @@ export default function TrainingsPage() {
                           <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                             <div className="text-center">
                               <div className="text-2xl mb-2">📊</div>
-                              <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                              <p className="text-responsive-sm font-semibold text-primary mb-2">
                                 Welcome to Training Stats!
                               </p>
-                              <p className="text-xs text-blue-700 dark:text-blue-300 mb-4 leading-relaxed">
+                              <p className="text-responsive-xs text-muted-foreground mb-4 leading-relaxed">
                                 Your statistics will appear here once you complete battles or training sessions. 
                                 Start your learning journey by playing some battles or trying a training session!
                               </p>
@@ -975,7 +975,7 @@ export default function TrainingsPage() {
                                     setSelectedQuestionType("random");
                                     startTrainingSession();
                                   }}
-                                  className="text-xs bg-white dark:bg-gray-800"
+                                  className="text-xs bg-card"
                                 >
                                   🎯 Start Sample Training
                                 </Button>
@@ -985,7 +985,7 @@ export default function TrainingsPage() {
                                   onClick={() => {
                                     window.location.href = '/dashboard';
                                   }}
-                                  className="text-xs bg-white dark:bg-gray-800"
+                                  className="text-xs bg-card"
                                 >
                                   ⚔️ Go to Battles
                                 </Button>
@@ -998,17 +998,17 @@ export default function TrainingsPage() {
                       </>
                     ) : (
                       <div className="text-center py-6">
-                        <div className="text-gray-500 dark:text-gray-400 mb-4">
+                        <div className="text-muted-foreground mb-4">
                           {error ? (
-                            <div className="text-red-600 dark:text-red-400">
-                              <p className="font-semibold text-sm">Error loading stats:</p>
-                              <p className="text-xs">{error}</p>
+                            <div className="text-destructive">
+                              <p className="font-semibold text-responsive-sm">Error loading stats:</p>
+                              <p className="text-responsive-xs">{error}</p>
                             </div>
                           ) : (
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-4"></div>
                           )}
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-responsive-xs text-muted-foreground">
                           {error ? "Click Refresh to try again" : "Loading training statistics..."}
                         </p>
                       </div>

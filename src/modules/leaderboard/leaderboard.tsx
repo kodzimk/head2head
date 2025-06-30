@@ -20,10 +20,10 @@ interface LeaderboardUser {
 }
 
 const getRankIcon = (rank: number) => {
-  if (rank === 1) return <Trophy className="w-5 h-5 text-yellow-500" />;
-  if (rank === 2) return <Medal className="w-5 h-5 text-gray-400" />;
-  if (rank === 3) return <Award className="w-5 h-5 text-amber-600" />;
-  return <span className="text-lg font-bold text-gray-600">#{rank}</span>;
+  if (rank === 1) return <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />;
+  if (rank === 2) return <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />;
+  if (rank === 3) return <Award className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />;
+  return <span className="text-sm sm:text-lg font-bold text-muted-foreground">#{rank}</span>;
 };
 
 export default function LeaderboardPage() {
@@ -60,13 +60,13 @@ export default function LeaderboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900">
+      <div className="min-h-screen bg-background bg-gaming-pattern">
         <Header user={user} />
-        <main className="container mx-auto px-4 py-8">
+        <main className="container-gaming py-8">
           <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">Loading leaderboard...</p>
+            <div className="text-center space-y-4">
+              <div className="loading-gaming w-12 h-12 rounded-lg mx-auto"></div>
+              <p className="text-muted-foreground font-rajdhani">Loading leaderboard...</p>
             </div>
           </div>
         </main>
@@ -75,115 +75,129 @@ export default function LeaderboardPage() {
   }
   
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-background bg-gaming-pattern">
       <Header user={user} />
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="space-y-6">
+      <main className="container-gaming py-8">
+        <div className="space-y-6 sm:space-y-8">
           {/* Header */}
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+          <div className="text-center space-y-2 sm:space-y-3">
+            <h1 className="text-heading-1 text-foreground">
               Global Leaderboard
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-responsive-sm text-muted-foreground">
               Top players ranked by points (wins, win rate, streaks, and consistency)
             </p>
           </div>
 
-          {/* Stats Cards */}
+          {/* User Rank Card */}
           <div className="flex justify-center w-full">
-            <Card className="bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 w-full">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between p-2">
+            <Card className="card-surface-2 border-primary/20 w-full max-w-sm">
+              <CardContent className="responsive-padding">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-blue-100 text-xs sm:text-sm">Your Rank</p>
-                    <p className="text-xl sm:text-2xl font-bold">#{currentUserRank || "Unranked"}</p>
+                    <p className="text-responsive-xs text-muted-foreground uppercase tracking-wide font-mono">Your Rank</p>
+                    <p className="text-responsive-xl font-bold text-primary font-rajdhani">#{currentUserRank || "Unranked"}</p>
                   </div>
-                  <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-blue-200" />
+                  <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-primary/70" />
                 </div>
               </CardContent>
             </Card>
-
           </div>
 
           {/* Leaderboard */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-orange-500" />
+          <Card className="card-surface">
+            <CardHeader className="responsive-padding">
+              <CardTitle className="flex items-center gap-2 text-responsive-lg">
+                <Trophy className="w-5 h-5 text-primary" />
                 Top Players
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="responsive-padding">
               {leaderboardData.length === 0 ? (
-                <div className="text-center py-12">
-                  <Trophy className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 text-lg">No players found</p>
-                  <p className="text-gray-400 text-sm">Start playing to appear on the leaderboard!</p>
+                <div className="text-center py-8 sm:py-12 space-y-4">
+                  <Trophy className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground/50 mx-auto" />
+                  <div>
+                    <p className="text-responsive-base text-muted-foreground font-medium">No players found</p>
+                    <p className="text-responsive-xs text-muted-foreground/70 mt-1">Start playing to appear on the leaderboard!</p>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {leaderboardData.map((player) => (
-                    <div
-                      key={player.username}
-                      className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border transition-all hover:shadow-md ${
-                        player.username === user.username
-                          ? "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
-                          : "bg-white dark:bg-gray-800"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-0">
-                        <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12">
-                          {getRankIcon(player.rank)}
-                        </div>
-                        
-                        <Avatar className="w-10 h-10 sm:w-12 sm:h-12">
-                          <AvatarImage
+                <div className="grid-leaderboard">
+                  {leaderboardData.map((player) => {
+                    const isCurrentUser = player.username === user.username;
+                    return (
+                      <div
+                        key={player.username}
+                        className={`leaderboard-row ${
+                          isCurrentUser ? 'leaderboard-row-user' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-0 flex-1 min-w-0">
+                          {/* Rank Icon */}
+                          <div className="flex items-center justify-center w-8 h-8 sm:w-12 sm:h-12 flex-shrink-0">
+                            {getRankIcon(player.rank)}
+                          </div>
+                          
+                          {/* Avatar */}
+                          <Avatar className="leaderboard-avatar">
+                            <AvatarImage
                               src={player.avatar ? `${API_BASE_URL}${player.avatar}` : undefined}
-                            alt={player.username}
-                          />
-                          <AvatarFallback className="bg-orange-500 text-white text-xs sm:text-sm">
-                            {player.username.slice(0, 2).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
+                              alt={player.username}
+                            />
+                            <AvatarFallback className="bg-primary text-primary-foreground text-responsive-xs font-semibold">
+                              {player.username.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          
+                          {/* Player Info */}
+                          <div className="leaderboard-info">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-foreground text-responsive-sm truncate">
+                                {player.username}
+                              </h3>
+                              {isCurrentUser && (
+                                <Badge variant="secondary" className="text-xs bg-primary/15 text-primary border-primary/25">
+                                  You
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-responsive-xs text-muted-foreground">
+                              <span className="truncate capitalize">{player.favoriteSport}</span>
+                              <span className="text-muted-foreground/50">•</span>
+                              <span>{player.totalBattles} battles</span>
+                            </div>
+                          </div>
+                        </div>
                         
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">
-                              {player.username}
-                            </h3>
-                            {player.username === user.username && (
-                              <Badge variant="secondary" className="text-xs">
-                                You
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                            <span className="truncate">{player.favoriteSport}</span>
-                            <span>•</span>
-                            <span>{player.totalBattles} battles</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4">
-                        <div className="text-center sm:text-right">
-                          <div className="flex items-center justify-center sm:justify-end gap-1">
-                            <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
-                            <span className="font-bold text-base sm:text-lg">{player.wins}</span>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">wins</p>
-                        </div>
-                        {player.streak > 0 && (
+                        {/* Stats */}
+                        <div className="leaderboard-stats">
                           <div className="text-center sm:text-right">
-                            <p className="font-semibold text-xs sm:text-sm text-orange-600">
-                              🔥 {player.streak}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">streak</p>
+                            <div className="flex items-center justify-center sm:justify-end gap-1">
+                              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-success" />
+                              <span className="font-bold text-responsive-base text-success">{player.wins}</span>
+                            </div>
+                            <p className="text-responsive-xs text-muted-foreground">wins</p>
                           </div>
-                        )}
+                          
+                          <div className="text-center sm:text-right">
+                            <p className="font-semibold text-responsive-sm text-foreground">
+                              {Math.round(player.winRate)}%
+                            </p>
+                            <p className="text-responsive-xs text-muted-foreground">rate</p>
+                          </div>
+                          
+                          {player.streak > 0 && (
+                            <div className="text-center sm:text-right">
+                              <p className="font-semibold text-responsive-sm text-primary">
+                                🔥 {player.streak}
+                              </p>
+                              <p className="text-responsive-xs text-muted-foreground">streak</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

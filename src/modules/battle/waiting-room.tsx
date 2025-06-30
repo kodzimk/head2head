@@ -3,7 +3,7 @@ import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Timer, UserPlus, Undo, AlertCircle } from 'lucide-react'
+import { Timer, UserPlus, Undo, AlertCircle, Clock, Users } from 'lucide-react'
 import Header from '../dashboard/header'
 import {
   Sheet,
@@ -192,111 +192,176 @@ export default function WaitingRoom() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="min-h-screen bg-background bg-gaming-pattern">
       <Header user={user} />
-      <main className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto">
-          <CardHeader>
-            <CardTitle className="text-center">Waiting for Opponent</CardTitle>
+      <main className="container-gaming py-8">
+        <Card className="card-surface max-w-2xl mx-auto">
+          <CardHeader className="responsive-padding">
+            <CardTitle className="text-responsive-lg text-center flex items-center justify-center gap-2">
+              <Clock className="w-5 h-5 text-primary" />
+              Waiting for Opponent
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center gap-6">
-              <div className="flex items-center gap-2 text-2xl font-bold">
-                <Timer className="w-6 h-6" />
-                {formatTime(waitingTime)}
-               
-              </div>
-
-              {/* Show warning about 1v1 limitation */}
-              {invitedFriends.length > 0 && (
-                <div className="w-full max-w-md p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                    <AlertCircle className="w-4 h-4" />
-                    <span className="text-sm font-medium">1v1 Battle</span>
-                  </div>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
-                    Only one friend can join this battle. The first person to accept will become your opponent.
-                  </p>
+          <CardContent className="responsive-padding space-y-6">
+            {/* Waiting Animation */}
+            <div className="text-center space-y-4">
+              <div className="relative mx-auto w-20 h-20 sm:w-24 sm:h-24">
+                <div className="absolute inset-0 rounded-full border-4 border-muted animate-spin"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Timer className="w-8 h-8 sm:w-10 sm:h-10 text-primary animate-pulse" />
                 </div>
-              )}
-
-              <div className="w-full max-w-md space-y-4">
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                    >
-                      <UserPlus className="w-4 h-4 mr-2" />
-                      Invite Friend
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent>
-                    <SheetHeader>
-                      <SheetTitle>Friends List</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6 space-y-4">
-                      {user.friends.length === 0 ? (
-                        <p className="text-center text-gray-500">No friends found</p>
-                      ) : (
-                        user.friends.map((friend: string) => (
-                          <div
-                            key={friend}
-                            className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                          >
-                            <div className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarFallback className="bg-orange-500 text-white">
-                                  {friend.slice(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">{friend}</p>
-                              </div>
-                            </div>
-                            <Button
-                              size="sm"
-                              onClick={() => invitedFriends.includes(friend) 
-                                ? undoInvite(friend) 
-                                : inviteFriend(friend)
-                              }
-                              className="bg-orange-500 hover:bg-orange-600"
-                            >
-                              {invitedFriends.includes(friend) ? (
-                                <>
-                                  <Undo className="w-4 h-4 mr-1" />
-                                  Undo
-                                </>
-                              ) : (
-                                <>
-                                  <UserPlus className="w-4 h-4 mr-1" />
-                                  Invite
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </SheetContent>
-                </Sheet>
-
-                <Button
-                  onClick={quitBattle}
-                  variant="destructive"
-                  className="w-full"
-                >
-                  Cancel Battle
-                </Button>
               </div>
-
-              <p className="text-sm text-gray-500 text-center mt-4">
-                {invitedFriends.length > 0 
-                  ? `Waiting for ${invitedFriends[0]} to join or wait for a random opponent`
-                  : 'Share this battle with your friends or wait for a random opponent to join'
-                }
-              </p>
+              
+              <div>
+                <p className="text-responsive-base font-medium text-foreground">
+                  Battle Starting Soon...
+                </p>
+                <p className="text-responsive-sm text-muted-foreground mt-1">
+                  Waiting for another player to join your battle
+                </p>
+              </div>
             </div>
+
+            {/* Battle Info */}
+            <Card className="card-surface-1">
+              <CardContent className="responsive-padding">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <p className="text-responsive-xs text-muted-foreground uppercase tracking-wide font-mono">Battle ID</p>
+                    <p className="text-responsive-sm font-bold text-primary font-mono">{id}</p>
+                  </div>
+                  <div>
+                    <p className="text-responsive-xs text-muted-foreground uppercase tracking-wide font-mono">Waiting Time</p>
+                    <p className="text-responsive-sm font-bold text-foreground font-mono">{formatTime(waitingTime)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Inactivity Warning */}
+            <Card className="card-surface-1 border-warning/30 bg-warning/5">
+              <CardContent className="responsive-padding">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-responsive-sm text-warning font-medium">Auto-Cancel Notice</p>
+                    <p className="text-responsive-xs text-muted-foreground mt-1">
+                      Your battle will be automatically cancelled after 10 minutes of inactivity to keep the arena fresh for other players.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 border-primary/30 hover:border-primary/60 hover:bg-primary/5"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Invite Friends
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="bg-card border-border">
+                  <SheetHeader>
+                    <SheetTitle className="text-responsive-lg text-foreground">Invite Friends to Battle</SheetTitle>
+                  </SheetHeader>
+                  <div className="mt-6 space-y-4">
+                    {user.friends && user.friends.length > 0 ? (
+                      user.friends.map((friendUsername, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border" style={{ backgroundColor: 'hsl(var(--card))' }}>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-8 h-8" variant="faceit">
+                              <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
+                                {friendUsername.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-responsive-sm font-medium text-foreground">{friendUsername}</span>
+                          </div>
+                          {invitedFriends.includes(friendUsername) ? (
+                            <Button
+                              onClick={() => undoInvite(friendUsername)}
+                              variant="outline"
+                              size="sm"
+                              className="border-destructive/30 text-destructive hover:bg-destructive/5"
+                            >
+                              <Undo className="w-3 h-3 mr-1" />
+                              Undo
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => inviteFriend(friendUsername)}
+                              size="sm"
+                              className="btn-neon"
+                            >
+                              <UserPlus className="w-3 h-3 mr-1" />
+                              Invite
+                            </Button>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 space-y-3">
+                        <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
+                          <Users className="w-8 h-8 text-muted-foreground/50" />
+                        </div>
+                        <div>
+                          <p className="text-responsive-sm text-muted-foreground font-medium">No friends yet</p>
+                          <p className="text-responsive-xs text-muted-foreground/70 mt-1">Add friends to invite them to battles!</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              <Button 
+                onClick={quitBattle} 
+                variant="outline"
+                className="flex-1 border-destructive/30 text-destructive hover:bg-destructive/5 hover:border-destructive/50"
+              >
+                <Undo className="w-4 h-4 mr-2" />
+                Cancel Battle
+              </Button>
+            </div>
+
+            {/* Invited Friends Status */}
+            {invitedFriends.length > 0 && (
+              <Card className="card-surface-1">
+                <CardContent className="responsive-padding">
+                  <h3 className="text-responsive-sm font-medium text-foreground mb-3">Invited Friends ({invitedFriends.length})</h3>
+                  <div className="space-y-2">
+                    {invitedFriends.map((friendUsername, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 rounded border border-border/50 bg-background/50">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-6 h-6" variant="faceit">
+                            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                              {friendUsername.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-responsive-xs text-foreground">{friendUsername}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-responsive-xs text-warning">⏳ Pending</span>
+                          <Button
+                            onClick={() => undoInvite(friendUsername)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10"
+                          >
+                            <Undo className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </CardContent>
         </Card>
       </main>

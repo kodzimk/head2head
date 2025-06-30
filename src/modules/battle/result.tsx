@@ -5,6 +5,8 @@ import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, 
 import { useNavigate } from 'react-router-dom';
 import type { User } from '../../shared/interface/user';
 import { API_BASE_URL, useGlobalStore } from '../../shared/interface/gloabL_var';
+import { Trophy, Target, TrendingUp, Home, RefreshCw } from 'lucide-react';
+import { UserAvatar, FaceitAvatar } from '../../shared/ui/user-avatar';
 
 export default function BattleResultPage({user}: {user: User}) {
 
@@ -151,71 +153,176 @@ export default function BattleResultPage({user}: {user: User}) {
     }
   };
 
+  const handlePlayAgain = () => {
+    // Clean up state and navigate to battle selection
+    setResult('');
+    setFirstOpponentScore(0);
+    setSecondOpponentScore(0);
+    setWinner('');
+    setLoser('');
+    setText('');
+    setCurrentQuestion(null);
+    setShowResult(false);
+    
+    navigate('/battles');
+  };
+
   if (!showResult) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-orange-100 p-4">
-        <Card className="w-full max-w-md shadow-xl animate-pulse">
-          <CardHeader>
-            <CardTitle className="text-center text-2xl font-bold mb-2">
-              {hasResultData ? 'Calculating results...' : 'Loading battle results...'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center gap-6 py-12">
-              <div className="text-4xl">⏳</div>
-              <div className="text-lg text-gray-600">
-                {hasResultData 
-                  ? 'Please wait while we determine the winner and update your statistics.'
-                  : 'Please wait while we load your battle results.'
-                }
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-surface-1 to-surface-2">
+        <div className="absolute inset-0 bg-gaming-pattern opacity-20"></div>
+        <div className="relative z-10 max-w-md mx-auto p-6">
+          <Card className="w-full bg-card/95 backdrop-blur-md border-border/50 shadow-xl">
+            <CardHeader className="text-center pb-4">
+              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <CardTitle className="text-xl font-bold text-card-foreground">
+                {hasResultData ? 'Calculating Results' : 'Loading Battle Results'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="text-muted-foreground mb-4">
+                  {hasResultData 
+                    ? 'Determining the winner and updating your statistics...'
+                    : 'Loading your battle results and statistics...'
+                  }
+                </div>
+                <div className="bg-accent/10 rounded-lg px-4 py-3 border border-accent/20">
+                  <div className="text-sm text-accent font-medium">
+                    This may take a few moments
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
+  const isWin = result === 'win';
+  const isLose = result === 'lose';
+  const isDraw = result === 'draw';
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-orange-100 p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader>
-          <CardTitle className="text-center text-3xl font-bold mb-2">
-            {result === 'win' ? '🎉 Congratulations! You Won! 🎉' : 
-             result === 'lose' ? '💪 You Lost - Good Luck Next Time! 💪' : 
-             (text !== '' ? text : 'The battle has concluded.')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center gap-6">
-            <div className="mt-6 text-center">
-              {result === 'win' && (
-                <div className="text-xl font-semibold text-green-600 mb-4">
-                  Amazing performance! You dominated this battle! 🏆
-                </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-surface-1 to-surface-2">
+      {/* Enhanced background pattern */}
+      <div className="absolute inset-0 bg-gaming-pattern opacity-20"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-transparent to-surface-2/60"></div>
+      
+      <div className="relative z-10 w-full max-w-lg px-4">
+        <Card className="w-full bg-card/95 backdrop-blur-md border-border/50 shadow-xl">
+          <CardHeader className="text-center pb-6">
+            {/* Result Icon */}
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
+              isWin ? 'bg-success/20' : isLose ? 'bg-destructive/20' : 'bg-warning/20'
+            }`}>
+              {isWin ? (
+                <Trophy className="w-10 h-10 text-success" />
+              ) : isLose ? (
+                <Target className="w-10 h-10 text-destructive" />
+              ) : (
+                <TrendingUp className="w-10 h-10 text-warning" />
               )}
-              {result === 'lose' && (
-                <div className="text-xl font-semibold text-blue-600 mb-4">
-                  Keep practicing and you'll get better! 💪
+            </div>
+            
+            {/* Result Title */}
+            <CardTitle className={`text-2xl font-bold mb-2 ${
+              isWin ? 'text-success' : isLose ? 'text-destructive' : 'text-warning'
+            }`}>
+              {isWin ? '🎉 Victory! 🎉' : 
+               isLose ? '💪 Good Fight! 💪' : 
+               '🤝 Draw! 🤝'}
+            </CardTitle>
+            
+            {/* Result Subtitle */}
+            <div className={`text-lg font-semibold ${
+              isWin ? 'text-success/80' : isLose ? 'text-destructive/80' : 'text-warning/80'
+            }`}>
+              {isWin ? 'Outstanding Performance!' : 
+               isLose ? 'Keep Training!' : 
+               'Evenly Matched!'}
+            </div>
+          </CardHeader>
+          
+          <CardContent className="p-6">
+            {/* Score Display */}
+            <div className="mb-6">
+              <div className="bg-surface-1/50 border border-border/30 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <FaceitAvatar user={user} size="xl" status="online" />
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">You</div>
+                      <div className="text-lg font-bold text-card-foreground">{user.username}</div>
+                    </div>
+                  </div>
+                  <div className={`text-3xl font-bold px-4 py-2 rounded-lg ${
+                    isWin ? 'text-success bg-success/10' : 'text-primary bg-primary/10'
+                  }`}>
+                    {firstOpponentScore}
+                  </div>
                 </div>
-              )}
-              {result === 'draw' && (
-                <div className="text-xl font-semibold text-orange-600 mb-4">
-                  It was a close battle! Well played! 🤝
+                
+                <div className="flex items-center justify-center my-2">
+                  <div className="text-sm font-medium text-muted-foreground bg-accent/20 rounded-full px-3 py-1">
+                    VS
+                  </div>
                 </div>
-              )}
-              <div className="text-lg text-gray-800 mb-2">
-                {result === 'win' ? 'You showed incredible knowledge and speed! Well done!' :
-                 result === 'lose' ? 'Every battle makes you stronger. Keep learning and growing!' :
-                 'Thank you for participating in this exciting battle!'}
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-muted/20 rounded-full flex items-center justify-center border-2 border-border/30">
+                      <span className="text-lg font-bold text-muted-foreground">?</span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">Opponent</div>
+                      <div className="text-lg font-bold text-card-foreground">Anonymous</div>
+                    </div>
+                  </div>
+                  <div className={`text-3xl font-bold px-4 py-2 rounded-lg ${
+                    isLose ? 'text-destructive bg-destructive/10' : 'text-muted-foreground bg-muted/10'
+                  }`}>
+                    {secondOpponentScore}
+                  </div>
+                </div>
               </div>
-              <Button className="mt-2 bg-orange-500 hover:bg-orange-600 w-full" onClick={handleBackToDashboard}>
+            </div>
+
+            {/* Performance Message */}
+            <div className={`text-center mb-6 p-4 rounded-xl border ${
+              isWin ? 'bg-success/5 border-success/20 text-success' :
+              isLose ? 'bg-destructive/5 border-destructive/20 text-destructive' :
+              'bg-warning/5 border-warning/20 text-warning'
+            }`}>
+              <div className="font-semibold mb-1">
+                {isWin ? 'Incredible knowledge and speed!' :
+                 isLose ? 'Every battle makes you stronger!' :
+                 'Well matched opponents!'}
+              </div>
+              <div className="text-sm opacity-80">
+                {isWin ? 'You dominated this trivia challenge!' :
+                 isLose ? 'Keep practicing and learning!' :
+                 'Great effort from both players!'}
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="space-y-3">              
+              <Button 
+                variant="outline"
+                onClick={handleBackToDashboard}
+                className="w-full h-12 text-base font-medium border-border/50 hover:bg-accent/50"
+              >
+                <Home className="w-5 h-5 mr-2" />
                 Back to Dashboard
               </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 } 

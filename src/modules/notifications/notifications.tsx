@@ -62,12 +62,12 @@ export default function NotificationsPage() {
         if (user.friendRequests.length > 0) {
           const avatarMap = await fetchFriendRequestAvatars(user.friendRequests)
           const friendRequestsWithAvatars = user.friendRequests.map((request: string) => ({
-            sender: {
-              username: request,
+      sender: {
+        username: request,
               avatar: avatarMap.get(request) || ''       
-            },
-            status: 'pending' as const
-          }))
+      },
+      status: 'pending' as const
+    }))
           console.log('Loaded friend requests with avatars:', friendRequestsWithAvatars)
           setFriendRequests(friendRequestsWithAvatars)
         } else {
@@ -470,7 +470,7 @@ export default function NotificationsPage() {
           }
           
           // Send user update to refresh the global state
-          sendMessage(user, "user_update")
+      sendMessage(user, "user_update")
         }
       } catch (error) {
         console.error('Error sending new invitation:', error)
@@ -478,23 +478,23 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-background bg-gaming-pattern">
       <Header user={user} />
-      <main className="container mx-auto px-4 py-8">
+      <main className="container-gaming py-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Notifications</h1>
+          <h1 className="text-heading-1 text-foreground mb-6">Notifications</h1>
           
           {isLoading ? (
-            <div className="text-center text-gray-500">Loading...</div>
+            <div className="text-center text-muted-foreground">Loading...</div>
           ) : friendRequests.length === 0 && invitations.length === 0 ? (
-            <div className="text-center text-gray-500">No new notifications</div>
+            <div className="text-center text-muted-foreground">No new notifications</div>
           ) : 
           (
             <div className="space-y-4">
               {friendRequests.map((request) => {
                 console.log('Rendering request:', request.sender.username, 'status:', request.status)
                 return (
-                <Card key={request.sender.username} className="bg-white dark:bg-gray-800">
+                <Card key={request.sender.username} className="bg-card">
                   <CardHeader className="flex flex-row items-center gap-4">
                     <Avatar 
                       className="h-12 w-12 cursor-pointer hover:opacity-80 transition-opacity"
@@ -504,7 +504,7 @@ export default function NotificationsPage() {
                       <AvatarFallback>{'A'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <CardTitle className="text-lg cursor-pointer hover:text-orange-500 transition-colors" 
+                      <CardTitle className="text-lg cursor-pointer hover:text-primary transition-colors" 
                         onClick={() => handleViewProfile(request.sender.username)}
                       >
                         {request.sender.username}
@@ -518,7 +518,7 @@ export default function NotificationsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                          className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
                           onClick={() => handleRejectRequest(request.sender.username)}
                         >
                           <X className="h-4 w-4 mr-2" />
@@ -526,7 +526,7 @@ export default function NotificationsPage() {
                         </Button>
                         <Button
                           size="sm"
-                          className="bg-orange-500 text-white dark:text-black  hover:bg-orange-600"
+                          className="bg-primary text-primary-foreground hover:bg-primary/90"
                           onClick={() => handleAcceptRequest(request.sender.username)}
                         >
                           <Check className="h-4 w-4 mr-2" />
@@ -535,7 +535,7 @@ export default function NotificationsPage() {
                       </>
                     ) : (
                       <span className={`text-sm ${
-                        request.status === 'accepted' ? 'text-green-500' : 'text-red-500'
+                        request.status === 'accepted' ? 'text-success' : 'text-destructive'
                       }`}>
                         {request.status === 'accepted' ? 'Accepted' : 'Rejected'}
                       </span>
@@ -547,14 +547,14 @@ export default function NotificationsPage() {
 
               {invitations.length > 0 && (
                 <div className="mt-6">
-                  <h2 className="text-xl font-semibold mb-4">Battle Invitations</h2>
+                  <h2 className="text-responsive-lg font-semibold mb-4 text-foreground">Battle Invitations</h2>
                   {invitations.map((invitation, index) => {
                     console.log('Rendering invitation:', invitation)
                     const isProcessing = processingInvitations.has(invitation.battle_id)
                     const hasResponse = invitationResponses.has(invitation.battle_id)
                     
                     return (
-                    <Card key={`${invitation.battle_id}-${index}`} className="bg-white dark:bg-gray-800 mb-4">
+                    <Card key={`${invitation.battle_id}-${index}`} className="bg-card mb-4">
                       <CardHeader className="flex flex-row justify-center items-center gap-4">
                         <CardTitle>Battle Invitation - {invitation.sport}</CardTitle>
                       </CardHeader>
@@ -564,18 +564,18 @@ export default function NotificationsPage() {
                       <CardFooter className="flex justify-center gap-2">
                         {invitation.status === 'pending' ? (
                           <>
-                            <Button 
-                              size="sm" 
-                              className="bg-orange-500 text-white dark:text-black hover:bg-orange-600" 
-                              onClick={() => handleAcceptInvitation(invitation.battle_id)}
+                        <Button 
+                          size="sm" 
+                          className="bg-primary text-primary-foreground hover:bg-primary/90" 
+                          onClick={() => handleAcceptInvitation(invitation.battle_id)}
                               disabled={isProcessing}
-                            >
+                        >
                               {isProcessing ? 'Processing...' : 'Accept'}
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              className="bg-red-500 text-white dark:text-black hover:bg-red-600" 
-                              onClick={() => handleRejectInvitation(invitation.battle_id)}
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="bg-destructive hover:bg-destructive/90" 
+                          onClick={() => handleRejectInvitation(invitation.battle_id)}
                               disabled={isProcessing}
                             >
                               {isProcessing ? 'Processing...' : 'Reject'}
@@ -585,11 +585,11 @@ export default function NotificationsPage() {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            className="border-gray-300 text-gray-700 hover:bg-gray-50" 
+                            className="border-border text-foreground hover:bg-card" 
                             onClick={() => handleUndoInvitationResponse(invitation.battle_id)}
                           >
                             Invite
-                          </Button>
+                        </Button>
                         ) : null}
                       </CardFooter>
                     </Card>

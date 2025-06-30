@@ -106,24 +106,30 @@ export default function EmailSignUpPage() {
       .then(response => {
         if (response.data) {
           const userData = response.data.user;
-          user.email = userData.email
-          user.username = userData.username
-          user.wins = userData.winBattle
-          user.favoritesSport = userData.favourite
-          user.rank = userData.ranking
-          user.winRate = userData.winRate
-          user.totalBattles = userData.totalBattle
-          user.streak = userData.winBattle
-          user.password = userData.password
-          user.friends = userData.friends          
-          user.friendRequests = userData.friendRequests
-          user.battles = userData.battles
-          user.invitations = userData.invitations
-          setUser(user)
+          const updatedUser = {
+            email: userData.email,
+            username: userData.username,
+            wins: userData.winBattle,
+            favoritesSport: userData.favourite,
+            rank: userData.ranking,
+            winRate: userData.winRate,
+            totalBattles: userData.totalBattle,
+            streak: userData.streak,
+            password: userData.password,
+            friends: userData.friends || [],
+            friendRequests: userData.friendRequests || [],
+            battles: userData.battles || [],
+            invitations: userData.invitations || [],
+            avatar: userData.avatar,
+            nickname: userData.username
+          };
+          
+          setUser(updatedUser);
           localStorage.setItem('access_token', response.data.access_token);
           localStorage.setItem("username", userData.username);
+          localStorage.setItem('user', JSON.stringify(updatedUser));
           initializeWebSocketForNewUser(userData.username);
-          navigate(`/${user.username}`)
+          navigate(`/${userData.username}`)
         } else {
           setValidationErrors({
             submit: 'Signup failed. Account already exists.'
@@ -176,70 +182,75 @@ export default function EmailSignUpPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-surface-1/30 via-background to-primary/5 relative overflow-hidden">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-gaming-pattern opacity-5"></div>
+      
       {/* Header */}
-      <header className="px-4 lg:px-6 h-16 flex items-center justify-between bg-white/80 backdrop-blur-sm border-b border-orange-200">
-        <div className="flex items-center gap-4">
+      <header className="relative z-10 px-3 sm:px-4 lg:px-6 h-14 sm:h-16 flex items-center backdrop-blur-md border-b border-border/50"
+              style={{ backgroundColor: 'hsl(220 13% 12% / 0.95)' }}>
+        <div className="flex items-center gap-2 sm:gap-4">
           <button
             onClick={() => navigate("/sign-up")}
-            className="flex items-center text-gray-600 hover:text-orange-600 transition-colors"
+            className="flex items-center text-muted-foreground hover:text-primary transition-colors p-1 sm:p-2 rounded-lg hover:bg-card/20"
           >
-            <ArrowLeft className="w-5 h-5 mr-1" />
-            <span className="text-sm">Back</span>
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
+            <span className="text-xs sm:text-sm font-medium">Back</span>
           </button>
         </div>
       </header>
 
-      <main className="flex py-12 px-4 justify-center items-center">
-        <div className="container mx-auto max-w-2xl">
+      <main className="relative z-10 flex py-4 sm:py-8 lg:py-12 px-3 sm:px-4 justify-center items-center min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)]">
+        <div className="container mx-auto max-w-sm sm:max-w-md lg:max-w-2xl">
           {/* Main Form Card */}
-          <Card className="bg-white/80 backdrop-blur-sm border border-white/50 shadow-2xl relative">
-            <CardHeader className="text-center pb-6">
-              <CardTitle className="text-2xl font-bold text-gray-900">Sign Up with Email</CardTitle>
-              <p className="text-gray-600">Fill in your details to get started</p>
+          <Card className="card-surface backdrop-blur-sm border-border/50 shadow-xl sm:shadow-2xl relative">
+            <CardHeader className="text-center pb-4 sm:pb-6 px-4 sm:px-6 pt-6 sm:pt-8">
+              <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Sign Up with Email</CardTitle>
+              <p className="text-sm sm:text-base text-muted-foreground mt-2">Fill in your details to get started</p>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6 pb-6 sm:pb-8">
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Name Fields */}
-                <div className="">
-                  <Label htmlFor="username">Username</Label>
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+                {/* Username */}
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-sm sm:text-base font-medium text-foreground">Username</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
                     <Input
                       id="username"
                       name="username"
                       type="text"
-                      placeholder="kodzimk"
+                      placeholder="Choose a unique username"
                       value={formData.username}
                       onChange={handleInputChange}
-                      className="pl-10 h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                      className="w-full pl-10 sm:pl-12 h-10 sm:h-12 lg:h-14 text-sm sm:text-base border-border focus:border-primary focus:ring-primary/20 bg-background"
+                      required
                     />
                   </div>
                 </div>
 
                 {/* Email */}
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="email" className="text-sm sm:text-base font-medium text-foreground">Email Address</Label>
                   <div className="space-y-1">
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
                       <Input
                         id="email"
                         name="email"
                         type="email"
-                        placeholder="kodzimk@example.com"
+                        placeholder="your-email@example.com"
                         value={formData.email}
                         onChange={handleInputChange}
-                        className={`pl-10 h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500 ${
-                          validationErrors.email ? 'border-red-500' : ''
+                        className={`w-full pl-10 sm:pl-12 h-10 sm:h-12 lg:h-14 text-sm sm:text-base border-border focus:border-primary focus:ring-primary/20 bg-background ${
+                          validationErrors.email ? 'border-destructive focus:border-destructive' : ''
                         }`}
                         required
                       />
                     </div>
                     {validationErrors.email && (
-                      <div className="flex items-center text-red-500 text-sm min-h-[20px]">
-                        <AlertCircle className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                      <div className="flex items-center text-destructive text-xs sm:text-sm min-h-[20px]">
+                        <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
                         <span>{validationErrors.email}</span>
                       </div>
                     )}
@@ -249,47 +260,47 @@ export default function EmailSignUpPage() {
                 {/* Password */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password" className="text-sm sm:text-base font-medium text-foreground">Password</Label>
                     <button
                       type="button"
                       onClick={() => setShowPasswordInfo(!showPasswordInfo)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
                     >
-                      <Info className="w-4 h-4" />
+                      <Info className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   </div>
                   {showPasswordInfo && (
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2 relative">
+                    <div className="bg-card border border-border rounded-lg p-3 mb-2 relative">
                       <button
                         type="button"
                         onClick={() => setShowPasswordInfo(false)}
-                        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                        className="absolute top-2 right-2 text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
                       >
                         <X className="w-4 h-4" />
                       </button>
-                      <p className="text-sm font-medium text-gray-900 mb-2">Password Requirements:</p>
-                      <ul className="space-y-1 text-sm text-gray-600">
+                      <p className="text-sm font-medium text-foreground mb-2">Password Requirements:</p>
+                      <ul className="space-y-1 text-xs sm:text-sm text-muted-foreground">
                         <li className="flex items-start">
-                          <span className="text-orange-500 mr-1.5">•</span>
+                          <span className="text-primary mr-1.5">•</span>
                           At least 8 characters long
                         </li>
                         <li className="flex items-start">
-                          <span className="text-orange-500 mr-1.5">•</span>
+                          <span className="text-primary mr-1.5">•</span>
                           Include uppercase and lowercase letters
                         </li>
                         <li className="flex items-start">
-                          <span className="text-orange-500 mr-1.5">•</span>
+                          <span className="text-primary mr-1.5">•</span>
                           Include at least one number
                         </li>
                         <li className="flex items-start">
-                          <span className="text-orange-500 mr-1.5">•</span>
+                          <span className="text-primary mr-1.5">•</span>
                           Include at least one special character (!@#$%^&*)
                         </li>
                       </ul>
                     </div>
                   )}
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
                     <Input
                       id="password"
                       name="password"
@@ -297,28 +308,28 @@ export default function EmailSignUpPage() {
                       placeholder="Create a strong password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className={`pl-10 pr-10 h-12 border-gray-300 focus:border-orange-500 focus:ring-orange-500 ${
-                        validationErrors.password ? 'border-red-500' : ''
+                      className={`w-full pl-10 sm:pl-12 pr-10 sm:pr-12 h-10 sm:h-12 lg:h-14 text-sm sm:text-base border-border focus:border-primary focus:ring-primary/20 bg-background ${
+                        validationErrors.password ? 'border-destructive focus:border-destructive' : ''
                       }`}
                       required
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-1"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                     </button>
                   </div>
                   {validationErrors.password && (
-                    <div className="flex items-center text-red-500 text-sm min-h-[20px]">
-                      <AlertCircle className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                    <div className="flex items-center text-destructive text-xs sm:text-sm min-h-[20px]">
+                      <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
                       <span>{validationErrors.password}</span>
                     </div>
                   )}
                 </div>
 
-                {/* Checkboxes */}
+                {/* Terms Agreement */}
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
                     <Checkbox
@@ -329,15 +340,15 @@ export default function EmailSignUpPage() {
                         setFormData((prev) => ({ ...prev, agreeToTerms: checked as boolean }))
                       }
                       required
-                      className="mt-1"
+                      className="mt-1 border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
-                    <Label htmlFor="agreeToTerms" className="text-sm text-gray-600 leading-relaxed">
+                    <Label htmlFor="agreeToTerms" className="text-xs sm:text-sm text-muted-foreground leading-relaxed cursor-pointer">
                       I agree to the{" "}
-                      <Link to="/terms" className="text-orange-600 hover:text-orange-700 underline font-medium">
+                      <Link to="/terms" className="text-primary hover:text-primary/80 underline font-medium transition-colors">
                         Terms of Service
                       </Link>{" "}
                       and{" "}
-                      <Link to="/privacy" className="text-orange-600 hover:text-orange-700 underline font-medium">
+                      <Link to="/privacy" className="text-primary hover:text-primary/80 underline font-medium transition-colors">
                         Privacy Policy
                       </Link>
                     </Label>
@@ -346,18 +357,32 @@ export default function EmailSignUpPage() {
 
                 {/* Submit Button */}
                 {validationErrors.submit && (
-                  <div className="text-sm text-red-500 text-center mb-4">
-                    {validationErrors.submit}
+                  <div className="text-xs sm:text-sm text-destructive text-center bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-center justify-center gap-2 mb-4">
+                    <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                    <span>{validationErrors.submit}</span>
                   </div>
                 )}
                 <Button
                   type="submit"
-                  className="w-full h-14 bg-gradient-to-r from-orange-500 to-orange-500 hover:from-orange-600 hover:to-orange-600 text-white font-semibold text-lg shadow-lg"
+                  className="w-full h-12 sm:h-14 lg:h-16 btn-neon text-sm sm:text-base lg:text-lg font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02]"
                   disabled={!canSubmit()}
                 >
                   Create Account
                 </Button>
               </form>
+              
+              {/* Sign In Link */}
+              <div className="text-center pt-4 border-t border-border/50">
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link
+                    to="/sign-in"
+                    className="text-primary hover:text-primary/80 font-medium transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>

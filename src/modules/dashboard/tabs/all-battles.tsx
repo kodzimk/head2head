@@ -198,7 +198,7 @@ export default function AllBattles() {
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">All Battles</h2>
+          <h2 className="text-2xl font-bold text-white">All Battles</h2>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
           <Users className="w-4 h-4" />
@@ -274,7 +274,7 @@ export default function AllBattles() {
               {currentBattles.map((battle) => (
                 <div
                   key={battle.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow bg-white dark:bg-gray-800"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow bg-card"
                 >
                   <div className="flex items-center gap-3 mb-3 sm:mb-0">
                     <div className="flex-shrink-0">

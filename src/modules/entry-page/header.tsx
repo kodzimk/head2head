@@ -1,27 +1,69 @@
+import React, { useState } from "react";
 import { Button } from "../../shared/ui/button";
 import { useNavigate } from "react-router-dom";
+import { Menu, X } from "lucide-react";
 
 export default function Header() {
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   return (
-    <header className="px-2 sm:px-4 lg:px-6 h-16 flex items-center justify-between bg-white/60 backdrop-blur border-b border-slate-200 fixed top-0 w-full z-50">
-      <a href="#hero" className="flex items-center justify-center">
-        <div className="flex items-center gap-2 sm:gap-3 ml-2 sm:ml-8">
-          <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-orange-500">
-            <p className="font-bold text-white text-sm sm:text-base">h2h</p>
-          </div>
-          <span className="font-bold text-lg sm:text-xl text-slate-900">head2head</span>
+    <header className="fixed top-0 w-full z-50 border-b border-border/50 backdrop-blur-md" 
+            style={{ backgroundColor: 'hsl(220 13% 12% / 0.95)' }}>
+      <div className="container-gaming">
+        <div className="flex h-14 sm:h-16 items-center justify-between">
+          {/* Logo Section */}
+          <a href="#hero" className="flex items-center space-x-2 sm:space-x-3">
+            <div className="logo-gaming w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-sm sm:text-lg font-black">
+              h2h
+            </div>
+            <span className="font-bold text-lg sm:text-xl text-foreground hidden sm:inline">
+              Head<span className="text-primary">2</span>Head
+            </span>
+          </a>
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-3 lg:space-x-4">
+            <Button 
+              className="btn-neon text-sm lg:text-base"
+              onClick={() => navigate("/sign-up")}
+            >
+              Start Competing
+            </Button>
+          </nav>
+
+          {/* Mobile Menu Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="md:hidden p-2"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-5 h-5 text-foreground" />
+            ) : (
+              <Menu className="w-5 h-5 text-foreground" />
+            )}
+          </Button>
         </div>
-      </a>
-      <nav className="ml-auto  md:flex gap-6 items-center md:mr-10">
-        <Button className="max-w-72 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => {
-         
-          navigate("/sign-up")
-        }}>
-          Start Now!
-        </Button>
-      </nav>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-border/30 py-4">
+            <nav className="flex flex-col space-y-3">
+              <Button 
+                className="btn-neon justify-start text-left w-full"
+                onClick={() => {
+                  navigate("/sign-up");
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                Start Competing
+              </Button>
+            </nav>
+          </div>
+        )}
+      </div>
     </header>
   );
 }

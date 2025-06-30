@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom'
 import { removeFriend } from '../../shared/websockets/websocket'
 import { API_BASE_URL, useRefreshViewStore } from "../../shared/interface/gloabL_var"
 import { UserAvatar } from "../../shared/ui/user-avatar"
+import { newSocket } from "../../app/App"
 
 
 export default function FriendsPage({user}: {user: User}) {
@@ -20,27 +21,112 @@ export default function FriendsPage({user}: {user: User}) {
   const navigate = useNavigate()
   const {refreshView} = useRefreshViewStore()
   const {setRefreshView} = useRefreshViewStore()
+  // Function to fetch friend data
+  const fetchFriendData = async (friendUsername: string): Promise<Friend> => {
+    try {
+      const friendData = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`);
+      return {
+        username: friendUsername,
+        avatar: friendData.data.avatar ? `${API_BASE_URL}${friendData.data.avatar}` : null,
+        rank: friendData.data.ranking.toString(),
+        status: "online"
+      };
+    } catch (error) {
+      console.error(`Error fetching friend data for ${friendUsername}:`, error);
+      return {
+        username: friendUsername,
+        avatar: null,
+        rank: "1",
+        status: "online"
+      };
+    }
+  };
+
+  // Function to update friends list with deduplication
+  const updateFriendsList = async (friendUsernames: string[]) => {
+    if (friendUsernames.length === 0) {
+      setFriends([]);
+      return;
+    }
+
+    try {
+      // Remove duplicates from friendUsernames
+      const uniqueFriends = [...new Set(friendUsernames)];
+      console.log('Fetching data for unique friends:', uniqueFriends);
+      
+      const friendPromises = uniqueFriends.map(fetchFriendData);
+      const friendResults = await Promise.all(friendPromises);
+      
+      // Filter out any null results and ensure no duplicates
+      const validFriends = friendResults.filter(friend => friend !== null);
+      const uniqueValidFriends = validFriends.filter((friend, index, self) => 
+        index === self.findIndex(f => f.username === friend.username)
+      );
+      
+      console.log('Setting friends list:', uniqueValidFriends);
+      setFriends(uniqueValidFriends);
+    } catch (error) {
+      console.error('Error updating friends list:', error);
+    }
+  };
+
+  // Initial load and update when user.friends changes
   useEffect(() => {
-    setFriends([])
-      user.friends.map(async (friend: string) => {
-        try {
-          const friendData = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friend}`);
-          setFriends(prev => [...prev, {
-            username: friend,
-            status: "online",
-            avatar: friendData.data.avatar ? `${API_BASE_URL}${friendData.data.avatar}` : null,
-            rank: friendData.data.ranking
-          }])
-        } catch (error) {
-          setFriends(prev => [...prev, {
-            username: friend,
-            status: "online",
-            avatar: null,
-            rank: "1"
-          }])
+    console.log('Friends list changed:', user.friends);
+    updateFriendsList(user.friends || []);
+  }, [user.friends]);
+
+  // Reset refreshView after it's used
+  useEffect(() => {
+    if (refreshView) {
+      console.log("refreshView triggered in friends page, resetting to false")
+      // Only reset refreshView after a short delay to ensure updates are processed
+      setTimeout(() => {
+        setRefreshView(false)
+      }, 100)
+    }
+  }, [refreshView, setRefreshView])
+
+  // Handle websocket messages for real-time updates
+  useEffect(() => {
+    const handleWebSocketMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'user_updated' && data.data) {
+          const updatedUserData = data.data;
+          
+          // Update friends list if the current user's data was updated
+          if (updatedUserData.username === user.username) {
+            console.log('Updating friends list from websocket:', updatedUserData.friends);
+            updateFriendsList(updatedUserData.friends || []);
+          }
         }
-      });
-  }, [user,refreshView,setRefreshView])
+        
+        if (data.type === 'friend_request_updated' && data.data) {
+          const updatedUserData = data.data;
+          
+          // Update friends list if the current user's data was updated
+          if (updatedUserData.username === user.username) {
+            console.log('Updating friends list from friend_request_updated:', updatedUserData.friends);
+            updateFriendsList(updatedUserData.friends || []);
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing websocket message:', error);
+      }
+    };
+
+    if (newSocket) {
+      newSocket.addEventListener('message', handleWebSocketMessage);
+    }
+
+    return () => {
+      if (newSocket) {
+        newSocket.removeEventListener('message', handleWebSocketMessage);
+      }
+    };
+  }, [user.username])
 
   const handleRemoveFriend = async (username: string) => {
     removeFriend(user, username)
@@ -82,15 +168,15 @@ export default function FriendsPage({user}: {user: User}) {
   const title = isSearching ? "Search Results" : "Your Friends"
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-background bg-gaming-pattern">
       <Header user={user} />
-      <main className="flex-1 p-4 lg:p-6">
-        <div className="container mx-auto max-w-4xl">
+      <main className="flex-1 container-gaming py-6">
+        <div className="max-w-4xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h1>
+            <h1 className="text-heading-2 text-foreground">{title}</h1>
             <div className="w-full sm:w-auto">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Search users..."
@@ -113,7 +199,7 @@ export default function FriendsPage({user}: {user: User}) {
             </CardHeader>
             <CardContent>
               {displayedUsers.length === 0 ? (
-                <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                <div className="text-center py-4 text-muted-foreground">
                   {emptyMessage}
                 </div>
               ) : (
@@ -121,20 +207,35 @@ export default function FriendsPage({user}: {user: User}) {
                   {displayedUsers.map((item) => (
                     <div
                       key={item.username}
-                      className="w-full cursor-pointer p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex flex-col sm:flex-row items-center gap-4 hover:shadow-lg"
+                      className="w-full cursor-pointer p-4 rounded-lg transition-colors flex flex-col sm:flex-row items-center gap-4 hover:shadow-lg bg-card border hover:bg-card/80"
                       onClick={() => navigate(`/profile/${item.username}`)}
                     >
                       <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
-                        <UserAvatar
-                          user={item}
-                          size="lg"
-                          className="flex-shrink-0"
-                        />
+                        {item.avatar ? (
+                          <div 
+                            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-14 lg:h-14 rounded-full overflow-hidden flex-shrink-0 aspect-square border-2 border-primary"
+                            style={{ clipPath: 'circle(50%)' }}
+                          >
+                            <img
+                              src={item.avatar}
+                              alt={item.username}
+                              className="w-full h-full object-cover object-center"
+                              style={{ clipPath: 'circle(50%)' }}
+                            />
+                          </div>
+                        ) : (
+                          <div 
+                            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-14 lg:h-14 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm sm:text-lg md:text-xl lg:text-lg font-bold flex-shrink-0 aspect-square border-2 border-primary"
+                            style={{ clipPath: 'circle(50%)' }}
+                          >
+                            {item.username.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
                         <div className="flex-grow min-w-0 text-center sm:text-left">
-                          <h3 className="font-medium text-gray-900 dark:text-white truncate text-lg">
+                          <h3 className="font-medium text-foreground truncate text-lg">
                             {item.username}
                           </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          <p className="text-sm text-muted-foreground mt-1">
                             Rank: #{item.rank}
                           </p>
                         </div>

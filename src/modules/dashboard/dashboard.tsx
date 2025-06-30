@@ -1,38 +1,120 @@
-import { useState, useEffect } from "react";
-import { Button } from "../../shared/ui/button";
-import { Card, CardContent } from "../../shared/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "../../shared/ui/tabs";
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import {
+  Trophy, 
   Users,
+  Target, 
+  Zap, 
+  Plus, 
+  TrendingUp,
   Crown,
-  Target,
-  Play,
-  Sword,
-  FlameIcon as Fire,
-} from "lucide-react";
+  Flame,
+  Star,
+  ArrowRight,
+  Calendar,
+  Award,
+  Play
+} from 'lucide-react';
+import Header from './header';
+import { Button } from '../../shared/ui/button';
+import { Badge } from '../../shared/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../shared/ui/tabs';
+import Overview from './tabs/overview';
+import Battles from './tabs/battles';
+import Friends from './tabs/friends';
+import type { User, RecentBattle } from '../../shared/interface/user';
+import { API_BASE_URL } from '../../shared/interface/gloabL_var';
 
-import Overview from "./tabs/overview";
-import Battles from "./tabs/battles";
-import Friends from "./tabs/friends";
-import Header from "./header";
-import type { RecentBattle } from "../../shared/interface/user";
-import { useGlobalStore, API_BASE_URL } from "../../shared/interface/gloabL_var";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-
-export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState("overview");
+export function Dashboard() {
   const navigate = useNavigate();
-  const {user, setUser} = useGlobalStore()
-  const [recentBattles, setRecentBattles] = useState<RecentBattle[]>([]);
-
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [battles, setBattles] = useState<RecentBattle[]>([]);
   useEffect(() => {
-    document.title = "Dashboard";
-  }, []);
+    const loadUserData = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        
+        if (!token) {
+          navigate('/sign-in');
+          return;
+        }
 
-  useEffect(() => {
-    const fetchBattles = async () => {
-      if (!localStorage.getItem("username")) return;
+        // First try to get user data from localStorage
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
+          setLoading(false);
+          return;
+        }
+
+        // If no localStorage data, fetch from API
+        try {
+          const response = await axios.get(`${API_BASE_URL}/db/get-user?token=${token}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.data) {
+            const userData = response.data;
+            const formattedUser = {
+              email: userData.email,
+              username: userData.username,
+              nickname: userData.username,
+              wins: userData.winBattle,
+              favoritesSport: userData.favourite,
+              rank: userData.ranking,
+              winRate: userData.winRate,
+              totalBattles: userData.totalBattle,
+              streak: userData.streak,
+              password: userData.password,
+              avatar: userData.avatar,
+              friends: userData.friends || [],
+              friendRequests: userData.friendRequests || [],
+              battles: userData.battles || [],
+              invitations: userData.invitations || []
+            };
+            
+            setUser(formattedUser);
+            // Store in localStorage for future use
+            localStorage.setItem('user', JSON.stringify(formattedUser));
+          } else {
+            setError('No user data received from server');
+          }
+        } catch (apiError: any) {
+          console.error('Error fetching user data from API:', apiError);
+          if (apiError.response?.status === 401) {
+            // Token is invalid, redirect to sign-in
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('username');
+            navigate('/sign-in');
+            return;
+          }
+          setError('Failed to load user data. Please try signing in again.');
+        }
+      } catch (err) {
+        console.error('Error loading user data:', err);
+        setError('Failed to load user data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserData();
+  }, [navigate, setUser]);
+
+  const fetchBattles = async () => {
+    if (!localStorage.getItem("username")) return;
+    
+    try {
+     
+      console.log('[Battles Tab] Fetching recent battles...');
+      
       const response = await axios.get(
         `${API_BASE_URL}/battle/get_recent_battles?username=${localStorage.getItem("username")}&limit=4`,
         {
@@ -42,16 +124,32 @@ export default function DashboardPage() {
         }
       );
       const data = await response.data;
+  
       const mapped: RecentBattle[] = data.map((battle: any) => {
-        let opponent = battle.first_opponent === user.username ? battle.second_opponent : battle.first_opponent;
-        let result = "draw";
-        if (battle.first_opponent === user.username) {
-          result = battle.first_opponent_score > battle.second_opponent_score ? "win" : (battle.first_opponent_score < battle.second_opponent_score ? "lose" : "draw");
-        } else if (battle.second_opponent === user.username) {
-          result = battle.second_opponent_score > battle.first_opponent_score ? "win" : (battle.second_opponent_score < battle.first_opponent_score ? "lose" : "draw");
-        }
-        const score = `${battle.first_opponent_score} : ${battle.second_opponent_score}`;
+        let opponent = battle.first_opponent === localStorage.getItem("username") ? battle.second_opponent : battle.first_opponent;
         
+        let result = "draw";
+        const currentUser = localStorage.getItem("username");
+        
+        const firstScore = parseInt(battle.first_opponent_score) || 0;
+        const secondScore = parseInt(battle.second_opponent_score) || 0
+        
+        if (battle.first_opponent === currentUser) {
+          if (firstScore > secondScore) {
+            result = "win";
+          } else if (firstScore < secondScore) {
+            result = "lose";
+          } 
+        } else if (battle.second_opponent === currentUser) {
+          if (secondScore > firstScore) {
+            result = "win";
+          } else if (secondScore < firstScore) {
+            result = "lose";
+          }
+        } 
+        
+        const score = `${firstScore} : ${secondScore}`;
+  
         return {
           id: battle.id,
           opponent: opponent || "Unknown",
@@ -59,16 +157,33 @@ export default function DashboardPage() {
           player2: battle.second_opponent,
           sport: battle.sport,
           result,
-          score,
+          score
         };
       });
-      setRecentBattles(mapped);
-    };
+      
+      setBattles(mapped);
+      console.log('[Battles Tab] Successfully fetched battles:', mapped.length);
+    } catch (error) {
+      console.error("[Battles Tab] Error fetching battles:", error);
+    } finally {
+     
+    }
+  };
+  
+    useEffect(() => {
     fetchBattles();
-
+    
+    // Listen for battle finished events to refresh data
     const handleBattleFinished = (event: any) => {
-      if (event.detail.updated_users && event.detail.updated_users[user.username]) {
-        const updatedStats = event.detail.updated_users[user.username];
+      console.log('[Battles Tab] Battle finished event received:', event.detail);
+      console.log('[Battles Tab] Refreshing battle data...');
+      
+      // Update user stats if provided in the event
+      if (event.detail.updated_users && event.detail.updated_users[user?.username || '']) {
+        const updatedStats = event.detail.updated_users[user?.username || ''];
+        console.log('[Battles Tab] Updating user stats:', updatedStats);
+        
+        // Update the user object with new stats using setUser
         const updatedUser = {
           ...user,
           totalBattles: updatedStats.totalBattle,
@@ -76,11 +191,22 @@ export default function DashboardPage() {
           winRate: updatedStats.winRate,
           streak: updatedStats.streak,
         };
-        setUser(updatedUser);
+        
+        // Update global store
+        if (setUser) {
+          setUser(updatedUser as User);
+        }
+        
+        // Update localStorage
         localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        console.log('[Battles Tab] Updated user stats in localStorage');
       }
       
-      fetchBattles();
+      // Refresh battles data
+      setTimeout(() => {
+        fetchBattles();
+      }, 1000); // Small delay to ensure backend has processed the battle
     };
     
     window.addEventListener('battleFinished', handleBattleFinished);
@@ -89,107 +215,171 @@ export default function DashboardPage() {
       window.removeEventListener('battleFinished', handleBattleFinished);
     };
   }, [user, setUser]);
+  
+
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background bg-gaming-pattern flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="loading-gaming w-16 h-16 rounded-lg mx-auto"></div>
+          <p className="text-muted-foreground font-rajdhani">Loading your gaming profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <div className="min-h-screen bg-background bg-gaming-pattern flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Trophy className="w-16 h-16 text-destructive mx-auto" />
+          <h1 className="text-responsive-xl font-rajdhani font-bold text-foreground">Error Loading Dashboard</h1>
+          <p className="text-muted-foreground">{error || 'Please sign in to continue'}</p>
+          <Button onClick={() => navigate('/sign-in')}>
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-background bg-gaming-pattern">
       <Header user={user} />
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl"> 
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <h1 className="text-[23px] md:text-3xl font-bold text-gray-900 dark:text-white">
-                Welcome back, {user.username}! 
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-1">
-                Ready to dominate the sports trivia world?
+      <main className="container-gaming py-8">
+        {/* Welcome Section */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
+            <div className="space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <h1 className="text-gaming-lg text-foreground font-rajdhani">
+                  Welcome back, {user?.nickname || user?.username || 'Player'}
+                </h1>
+              </div>
+              <p className="text-responsive-sm text-muted-foreground font-rajdhani max-w-2xl">
+                Ready for your next gaming challenge? Your opponents are waiting.
               </p>
             </div>
-            <div className="flex gap-3">
-              <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white dark:from-orange-600 dark:to-red-600 dark:hover:from-orange-700 dark:hover:to-red-700" onClick={() => navigate("/battles")}>
-                <Play className="w-4 h-4 mr-2" />
+
+            {/* Quick Actions */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                onClick={() => navigate('/battles')} 
+                className="btn-neon group"
+              >
+                <Play className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
                 Quick Battle
+                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
                 variant="outline"
-                className="border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-500 dark:text-orange-400 dark:hover:bg-orange-900/20"
-                onClick={() => navigate("/battles")}
+                onClick={() => navigate('/training')}
+                className="border-primary/30 hover:border-primary/60 hover:bg-primary/5"
               >
-                <Users className="w-4 h-4 mr-2" />
-                Challenge Friends
+                <Target className="w-4 h-4 mr-2" />
+                Practice Mode
               </Button>
             </div>
           </div>
         </div>
 
-        <div className="hidden xl:grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-orange-500 to-red-500 text-white border-0 md:hidden lg:block dark:from-orange-600 dark:to-red-600 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 dark:text-orange-200 text-sm py-2">Current Rank</p>
-                  <p className="text-2xl font-bold">{user.rank}</p>
-                </div>
-                <Crown className="w-8 h-8 text-orange-200 dark:text-orange-300" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Quick Stats Grid */}
+        <div className="grid-stats mb-6 sm:mb-8">
+          <div className="stat-card animate-scale-in">
+            <div className="flex items-center justify-between mb-3">
+              <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+              <Badge variant="secondary" className="bg-success/15 text-success border-success/25">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                +12
+              </Badge>
+            </div>
+            <div className="stat-value">{user?.rank || 'N/A'}</div>
+            <div className="stat-label">Global Rank</div>
+          </div>
 
-          <Card className="bg-gradient-to-br from-green-500 to-emerald-500 text-white border-0 md:hidden lg:block dark:from-green-600 dark:to-emerald-600 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-green-100 dark:text-green-200 text-sm py-2">Win Rate</p>
-                  <p className="text-2xl font-bold">{user.winRate}%</p>
-                </div>
-                <Target className="w-8 h-8 text-green-200 dark:text-green-300" />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="stat-card animate-scale-in" style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center justify-between mb-3">
+              <Award className="w-5 h-5 sm:w-6 sm:h-6 text-success" />
+              <Badge variant="secondary" className="bg-success/15 text-success border-success/25">
+                <Flame className="w-3 h-3 mr-1" />
+                {user?.streak || 0}
+              </Badge>
+            </div>
+            <div className="stat-value text-success">{user?.wins || 0}</div>
+            <div className="stat-label">Total Wins</div>
+          </div>
 
-          <Card className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white border-0 md:hidden lg:block dark:from-blue-600 dark:to-cyan-600 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 dark:text-blue-200 text-sm py-2">Win Streak</p>
-                  <p className="text-2xl font-bold">{user.streak}</p>
-                </div>
-                <Fire className="w-8 h-8 text-blue-200 dark:text-blue-300" />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="stat-card animate-scale-in" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center justify-between mb-3">
+              <Target className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
+              <Badge variant="secondary" className="bg-primary/15 text-primary border-primary/25">
+                {Math.round(user?.winRate || 0)}%
+              </Badge>
+            </div>
+            <div className="stat-value text-blue-400">{user?.totalBattles || 0}</div>
+            <div className="stat-label">Battles Played</div>
+          </div>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-pink-500 text-white border-0 md:hidden lg:block dark:from-purple-600 dark:to-pink-600 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 dark:text-purple-200 text-sm py-2">Total Battles</p>
-                  <p className="text-2xl font-bold">{user.totalBattles}</p>
-                </div>
-                <Sword className="w-8 h-8 text-purple-200 dark:text-purple-300" />
-              </div>
-            </CardContent>
-          </Card>
+          <div className="stat-card animate-scale-in" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center justify-between mb-3">
+              <Flame className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
+              <Badge variant="secondary" className="bg-warning/15 text-warning border-warning/25">
+                <Star className="w-3 h-3 mr-1" />
+                Active
+              </Badge>
+            </div>
+            <div className="stat-value text-warning">{user?.streak || 0}</div>
+            <div className="stat-label">Win Streak</div>
+          </div>
         </div>
 
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-6"
-        >
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:grid-cols-3 bg-gray-100 dark:bg-gray-800">
-            <TabsTrigger value="overview" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400">Overview</TabsTrigger>
-            <TabsTrigger value="battles" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400">Battles</TabsTrigger>
-            <TabsTrigger value="friends" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700 data-[state=active]:text-orange-600 dark:data-[state=active]:text-orange-400">Friends</TabsTrigger>
+        {/* Dashboard Tabs */}
+        <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-3 bg-card/95 backdrop-blur-md border border-border/50 shadow-xl h-12 sm:h-14 lg:h-16 p-1 rounded-lg">
+            <TabsTrigger 
+              value="overview" 
+              className="nav-gaming flex items-center justify-center gap-1 sm:gap-2 h-full text-xs sm:text-sm lg:text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 rounded-md"
+            >
+              <Trophy className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 flex-shrink-0" />
+              <span className="hidden xs:inline">Overview</span>
+              <span className="xs:hidden">Stats</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="battles" 
+              className="nav-gaming flex items-center justify-center gap-1 sm:gap-2 h-full text-xs sm:text-sm lg:text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 rounded-md"
+            >
+              <Zap className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 flex-shrink-0" />
+              <span className="hidden xs:inline">My Battles</span>
+              <span className="xs:hidden">Battles</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="friends" 
+              className="nav-gaming flex items-center justify-center gap-1 sm:gap-2 h-full text-xs sm:text-sm lg:text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 rounded-md"
+            >
+              <Users className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 flex-shrink-0" />
+              <span className="hidden xs:inline">Friends</span>
+              <span className="xs:hidden">Social</span>
+            </TabsTrigger>
           </TabsList>
 
-          <Overview user={user} recentBattles={recentBattles} />
+          <TabsContent value="overview" className="space-y-4 sm:space-y-6 animate-fade-in">
+            <Overview user={user} setUser={setUser} battles={battles} setBattles={setBattles} />
+          </TabsContent>
 
-          <Battles user={user} setUser={setUser} />
+          <TabsContent value="battles" className="space-y-4 sm:space-y-6 animate-fade-in">
+            <Battles user={user} setUser={setUser} battles={battles} setBattles={setBattles} />
+          </TabsContent>
 
-          <Friends user={user}/>
+          <TabsContent value="friends" className="space-y-4 sm:space-y-6 animate-fade-in">
+            <Friends user={user} />
+          </TabsContent>
         </Tabs>
+
       </main>
     </div>
   );
 }
+
+export default Dashboard

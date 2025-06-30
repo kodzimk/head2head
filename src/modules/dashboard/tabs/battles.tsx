@@ -34,122 +34,31 @@ const getSportIcon = (sport: string) => {
 export default function Battles({
   user,
   setUser,
+  battles,
+  setBattles,
 }: {
   user: User;
   setUser: (user: User) => void;
+  battles: RecentBattle[];
+  setBattles: (battles: RecentBattle[]) => void;
 }) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
-  const [battles, setBattles] = useState<RecentBattle[]>([]);
-
-  const fetchBattles = async () => {
-    if (!localStorage.getItem("username")) return;
-    
-    try {
-      setIsLoading(true);
-      console.log('[Battles Tab] Fetching recent battles...');
-      
-      const response = await axios.get(
-        `${API_BASE_URL}/battle/get_recent_battles?username=${localStorage.getItem("username")}&limit=4`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-        }
-      );
-      const data = await response.data;
-
-      const mapped: RecentBattle[] = data.map((battle: any) => {
-        let opponent = battle.first_opponent === localStorage.getItem("username") ? battle.second_opponent : battle.first_opponent;
-        
-        let result = "draw";
-        const currentUser = localStorage.getItem("username");
-        
-        const firstScore = parseInt(battle.first_opponent_score) || 0;
-        const secondScore = parseInt(battle.second_opponent_score) || 0
-        
-        if (battle.first_opponent === currentUser) {
-          if (firstScore > secondScore) {
-            result = "win";
-          } else if (firstScore < secondScore) {
-            result = "lose";
-          } 
-        } else if (battle.second_opponent === currentUser) {
-          if (secondScore > firstScore) {
-            result = "win";
-          } else if (secondScore < firstScore) {
-            result = "lose";
-          }
-        } 
-        
-        const score = `${firstScore} : ${secondScore}`;
-
-        return {
-          id: battle.id,
-          opponent: opponent || "Unknown",
-          player1: battle.first_opponent,
-          player2: battle.second_opponent,
-          sport: battle.sport,
-          result,
-          score
-        };
-      });
-      
-      setBattles(mapped);
-      console.log('[Battles Tab] Successfully fetched battles:', mapped.length);
-    } catch (error) {
-      console.error("[Battles Tab] Error fetching battles:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
-    fetchBattles();
-    
-    // Listen for battle finished events to refresh data
-    const handleBattleFinished = (event: any) => {
-      console.log('[Battles Tab] Battle finished event received:', event.detail);
-      console.log('[Battles Tab] Refreshing battle data...');
-      
-      // Update user stats if provided in the event
-      if (event.detail.updated_users && event.detail.updated_users[user.username]) {
-        const updatedStats = event.detail.updated_users[user.username];
-        console.log('[Battles Tab] Updating user stats:', updatedStats);
-        
-        // Update the user object with new stats using setUser
-        const updatedUser = {
-          ...user,
-          totalBattles: updatedStats.totalBattle,
-          wins: updatedStats.winBattle,
-          winRate: updatedStats.winRate,
-          streak: updatedStats.streak,
-        };
-        
-        // Update global store
-        if (setUser) {
-          setUser(updatedUser);
-        }
-        
-        // Update localStorage
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        
-        console.log('[Battles Tab] Updated user stats in localStorage');
+    const fetchBattles = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/db/get-user-battles?username=${user.username}`);
+        setBattles(response.data);  
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching battles:', error);
+        setIsLoading(false);
       }
-      
-      // Refresh battles data
-      setTimeout(() => {
-        fetchBattles();
-      }, 1000); // Small delay to ensure backend has processed the battle
-    };
-    
-    window.addEventListener('battleFinished', handleBattleFinished);
-    
-    return () => {
-      window.removeEventListener('battleFinished', handleBattleFinished);
-    };
-  }, [user, setUser]);
-
+    };  
+    fetchBattles();
+  }, [user.username, setBattles]);
+  
   return (
     <div>
       <TabsContent value="battles" className="space-y-6">
@@ -188,7 +97,7 @@ export default function Battles({
                   battles.slice(0, 4).map((battle) => (
                     <div
                       key={battle.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 border rounded-lg hover:shadow-sm transition-shadow bg-white dark:bg-gray-800"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 border rounded-lg hover:shadow-sm transition-shadow bg-card"
                     >
                       <div className="flex items-center gap-3 mb-3 sm:mb-0">
                         <div className="flex-shrink-0">

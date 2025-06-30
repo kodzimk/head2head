@@ -12,6 +12,7 @@ import { sendFriendRequest, sendMessage } from '../../shared/websockets/websocke
 import { cancelFriendRequest } from '../../shared/websockets/websocket'
 import { API_BASE_URL, useGlobalStore } from "../../shared/interface/gloabL_var"
 import { newSocket } from '../../app/App'
+import AvatarStorage from '../../shared/utils/avatar-storage'
 
 export const ViewProfile = ({user}: {user: User}) => {
   const { username } = useParams<{ username: string }>()
@@ -57,7 +58,29 @@ export const ViewProfile = ({user}: {user: User}) => {
           streak: response.data.streak,
           friendRequests: response.data.friendRequests,
           friends: response.data.friends,
-          avatar: response.data.avatar ? `${API_BASE_URL}${response.data.avatar}` : undefined
+          avatar: response.data.avatar ? response.data.avatar : undefined
+        }
+        
+        // Check for persistent avatar and cache server avatar if available
+        const persistentAvatar = AvatarStorage.getAvatar(userData.username);
+        if (!persistentAvatar && userData.avatar) {
+          // Cache server avatar locally for faster future access
+          try {
+            const fullAvatarUrl = userData.avatar.startsWith('http') 
+              ? userData.avatar 
+              : `${API_BASE_URL}${userData.avatar}`;
+            
+            // Fetch and cache the server avatar
+            const response = await fetch(fullAvatarUrl);
+            if (response.ok) {
+              const blob = await response.blob();
+              const file = new File([blob], 'avatar.jpg', { type: blob.type });
+              await AvatarStorage.saveAvatar(userData.username, file);
+              console.log('[ViewProfile] Cached server avatar for', userData.username);
+            }
+          } catch (error) {
+            console.warn('[ViewProfile] Failed to cache server avatar:', error);
+          }
         }
         
         setViewUser(userData)
@@ -77,6 +100,19 @@ export const ViewProfile = ({user}: {user: User}) => {
     }
   }, [username, user.username])
 
+  // Load persistent avatar for the viewed user
+  useEffect(() => {
+    if (viewUser?.username) {
+      const persistentAvatar = AvatarStorage.getAvatar(viewUser.username);
+      if (persistentAvatar) {
+        console.log('[ViewProfile] Found persistent avatar for', viewUser.username);
+        // Just mark that the user has a persistent avatar, don't store base64
+        if (!viewUser.avatar || !viewUser.avatar.includes('persistent_')) {
+          setViewUser({ ...viewUser, avatar: `persistent_${viewUser.username}` });
+        }
+      }
+    }
+  }, [viewUser?.username, setViewUser])
 
   useEffect(() => {
     const handleWebSocketMessage = (event: MessageEvent) => {
@@ -183,13 +219,13 @@ export const ViewProfile = ({user}: {user: User}) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen bg-background bg-gaming-pattern">
       
-        <div className="container mx-auto px-4 py-8">
+        <div className="container-gaming py-8">
           <div className="animate-pulse">
-            <div className="h-32 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            <div className="h-32 bg-card rounded-lg mb-4 border"></div>
+            <div className="h-4 bg-card rounded w-1/4 mb-4 border"></div>
+            <div className="h-4 bg-card rounded w-1/2 border"></div>
           </div>
         </div>
       </div>
@@ -198,10 +234,10 @@ export const ViewProfile = ({user}: {user: User}) => {
 
   if (error || !user) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="min-h-screen bg-background bg-gaming-pattern">
         
-        <div className="container mx-auto px-4 py-8">
-          <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 text-red-700 dark:text-red-300 px-4 py-3 rounded relative" role="alert">
+        <div className="container-gaming py-8">
+          <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded relative" role="alert">
             <strong className="font-bold">Error!</strong>
             <span className="block sm:inline"> {error || 'User not found'}</span>
           </div>
@@ -212,46 +248,46 @@ export const ViewProfile = ({user}: {user: User}) => {
 
   return (
     
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-   <header className='bg-white dark:bg-gray-800 lg:px-12 p-4 py-4 flex items-center justify-between'>
+    <div className="min-h-screen bg-background bg-gaming-pattern">
+   <header className='bg-card lg:px-12 p-4 py-4 flex items-center justify-between'>
   <ArrowLeft className='w-4 h-4' onClick={() => navigate(-1)} />
    <nav className="flex items-center gap-4">
         <div className="hidden lg:flex gap-6 items-center">
         <Link to={`/${user.username}`}>
-            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-card">
               <Home className="mr-2 h-4 w-4" />
               <span>Home</span>
             </Button>
           </Link>
         <Link to={`/battles`}>
-            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-card">
               <Play className="mr-2 h-4 w-4" />
               <span>Battle</span>
             </Button>
           </Link>
           <Link to={`/selection`}>
-            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-card">
               <List className="mr-2 h-4 w-4" />
               <span>Selection</span>
              
             </Button>
           </Link>
           <Link to={`/leaderboard`}>
-            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-card">
               <Trophy className="mr-2 h-4 w-4" />
               <span>Leaderboard</span>
              
             </Button>
           </Link>
           <Link to={`/${user.username}/trainings`}>
-            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-card">
               <BookOpen className="mr-2 h-4 w-4" />
               <span>Trainings</span>
           
             </Button>
           </Link>
           <Link to={`/${user.username}/friends`}>
-            <Button variant="ghost" className="text-slate-700 hover:text-slate-900 hover:bg-slate-100">
+            <Button variant="ghost" className="text-muted-foreground hover:text-foreground hover:bg-card">
               <Users className="mr-2 h-4 w-4" />
               <span>Friends</span>
             </Button>
@@ -262,12 +298,13 @@ export const ViewProfile = ({user}: {user: User}) => {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="relative h-10 w-10 sm:h-12 sm:w-12 rounded-full hover:bg-slate-100"
+              className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-10 md:w-12 rounded-full hover:bg-card"
             >
-              <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
+              <Avatar className="h-10 w-10 sm:h-12 sm:w-12 md:h-10 md:w-12">
                 <AvatarImage
-                  src={user.avatar || "/placeholder.svg"}
+                  src={AvatarStorage.resolveAvatarUrl(user) || "/placeholder.svg"}
                   alt={user.username}
+                  username={user.username}
                 />
                 <AvatarFallback className="bg-orange-500 text-white">
                   {user.username.slice(0, 2).toUpperCase()}
@@ -278,10 +315,10 @@ export const ViewProfile = ({user}: {user: User}) => {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none text-slate-900">
+                <p className="text-sm font-medium leading-none text-foreground">
                   {viewUser.username}
                 </p>
-                <p className="text-xs leading-none text-slate-500">
+                <p className="text-xs leading-none text-muted-foreground">
                   #{viewUser.rank}
                 </p>
               </div>
@@ -355,53 +392,62 @@ export const ViewProfile = ({user}: {user: User}) => {
         </DropdownMenu>
       </nav>  
    </header>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container-gaming py-8">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-card rounded-lg shadow-lg overflow-hidden border">
             <div className="p-6">
               <div className="flex items-center space-x-4 mb-6">
                 <div className="relative">
                   {viewUser.avatar ? (
-                    <img
-                      src={viewUser.avatar}
-                      alt={`${viewUser.username}'s avatar`}
-                      className="w-24 h-24 rounded-full object-cover border-4 border-orange-500"
-                    />
+                    <div 
+                      className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-20 lg:w-20 lg:h-20 rounded-full overflow-hidden border-2 sm:border-3 md:border-4 lg:border-3 border-primary aspect-square"
+                      style={{ clipPath: 'circle(50%)' }}
+                    >
+                      <img
+                        src={AvatarStorage.resolveAvatarUrl(viewUser) || '/images/placeholder-user.jpg'}
+                        alt={`${viewUser.username}'s avatar`}
+                        className="w-full h-full object-cover object-center"
+                        style={{ clipPath: 'circle(50%)' }}
+                      />
+                    </div>
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold border-4 border-orange-500">
+                    <div 
+                      className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-20 lg:w-20 lg:h-20 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-lg sm:text-xl md:text-2xl lg:text-xl font-bold border-2 sm:border-3 md:border-4 lg:border-3 border-primary aspect-square"
+                      style={{ clipPath: 'circle(50%)' }}
+                    >
                       {viewUser.username.slice(0, 2).toUpperCase()}
                     </div>
                   )}
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{viewUser.username}</h1>
-                  <p className="text-gray-600 dark:text-gray-300">{viewUser.email}</p>
+                  <h1 className="text-heading-2 text-foreground">{viewUser.username}</h1>
+                  <p className="text-muted-foreground">{viewUser.email}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Favorite Sport</h3>
-                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{viewUser.favoritesSport}</p>
+                <div className="bg-card p-4 rounded-lg border">
+                  <h3 className="text-responsive-sm font-medium text-muted-foreground">Favorite Sport</h3>
+                  <p className="mt-1 text-responsive-lg font-semibold text-foreground">{viewUser.favoritesSport}</p>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Rank</h3>
-                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">#{viewUser.rank}</p>
+                <div className="bg-card p-4 rounded-lg border">
+                  <h3 className="text-responsive-sm font-medium text-muted-foreground">Rank</h3>
+                  <p className="mt-1 text-responsive-lg font-semibold text-foreground">#{viewUser.rank}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Wins</h3>
-                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{viewUser.wins}</p>
+                <div className="bg-card p-4 rounded-lg text-center border">
+                  <h3 className="text-responsive-sm font-medium text-muted-foreground">Wins</h3>
+                  <p className="mt-1 text-responsive-lg font-semibold text-foreground">{viewUser.wins}</p>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Win Rate</h3>
-                  <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{viewUser.winRate}%</p>
+                <div className="bg-card p-4 rounded-lg text-center border">
+                  <h3 className="text-responsive-sm font-medium text-muted-foreground">Win Rate</h3>
+                  <p className="mt-1 text-responsive-lg font-semibold text-foreground">{viewUser.winRate}%</p>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg text-center">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Streak</h3>
-                    <p className="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{viewUser.streak}</p>
+                <div className="bg-card p-4 rounded-lg text-center border">
+                  <h3 className="text-responsive-sm font-medium text-muted-foreground">Streak</h3>
+                    <p className="mt-1 text-responsive-lg font-semibold text-foreground">{viewUser.streak}</p>
                 </div>
               </div>
 
@@ -411,7 +457,7 @@ export const ViewProfile = ({user}: {user: User}) => {
                     if (areFriends) {
                       return (
                         <Button 
-                          className="w-full sm:w-auto bg-orange-500 text-white  dark:text-black hover:bg-orange-600"
+                          className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
                           onClick={handleBattle}
                         >
                           Battle
@@ -422,7 +468,7 @@ export const ViewProfile = ({user}: {user: User}) => {
                         <Button 
                           onClick={handleCancelRequest}
                           variant="outline"
-                          className="w-full sm:w-auto border-orange-500 text-orange-500 hover:bg-orange-50 dark:text-orange-500 dark:border-orange-500"
+                          className="w-full sm:w-auto border-primary text-primary hover:bg-primary/10"
                         >
                           Cancel Request
                         </Button>
@@ -431,7 +477,7 @@ export const ViewProfile = ({user}: {user: User}) => {
                       return (
                         <Button 
                           onClick={handleSendRequest}
-                          className="w-full sm:w-auto bg-orange-500 text-white hover:bg-orange-600"
+                          className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
                         >
                           <UserPlus className="w-4 h-4 mr-2" />
                           Send Request

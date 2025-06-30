@@ -285,8 +285,8 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
         
         # Save file
         try:
-            async with aiofiles.open(file_path, 'wb') as out_file:
-                await out_file.write(content)
+          async with aiofiles.open(file_path, 'wb') as out_file:
+            await out_file.write(content)
             logger.info(f"[AVATAR_UPLOAD] File saved successfully: {file_path}")
         except Exception as e:
             logger.error(f"[AVATAR_UPLOAD] Failed to save file: {str(e)}")
@@ -294,14 +294,14 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
         
         # Update user record
         try:
-            async with SessionLocal() as db:
-                user_model = await db.get(UserData, email)
-                if user_model is None:
+         async with SessionLocal() as db:
+            user_model = await db.get(UserData, email)
+            if user_model is None:
                     logger.error(f"[AVATAR_UPLOAD] User not found for email: {email}")
                     raise HTTPException(status_code=404, detail="User not found")
-                
-                # Remove old avatar if exists
-                if user_model.avatar:
+            
+            # Remove old avatar if exists
+            if user_model.avatar:
                     old_avatar_path = os.path.join(avatar_dir, os.path.basename(user_model.avatar))
                     if os.path.exists(old_avatar_path):
                         try:
@@ -309,32 +309,32 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
                             logger.info(f"[AVATAR_UPLOAD] Removed old avatar: {old_avatar_path}")
                         except Exception as e:
                             logger.warning(f"[AVATAR_UPLOAD] Failed to remove old avatar: {e}")
-                
-                relative_path = f"/avatars/{filename}"
-                user_model.avatar = relative_path
-                await db.commit()
-                logger.info(f"[AVATAR_UPLOAD] Database updated with new avatar: {relative_path}")
-                
-                # Update Redis cache
-                user_dict = {
-                    'username': user_model.username,
-                    'email': user_model.email,
-                    'totalBattle': user_model.totalBattle,
-                    'winRate': user_model.winRate,
-                    'ranking': user_model.ranking,
-                    'winBattle': user_model.winBattle,
-                    'favourite': user_model.favourite,
-                    'streak': user_model.streak,
-                    'password': user_model.password,
-                    'friends': user_model.friends,
-                    'friendRequests': user_model.friendRequests,
-                    'avatar': relative_path,
-                    'battles': user_model.battles,
-                    'invitations': user_model.invitations
-                }
-                redis_email.set(email, json.dumps(user_dict))
-                redis_username.set(user_model.username, json.dumps(user_dict))
-                logger.info(f"[AVATAR_UPLOAD] Redis cache updated")
+            
+            relative_path = f"/avatars/{filename}"
+            user_model.avatar = relative_path
+            await db.commit()
+            logger.info(f"[AVATAR_UPLOAD] Database updated with new avatar: {relative_path}")
+            
+            # Update Redis cache
+            user_dict = {
+                'username': user_model.username,
+                'email': user_model.email,
+                'totalBattle': user_model.totalBattle,
+                'winRate': user_model.winRate,
+                'ranking': user_model.ranking,
+                'winBattle': user_model.winBattle,
+                'favourite': user_model.favourite,
+                'streak': user_model.streak,
+                'password': user_model.password,
+                'friends': user_model.friends,
+                'friendRequests': user_model.friendRequests,
+                'avatar': relative_path,
+                'battles': user_model.battles,
+                'invitations': user_model.invitations
+            }
+            redis_email.set(email, json.dumps(user_dict))
+            redis_username.set(user_model.username, json.dumps(user_dict))
+            logger.info(f"[AVATAR_UPLOAD] Redis cache updated")
                 
         except HTTPException:
             raise

@@ -1,123 +1,235 @@
-import { Button } from "../../shared/ui/button";
-import { Card, CardContent } from "../../shared/ui/card";
-import { Badge } from "../../shared/ui/badge";
-import {  Play } from "lucide-react";
-import FAQ from "./faq";
-import { useNavigate } from "react-router-dom";
-      
-export default function Component() {
-  const navigate = useNavigate();
+import { Link } from 'react-router-dom'
+import { Trophy, Zap, Target, Play, ArrowRight, TrendingUp, Award } from 'lucide-react'
+import { Button } from '../../shared/ui/button'
+import { Badge } from '../../shared/ui/badge'
+
+const stats = [
+  { label: 'Battles Played', value: '1.5k+', icon: Zap, trend: '+%' },
+  { label: 'Sports Categories', value: '8+', icon: Trophy, trend: '+3' }
+];
+
+const sports = [
+  { name: 'Football', icon: '⚽', matches: '1.2k+', difficulty: 'All Levels' },
+  { name: 'Basketball', icon: '🏀', matches: '800+', difficulty: 'Pro Ready' },
+  { name: 'Tennis', icon: '🎾', matches: '640+', difficulty: 'Competitive' },
+  { name: 'Baseball', icon: '⚾', matches: '420+', difficulty: 'Expert' },
+  { name: 'Hockey', icon: '🏒', matches: '380+', difficulty: 'Elite' },
+  { name: 'Golf', icon: '⛳', matches: '290+', difficulty: 'Masters' },
+];
+
+const features = [
+  {
+    icon: Trophy,
+    title: 'Competitive Ranking',
+    description: 'Climb the global leaderboards and prove your sports knowledge',
+    highlight: 'Global Rankings'
+  },
+  {
+    icon: Zap,
+    title: 'Real-time Battles',
+    description: 'Challenge players worldwide in live trivia showdowns',
+    highlight: 'Live Matches'
+  },
+  {
+    icon: Target,
+    title: 'Skill-based Matching',
+    description: 'Face opponents of similar skill levels for fair competition',
+    highlight: 'Fair Play'
+  },
+  {
+    icon: Award,
+    title: 'Achievement System',
+    description: 'Unlock exclusive badges and climb division tiers',
+    highlight: 'Unlock Rewards'
+  },
+];
+
+export default function Hero() {
   return (
-    <main className="flex-1 ">
-      {/* Hero Section with Background Image - Full Viewport Height */}
-      <section
-        id="hero"
-        className="relative w-full h-screen flex items-center justify-center overflow-hidden"
-        style={{
-          backgroundImage: "url('/landing.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-black/40"></div>
-        <div className="relative z-10 flex flex-col items-center justify-center w-full h-full text-center">
-          {/* Your hero content here */}
-          <h1 className="text-3xl sm:text-4xl md:text-4xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-orange-400   leading-tight">
-            Welcome to h2h
-          </h1>
-          <p className="text-sm sm:text-xs md:text-lg w-2/3 lg:text-xl xl:text-2xl text-orange-100/90 max-w-xl leading-relaxed mt-6">
-            Join a global community of sports enthusiasts and test your knowledge in real-time trivia battles.
+    <div className="relative min-h-screen bg-gaming-pattern overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-card"></div>
+      <div className="absolute top-20 right-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-floating"></div>
+      <div className="absolute bottom-20 left-20 w-64 h-64 bg-neon-blue/5 rounded-full blur-3xl animate-floating" style={{ animationDelay: '-1s' }}></div>
+      
+      <div className="relative z-10">
+        {/* Main Hero Section */}
+        <section className="section-padding-sm mt-16">
+          <div className="container-gaming">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left Content */}
+              <div className="space-y-8">
+                <div className="space-y-4 text-center lg:text-left">
+
+                  <h1 className="text-display text-foreground leading-gaming">
+                    Dominate the
+                    <span className="text-neon text-primary block">
+                      SPORTS ARENA
+                    </span>
+                  </h1>
+                  
+                  <p className="text-body-large text-muted-foreground max-w-xl mx-auto lg:mx-0">
+                    Challenge players worldwide in real-time sports trivia battles. 
+                    Climb the rankings, master multiple sports, and become the ultimate champion.
+                  </p>
+                </div>
+
+                {/* CTA Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                  <Link to="/sign-up">
+                    <Button size="lg" className="btn-neon group w-full sm:w-auto">
+                      <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                      Start Competing
+                      <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+
+                </div>
+
+                {/* Quick Stats */}
+                <div className="flex gap-4 pt-8 justify-center lg:justify-start mx-auto lg:mx-0 max-w-fit lg:max-w-none">
+                  {stats.map((stat, index) => (
+                    <div 
+                      key={stat.label} 
+                      className="stat-card bg-card/30 border-primary/20 hover:border-primary/40 animate-fade-in"
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <stat.icon className="w-5 h-5 text-primary" />
+                  
+                      </div>
+                      <div className="stat-value text-xl">{stat.value}</div>
+                      <div className="stat-label">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Content - Sports Grid */}
+              <div className="space-y-6">
+                <div className="text-center lg:text-left">
+                  <h3 className="text-heading-2 text-foreground mb-2 font-rajdhani">
+                    Choose Your Sport
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Master trivia across multiple sports categories
           </p>
-          <Button 
-            className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold rounded-lg transition-all duration-300" 
-            onClick={() => navigate('/sign-up')}
-          >
-            <Play className="w-5 h-5 mr-2" />
-            Start Playing
-          </Button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {sports.map((sport, index) => (
+                    <div 
+                      key={sport.name}
+                      className="match-card group cursor-pointer animate-scale-in"
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="text-3xl">{sport.icon}</div>
+                        <div className="flex-1">
+                          <h4 className="font-rajdhani font-semibold text-foreground group-hover:text-primary transition-colors">
+                            {sport.name}
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            {sport.matches} played
+                          </p>
+                        </div>
         </div>
 
-        {/* Stats moved to bottom of viewport */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-full max-w-3xl px-4">
-          <div className="grid grid-cols-3 gap-6">
-            <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-4">
-              <div className="text-2xl font-bold text-orange-400">1M+</div>
-              <div className="text-orange-100/80 text-sm">Battles</div>
+                      <div className="flex items-center justify-between">
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs border-primary/30 text-primary bg-primary/5"
+                        >
+                          {sport.difficulty}
+                        </Badge>
+                        <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </div>
+                  ))}
             </div>
-            <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-4">
-              <div className="text-2xl font-bold text-orange-400">24/7</div>
-              <div className="text-orange-100/80 text-sm">Live</div>
-            </div>
-            <div className="text-center bg-white/10 backdrop-blur-sm rounded-lg p-4">
-              <div className="text-2xl font-bold text-orange-400">10+</div>
-              <div className="text-orange-100/80 text-sm">Sports</div>
             </div>
           </div>
         </div>
       </section>
-      {/* Sports Categories with Background Image */}
-      <section
-        id="sports"
-        className="w-full py-12 md:py-24 scroll-mt-16 relative"
-        style={{
-          backgroundImage: "url('/placeholder.svg?height=1080&width=1920')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-900/90 to-red-900/80"></div>
 
-        <div className="container px-4 md:px-6 relative z-10">
-          <div className="text-center mb-8 md:mb-16">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              All Your Favorite Sports
+        {/* Features Section */}
+        <section className="section-padding-sm bg-card/20">
+          <div className="container-gaming">
+            <div className="text-center mb-12">
+              <h2 className="text-heading-1 text-foreground mb-4 font-rajdhani">
+                Why Choose Head2Head?
             </h2>
-            <p className="text-base md:text-lg text-orange-100/80 max-w-2xl mx-auto">
-              Test your knowledge across every major sport
+              <p className="text-body-large text-muted-foreground max-w-2xl mx-auto">
+                Experience the most competitive sports trivia platform with cutting-edge features
             </p>
           </div>
 
-          <div className="grid gap-4 md:gap-6 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 max-w-5xl mx-auto">
-            {[
-              { name: "Basketball", icon: "🏀", battles: "45K+", popular: true },
-              { name: "Football", icon: "⚽", battles: "60K+", popular: true },
-              { name: "Baseball", icon: "⚾", battles: "35K+", popular: false },
-              { name: "Cricket", icon: "🏏", battles: "60K+", popular: true },
-              { name: "Tennis", icon: "🎾", battles: "20K+", popular: false },
-              { name: "UFC/MMA", icon: "🥊", battles: "30K+", popular: true },
-              { name: "Hockey", icon: "🏒", battles: "25K+", popular: false },
-              { name: "Golf", icon: "🏌️", battles: "15K+", popular: false },
-
-            ].map((sport) => (
-              <Card
-                key={sport.name}
-                className="bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all duration-300 cursor-pointer relative hover:scale-105 group transform-gpu"
-              >
-                <CardContent className="p-4 md:p-6 text-center">
-                  {sport.popular && (
-                    <Badge className="absolute -top-2 -right-2 bg-orange-500/80 text-white border-orange-400/30 text-xs">
-                      Popular
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {features.map((feature, index) => (
+                <div 
+                  key={feature.title}
+                  className="card-neon p-6 group hover:scale-102 transition-all duration-300 animate-slide-in-left"
+                  style={{ animationDelay: `${index * 0.2}s` }}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="neon-glow-orange p-2 rounded-lg bg-primary/10">
+                      <feature.icon className="w-6 h-6 text-primary" />
+                    </div>
+                    <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-xs">
+                      {feature.highlight}
                     </Badge>
-                  )}
-                  <div className="text-3xl md:text-4xl mb-2 md:mb-3 group-hover:scale-110 transition-transform duration-300 transform-gpu">
-                    {sport.icon}
                   </div>
-                  <h3 className="font-semibold text-white text-sm md:text-base mb-1">
-                    {sport.name}
+                  
+                  <h3 className="text-heading-3 text-foreground mb-2 group-hover:text-primary transition-colors">
+                    {feature.title}
                   </h3>
-                  <p className="text-xs md:text-sm text-orange-100/70">
-                    {sport.battles} battles
+                  
+                  <p className="text-body-small text-muted-foreground">
+                    {feature.description}
                   </p>
-                </CardContent>
-              </Card>
+                </div>
             ))}
           </div>
         </div>
       </section>
 
-      <FAQ />
-    </main>
+        {/* Final CTA Section */}
+        <section className="section-padding-sm">
+          <div className="container-gaming">
+            <div className="card-neon p-8 lg:p-12 text-center">
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  
+                  <h2 className="text-heading-1 text-foreground font-rajdhani">
+                    Join the Elite Sport Community
+                  </h2>
+                  
+                  <p className="text-body-large text-muted-foreground max-w-2xl mx-auto">
+                    Start your journey to becoming a sports trivia champion. Battle the best, 
+                    climb the rankings, and prove your expertise.
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link to="/sign-up">
+                    <Button size="lg" className="btn-neon group w-full sm:w-auto">
+                      <Trophy className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                      Create Account
+                      <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+                  
+                  <Link to="/leaderboard">
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto border-primary/30 hover:border-primary/60 hover:bg-primary/5">
+                      View Leaderboard
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }

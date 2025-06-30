@@ -496,19 +496,41 @@ export default function QuizQuestionPage() {
   // UI rendering logic (same as before, but uses questions/currentQuestion)
   if (!questions.length || !currentQuestion) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className={`text-sm px-3 py-1 rounded-full mb-4 ${
-          connectionStatus === 'connected' 
-            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-            : connectionStatus === 'connecting'
-            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-        }`}>
-          {connectionStatus === 'connected' ? 'Connected' : 
-           connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-surface-1 to-surface-2">
+        <div className="absolute inset-0 bg-gaming-pattern opacity-20"></div>
+        <div className="relative z-10 max-w-md mx-auto p-6">
+          <Card className="bg-card/95 backdrop-blur-md border-border/50 shadow-xl">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className={`inline-flex items-center gap-2 text-sm px-4 py-2 rounded-full mb-6 border ${
+                  connectionStatus === 'connected' 
+                    ? 'bg-success/10 text-success border-success/30' 
+                    : connectionStatus === 'connecting'
+                    ? 'bg-warning/10 text-warning border-warning/30'
+                    : 'bg-destructive/10 text-destructive border-destructive/30'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${
+                    connectionStatus === 'connected' ? 'bg-success animate-pulse' :
+                    connectionStatus === 'connecting' ? 'bg-warning animate-spin' : 'bg-destructive'
+                  }`}></div>
+                  {connectionStatus === 'connected' ? 'Connected' : 
+                   connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected'}
+                </div>
+                
+                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+                </div>
+                
+                <div className="text-lg font-semibold text-card-foreground mb-2">
+                  Loading Battle Questions
+                </div>
+                <div className="text-muted-foreground">
+                  Preparing your trivia challenge...
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></span>
-        <span className="ml-2">Waiting for questions from server...</span>
       </div>
     );
   }
@@ -516,21 +538,32 @@ export default function QuizQuestionPage() {
   // Show battle finished overlay if battle is finished
   if (battleFinished) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center relative">
-        <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center relative bg-gradient-to-br from-background via-surface-1 to-surface-2">
+        <div className="absolute inset-0 bg-gaming-pattern opacity-20"></div>
+        <div className="absolute inset-0 bg-background/80"></div>
         <div className="relative z-10 w-full max-w-lg px-4">
-          <Card className="w-full backdrop-blur-sm bg-opacity-95">
-            <CardHeader className="pb-3">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600 mb-2">🏆 Battle Finished! 🏆</div>
-                <div className="text-sm text-gray-600">Redirecting to results...</div>
+          <Card className="w-full bg-card/95 backdrop-blur-md border-border/50 shadow-xl">
+            <CardHeader className="pb-4 text-center">
+              <div className="w-20 h-20 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-4xl">🏆</span>
               </div>
+              <div className="text-2xl font-bold text-success mb-2">Battle Completed!</div>
+              <div className="text-muted-foreground">Calculating your results...</div>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="p-6">
               <div className="text-center py-6">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                <div className="text-lg font-semibold mb-2">Calculating final results...</div>
-                <div className="text-sm text-gray-600">Please wait while we determine the winner and update your statistics.</div>
+                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+                </div>
+                <div className="text-lg font-semibold text-card-foreground mb-2">Processing Final Results</div>
+                <div className="text-muted-foreground">
+                  Determining the winner and updating your statistics...
+                </div>
+                <div className="mt-4 bg-accent/10 rounded-lg px-4 py-3 border border-accent/20">
+                  <div className="text-sm text-accent font-medium">
+                    You'll be redirected to the results page shortly
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -543,113 +576,153 @@ export default function QuizQuestionPage() {
 
   return (
     <div 
-      className="min-h-screen flex flex-col items-center justify-center relative"
-      style={{
-        backgroundImage: `url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><pattern id="sport" patternUnits="userSpaceOnUse" width="200" height="200"><rect width="200" height="200" fill="%23f8fafc"/><circle cx="100" cy="100" r="80" fill="%23e2e8f0" opacity="0.3"/><circle cx="100" cy="100" r="60" fill="%23cbd5e1" opacity="0.2"/><circle cx="100" cy="100" r="40" fill="%23a1a1aa" opacity="0.1"/></pattern></defs><rect width="100%" height="100%" fill="url(%23sport)"/></svg>')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
+      className="min-h-screen flex flex-col items-center justify-center relative bg-gradient-to-br from-background via-surface-1 to-surface-2"
     >
-      <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+      {/* Enhanced background pattern */}
+      <div className="absolute inset-0 bg-gaming-pattern opacity-20"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-transparent to-surface-2/60"></div>
+      
       <div className="relative z-10 w-full max-w-lg px-4">
         
-        <div className="w-full mb-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-3 backdrop-blur-sm bg-opacity-95">
-            <div className="flex justify-between items-center mb-2">
+        {/* Enhanced Score Board */}
+        <div className="w-full mb-6">
+          <div className="bg-card/90 backdrop-blur-md rounded-xl shadow-lg border border-border/50 p-4">
+            <div className="flex justify-between items-center mb-3">
               <div className="text-center flex-1">
-                <div className="text-xs text-gray-600 dark:text-gray-400">You</div>
-                <div className="text-xl font-bold text-blue-600">{firstOpponentScore}</div>
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">You</div>
+                <div className="text-2xl font-bold text-primary bg-primary/10 rounded-lg px-3 py-1">{firstOpponentScore}</div>
+              </div>
+              <div className="flex flex-col items-center mx-4">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">VS</div>
+                <div className="w-8 h-0.5 bg-border rounded-full"></div>
               </div>
               <div className="text-center flex-1">
-                <div className="text-xs text-gray-600 dark:text-gray-400">Opponent</div>
-                <div className="text-xl font-bold text-red-600">{secondOpponentScore}</div>
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Opponent</div>
+                <div className="text-2xl font-bold text-destructive bg-destructive/10 rounded-lg px-3 py-1">{secondOpponentScore}</div>
               </div>
             </div>
             <div className="text-center">
-              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full px-3 py-1">
+              <div className="text-sm font-medium text-card-foreground bg-accent/20 rounded-full px-4 py-2 border border-accent/30">
                 {userFinishedAllQuestions ? (
                   <div className="flex items-center justify-center gap-2">
-                    <span>Waiting for opponent...</span>
+                    <div className="animate-pulse w-2 h-2 bg-warning rounded-full"></div>
+                    <span className="text-warning">Waiting for opponent...</span>
                   </div>
                 ) : showNextQuestion ? (
                   <div className="flex items-center justify-center gap-2">
-                    <span>Next question in:</span>
-                    <span className="text-lg font-bold text-orange-600">{nextQuestionCountdown}</span>
+                    <span className="text-muted-foreground">Next question in:</span>
+                    <span className="text-xl font-bold text-primary animate-pulse">{nextQuestionCountdown}</span>
                   </div>
                 ) : (
-                  motivationalMessage
+                  <span className="text-primary font-semibold">{motivationalMessage}</span>
                 )}
               </div>
             </div>
           </div>
         </div>
 
-        <Card className="w-full backdrop-blur-sm bg-opacity-95">
-          <CardHeader className="pb-3">
+        {/* Enhanced Question Card */}
+        <Card className="w-full bg-card/95 backdrop-blur-md border-border/50 shadow-xl">
+          <CardHeader className="pb-4">
             <div className="flex justify-between items-center">
               {!isQuizFinished && (
                 <div className="flex items-center gap-4">
-                  <div className={`text-lg font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-gray-600'}`}>{timeLeft}s</div>
-                  <div className="text-sm text-gray-600">
+                  <div className={`text-xl font-bold px-3 py-1 rounded-lg border ${
+                    timeLeft <= 5 
+                      ? 'text-destructive border-destructive/30 bg-destructive/10 animate-pulse' 
+                      : timeLeft <= 10
+                      ? 'text-warning border-warning/30 bg-warning/10'
+                      : 'text-success border-success/30 bg-success/10'
+                  }`}>
+                    {timeLeft}s
+                  </div>
+                  <div className="text-sm text-muted-foreground bg-muted/20 rounded-lg px-3 py-1 border border-muted/30">
                     Question {currentIndex + 1} of {questions.length}
                   </div>
                 </div>
               )}
             </div>
           </CardHeader>
-          <CardContent className="p-4">
+          <CardContent className="p-6">
             {isQuizFinished ? (
-              <div className="text-center py-6">
-                <div className="text-xl font-bold mb-3">You finished your quiz, wait for opponent.</div>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">✅</span>
+                </div>
+                <div className="text-xl font-bold text-card-foreground mb-3">You finished your quiz!</div>
+                <div className="text-muted-foreground">Wait for your opponent to finish.</div>
                 {showNextQuestion && (
-                  <div className="mb-3 text-center text-yellow-600 font-semibold">
+                  <div className="mt-4 text-center text-warning font-semibold bg-warning/10 rounded-lg px-4 py-2 border border-warning/30">
                     Next question in {nextQuestionCountdown} seconds...
                   </div>
                 )}
               </div>
             ) : userFinishedAllQuestions ? (
-              // Show waiting for opponent state when user finished all questions
-              <div className="text-center py-6">
-                <div className="text-lg font-semibold mb-3">
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-warning border-t-transparent"></div>
+                </div>
+                <div className="text-lg font-semibold text-card-foreground mb-3">
                   Waiting for opponent to finish...
                 </div>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+                <div className="text-muted-foreground">The battle will end once both players complete all questions.</div>
               </div>
             ) : showNextQuestion ? (
-              // Show countdown to next question
-              <div className="text-center py-6">
-                <div className="text-lg font-semibold mb-3">
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">⏳</span>
+                </div>
+                <div className="text-lg font-semibold text-card-foreground mb-3">
                   Next question coming up...
                 </div>
+                <div className="text-muted-foreground">Get ready for the next challenge!</div>
               </div>
             ) : waitingForOpponent ? (
-              // Show waiting for opponent state
-              <div className="text-center py-6">
-                <div className="text-lg font-semibold mb-3">
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-warning border-t-transparent"></div>
+                </div>
+                <div className="text-lg font-semibold text-card-foreground mb-3">
                   Waiting for opponent to finish...
                 </div>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+                <div className="text-muted-foreground">Hang tight while they answer their question.</div>
               </div>
             ) : (
               <>
-                <div className="text-base font-semibold mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg break-words leading-relaxed">
+                {/* Enhanced Question Display */}
+                <div className="text-lg font-semibold mb-6 p-4 bg-surface-1/50 border border-border/30 rounded-xl leading-relaxed text-card-foreground">
                   {currentQuestion?.question}
                 </div>
+                
+                {/* Enhanced Answer Options */}
                 <div className="grid gap-3 mb-4">
-                  {currentQuestion?.answers?.map((ans: any, idx: number) => (
-                    <Button
-                      key={ans.label || String.fromCharCode(65 + idx)}
-                      variant={selected === (ans.label || String.fromCharCode(65 + idx)) ? 'default' : 'outline'}
-                      className="w-full h-auto min-h-[50px] p-3 text-left whitespace-normal break-words"
-                      onClick={() => handleSelect(ans.label || String.fromCharCode(65 + idx))}
-                      disabled={showNextQuestion || answerSubmitted || battleFinished}
-                    >
-                      <div className="flex items-start gap-2 w-full">
-                        <span className="font-bold text-xs flex-shrink-0">{ans.label || String.fromCharCode(65 + idx)}.</span>
-                        <span className="text-xs leading-relaxed">{ans.text}</span>
-                      </div>
-                    </Button>
-                  ))}
+                  {currentQuestion?.answers?.map((ans: any, idx: number) => {
+                    const isSelected = selected === (ans.label || String.fromCharCode(65 + idx));
+                    return (
+                      <Button
+                        key={ans.label || String.fromCharCode(65 + idx)}
+                        variant={isSelected ? 'default' : 'outline'}
+                        className={`w-full h-auto min-h-[60px] p-4 text-left whitespace-normal break-words transition-all duration-300 hover:scale-[1.02] ${
+                          isSelected 
+                            ? 'bg-primary text-primary-foreground shadow-lg border-primary' 
+                            : 'bg-card hover:bg-accent/50 border-border/50 hover:border-primary/30'
+                        }`}
+                        onClick={() => handleSelect(ans.label || String.fromCharCode(65 + idx))}
+                        disabled={showNextQuestion || answerSubmitted || battleFinished}
+                      >
+                        <div className="flex items-start gap-3 w-full">
+                          <span className={`font-bold text-sm flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                            isSelected 
+                              ? 'bg-primary-foreground/20 text-primary-foreground' 
+                              : 'bg-primary/20 text-primary'
+                          }`}>
+                            {ans.label || String.fromCharCode(65 + idx)}
+                          </span>
+                          <span className="text-sm leading-relaxed font-medium">{ans.text}</span>
+                        </div>
+                      </Button>
+                    );
+                  })}
                 </div>
               </>
             )}

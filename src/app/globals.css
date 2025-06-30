@@ -1,61 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Rajdhani:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    /* Enhanced Gaming Color System */
+    --primary: 25 95% 53%; /* Orange #FFA500 */
+    --primary-foreground: 0 0% 100%; /* White */
+    --primary-hover: 25 95% 48%; /* Darker Orange */
+    --primary-light: 25 95% 60%; /* Lighter Orange */
+    
+    /* Refined Dark Gaming Colors - Better mixing */
+    --background: 220 13% 8%; /* Softer Dark Blue-Gray #131A21 */
+    --foreground: 0 0% 92%; /* Softer White */
+    --card: 220 13% 10%; /* Refined Dark Card #181F26 */
+    --card-foreground: 0 0% 90%; /* Softer Near White */
+    --popover: 220 13% 10%; /* Refined Dark Popover */
+    --popover-foreground: 0 0% 90%; /* Softer Near White */
+    
+    /* Enhanced Muted Colors */
+    --muted: 220 13% 14%; /* Refined Dark Muted #1F262D */
+    --muted-foreground: 0 0% 70%; /* Softer Light Gray */
+    
+    /* Better Accent Colors */
+    --accent: 220 13% 16%; /* Refined Dark Accent */
+    --accent-foreground: 0 0% 88%; /* Softer Near White */
+    
+    /* Improved Secondary */
+    --secondary: 220 13% 18%; /* Refined Lighter Dark */
+    --secondary-foreground: 0 0% 88%; /* Softer Near White */
+    
+    /* Status Colors */
+    --destructive: 0 75% 58%; /* Softer Red */
+    --destructive-foreground: 0 0% 98%; /* Softer White */
+    --success: 120 55% 52%; /* Softer Green */
+    --warning: 45 90% 55%; /* Softer Yellow */
+    
+    /* Enhanced Border & Input */
+    --border: 220 13% 20%; /* Softer Dark Border #2B333C */
+    --input: 220 13% 18%; /* Softer Dark Input */
+    --ring: 25 95% 53%; /* Orange Focus Ring */
+    
+    /* Gaming Neon Accents - Refined */
+    --orange-neon: 25 85% 58%;
+    --blue-neon: 210 85% 58%;
+    --green-neon: 120 85% 58%;
+    --red-neon: 0 85% 58%;
+    --purple-neon: 270 85% 58%;
+    
+    /* Enhanced Surface Colors */
+    --surface-1: 220 13% 12%; /* Level 1 surface */
+    --surface-2: 220 13% 15%; /* Level 2 surface */
+    --surface-3: 220 13% 18%; /* Level 3 surface */
+    --surface-4: 220 13% 22%; /* Level 4 surface */
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+  .light {
+    /* Enhanced Light Mode */
+    --background: 0 0% 99%; /* Softer Light Background */
+    --foreground: 220 13% 15%; /* Softer Almost Black */
+    --card: 0 0% 98%; /* Softer White */
+    --card-foreground: 220 13% 18%; /* Softer Almost Black */
+    --muted: 220 10% 95%; /* Softer Very Light Gray */
+    --muted-foreground: 220 13% 45%; /* Refined Medium Gray */
+    --border: 220 13% 88%; /* Softer Light Gray Border */
+    --input: 220 10% 92%; /* Softer Light Gray Input */
+    --surface-1: 0 0% 96%;
+    --surface-2: 0 0% 94%;
+    --surface-3: 0 0% 92%;
+    --surface-4: 0 0% 90%;
   }
 }
 
@@ -63,58 +77,428 @@
   * {
     @apply border-border;
   }
+  
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Raleway', sans-serif;
+    @apply bg-background text-foreground font-inter;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
-}
-
-/* Custom smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Enhanced smooth scrolling for better browser support */
-@media (prefers-reduced-motion: no-preference) {
+  
   html {
     scroll-behavior: smooth;
   }
 
-  * {
-    scroll-behavior: smooth;
+  /* Enhanced Focus Styles */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Enhanced Selection Styles */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.25);
+    @apply text-foreground;
   }
 }
 
-/* Custom animations */
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px);
+@layer components {
+  /* Enhanced Typography System */
+  .text-display {
+    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight font-rajdhani leading-tight;
   }
-  50% {
-    transform: translateY(-20px);
+  
+  .text-heading-1 {
+    @apply text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight font-rajdhani leading-tight;
   }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes glow {
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  
+  .text-heading-2 {
+    @apply text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight font-rajdhani leading-tight;
   }
-  50% {
-    box-shadow: 0 0 40px rgba(147, 51, 234, 0.8);
+  
+  .text-heading-3 {
+    @apply text-lg sm:text-xl md:text-2xl font-semibold font-rajdhani leading-tight;
   }
-}
+  
+  .text-body-large {
+    @apply text-base sm:text-lg leading-relaxed;
+  }
+  
+  .text-body {
+    @apply text-sm sm:text-base leading-relaxed;
+  }
+  
+  .text-body-small {
+    @apply text-xs sm:text-sm leading-relaxed;
+  }
+  
+  .text-caption {
+    @apply text-xs font-medium uppercase tracking-wider font-mono;
+  }
 
-.animate-glow {
-  animation: glow 3s ease-in-out infinite;
-}
+  /* Enhanced Gaming Typography */
+  .text-gaming {
+    @apply font-rajdhani font-bold uppercase tracking-widest;
+  }
+  
+  .text-gaming-lg {
+    @apply text-2xl sm:text-3xl md:text-4xl font-rajdhani font-bold tracking-wide;
+  }
+  
+  .text-gaming-md {
+    @apply text-xl sm:text-2xl md:text-3xl font-rajdhani font-bold tracking-wide;
+  }
+  
+  .text-gaming-sm {
+    @apply text-lg sm:text-xl font-rajdhani font-bold tracking-wide;
+  }
 
-@keyframes fadeIn {
+  /* Enhanced Layout Components */
+  .container-gaming {
+    @apply container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 max-w-7xl;
+  }
+  
+  .section-padding {
+    @apply py-8 sm:py-12 md:py-16 lg:py-20;
+  }
+  
+  .section-padding-sm {
+    @apply py-4 sm:py-6 md:py-8 lg:py-12;
+  }
+
+  /* Enhanced Card System */
+  .card-gaming {
+    @apply bg-card border border-border transition-all duration-300 relative overflow-hidden backdrop-blur-sm rounded-lg;
+  }
+
+  .card-gaming::before {
+    content: '';
+    @apply absolute inset-0 translate-x-[-100%] transition-transform duration-700;
+    background: linear-gradient(to right, transparent, hsl(var(--primary) / 0.05), transparent);
+  }
+  
+  .card-gaming:hover::before {
+    @apply translate-x-[100%];
+  }
+  
+  .card-surface {
+    @apply bg-card border border-border/50 backdrop-blur-sm rounded-lg transition-all duration-300;
+  }
+  
+  .card-surface-1 {
+    background-color: hsl(var(--surface-1));
+    @apply border border-border/30 backdrop-blur-sm rounded-lg;
+  }
+  
+  .card-surface-2 {
+    background-color: hsl(var(--surface-2));
+    @apply border border-border/40 backdrop-blur-sm rounded-lg;
+  }
+  
+  .card-surface-3 {
+    background-color: hsl(var(--surface-3));
+    @apply border border-border/50 backdrop-blur-sm rounded-lg;
+  }
+
+  /* Enhanced Button System */
+  .btn-competitive {
+    @apply inline-flex items-center justify-center font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 relative overflow-hidden rounded-lg;
+  }
+
+  .btn-competitive::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] transition-transform duration-500;
+  }
+  
+  .btn-competitive:hover::before {
+    @apply translate-x-[100%];
+  }
+  
+  .btn-neon {
+    @apply btn-competitive bg-primary text-primary-foreground;
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.25);
+  }
+  
+  .btn-neon:hover {
+    background-color: hsl(var(--primary) / 0.9);
+    box-shadow: 0 0 25px hsl(var(--primary) / 0.4);
+  }
+
+  /* Enhanced Navigation */
+  .nav-gaming {
+    @apply text-muted-foreground hover:text-foreground transition-all duration-300 font-medium relative font-rajdhani;
+  }
+  
+  .nav-gaming::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300;
+  }
+  
+  .nav-gaming:hover::after {
+    @apply w-full;
+    box-shadow: 0 0 5px hsl(var(--primary));
+  }
+  
+  .nav-gaming-active {
+    @apply text-foreground;
+  }
+
+  .nav-gaming-active::after {
+    @apply w-full;
+    box-shadow: 0 0 5px hsl(var(--primary));
+  }
+
+  /* Enhanced Form Elements */
+  .input-gaming {
+    @apply flex h-10 sm:h-11 w-full border border-input bg-card/50 px-3 sm:px-4 py-2 text-sm backdrop-blur-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-300 rounded-lg;
+  }
+
+  /* Enhanced Responsive Grid System */
+  .grid-responsive {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6;
+  }
+  
+  .grid-gaming {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
+  }
+  
+  .grid-stats {
+    @apply grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4;
+  }
+  
+  .grid-matches {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4;
+  }
+  
+  .grid-leaderboard {
+    @apply grid grid-cols-1 gap-2 sm:gap-3;
+  }
+
+  /* Enhanced Responsive Utilities */
+  .hide-mobile {
+    @apply hidden sm:block;
+  }
+  
+  .show-mobile {
+    @apply block sm:hidden;
+  }
+  
+  .hide-tablet {
+    @apply hidden lg:block;
+  }
+  
+  .show-tablet {
+    @apply block lg:hidden;
+  }
+  
+  .responsive-flex {
+    @apply flex flex-col sm:flex-row gap-3 sm:gap-4;
+  }
+  
+  .responsive-padding {
+    @apply p-3 sm:p-4 md:p-6;
+  }
+  
+  .responsive-margin {
+    @apply m-3 sm:m-4 md:m-6;
+  }
+
+  /* Enhanced Stats & Battle Components */
+  .stat-card {
+    @apply card-surface-1 p-4 sm:p-6 text-center hover:scale-[1.02] transition-all duration-300;
+  }
+  
+  .stat-value {
+    @apply text-2xl sm:text-3xl font-bold text-primary font-rajdhani;
+  }
+  
+  .stat-label {
+    @apply text-xs sm:text-sm text-muted-foreground uppercase tracking-wide font-mono;
+  }
+
+  .match-card {
+    @apply p-3 sm:p-4 cursor-pointer transition-all duration-300;
+    background-color: hsl(var(--surface-2));
+  }
+  
+  .match-card:hover {
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.15);
+  }
+  
+  .battle-card {
+    @apply card-surface-1 p-3 sm:p-4 rounded-lg transition-all duration-300 hover:shadow-lg;
+  }
+  
+  .battle-card-user {
+    border-color: hsl(var(--primary) / 0.2);
+    background-color: hsl(var(--primary) / 0.05);
+  }
+  
+  .battle-card-user:hover {
+    border-color: hsl(var(--primary) / 0.3);
+  }
+
+  /* Enhanced Loading States */
+  .loading-gaming {
+    @apply animate-pulse relative overflow-hidden rounded-lg;
+    background-color: hsl(var(--surface-2));
+  }
+  
+  .loading-gaming::after {
+    content: '';
+    @apply absolute inset-0 translate-x-[-100%] animate-pulse;
+    background: linear-gradient(to right, transparent, hsl(var(--primary) / 0.1), transparent);
+  }
+
+  /* Enhanced Header System */
+  .header-gaming {
+    @apply sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60;
+  }
+
+  /* Enhanced Logo */
+  .logo-gaming {
+    @apply bg-primary text-primary-foreground font-black transition-all duration-300 rounded-lg;
+    box-shadow: 0 0 15px hsl(var(--primary) / 0.25);
+  }
+  
+  .logo-gaming:hover {
+    background-color: hsl(var(--primary) / 0.9);
+    box-shadow: 0 0 25px hsl(var(--primary) / 0.4);
+  }
+
+  /* Enhanced Background Effects */
+  .bg-gaming-pattern {
+    background-image: 
+      radial-gradient(circle at 20% 50%, hsl(var(--primary) / 0.06) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, hsl(var(--blue-neon) / 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 40% 80%, hsl(var(--purple-neon) / 0.04) 0%, transparent 50%);
+  }
+  
+  .gradient-gaming {
+    background: linear-gradient(135deg, hsl(var(--background)) 0%, hsl(var(--surface-1)) 50%, hsl(var(--background)) 100%);
+  }
+
+  /* Enhanced Status Indicators */
+  .status-online {
+    @apply text-success;
+  }
+  
+  .status-victory {
+    @apply text-success;
+  }
+  
+  .status-defeat {
+    @apply text-destructive;
+  }
+  
+  .status-live {
+    @apply text-primary animate-pulse;
+  }
+
+  /* Enhanced Rank System */
+  .rank-badge {
+    @apply inline-flex items-center gap-2 px-2 sm:px-3 py-1 rounded-md text-primary font-rajdhani font-bold uppercase tracking-wide text-xs sm:text-sm;
+    background-color: hsl(var(--primary) / 0.15);
+    border: 1px solid hsl(var(--primary) / 0.25);
+  }
+  
+  .rank-elite {
+    @apply text-purple-400;
+    background-color: hsl(270 85% 60% / 0.15);
+    border-color: hsl(270 85% 60% / 0.25);
+  }
+  
+  .rank-pro {
+    @apply text-blue-400;
+    background-color: hsl(210 85% 60% / 0.15);
+    border-color: hsl(210 85% 60% / 0.25);
+  }
+  
+  .rank-legend {
+    @apply text-yellow-400;
+    background-color: hsl(45 85% 60% / 0.15);
+    border-color: hsl(45 85% 60% / 0.25);
+  }
+
+  /* Enhanced Leaderboard Styles */
+  .leaderboard-row {
+    @apply flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 rounded-lg border transition-all hover:shadow-md;
+    background-color: hsl(var(--card));
+  }
+  
+  .leaderboard-row-user {
+    background-color: hsl(var(--primary) / 0.08);
+    border-color: hsl(var(--primary) / 0.2);
+  }
+  
+  .leaderboard-row-user:hover {
+    border-color: hsl(var(--primary) / 0.3);
+  }
+  
+  .leaderboard-avatar {
+    @apply w-10 h-10 sm:w-12 sm:h-12 flex-shrink-0;
+  }
+  
+  .leaderboard-info {
+    @apply min-w-0 flex-1 ml-3 sm:ml-4;
+  }
+  
+  .leaderboard-stats {
+    @apply flex items-center justify-between sm:justify-end gap-3 sm:gap-4 mt-3 sm:mt-0;
+  }
+
+  /* Responsive Text Utilities */
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+
+  /* Enhanced Animation System */
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out;
+  }
+  
+  .animate-fade-slide {
+    animation: fade-slide 0.5s ease-out;
+  }
+  
+  .animate-competitive-glow {
+    animation: competitive-glow 2s ease-in-out infinite alternate;
+  }
+  
+  .animate-victory-pulse {
+    animation: victory-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes fade-slide {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -125,21 +509,52 @@ html {
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.6s ease-out forwards;
-}
+  @keyframes competitive-glow {
+    0% {
+      box-shadow: 0 0 5px hsl(var(--primary) / 0.3);
+    }
+    100% {
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.6);
+    }
+  }
+  
+  @keyframes victory-pulse {
+    0%, 100% {
+      box-shadow: 0 0 5px hsl(var(--success) / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 25px hsl(var(--success) / 0.8);
+    }
+  }
 
-@font-face {
-  font-family: 'Raleway';
-  src: url('/fonts/Raleway-VariableFont_wght.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Raleway';
-  src: url('/fonts/Raleway-Italic-VariableFont_wght.ttf') format('truetype');
-  font-weight: 100 900;
-  font-style: italic;
-  font-display: swap;
+  /* Enhanced Mobile-First Responsive Design */
+  @media (max-width: 640px) {
+    .container-gaming {
+      @apply px-3;
+    }
+    
+    .responsive-stack {
+      @apply flex-col space-y-3;
+    }
+    
+    .mobile-full-width {
+      @apply w-full;
+    }
+  }
+  
+  @media (min-width: 640px) and (max-width: 1024px) {
+    .tablet-grid-2 {
+      @apply grid-cols-2;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .desktop-grid-3 {
+      @apply grid-cols-3;
+    }
+    
+    .desktop-grid-4 {
+      @apply grid-cols-4;
+    }
+  }
 }
