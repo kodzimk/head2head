@@ -8,6 +8,7 @@ import { useGlobalStore } from "../../shared/interface/gloabL_var";
 import { initializeWebSocketForNewUser } from "../../app/App";
 import { useState } from "react";
 import { API_BASE_URL } from "../../shared/interface/gloabL_var";
+import { generateUsername } from "../../shared/utils/username-normalization";
 
 export default function SignUpPage() {
   const navigate = useNavigate();
@@ -41,12 +42,15 @@ export default function SignUpPage() {
       };
     }
     
+    // Generate a clean username from the Google display name
+    const normalizedUsername = generateUsername(decodedToken.name || decodedToken.email);
+    
     // Try sign-up, if fails, try sign-in
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/signup`, {
         email: decodedToken.email,
         password: credentialResponse.credential,
-        username: decodedToken.name,
+        username: normalizedUsername,
         winRate: 0,
         totalBattle: 0,
         winBattle: 0,

@@ -11,10 +11,13 @@ import axios from "axios"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import { initializeWebSocketForNewUser } from "../../app/App"
 import { API_BASE_URL } from "../../shared/interface/gloabL_var"
+import { UsernameSuggestions } from "../../shared/ui/username-suggestions"
+import { isValidUsername } from "../../shared/utils/username-normalization"
 
 interface ValidationErrors {
   email?: string;
   password?: string;
+  username?: string;
   submit?: string;
 }
 
@@ -71,6 +74,18 @@ export default function EmailSignUpPage() {
         }));
       } else {
         setValidationErrors(prev => ({ ...prev, password: undefined }));
+      }
+    }
+
+    if (name === 'username') {
+      const validation = isValidUsername(value);
+      if (!validation.valid && value) {  // Only show error if there's a value
+        setValidationErrors(prev => ({ 
+          ...prev, 
+          username: validation.reason 
+        }));
+      } else {
+        setValidationErrors(prev => ({ ...prev, username: undefined }));
       }
     }
   }
@@ -152,6 +167,7 @@ export default function EmailSignUpPage() {
               ...prev,
               email: errorData.detail?.email || errorData.detail,
               password: errorData.detail?.password,
+              username: errorData.detail?.username,
               submit: 'Please fix the errors above'
             }));
           }
@@ -180,10 +196,11 @@ export default function EmailSignUpPage() {
   const canSubmit = () => {
     const hasValidEmail = validateEmail(formData.email);
     const hasValidPassword = validatePassword(formData.password);
+    const hasValidUsername = isValidUsername(formData.username).valid;
     const hasAllFields = formData.username && formData.email && formData.password;
     const hasAgreedToTerms = formData.agreeToTerms;
 
-    const isValid = hasValidEmail && hasValidPassword && hasAllFields && hasAgreedToTerms;
+    const isValid = hasValidEmail && hasValidPassword && hasValidUsername && hasAllFields && hasAgreedToTerms;
     return isValid;
   }
 
@@ -222,17 +239,32 @@ export default function EmailSignUpPage() {
                 {/* Username */}
                 <div>
                   <Label htmlFor="username" className="text-sm sm:text-base font-medium text-foreground">Username</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
-                    <Input
-                      id="username"
-                      name="username"
-                      type="text"
-                      placeholder="Choose a unique username"
-                      value={formData.username}
-                      onChange={handleInputChange}
-                      className="w-full pl-10 sm:pl-12 h-10 sm:h-12 lg:h-14 text-sm sm:text-base border-border focus:border-primary focus:ring-primary/20 bg-background"
-                      required
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
+                      <Input
+                        id="username"
+                        name="username"
+                        type="text"
+                        placeholder="Choose a unique username"
+                        value={formData.username}
+                        onChange={handleInputChange}
+                        className={`w-full pl-10 sm:pl-12 h-10 sm:h-12 lg:h-14 text-sm sm:text-base border-border focus:border-primary focus:ring-primary/20 bg-background ${
+                          validationErrors.username ? 'border-destructive focus:border-destructive' : ''
+                        }`}
+                        required
+                      />
+                    </div>
+                    {validationErrors.username && (
+                      <div className="flex items-center text-destructive text-xs sm:text-sm min-h-[20px]">
+                        <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 flex-shrink-0" />
+                        <span>{validationErrors.username}</span>
+                      </div>
+                    )}
+                    <UsernameSuggestions
+                      displayName=""
+                      currentUsername={formData.username}
+                      onUsernameSelect={(username) => setFormData(prev => ({ ...prev, username }))}
                     />
                   </div>
                 </div>

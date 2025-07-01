@@ -48,7 +48,7 @@ export default function Header({ user }: HeaderProps) {
           <img
                         src={'/favicon.png'}
                         alt={'Logo'}
-                        className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-10 rounded-full object-cover border-3 border-primary/50 shadow-xl"
+                        className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-10 rounded-full  border-primary/50 shadow-xl"
                       />
                       <h1 className="text-2xl font-bold">head2head</h1>
           </div>
