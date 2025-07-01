@@ -9,6 +9,7 @@ import axios from "axios"
 import { useRefreshViewStore } from "../../../shared/interface/gloabL_var"
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var"
 import { newSocket } from "../../../app/App"
+import { UserAvatar } from '../../../shared/ui/user-avatar'
 
 export default function Friends({user}: {user: User}) {
   const [friends, setFriends] = useState<Friend[]>([])
@@ -126,7 +127,7 @@ export default function Friends({user}: {user: User}) {
     <div>
       <TabsContent value="friends" className="space-y-6">
         <div className="grid lg:grid-cols-2 gap-6">
-          <Card>
+          <Card data-onboarding="friends-list-content">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 Friends ({friends.length})
@@ -154,26 +155,12 @@ export default function Friends({user}: {user: User}) {
                         onClick={() => navigate(`/profile/${friend.username}`)}
                       >
                         <div className="flex items-center gap-4 w-full">
-                          {friend.avatar ? (
-                            <div 
-                              className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-14 lg:h-14 rounded-full overflow-hidden flex-shrink-0 aspect-square"
-                              style={{ clipPath: 'circle(50%)' }}
-                            >
-                              <img
-                                src={friend.avatar}
-                                alt={friend.username}
-                                className="w-full h-full object-cover object-center"
-                                style={{ clipPath: 'circle(50%)' }}
-                              />
-                            </div>
-                          ) : (
-                            <div 
-                              className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-14 lg:h-14 rounded-full bg-orange-500 flex items-center justify-center text-white text-sm sm:text-lg md:text-xl lg:text-lg font-bold flex-shrink-0 aspect-square"
-                              style={{ clipPath: 'circle(50%)' }}
-                            >
-                              {friend.username.slice(0, 2).toUpperCase()}
-                            </div>
-                          )}
+                          <UserAvatar
+                            user={friend}
+                            size="lg"
+                            variant="default"
+                            className="flex-shrink-0"
+                          />
                           <div className="flex-grow min-w-0">
                             <h3 className="font-medium text-white truncate text-lg">
                               {friend.username}

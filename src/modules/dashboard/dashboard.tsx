@@ -16,11 +16,109 @@ import Header from './header';
 import { Button } from '../../shared/ui/button';
 import { Badge } from '../../shared/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../shared/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
 import Overview from './tabs/overview';
 import Battles from './tabs/battles';
 import Friends from './tabs/friends';
 import type { User, RecentBattle } from '../../shared/interface/user';
 import { API_BASE_URL } from '../../shared/interface/gloabL_var';
+import Onboarding from '../../shared/ui/onboarding';
+
+const getAllDashboardOnboardingSteps = () => [
+  {
+    id: "welcome",
+    target: "[data-onboarding='welcome-section']",
+    title: "Welcome to Head2Head! 🎮",
+    description: "This is your gaming command center! Here you can track stats, start battles, and manage your competitive journey. Let's explore the key features together.",
+    position: "auto" as const,
+    offset: { x: 0, y: 20 }
+  },
+  {
+    id: "user-avatar",
+    target: "[data-onboarding='user-avatar']",
+    title: "Your Player Hub 👤",
+    description: "Click your avatar to access profile settings and notifications. The red dot shows new friend requests or battle invitations waiting for you.",
+    position: "auto" as const,
+    offset: { x: 0, y: 15 }
+  },
+  {
+    id: "navigation",
+    target: "[data-onboarding='navigation']",
+    title: "Navigate Like a Pro 🧭",
+    description: "Access all platform sections: Dashboard (home), Battles (compete), Leaderboard (rankings), Selection (find opponents), and Trainings (practice).",
+    position: "auto" as const,
+    offset: { x: 0, y: 15 }
+  },
+  {
+    id: "stats-grid",
+    target: "[data-onboarding='stats-grid']",
+    title: "Track Your Progress 📊",
+    description: "Monitor your performance at a glance: global rank, total wins, battles played, and draws. These update automatically as you compete.",
+    position: "auto" as const,
+    offset: { x: 0, y: 20 }
+  },
+  {
+    id: "battle-stats-breakdown",
+    target: "[data-onboarding='battle-stats-breakdown']",
+    title: "Battle Statistics Breakdown 🏆",
+    description: "Get a comprehensive overview of your battle performance! See your wins, draws, losses, and current streak with percentages. This visual breakdown helps you track your competitive progress at a glance.",
+    position: "auto" as const,
+    offset: { x: 0, y: 20 }
+  },
+  {
+    id: "overview-profile",
+    target: "[data-onboarding='overview-profile']",
+    title: "Your Profile Card 🏷️",
+    description: "View detailed stats including rank, wins, and favorite sport. Click 'Edit Profile' to customize your gaming identity.",
+    position: "auto" as const,
+    offset: { x: 20, y: 0 }
+  },
+  {
+    id: "recent-battles",
+    target: "[data-onboarding='recent-battles']",
+    title: "Battle History 📜",
+    description: "See your recent matches with opponents, sports, results, and scores. Start your first battle to populate this section!",
+    position: "auto" as const,
+    offset: { x: -20, y: 0 }
+  },
+  {
+    id: "battle-history-content",
+    target: "[data-onboarding='battle-history-content']",
+    title: "Your Battle History ⚔️",
+    description: "See all your completed battles with opponents, sports played, match results, and scores. Each battle shows who you fought, what sport, and whether you won, lost, or drew.",
+    position: "auto" as const,
+    offset: { x: 0, y: 20 }
+  },
+  {
+    id: "battle-stats-content",
+    target: "[data-onboarding='battle-stats-content']",
+    title: "Detailed Battle Statistics 📊",
+    description: "Track your competitive performance: total battles fought, wins achieved, win rate percentage, and current winning streak. Perfect for monitoring your improvement!",
+    position: "auto" as const,
+    offset: { x: 0, y: 20 }
+  },
+  {
+    id: "friends-list-content",
+    target: "[data-onboarding='friends-list-content']",
+    title: "Your Friends List 👥",
+    description: "View all your friends with their avatars, usernames, and ranks. Click on any friend to visit their profile, challenge them to battles, or see their achievements.",
+    position: "auto" as const,
+    offset: { x: 0, y: 20 }
+  }
+];
+
+// Filter steps based on device type
+const getDashboardOnboardingSteps = () => {
+  const isMobile = window.innerWidth < 768;
+  const allSteps = getAllDashboardOnboardingSteps();
+  
+  if (isMobile) {
+    // Remove navigation step on mobile devices
+    return allSteps.filter(step => step.id !== "navigation");
+  }
+  
+  return allSteps;
+};
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -28,6 +126,29 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [battles, setBattles] = useState<RecentBattle[]>([]);
+  const [onboardingSteps, setOnboardingSteps] = useState(getDashboardOnboardingSteps());
+
+  const handleOnboardingComplete = () => {
+    console.log('Dashboard onboarding completed');
+  };
+
+  // Handle responsive onboarding steps
+  useEffect(() => {
+    const handleResize = () => {
+      setOnboardingSteps(getDashboardOnboardingSteps());
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Force clear onboarding on first load for testing
+  useEffect(() => {
+    // Uncomment the line below to force onboarding to show every time
+    // localStorage.removeItem("head2head-dashboard-onboarding");
+    console.log("[Dashboard] Onboarding status:", localStorage.getItem("head2head-dashboard-onboarding"));
+  }, []);
+
   useEffect(() => {
     const loadUserData = async () => {
       try {
@@ -198,37 +319,45 @@ export function Dashboard() {
         };
         
         // Update global store
-        if (setUser) {
-          setUser(updatedUser as User);
-        }
+        setUser(updatedUser as User);
         
         // Update localStorage
         localStorage.setItem('user', JSON.stringify(updatedUser));
-        
-        console.log('[Battles Tab] Updated user stats in localStorage');
       }
       
-      // Refresh battles data
-      setTimeout(() => {
-        fetchBattles();
-      }, 1000); // Small delay to ensure backend has processed the battle
+      // Refresh battles list
+      fetchBattles();
     };
-    
+
     window.addEventListener('battleFinished', handleBattleFinished);
     
+    // Cleanup listener on component unmount
     return () => {
       window.removeEventListener('battleFinished', handleBattleFinished);
     };
-  }, [user, setUser]);
-  
+  }, [user]);
 
+  const calculateBattleStats = () => {
+    const totalBattles = battles.length;
+    const wins = battles.filter(battle => battle.result === 'win').length;
+    const draws = battles.filter(battle => battle.result === 'draw').length;
+    const losses = battles.filter(battle => battle.result === 'lose').length;
+    
+    const winPercentage = totalBattles > 0 ? Math.round((wins / totalBattles) * 100) : 0;
+    const drawPercentage = totalBattles > 0 ? Math.round((draws / totalBattles) * 100) : 0;
+    const lossPercentage = totalBattles > 0 ? Math.round((losses / totalBattles) * 100) : 0;
+    
+    return { wins, draws, losses, winPercentage, drawPercentage, lossPercentage };
+  };
+
+  const stats = calculateBattleStats();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background bg-gaming-pattern flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="loading-gaming w-16 h-16 rounded-lg mx-auto"></div>
-          <p className="text-muted-foreground font-rajdhani">Loading your gaming profile...</p>
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -236,26 +365,33 @@ export function Dashboard() {
 
   if (error || !user) {
     return (
-      <div className="min-h-screen bg-background bg-gaming-pattern flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <Trophy className="w-16 h-16 text-destructive mx-auto" />
-          <h1 className="text-responsive-xl font-rajdhani font-bold text-foreground">Error Loading Dashboard</h1>
-          <p className="text-muted-foreground">{error || 'Please sign in to continue'}</p>
-          <Button onClick={() => navigate('/sign-in')}>
-            Sign In
-          </Button>
+          <p className="text-destructive">{error || 'Failed to load user data'}</p>
+          <Button onClick={() => navigate('/sign-in')}>Sign In Again</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background bg-gaming-pattern">
+    <div className="min-h-screen bg-background">
+      {/* Onboarding */}
+      <Onboarding
+        steps={onboardingSteps}
+        onComplete={handleOnboardingComplete}
+        storageKey="head2head-dashboard-onboarding"
+        autoStart={true}
+      />
+
       <Header user={user} />
 
       <main className="container-gaming py-8">
         {/* Welcome Section */}
-        <div className="mb-6 sm:mb-8">
+        <div 
+          className="mb-6 sm:mb-8"
+          data-onboarding="welcome-section"
+        >
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
             <div className="space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
@@ -269,7 +405,10 @@ export function Dashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div 
+              className="flex flex-col sm:flex-row gap-3"
+              data-onboarding="quick-actions"
+            >
               <Button 
                 onClick={() => navigate('/battles')} 
                 className="btn-neon group"
@@ -291,7 +430,10 @@ export function Dashboard() {
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid-stats mb-6 sm:mb-8">
+        <div 
+          className="grid-stats mb-6 sm:mb-8"
+          data-onboarding="stats-grid"
+        >
           <div className="stat-card animate-scale-in">
             <div className="flex items-center justify-between mb-3">
               <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
@@ -334,77 +476,79 @@ export function Dashboard() {
                 🤝
               </div>
               <Badge variant="secondary" className="bg-warning/15 text-warning border-warning/25">
-                <span className="text-xs">DRAWS</span>
+                <span className="text-xs">Win Rate</span>
               </Badge>
             </div>
             <div className="stat-value text-warning">
-              {(() => {
-                // Calculate draws from battles
-                const drawCount = battles.filter(battle => battle.result === 'draw').length;
-                return drawCount;
-              })()}
+              {user?.winRate || 0}%
             </div>
-            <div className="stat-label">Total Draws</div>
+            <div className="stat-label">Win Rate</div>
           </div>
         </div>
 
-        {/* Enhanced Battle Statistics Summary */}
-        <div className="mb-6 sm:mb-8">
-          <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4 sm:p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-primary" />
+        {/* Battle Statistics Breakdown */}
+        <Card className="mb-6 sm:mb-8" data-onboarding="battle-stats-breakdown">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg lg:text-xl font-semibold">
+              <Trophy className="w-5 h-5 text-orange-500" />
               Battle Statistics Breakdown
-            </h3>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Wins */}
               <div className="text-center">
-                <div className="text-2xl font-bold text-success mb-1">{user?.wins || 0}</div>
-                <div className="text-sm text-muted-foreground">Wins</div>
-                <div className="text-xs text-success/70">
-                  {user?.totalBattles ? Math.round(((user.wins || 0) / user.totalBattles) * 100) : 0}%
+                <div className="text-2xl lg:text-3xl font-bold text-green-600 mb-1">
+                  {stats.wins}
+                </div>
+                <div className="text-sm lg:text-base font-medium text-foreground mb-1">Wins</div>
+                <div className="text-xs lg:text-sm text-green-600 font-medium">
+                  {stats.winPercentage}%
                 </div>
               </div>
               
+              {/* Draws */}
               <div className="text-center">
-                <div className="text-2xl font-bold text-warning mb-1">
-                  {(() => {
-                    const drawCount = battles.filter(battle => battle.result === 'draw').length;
-                    return drawCount;
-                  })()}
+                <div className="text-2xl lg:text-3xl font-bold text-yellow-600 mb-1">
+                  {stats.draws}
                 </div>
-                <div className="text-sm text-muted-foreground">Draws</div>
-                <div className="text-xs text-warning/70">
-                  {user?.totalBattles ? Math.round((battles.filter(battle => battle.result === 'draw').length / user.totalBattles) * 100) : 0}%
+                <div className="text-sm lg:text-base font-medium text-foreground mb-1">Draws</div>
+                <div className="text-xs lg:text-sm text-yellow-600 font-medium">
+                  {stats.drawPercentage}%
                 </div>
               </div>
               
+              {/* Losses */}
               <div className="text-center">
-                <div className="text-2xl font-bold text-destructive mb-1">
-                  {(() => {
-                    const losses = (user?.totalBattles || 0) - (user?.wins || 0) - battles.filter(battle => battle.result === 'draw').length;
-                    return Math.max(0, losses);
-                  })()}
+                <div className="text-2xl lg:text-3xl font-bold text-red-600 mb-1">
+                  {stats.losses}
                 </div>
-                <div className="text-sm text-muted-foreground">Losses</div>
-                <div className="text-xs text-destructive/70">
-                  {user?.totalBattles ? Math.round((((user?.totalBattles || 0) - (user?.wins || 0) - battles.filter(battle => battle.result === 'draw').length) / user.totalBattles) * 100) : 0}%
+                <div className="text-sm lg:text-base font-medium text-foreground mb-1">Losses</div>
+                <div className="text-xs lg:text-sm text-red-600 font-medium">
+                  {stats.lossPercentage}%
                 </div>
               </div>
               
+              {/* Streak */}
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary mb-1">{user?.streak || 0}</div>
-                <div className="text-sm text-muted-foreground">Streak</div>
-                <div className="text-xs text-primary/70">
-                  {user?.streak && user.streak > 0 ? 'Win Streak' : 'No Streak'}
+                <div className="text-2xl lg:text-3xl font-bold text-orange-600 mb-1">
+                  {user?.streak || 0}
+                </div>
+                <div className="text-sm lg:text-base font-medium text-foreground mb-1">Streak</div>
+                <div className="text-xs lg:text-sm text-orange-600 font-medium">
+                  {(user?.streak || 0) > 0 ? 'Win Streak' : 'No Streak'}
                 </div>
               </div>
             </div>
-            
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Dashboard Tabs */}
-        <Tabs defaultValue="overview" className="space-y-4 sm:space-y-6">
+        <Tabs 
+          defaultValue="overview" 
+          className="space-y-4 sm:space-y-6"
+          data-onboarding="dashboard-tabs"
+        >
           <TabsList className="grid w-full grid-cols-3 bg-card/95 backdrop-blur-md border border-border/50 shadow-xl h-12 sm:h-14 lg:h-16 p-1 rounded-lg">
             <TabsTrigger 
               value="overview" 

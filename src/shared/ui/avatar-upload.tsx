@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from './alert';
 import axios from 'axios';
 import { API_BASE_URL } from '../interface/gloabL_var';
 import AvatarStorage from '../utils/avatar-storage';
+import { UserAvatar } from './user-avatar';
 
 interface AvatarUploadProps {
   user: {
@@ -143,24 +144,19 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
   return (
     <div className={`flex flex-col items-center space-y-4 ${className}`}>
-      {/* Circular Avatar Display */}
+      {/* Enhanced Avatar Display using UserAvatar component */}
       <div className="relative">
-        <div 
-          className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-orange-500/20 bg-card shadow-lg"
-          style={{ clipPath: 'circle(50%)' }}
-        >
-          {displayAvatarUrl ? (
-            <img
-              src={displayAvatarUrl}
-              alt="Avatar"
-              className="w-full h-full object-cover object-center"
-              style={{ clipPath: 'circle(50%)' }}
-            />
-          ) : (
-            <div className="w-full h-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
-              {user.username.slice(0, 2).toUpperCase()}
-            </div>
-          )}
+        <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:w-32">
+          <UserAvatar
+            user={{ 
+              username: user.username, 
+              avatar: displayAvatarUrl || user.avatar 
+            }}
+            size="4xl"
+            variant="default"
+            showBorder={true}
+            className="border-4 border-orange-500/20 shadow-lg"
+          />
         </div>
         
         {/* Loading overlay */}

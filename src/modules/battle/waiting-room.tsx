@@ -276,9 +276,7 @@ export default function WaitingRoom() {
                         <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border" style={{ backgroundColor: 'hsl(var(--card))' }}>
                           <div className="flex items-center gap-3">
                             <Avatar className="w-8 h-8" variant="faceit">
-                              <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
-                                {friendUsername.slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
+                              <AvatarFallback username={friendUsername} variant="faceit" />
                             </Avatar>
                             <span className="text-responsive-sm font-medium text-foreground">{friendUsername}</span>
                           </div>
@@ -339,9 +337,7 @@ export default function WaitingRoom() {
                       <div key={index} className="flex items-center justify-between p-2 rounded border border-border/50 bg-background/50">
                         <div className="flex items-center gap-2">
                           <Avatar className="w-6 h-6" variant="faceit">
-                            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                              {friendUsername.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
+                            <AvatarFallback username={friendUsername} variant="faceit" />
                           </Avatar>
                           <span className="text-responsive-xs text-foreground">{friendUsername}</span>
                         </div>

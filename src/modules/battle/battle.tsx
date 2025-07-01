@@ -16,6 +16,9 @@ import { Badge } from '../../shared/ui/badge'
 import AvatarStorage from '../../shared/utils/avatar-storage'
 import { UserAvatar } from '../../shared/ui/user-avatar';
 
+
+
+
 export default function BattlePage() {
   const { user } = useGlobalStore()
   const [selectedSport, setSelectedSport] = useState('')
@@ -321,13 +324,17 @@ export default function BattlePage() {
     }
   }, [navigate])
 
+
+
+
+
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
       <Header user={user} />
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid gap-6">
+      <main className="container-gaming py-6 sm:py-8">
+        <div className="max-w-4xl mx-auto space-y-6">
           <div className="text-center space-y-4 sm:space-y-6">
-            <h1 className="text-heading-1 text-white text-foreground">
+            <h1 className="text-heading-1 text-foreground">
               Battle Arena
             </h1>
             <p className="text-responsive-sm text-muted-foreground max-w-2xl mx-auto">
@@ -467,20 +474,22 @@ export default function BattlePage() {
                   <Clock className="w-5 h-5 text-primary" />
                   Available Battles ({battle.length})
                 </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => refreshWaitingBattles(true)}
-                  disabled={isRefreshing}
-                  className="border-primary/30 hover:border-primary/60 hover:bg-primary/5"
-                >
-                  {isRefreshing ? (
-                    <div className="loading-gaming w-4 h-4 rounded mr-2"></div>
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  )}
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => refreshWaitingBattles(true)}
+                    disabled={isRefreshing}
+                    className="border-primary/30 hover:border-primary/60 hover:bg-primary/5"
+                  >
+                    {isRefreshing ? (
+                      <div className="loading-gaming w-4 h-4 rounded mr-2"></div>
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                    )}
+                    Refresh
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="responsive-padding">
@@ -545,26 +554,26 @@ export default function BattlePage() {
                             </div>
                           </div>
                         </div>
-                                
-                                <div className="flex items-center justify-end gap-2 sm:gap-3 mt-3 sm:mt-0">
+                        
+                        <div className="flex items-center justify-end gap-2 sm:gap-3 mt-3 sm:mt-0">
                           {isUserBattle ? (
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleCancelBattle(battle_data.id)}
-                                      className="border-destructive/30 text-destructive hover:bg-destructive/5"
+                              className="border-destructive/30 text-destructive hover:bg-destructive/5"
                             >
-                                      <Undo className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                                      <span className="hidden sm:inline">Cancel</span>
+                              <Undo className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                              <span className="hidden sm:inline">Cancel</span>
                             </Button>
                           ) : (
                             <Button
                               onClick={() => handleJoinBattle(battle_data.id)}
-                                      size="sm"
-                                      className="btn-neon"
+                              size="sm"
+                              className="btn-neon"
                             >
-                                      <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                                      <span className="hidden sm:inline">Join Battle</span>
+                              <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                              <span className="hidden sm:inline">Join Battle</span>
                             </Button>
                           )}
                         </div>

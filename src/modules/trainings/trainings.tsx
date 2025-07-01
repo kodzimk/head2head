@@ -20,6 +20,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
+
 interface TrainingStats {
   username: string;
   total_answers: number;
@@ -65,6 +66,7 @@ interface Flashcard {
 }
 
 
+
 export default function TrainingsPage() {
   const { user } = useGlobalStore();
   const [selectedSport, setSelectedSport] = useState<string>("all");
@@ -89,6 +91,8 @@ export default function TrainingsPage() {
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
   const [isFlashcardMode, setIsFlashcardMode] = useState(false);
 
+
+
   const sports = [
     { value: "football", label: "Football", icon: <Trophy className="w-5 h-5" /> },
     { value: "basketball", label: "Basketball", icon: <Target className="w-5 h-5" /> },
@@ -104,22 +108,6 @@ export default function TrainingsPage() {
     { value: "medium", label: "Medium", color: "bg-yellow-500" },
     { value: "hard", label: "Hard", color: "bg-red-500" }
   ];
-
-  const questionTypes = [
-    {
-      value: "Flashcards",
-      label: "Flashcards",
-      description: "Study terms and learn from your battle mistakes",
-      icon: <Brain className="w-5 h-5" /> 
-    },
-    { 
-      value: "random", 
-      label: "Random Questions", 
-      description: "Fresh random questions from selected sport",
-      icon: <Zap className="w-5 h-5" /> 
-    },
-  ];
-
   // Fetch training stats and incorrect answers on component mount
   useEffect(() => {
     if (user?.username && user.username.trim() !== "") {
@@ -1247,23 +1235,36 @@ export default function TrainingsPage() {
 
                     <div className="space-y-3">
                       <Label className="text-sm sm:text-base">Training Mode</Label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {questionTypes.map((type) => (
-                          <Button
-                            key={type.value}
-                            variant={selectedQuestionType === type.value ? "default" : "outline"}
-                            className="flex flex-col items-center gap-2 h-auto p-3 sm:p-4 relative min-h-[80px] sm:min-h-[100px]"
-                            onClick={() => setSelectedQuestionType(type.value)}
-                          >
-                            <div className="flex items-center gap-2">
-                              {type.icon}
-                              <span className="font-semibold text-sm sm:text-base">{type.label}</span>
-                            </div>
-                            <div className="text-xs text-muted-foreground text-center leading-tight">
-                              {type.description}
-                            </div>
-                          </Button>
-                        ))}
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-4 sm:gap-6">
+                        {/* Left Side - Flashcards */}
+                        <Button
+                          variant={selectedQuestionType === "Flashcards" ? "default" : "outline"}
+                          className="flex flex-col items-center justify-center h-auto p-4 sm:p-6 relative min-h-[100px] sm:min-h-[120px] flex-1"
+                          onClick={() => setSelectedQuestionType("Flashcards")}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Brain className="w-5 h-5" />
+                            <span className="font-semibold text-sm sm:text-base">Flashcards</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground text-center leading-tight">
+                            Study terms and learn from your battle mistakes
+                          </div>
+                        </Button>
+
+                        {/* Right Side - Random Questions */}
+                        <Button
+                          variant={selectedQuestionType === "random" ? "default" : "outline"}
+                          className="flex flex-col items-center justify-center h-auto p-4 sm:p-6 relative min-h-[100px] sm:min-h-[120px] flex-1"
+                          onClick={() => setSelectedQuestionType("random")}
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Zap className="w-5 h-5" />
+                            <span className="font-semibold text-sm sm:text-base">Random Questions</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground text-center leading-tight">
+                            Fresh random questions from selected sport
+                          </div>
+                        </Button>
                       </div>
                     </div>
 
@@ -1294,17 +1295,19 @@ export default function TrainingsPage() {
                         <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
                         Your Training Stats
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          fetchTrainingStats();
-                        }}
-                        className="flex items-center gap-2"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                        <span className="hidden sm:inline">Refresh</span>
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            fetchTrainingStats();
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          <span className="hidden sm:inline">Refresh</span>
+                        </Button>
+                      </div>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>

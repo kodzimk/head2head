@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom'
 import { removeFriend } from '../../shared/websockets/websocket'
 import { API_BASE_URL, useRefreshViewStore } from "../../shared/interface/gloabL_var"
 import { newSocket } from "../../app/App"
+import { UserAvatar } from "../../shared/ui/user-avatar"
 
 
 export default function FriendsPage({user}: {user: User}) {
@@ -23,23 +24,23 @@ export default function FriendsPage({user}: {user: User}) {
   // Function to fetch friend data
   const fetchFriendData = async (friendUsername: string): Promise<Friend> => {
     try {
-      const friendData = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`);
+      const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`)
       return {
-        username: friendUsername,
-        avatar: friendData.data.avatar ? `${API_BASE_URL}${friendData.data.avatar}` : null,
-        rank: friendData.data.ranking.toString(),
-        status: "online"
-      };
+        username: response.data.username,
+        status: "",
+        avatar: response.data.avatar ? `${API_BASE_URL}${response.data.avatar}` : null,
+        rank: response.data.ranking.toString()
+      }
     } catch (error) {
-      console.error(`Error fetching friend data for ${friendUsername}:`, error);
+      console.error("Error fetching friend data:", error)
       return {
         username: friendUsername,
+        status: "",
         avatar: null,
-        rank: "1",
-        status: "online"
-      };
+        rank: "0"
+      }
     }
-  };
+  }
 
   // Function to update friends list with deduplication
   const updateFriendsList = async (friendUsernames: string[]) => {
@@ -49,23 +50,14 @@ export default function FriendsPage({user}: {user: User}) {
     }
 
     try {
-      // Remove duplicates from friendUsernames
-      const uniqueFriends = [...new Set(friendUsernames)];
-      console.log('Fetching data for unique friends:', uniqueFriends);
-      
-      const friendPromises = uniqueFriends.map(fetchFriendData);
-      const friendResults = await Promise.all(friendPromises);
-      
-      // Filter out any null results and ensure no duplicates
-      const validFriends = friendResults.filter(friend => friend !== null);
-      const uniqueValidFriends = validFriends.filter((friend, index, self) => 
-        index === self.findIndex(f => f.username === friend.username)
-      );
-      
-      console.log('Setting friends list:', uniqueValidFriends);
-      setFriends(uniqueValidFriends);
+      console.log("Updating friends list with usernames:", friendUsernames)
+      const friendPromises = friendUsernames.map(username => fetchFriendData(username))
+      const friendsData = await Promise.all(friendPromises)
+      console.log("Updated friends list:", friendsData)
+      setFriends(friendsData)
     } catch (error) {
-      console.error('Error updating friends list:', error);
+      console.error("Error updating friends list:", error)
+      setFriends([])
     }
   };
 
@@ -143,7 +135,7 @@ export default function FriendsPage({user}: {user: User}) {
           username: response.data.username,
           status: "",
           avatar: userData.data.avatar ? `${API_BASE_URL}${userData.data.avatar}` : null,
-          rank: userData.data.ranking
+          rank: userData.data.ranking.toString()
         }])
       } catch (error) {
         setSearchResults([])
@@ -164,7 +156,7 @@ export default function FriendsPage({user}: {user: User}) {
 
   const displayedUsers = isSearching ? searchResults : friends
   const emptyMessage = isSearching ? "No users found" : "No friends found"
-  const title = isSearching ? "Search Results" : "Your Friends"
+  const title = isSearching ? "Search Results" : "Friends List"
 
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
@@ -210,26 +202,16 @@ export default function FriendsPage({user}: {user: User}) {
                       onClick={() => navigate(`/profile/${item.username}`)}
                     >
                       <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
-                        {item.avatar ? (
-                          <div 
-                            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-14 lg:h-14 rounded-full overflow-hidden flex-shrink-0 aspect-square border-2 border-primary"
-                            style={{ clipPath: 'circle(50%)' }}
-                          >
-                            <img
-                              src={item.avatar}
-                              alt={item.username}
-                              className="w-full h-full object-cover object-center"
-                              style={{ clipPath: 'circle(50%)' }}
-                            />
-                          </div>
-                        ) : (
-                          <div 
-                            className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-14 lg:h-14 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm sm:text-lg md:text-xl lg:text-lg font-bold flex-shrink-0 aspect-square border-2 border-primary"
-                            style={{ clipPath: 'circle(50%)' }}
-                          >
-                            {item.username.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
+                        <UserAvatar
+                          user={{
+                            username: item.username,
+                            avatar: item.avatar
+                          }}
+                          size="lg"
+                          variant="default"
+                          showBorder={true}
+                          className="flex-shrink-0"
+                        />
                         <div className="flex-grow min-w-0 text-center sm:text-left">
                           <h3 className="font-medium text-foreground truncate text-lg">
                             {item.username}

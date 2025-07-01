@@ -75,7 +75,10 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
   return (
       <TabsContent value="overview" className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-        <Card className="lg:col-span-1">
+        <Card 
+          className="lg:col-span-1"
+          data-onboarding="overview-profile"
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserAvatar 
@@ -131,7 +134,10 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
           </CardContent>
         </Card>
     
-        <Card className="lg:col-span-2">
+        <Card 
+          className="lg:col-span-2"
+          data-onboarding="recent-battles"
+        >
           <CardHeader>
             <CardTitle className="text-lg lg:text-xl">Recent Battles</CardTitle>
           </CardHeader>
@@ -140,7 +146,12 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
               {battles.length === 0 ? (
                 <div className="text-center py-6 lg:py-8">
                   <p className="text-gray-500 text-base lg:text-lg mb-4">There are no battles yet</p>
-                  <Button variant="outline" className="gap-2 text-xs lg:text-sm">
+                  <Button 
+                    variant="outline" 
+                    className="gap-2 text-xs lg:text-sm"
+                    data-onboarding="start-battle-button"
+                    onClick={() => navigate('/battles')}
+                  >
                     <Sword className="w-3 h-3 lg:w-4 lg:h-4" />
                     Start Your First Battle
                   </Button>

@@ -86,9 +86,15 @@ export default function SignUpPage() {
           invitations: userData.invitations
         };
         setUser(updatedUser);
-        localStorage.setItem('access_token', response.data.access_token);
+        localStorage.setItem('access_token', response.data.access_token);  
         localStorage.setItem("username", userData.username);
         localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Clear onboarding localStorage keys for new users to ensure they see onboarding
+        localStorage.removeItem('head2head-battle-onboarding');
+        localStorage.removeItem('head2head-training-onboarding');
+        localStorage.removeItem('head2head-dashboard-onboarding');
+        
         initializeWebSocketForNewUser(userData.username);
         navigate(`/${userData.username}`);
       }
@@ -183,7 +189,9 @@ export default function SignUpPage() {
         <div className="container mx-auto max-w-sm sm:max-w-md lg:max-w-4xl xl:max-w-6xl">
           <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center">
             {/* Left Side - Benefits */}
-            <div className="hidden lg:block space-y-6">
+            <div 
+              className="hidden lg:block space-y-6"
+            >
               <div className="space-y-4">
                 <h1 className="text-3xl xl:text-4xl 2xl:text-5xl font-bold text-foreground leading-tight">
                   Start Your Sports
@@ -212,7 +220,9 @@ export default function SignUpPage() {
                 </p>
               </div>
               
-              <Card className="card-surface backdrop-blur-sm border-border/50 shadow-xl lg:shadow-2xl">
+              <Card 
+                className="card-surface backdrop-blur-sm border-border/50 shadow-xl lg:shadow-2xl"
+              >
                 <CardHeader className="text-center pb-4 sm:pb-6 px-4 sm:px-6 pt-6 sm:pt-8">
                   <CardTitle className="text-xl sm:text-2xl font-bold text-foreground">
                     Create Your Account
@@ -225,7 +235,9 @@ export default function SignUpPage() {
                 <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6 pb-6 sm:pb-8">
                   {/* Social Sign Up */}
                   <div className="space-y-3">
-                    <div className="w-full">
+                    <div 
+                      className="w-full"
+                    >
                       <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         onError={handleGoogleError}
@@ -279,7 +291,9 @@ export default function SignUpPage() {
                   </div>
 
                   {/* Sign In Link */}
-                  <div className="text-center pt-4 border-t border-border/50">
+                  <div 
+                    className="text-center pt-4 border-t border-border/50"
+                  >
                     <p className="text-xs sm:text-sm text-muted-foreground">
                       Already have an account?{" "}
                       <Link

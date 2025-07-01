@@ -61,7 +61,7 @@ export default function Battles({
     <div>
       <TabsContent value="battles" className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2" data-onboarding="battle-history-content">
             <CardHeader className="pb-4">
               <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <span className="text-lg lg:text-xl font-semibold">Battle History</span>
@@ -130,7 +130,7 @@ export default function Battles({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card data-onboarding="battle-stats-content">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg lg:text-xl font-semibold">Battle Stats</CardTitle>
             </CardHeader>

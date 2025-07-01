@@ -101,9 +101,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
           />
         ) : null}
         {showFallback && (
-          <AvatarFallback username={user.username} variant={variant}>
-            {isLoading ? '...' : (user.username ? user.username.slice(0, 2).toUpperCase() : 'U')}
-          </AvatarFallback>
+          <AvatarFallback username={user.username} variant={variant} />
         )}
       </Avatar>
     </div>

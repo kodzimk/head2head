@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Settings, Users, LogOut, Trophy, Target, Zap, SlidersHorizontal, Pickaxe } from 'lucide-react';
+import {  Settings, Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home } from 'lucide-react';
 import { Button } from '../../shared/ui/button';
 import {
   DropdownMenu,
@@ -43,18 +43,23 @@ export default function Header({ user }: HeaderProps) {
     }`}>
       <div className="container-gaming">
         <div className="flex items-center justify-between h-14 sm:h-16 lg:h-18">
+          <div className="flex items-center gap-2">
           {/* Logo */}
           <img
                         src={'/favicon.png'}
                         alt={'Logo'}
                         className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-10 rounded-full object-cover border-3 border-primary/50 shadow-xl"
                       />
-
+                      <h1 className="text-2xl font-bold">head2head</h1>
+          </div>
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-4 lg:gap-6 xl:gap-8">
+          <nav 
+            className="hidden lg:flex items-center gap-4 lg:gap-6 xl:gap-8"
+            data-onboarding="navigation"
+          >
             <Link to="/dashboard" className="nav-gaming">
               <div className="flex items-center gap-1.5 lg:gap-2">
-                <Trophy className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
+                <Home className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
                 <span className="text-sm lg:text-base">Home</span>
               </div>
             </Link>
@@ -109,7 +114,10 @@ export default function Header({ user }: HeaderProps) {
             {/* User Menu */}
             {user && (
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger 
+                  asChild
+                  data-onboarding="user-avatar"
+                >
                   <Button variant="ghost" className="relative h-12 w-12 sm:h-14 sm:w-14 md:h-14 md:w-16 lg:h-14 lg:w-14 rounded-full hover:scale-105 transition-all duration-200">
                     <div className="relative">
                       <UserAvatar 
@@ -171,7 +179,7 @@ export default function Header({ user }: HeaderProps) {
                   {/* Mobile Navigation Items */}
                   <div className="lg:hidden">
                     <DropdownMenuItem onClick={() => navigate(`/${user.username}`)} className="hover:bg-card/50 py-2 sm:py-3">
-                      <Trophy className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                      <Home className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                       <span className="text-sm sm:text-base">Home</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/battles')} className="hover:bg-card/50 py-2 sm:py-3">
@@ -200,33 +208,23 @@ export default function Header({ user }: HeaderProps) {
                   <DropdownMenuItem onClick={() => navigate(`/${user.username}/friends`)} className="hover:bg-card/50 py-2 sm:py-3">
                     <Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-sm sm:text-base">Friends</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(`/${user.username}/notifications`)} className="hover:bg-card/50 py-2 sm:py-3">
-                    <Bell className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-sm sm:text-base">Notifications</span>
-                    {notificationCount > 0 && (
-                      <Badge variant="destructive" className="ml-auto text-xs sm:text-sm animate-neon-pulse">
-                        {notificationCount}
+                    {(user?.friendRequests?.length || 0) > 0 && (
+                      <Badge className="ml-auto bg-red-500 text-white border-red-600 text-xs px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center">
+                        {user.friendRequests.length}
                       </Badge>
                     )}
                   </DropdownMenuItem>
+                  
                   <DropdownMenuSeparator className="bg-border/50" />
-                  <DropdownMenuItem 
-                    onClick={handleSignOut}
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive py-2 sm:py-3"
-                  >
+                  <DropdownMenuItem onClick={handleSignOut} className="text-destructive hover:bg-destructive/10 py-2 sm:py-3">
                     <LogOut className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-sm sm:text-base">Sign Out</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-
-
           </div>
-              </div>
-
-
+        </div>
       </div>
     </header>
   );

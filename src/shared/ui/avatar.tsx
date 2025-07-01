@@ -118,6 +118,66 @@ const AvatarImage = React.forwardRef<
 })
 AvatarImage.displayName = AvatarPrimitive.Image.displayName
 
+// Enhanced avatar generation utility functions
+const generateColorFromUsername = (username: string) => {
+  // Create a simple hash from the username
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    const char = username.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Define attractive color schemes
+  const colorSchemes = [
+    // Orange theme (primary)
+    { from: '#f97316', to: '#ea580c', text: '#ffffff' },
+    // Blue theme
+    { from: '#3b82f6', to: '#1d4ed8', text: '#ffffff' },
+    // Purple theme
+    { from: '#8b5cf6', to: '#7c3aed', text: '#ffffff' },
+    // Green theme
+    { from: '#10b981', to: '#059669', text: '#ffffff' },
+    // Pink theme
+    { from: '#ec4899', to: '#db2777', text: '#ffffff' },
+    // Teal theme
+    { from: '#06b6d4', to: '#0891b2', text: '#ffffff' },
+    // Indigo theme
+    { from: '#6366f1', to: '#4f46e5', text: '#ffffff' },
+    // Red theme
+    { from: '#ef4444', to: '#dc2626', text: '#ffffff' },
+    // Emerald theme
+    { from: '#34d399', to: '#10b981', text: '#ffffff' },
+    // Yellow theme
+    { from: '#fbbf24', to: '#f59e0b', text: '#000000' },
+  ];
+  
+  const colorIndex = Math.abs(hash) % colorSchemes.length;
+  return colorSchemes[colorIndex];
+};
+
+const generatePatternFromUsername = (username: string) => {
+  // Create pattern based on username
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    const char = username.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  
+  const patterns = [
+    'bg-gradient-to-br',
+    'bg-gradient-to-bl',
+    'bg-gradient-to-tr',
+    'bg-gradient-to-tl',
+    'bg-gradient-to-r',
+    'bg-gradient-to-l',
+  ];
+  
+  const patternIndex = Math.abs(hash) % patterns.length;
+  return patterns[patternIndex];
+};
+
 const AvatarFallback = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Fallback>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback> & {
@@ -125,27 +185,68 @@ const AvatarFallback = React.forwardRef<
     variant?: "default" | "faceit" | "gaming" | "competitive"
   }
 >(({ className, username, variant = "default", ...props }, ref) => {
-  const getVariantClasses = () => {
+  const getInitials = (name?: string) => {
+    if (!name) return "U";
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  const getEnhancedVariantClasses = () => {
+    if (!username) {
+      // Default fallback without username
+      return "flex h-full w-full items-center justify-center bg-gradient-to-br from-gray-400 to-gray-600 text-white font-semibold rounded-full";
+    }
+
+    const pattern = generatePatternFromUsername(username);
+    
+    const baseClasses = "flex h-full w-full items-center justify-center rounded-full font-bold text-lg tracking-wide";
+    
     switch (variant) {
       case "faceit":
-        return "flex h-full w-full items-center justify-center bg-gradient-to-br from-primary to-primary-light text-primary-foreground font-bold text-lg tracking-wide rounded-full"
+        return `${baseClasses} ${pattern} shadow-lg border-2 border-white/20 backdrop-blur-sm`;
       case "gaming":
-        return "flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/80 to-secondary text-primary-foreground font-bold text-xl rounded-full"
+        return `${baseClasses} ${pattern} shadow-xl border-2 border-white/30 animate-pulse`;
       case "competitive":
-        return "flex h-full w-full items-center justify-center bg-gradient-to-br from-primary to-primary-hover text-primary-foreground font-extrabold text-xl tracking-wider rounded-full"
+        return `${baseClasses} ${pattern} shadow-2xl border-3 border-white/40 font-extrabold text-xl tracking-wider`;
       default:
-        return "flex h-full w-full items-center justify-center bg-primary text-primary-foreground font-semibold rounded-full"
+        return `${baseClasses} ${pattern}`;
     }
-  }
+  };
+
+  const getInlineStyles = () => {
+    if (!username) {
+      return {};
+    }
+    
+    const colors = generateColorFromUsername(username);
+    return {
+      background: `linear-gradient(135deg, ${colors.from} 0%, ${colors.to} 100%)`,
+      color: colors.text,
+    };
+  };
 
   return (
     <AvatarPrimitive.Fallback
       ref={ref}
-      className={`aspect-square ${getVariantClasses()} ${className}`}
-      style={{ clipPath: 'circle(50%)' }}
+      className={`aspect-square ${getEnhancedVariantClasses()} ${className}`}
+      style={{ 
+        clipPath: 'circle(50%)',
+        ...getInlineStyles()
+      }}
       {...props}
     >
-      {username ? username.slice(0, 2).toUpperCase() : "U"}
+      <span className="relative z-10 drop-shadow-sm">
+        {getInitials(username)}
+      </span>
+      {/* Optional decorative pattern overlay */}
+      <div 
+        className="absolute inset-0 opacity-10"
+        style={{
+          clipPath: 'circle(50%)',
+          background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 2px, transparent 2px),
+                       radial-gradient(circle at 70% 70%, rgba(255,255,255,0.2) 1px, transparent 1px)`,
+          backgroundSize: '20px 20px, 30px 30px'
+        }}
+      />
     </AvatarPrimitive.Fallback>
   )
 })

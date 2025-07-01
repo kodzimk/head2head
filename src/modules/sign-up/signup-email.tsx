@@ -128,6 +128,12 @@ export default function EmailSignUpPage() {
           localStorage.setItem('access_token', response.data.access_token);
           localStorage.setItem("username", userData.username);
           localStorage.setItem('user', JSON.stringify(updatedUser));
+          
+          // Clear onboarding localStorage keys for new users to ensure they see onboarding
+          localStorage.removeItem('head2head-battle-onboarding');
+          localStorage.removeItem('head2head-training-onboarding');
+          localStorage.removeItem('head2head-dashboard-onboarding');
+          
           initializeWebSocketForNewUser(userData.username);
           navigate(`/${userData.username}`)
         } else {
@@ -203,7 +209,9 @@ export default function EmailSignUpPage() {
       <main className="relative z-10 flex py-4 sm:py-8 lg:py-12 px-3 sm:px-4 justify-center items-center min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)]">
         <div className="container mx-auto max-w-sm sm:max-w-md lg:max-w-2xl">
           {/* Main Form Card */}
-          <Card className="card-surface backdrop-blur-sm border-border/50 shadow-xl sm:shadow-2xl relative">
+          <Card 
+            className="card-surface backdrop-blur-sm border-border/50 shadow-xl sm:shadow-2xl relative"
+          >
             <CardHeader className="text-center pb-4 sm:pb-6 px-4 sm:px-6 pt-6 sm:pt-8">
               <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Sign Up with Email</CardTitle>
               <p className="text-sm sm:text-base text-muted-foreground mt-2">Fill in your details to get started</p>
@@ -212,7 +220,7 @@ export default function EmailSignUpPage() {
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
                 {/* Username */}
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="username" className="text-sm sm:text-base font-medium text-foreground">Username</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
@@ -230,7 +238,7 @@ export default function EmailSignUpPage() {
                 </div>
 
                 {/* Email */}
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="email" className="text-sm sm:text-base font-medium text-foreground">Email Address</Label>
                   <div className="space-y-1">
                     <div className="relative">
@@ -258,7 +266,7 @@ export default function EmailSignUpPage() {
                 </div>
 
                 {/* Password */}
-                <div className="space-y-2">
+                <div>
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password" className="text-sm sm:text-base font-medium text-foreground">Password</Label>
                     <button
