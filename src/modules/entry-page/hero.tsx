@@ -153,9 +153,9 @@ export default function Hero() {
       </section>
 
         {/* Features Section */}
-        <section className="section-padding-sm bg-card/20">
+        <section className="section-padding-sm bg-card/20 ">
           <div className="container-gaming">
-            <div className="text-center mb-12">
+            <div className="text-center mb-8 mt-8">
               <h2 className="text-heading-1 text-foreground mb-4 font-rajdhani">
                 Why Choose Head2Head?
             </h2>

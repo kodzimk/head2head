@@ -18,7 +18,7 @@ export default function Header() {
               h2h
             </div>
             <span className="font-bold text-lg sm:text-xl text-foreground hidden sm:inline">
-              Head<span className="text-primary">2</span>Head
+              head<span className="text-primary">2</span>head
             </span>
           </a>
           

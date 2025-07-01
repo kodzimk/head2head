@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './button';
 import { Camera, Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from './alert';
@@ -26,7 +26,20 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load current avatar asynchronously
+  useEffect(() => {
+    const loadCurrentAvatar = async () => {
+      const resolvedUrl = await AvatarStorage.resolveAvatarUrlAsync(user);
+      setCurrentAvatarUrl(resolvedUrl);
+    };
+    
+    if (user?.username) {
+      loadCurrentAvatar();
+    }
+  }, [user?.username, user?.avatar]);
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -69,6 +82,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
       
       // Update UI immediately with local avatar
       onAvatarUpdate(localAvatarUrl);
+      setCurrentAvatarUrl(localAvatarUrl);
       
       // Also upload to server in background
       try {
@@ -125,7 +139,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
     }
   };
 
-  const currentAvatar = previewUrl || user.avatar;
+  const displayAvatarUrl = previewUrl || currentAvatarUrl;
 
   return (
     <div className={`flex flex-col items-center space-y-4 ${className}`}>
@@ -135,13 +149,13 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
           className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-orange-500/20 bg-card shadow-lg"
           style={{ clipPath: 'circle(50%)' }}
         >
-          {currentAvatar ? (
-                                    <img
-                          src={previewUrl || AvatarStorage.resolveAvatarUrl(user) || '/images/placeholder-user.jpg'}
-                          alt="Avatar"
-                          className="w-full h-full object-cover object-center"
-                          style={{ clipPath: 'circle(50%)' }}
-                        />
+          {displayAvatarUrl ? (
+            <img
+              src={displayAvatarUrl}
+              alt="Avatar"
+              className="w-full h-full object-cover object-center"
+              style={{ clipPath: 'circle(50%)' }}
+            />
           ) : (
             <div className="w-full h-full bg-orange-500 flex items-center justify-center text-white text-2xl font-bold">
               {user.username.slice(0, 2).toUpperCase()}

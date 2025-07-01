@@ -1,5 +1,221 @@
 # Cursor Development Logs
 
+## Leaderboard Authentication Fix - December 2024
+
+### Issue Resolution: Unauthorized User Navigation from Leaderboard
+
+**Problem**: When unauthorized users accessed the leaderboard through the entry page and tried to navigate to other pages, they encountered sign-in warnings and authentication issues.
+
+**Root Cause**: The leaderboard component was using the dashboard Header component designed for authenticated users, even when accessed by unauthorized users. This caused issues when the Header tried to access user data that didn't exist for unauthorized users.
+
+#### Solution Implemented:
+
+**Modified Leaderboard Component** (`src/modules/leaderboard/leaderboard.tsx`):
+
+1. **Conditional Header Rendering**:
+   - Added `EntryHeader` import from entry page
+   - Added authentication check: `isAuthenticated = user && user.username && localStorage.getItem("access_token")`
+   - Conditionally render Header for authenticated users or EntryHeader for unauthorized users
+   - `{isAuthenticated ? <Header user={user} /> : <EntryHeader />}`
+
+2. **Conditional User Rank Card**:
+   - Only show "Your Rank" card for authenticated users
+   - Wrapped user rank section with `{isAuthenticated && (...)}`
+   - Prevents rank display for unauthorized users who don't have rank data
+
+3. **Safe User Data Access**:
+   - Changed `user.username` to `user?.username` for safe access
+   - Prevents errors when user object is null/undefined
+   - Added optional chaining for all user data access points
+
+4. **Back Navigation**:
+   - Added back arrow button to navigate to entry page for unauthorized users only
+   - Imported `useNavigate` from react-router-dom and `ArrowLeft` icon from lucide-react
+   - Conditionally shown with `{!isAuthenticated && (...)}` for unauthorized users
+   - Hidden for authenticated users since they have full navigation header
+   - Added consistent back button in both loading and loaded states
+   - Button uses outline variant with prominent styling for visibility
+   - Fixed header overlap issue with proper padding (`pt-20 sm:pt-24 md:pt-28`) and z-index
+
+#### Technical Benefits:
+
+**Improved User Experience**:
+- Unauthorized users can now browse leaderboard without authentication errors
+- Proper navigation header for unauthorized users (EntryHeader with sign-up/sign-in options)
+- No more sign-in warnings when navigating from leaderboard
+- Clean separation between authenticated and unauthorized user experiences
+
+**Enhanced Security**:
+- Proper authentication checks before displaying user-specific data
+- No attempts to access user data when not authenticated
+- Clear distinction between public and private features
+
+**Better Error Handling**:
+- Safe user data access with optional chaining
+- No more null/undefined errors for unauthorized users
+- Graceful degradation of features based on authentication status
+
+#### Implementation Details:
+
+**Authentication Logic**:
+```javascript
+const isAuthenticated = Boolean(user && user.username && localStorage.getItem("access_token"));
+```
+
+**Conditional Rendering Pattern**:
+```javascript
+{isAuthenticated ? <Header user={user} /> : <EntryHeader />}
+```
+
+**Safe Data Access**:
+```javascript
+const isCurrentUser = player.username === user?.username;
+const currentUserRank = leaderboardData.find(u => u.username === user?.username)?.rank || 0;
+```
+
+**Back Navigation**:
+```javascript
+const navigate = useNavigate();
+
+<main className="container-gaming pt-20 sm:pt-24 md:pt-28 pb-8">
+  {/* Back Button - Only for unauthorized users */}
+  {!isAuthenticated && (
+    <div className="mb-6 relative z-10">
+      <Button
+        variant="outline"
+        onClick={() => navigate("/")}
+        className="flex items-center gap-2 text-white bg-primary/20 border-primary hover:bg-primary hover:text-white transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back to Entry Page</span>
+      </Button>
+    </div>
+  )}
+</main>
+```
+
+This fix ensures that the leaderboard is fully accessible to both authenticated and unauthorized users, with appropriate UI and navigation options for each user type. The back button provides clear navigation path for unauthorized users to return to the main entry page, while authenticated users use the full navigation header.
+
+## Avatar System Comprehensive Fix - December 2024
+
+### Issue Resolution: Proper Avatar Upload, Show, and Save
+
+**Problem**: The avatar system had several issues preventing proper uploading, displaying, and saving of avatars:
+1. Leaderboard showing placeholder avatars instead of real user avatars
+2. Inconsistent avatar loading between local storage and server avatars
+3. Mixed synchronous/asynchronous avatar resolution causing display issues
+4. Avatar upload component not properly updating UI after upload
+
+**Root Causes**: 
+- The leaderboard was using synchronous `resolveAvatarUrl()` which returns `null` for locally stored avatars (stored in IndexedDB)
+- Different components handled avatar loading differently, causing inconsistencies
+- Missing proper async loading in avatar display components
+- Upload process didn't properly update all UI components
+
+#### Solution Implemented:
+
+**1. Enhanced Avatar Storage Utility** (`src/shared/utils/avatar-storage.ts`):
+   - Added `resolveAvatarUrlAsync()` function with proper priority: local → server → fallback
+   - Comprehensive avatar resolution with proper error handling
+   - Maintains backward compatibility with existing `resolveAvatarUrl()`
+
+**2. Improved UserAvatar Component** (`src/shared/ui/user-avatar.tsx`):
+   - Added async avatar loading with proper state management
+   - Loading states with fallback during avatar resolution
+   - Priority-based avatar display: local storage → server → initials fallback
+   - Proper error handling and retry mechanisms
+
+**3. Updated Leaderboard Component** (`src/modules/leaderboard/leaderboard.tsx`):
+   - Replaced basic Avatar component with enhanced UserAvatar component
+   - Now properly displays locally stored and server avatars
+   - Uses faceit variant with borders for better visual appeal
+   - Async loading ensures avatars appear correctly
+
+**4. Enhanced Avatar Upload Component** (`src/shared/ui/avatar-upload.tsx`):
+   - Added async avatar loading for current avatar display
+   - Proper state management for preview and current avatar URLs
+   - Immediate UI updates when avatar is uploaded locally
+   - Better error handling and user feedback
+
+#### Technical Benefits:
+
+**Proper Avatar Display Priority**:
+```javascript
+// Priority system: Local → Server → Fallback
+static async resolveAvatarUrlAsync(user) {
+  // 1. Try local IndexedDB storage first
+  const localAvatar = await this.getAvatar(user.username);
+  if (localAvatar) return localAvatar;
+  
+  // 2. Try server avatar
+  if (user.avatar) return buildServerUrl(user.avatar);
+  
+  // 3. Return null for fallback to initials
+  return null;
+}
+```
+
+**Enhanced Component Loading**:
+```javascript
+// UserAvatar with async loading
+const [avatarUrl, setAvatarUrl] = useState(null);
+const [isLoading, setIsLoading] = useState(true);
+
+useEffect(() => {
+  const loadAvatar = async () => {
+    const resolvedUrl = await AvatarStorage.resolveAvatarUrlAsync(user);
+    setAvatarUrl(resolvedUrl);
+    setIsLoading(false);
+  };
+  loadAvatar();
+}, [user?.username, user?.avatar]);
+```
+
+**Upload Process Improvements**:
+```javascript
+// Upload flow with proper UI updates
+const localAvatarUrl = await AvatarStorage.saveAvatar(user.username, file);
+onAvatarUpdate(localAvatarUrl);        // Update parent component
+setCurrentAvatarUrl(localAvatarUrl);   // Update upload component display
+// Background server upload continues...
+```
+
+#### User Experience Improvements:
+
+**Leaderboard Avatars**:
+- ✅ Real user avatars now display properly instead of placeholders
+- ✅ Fast loading from local storage with server fallback
+- ✅ Professional faceit-style avatar display with borders
+- ✅ Graceful fallback to user initials when no avatar exists
+
+**Avatar Upload**:
+- ✅ Immediate preview during upload process
+- ✅ Proper display of current avatar (local or server)
+- ✅ Real-time UI updates when avatar changes
+- ✅ Better error handling and user feedback
+
+**System-Wide Consistency**:
+- ✅ All components now use the same avatar resolution logic
+- ✅ Consistent loading states across the application
+- ✅ Proper offline/online avatar handling
+- ✅ Maintains performance with local storage priority
+
+#### Implementation Details:
+
+**Avatar Loading Chain**:
+1. **Local Storage Check**: IndexedDB for immediate loading
+2. **Server Avatar**: Fallback to server-stored avatar
+3. **Initials Fallback**: Username initials with consistent styling
+4. **Error Handling**: Graceful degradation on any failures
+
+**Component Updates**:
+- `UserAvatar`: Enhanced with async loading and proper state management
+- `AvatarUpload`: Improved display logic and upload feedback
+- `Leaderboard`: Switched to UserAvatar for proper avatar display
+- `AvatarStorage`: Added comprehensive async resolution function
+
+This comprehensive fix ensures that avatars are properly uploaded, saved locally and on server, and displayed consistently across all components with proper loading states and fallback mechanisms.
+
 ## API URL Configuration Update - December 2024
 
 ### Complete API Base URL Standardization
@@ -150,6 +366,147 @@ The draw logic now provides:
 5. **Proper Logging**: Enhanced logging for draw detection and debugging
 
 This implementation makes draws feel like a meaningful and positive part of the competitive experience rather than just a "non-result", providing users with clear feedback about their performance and encouraging continued engagement.
+
+## Avatar Fetching Implementation Across All Components - December 2024
+
+### Background
+After implementing the enhanced avatar system, the user requested to "properly fetch avatar" across all application components. Several components were still using the old synchronous `AvatarStorage.resolveAvatarUrl()` method instead of the new async system.
+
+### Components Updated for Proper Avatar Fetching
+
+#### 1. Dashboard Header (`src/modules/dashboard/header.tsx`)
+**Changes Made**:
+- Replaced two manual avatar `img` elements with `UserAvatar` components
+- Removed dependency on `AvatarStorage.resolveAvatarUrl()` 
+- Added proper async avatar loading for both dropdown trigger and dropdown menu
+- Enhanced styling with gaming variant and status indicators
+
+**Key Improvements**:
+```javascript
+// Before: Manual img with synchronous avatar resolution
+<img src={AvatarStorage.resolveAvatarUrl(user) || '/images/placeholder-user.jpg'} />
+
+// After: Enhanced UserAvatar with async loading
+<UserAvatar 
+  user={user}
+  size="xl"
+  variant="gaming"
+  status="online"
+  showBorder={true}
+  showGlow={true}
+/>
+```
+
+#### 2. Dashboard Overview Tab (`src/modules/dashboard/tabs/overview.tsx`)
+**Changes Made**:
+- Replaced `Avatar`/`AvatarImage` combination with `UserAvatar` component
+- Maintained existing avatar caching logic but improved display
+- Added gaming variant styling for better visual appeal
+- Proper fallback handling with user initials
+
+**Benefits**:
+- Consistent avatar loading with priority system (local → server → fallback)
+- Better visual styling with borders and hover effects
+- Proper loading states during avatar resolution
+
+#### 3. Profile View Page (`src/modules/profile/view-profile.tsx`)
+**Changes Made**:
+- Replaced manual avatar rendering in main profile display
+- Updated dropdown menu avatar to use `UserAvatar` component
+- Removed two instances of `AvatarStorage.resolveAvatarUrl()` usage
+- Enhanced responsive sizing and styling
+
+**Implementation Details**:
+- Main profile avatar: Uses `xl` size with gaming variant and borders
+- Dropdown avatar: Uses `md` size with default variant
+- Consistent fallback to user initials when no avatar available
+
+#### 4. Battle Page (`src/modules/battle/battle.tsx`)
+**Changes Made**:
+- Replaced `Avatar` component for battle opponents with `UserAvatar`
+- Fixed import issues (type-only import for User type)
+- Enhanced battle card avatars with faceit variant
+- Proper handling of opponent avatar data
+
+**Technical Implementation**:
+```javascript
+// Before: Manual avatar with potential loading issues
+<Avatar className="leaderboard-avatar" variant="faceit">
+  <AvatarImage src={AvatarStorage.resolveAvatarUrl({ username: battle_data.first_opponent, avatar: battle_data.creator_avatar })} />
+</Avatar>
+
+// After: Async-capable UserAvatar
+<UserAvatar
+  user={{ username: battle_data.first_opponent, avatar: battle_data.creator_avatar }}
+  size="md"
+  variant="faceit"
+  className="leaderboard-avatar"
+/>
+```
+
+### System-Wide Avatar Loading Strategy
+
+#### Priority-Based Loading System
+1. **Local Storage First**: Check IndexedDB for locally stored avatars (instant loading)
+2. **Server Fallback**: Fetch from server if no local avatar exists
+3. **Initials Fallback**: Show user initials if no avatar is available
+4. **Graceful Degradation**: Handle all error cases properly
+
+#### Performance Optimizations
+- **Batch Processing**: Battle page processes avatars in batches of 3 to avoid overwhelming the system
+- **Caching Strategy**: Automatic server avatar caching to IndexedDB for faster subsequent loads
+- **Loading States**: Proper loading indicators during async operations
+- **Error Handling**: Comprehensive error handling with console warnings for debugging
+
+#### Consistency Improvements
+- **Unified Component**: All avatar displays now use the same `UserAvatar` component
+- **Consistent Styling**: Standardized sizing, variants, and styling across the application
+- **Responsive Design**: Proper responsive sizing and spacing for all screen sizes
+- **Status Indicators**: Support for online/offline status where applicable
+
+### Technical Architecture
+
+#### Avatar Resolution Flow
+```
+1. UserAvatar Component Called
+   ↓
+2. Check IndexedDB (Local Storage)
+   ↓ (if not found)
+3. Fetch from Server
+   ↓ (if available)
+4. Cache to IndexedDB
+   ↓ (if all fail)
+5. Show User Initials
+```
+
+#### Error Handling Strategy
+- Non-blocking errors: Avatar failures don't affect application functionality
+- Fallback chain: Multiple fallback options ensure something always displays
+- Logging: Comprehensive error logging for debugging
+- User Experience: Seamless experience even when avatars fail to load
+
+### Files Modified in This Session
+1. `src/modules/dashboard/header.tsx` - Enhanced UserAvatar integration
+2. `src/modules/dashboard/tabs/overview.tsx` - Consistent avatar display  
+3. `src/modules/profile/view-profile.tsx` - Profile page avatar improvements
+4. `src/modules/battle/battle.tsx` - Battle opponent avatar fixes
+5. `cursor-logs.md` - Comprehensive documentation
+
+### User Experience Improvements
+- ✅ **Faster Loading**: Local storage priority for instant avatar display
+- ✅ **Consistent Display**: Same avatar logic across all components
+- ✅ **Better Fallbacks**: Graceful degradation when avatars unavailable
+- ✅ **Real-time Updates**: Immediate UI updates when avatars are uploaded
+- ✅ **Responsive Design**: Proper scaling and positioning on all devices
+- ✅ **Error Resilience**: Application continues working even with avatar failures
+
+### Development Notes
+- All components now use the enhanced `UserAvatar` component instead of manual avatar handling
+- The old `AvatarStorage.resolveAvatarUrl()` method is maintained for backward compatibility but no longer used in the UI
+- Avatar system is fully async-capable and provides better performance and user experience
+- Comprehensive error handling ensures the application remains stable even with avatar loading issues
+
+**Status**: Avatar fetching is now properly implemented across all application components with consistent async loading, caching, and fallback strategies.
 
 ## Username Update Synchronization Fix - 2024-01-10
 
@@ -3898,6 +4255,82 @@ Enhanced the notification badge with more robust styling and positioning:
 The badge is temporarily set to always show (`|| true`) to verify styling works correctly. This should be reverted to `notificationCount > 0` once the display is confirmed working.
 
 This fix ensures users can clearly see when they have pending notifications, improving the overall user experience and notification awareness.
+
+## 2024-12-19 - Fixed Anonymous Opponent Display in Battle Results
+
+### Issue
+Battle opponents were showing as "Anonymous" with placeholder avatars instead of displaying their real usernames and profile pictures in the battle results screen.
+
+### Root Cause
+The result component was hardcoded to show "Anonymous" for opponents and had no mechanism to track or display actual opponent information. The battle system was not storing opponent details for use in the results view.
+
+### Solution
+Implemented a comprehensive opponent tracking system that captures and displays real opponent information:
+
+### Technical Implementation
+
+1. **Created Opponent Store**: Added new global state management for opponent information
+   ```typescript
+   interface OpponentStoreType {
+     opponentUsername: string;
+     opponentAvatar: string;
+     setOpponentUsername: (username: string) => void;
+     setOpponentAvatar: (avatar: string) => void;
+     setOpponent: (username: string, avatar: string) => void;
+   }
+   ```
+
+2. **Added Provider**: Integrated OpponentStore.Provider into the main App component context chain
+
+3. **Enhanced Quiz Component**: Modified `quiz-question.tsx` to capture opponent data during battle
+   - Extracts opponent username from battle scores data
+   - Fetches complete opponent profile information via API
+   - Stores opponent username and avatar in global state
+   - Uses ref to prevent duplicate API calls
+
+4. **Updated Result Component**: Modified `result.tsx` to display real opponent information
+   - Replaced hardcoded "Anonymous" with actual opponent username
+   - Shows opponent's real avatar using FaceitAvatar component
+   - Falls back to placeholder if opponent data is unavailable
+
+### Key Features Added
+
+**Opponent Data Capture**:
+- Automatically detects opponent when battle scores are first received
+- Fetches complete opponent profile from `/db/get-user-by-username` endpoint
+- Stores both username and avatar URL in persistent global state
+- Prevents duplicate API calls with ref-based tracking
+
+**Enhanced Results Display**:
+- Shows opponent's real username instead of "Anonymous"
+- Displays opponent's actual profile picture/avatar
+- Uses same avatar component styling as user avatar for consistency
+- Graceful fallback to placeholder if data unavailable
+
+**Error Handling**:
+- Handles API failures gracefully by storing username without avatar
+- Maintains existing placeholder behavior for edge cases
+- Logs all operations for debugging
+
+### Files Modified
+- `src/shared/interface/gloabL_var.tsx`: Added OpponentStore interface and context
+- `src/app/App.tsx`: Added opponent state and provider integration
+- `src/modules/battle/quiz-question.tsx`: Added opponent data fetching logic
+- `src/modules/battle/result.tsx`: Updated UI to display real opponent information
+
+### User Experience Improvements
+- **Real Opponent Recognition**: Users can see who they actually battled against
+- **Profile Consistency**: Opponent avatars match the same style as user avatars
+- **Battle Context**: Results screen now provides meaningful opponent identification
+- **Visual Clarity**: No more confusing "Anonymous" labels in battle results
+
+### Technical Benefits
+- **State Management**: Centralized opponent data storage across components
+- **Performance**: Single API call per battle for opponent data
+- **Consistency**: Uses existing avatar and user interface components
+- **Reliability**: Robust error handling and fallback mechanisms
+
+This resolves the core issue where users couldn't identify their opponents in battle results, providing a much more engaging and informative post-battle experience.
 - The backend `/battle/reject-invitation` endpoint expects `friend_username` and `battle_id` as query parameters
 - The new "Invite" functionality uses the existing `/battle/invite-friend` endpoint
 - All changes maintain proper state synchronization and websocket communication

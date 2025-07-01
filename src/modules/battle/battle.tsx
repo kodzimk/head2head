@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { Play, Clock, Trophy, RefreshCw, Undo, UserPlus, AlertCircle } from 'lucide-react'
 import Header from '../dashboard/header'
-import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
 import { joinBattle, sendMessage, cancelBattle } from '../../shared/websockets/websocket'
 import { newSocket, reconnectWebSocket } from '../../app/App'
 import { Label } from '../../shared/ui/label'
@@ -15,6 +14,7 @@ import { API_BASE_URL } from "../../shared/interface/gloabL_var"
 import axios from 'axios'
 import { Badge } from '../../shared/ui/badge'
 import AvatarStorage from '../../shared/utils/avatar-storage'
+import { UserAvatar } from '../../shared/ui/user-avatar';
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
@@ -509,17 +509,12 @@ export default function BattlePage() {
                         }`}
                       >
                         <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 mb-3 sm:mb-0">
-                          <Avatar className="leaderboard-avatar" variant="faceit">
-                            <AvatarImage
-                              src={AvatarStorage.resolveAvatarUrl({ username: battle_data.first_opponent, avatar: battle_data.creator_avatar }) || "/images/placeholder-user.jpg"}
-                              alt={battle_data.first_opponent}
-                            />
-                            <AvatarFallback className={`${
-                              isUserBattle ? 'bg-primary' : 'bg-secondary'
-                            } text-primary-foreground text-responsive-xs font-semibold`}>
-                              {battle_data.first_opponent.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserAvatar
+                            user={{ username: battle_data.first_opponent, avatar: battle_data.creator_avatar }}
+                            size="md"
+                            variant="faceit"
+                            className="leaderboard-avatar"
+                          />
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
                               <h3 className="font-semibold text-foreground text-responsive-sm truncate">

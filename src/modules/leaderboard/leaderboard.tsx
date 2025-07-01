@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
 import Header from "../dashboard/header";
+import EntryHeader from "../entry-page/header";
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar";
 import { Badge } from "../../shared/ui/badge";
-import { Trophy, Medal, Award, TrendingUp } from "lucide-react";
+import { Button } from "../../shared/ui/button";
+import { Trophy, Medal, Award, TrendingUp, ArrowLeft } from "lucide-react";
 import axios from "axios";
 import { API_BASE_URL } from "../../shared/interface/gloabL_var";
 import AvatarStorage from "../../shared/utils/avatar-storage";
+import { UserAvatar } from "../../shared/ui/user-avatar";
 
 interface LeaderboardUser {
   rank: number;
@@ -29,9 +32,13 @@ const getRankIcon = (rank: number) => {
 
 export default function LeaderboardPage() {
   const { user } = useGlobalStore();
+  const navigate = useNavigate();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [,setError] = useState<string | null>(null);
+
+  // Check if user is authenticated - simplified check
+  const isAuthenticated = Boolean(user && user.username && localStorage.getItem("access_token"));
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -104,13 +111,27 @@ export default function LeaderboardPage() {
     fetchAndCacheAvatars();
   }, [leaderboardData]);
 
-  const currentUserRank = leaderboardData.find(u => u.username === user.username)?.rank || 0;
+  const currentUserRank = leaderboardData.find(u => u.username === user?.username)?.rank || 0;
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background bg-gaming-pattern">
-        <Header user={user} />
-        <main className="container-gaming py-8">
+        {isAuthenticated ? <Header user={user} /> : <EntryHeader />}
+        <main className="container-gaming pt-20 sm:pt-24 md:pt-28 pb-8">
+          {/* Back Button - Only for unauthorized users */}
+          {!isAuthenticated && (
+            <div className="mb-6 relative z-10">
+              <Button
+                variant="outline"
+                onClick={() => navigate("/")}
+                className="flex items-center gap-2 text-white bg-primary/20 border-primary hover:bg-primary hover:text-white transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Entry Page</span>
+              </Button>
+            </div>
+          )}
+          
           <div className="flex items-center justify-center min-h-[60vh]">
             <div className="text-center space-y-4">
               <div className="loading-gaming w-12 h-12 rounded-lg mx-auto"></div>
@@ -124,8 +145,22 @@ export default function LeaderboardPage() {
   
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
-      <Header user={user} />
-      <main className="container-gaming py-8">
+      {isAuthenticated ? <Header user={user} /> : <EntryHeader />}
+      <main className="container-gaming pt-20 sm:pt-24 md:pt-28 pb-8">
+        {/* Back Button - Only for unauthorized users */}
+        {!isAuthenticated && (
+          <div className="mb-6 relative z-10">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 text-white bg-primary/20 border-primary hover:bg-primary hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Entry Page</span>
+            </Button>
+          </div>
+        )}
+
         <div className="space-y-6 sm:space-y-8">
           {/* Header */}
           <div className="text-center space-y-2 sm:space-y-3">
@@ -137,20 +172,22 @@ export default function LeaderboardPage() {
             </p>
           </div>
 
-          {/* User Rank Card */}
-          <div className="flex justify-center w-full">
-            <Card className="card-surface-2 border-primary/20 w-full max-w-sm">
-              <CardContent className="responsive-padding">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-responsive-xs text-muted-foreground uppercase tracking-wide font-mono">Your Rank</p>
-                    <p className="text-responsive-xl font-bold text-primary font-rajdhani">#{currentUserRank || "Unranked"}</p>
+          {/* User Rank Card - Only show for authenticated users */}
+          {isAuthenticated && (
+            <div className="flex justify-center w-full">
+              <Card className="card-surface-2 border-primary/20 w-full max-w-sm">
+                <CardContent className="responsive-padding">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-responsive-xs text-muted-foreground uppercase tracking-wide font-mono">Your Rank</p>
+                      <p className="text-responsive-xl font-bold text-primary font-rajdhani">#{currentUserRank || "Unranked"}</p>
+                    </div>
+                    <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-primary/70" />
                   </div>
-                  <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-primary/70" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Leaderboard */}
           <Card className="card-surface">
@@ -172,7 +209,7 @@ export default function LeaderboardPage() {
               ) : (
                 <div className="grid-leaderboard">
                   {leaderboardData.map((player) => {
-                    const isCurrentUser = player.username === user.username;
+                    const isCurrentUser = player.username === user?.username;
                     return (
                       <div
                         key={player.username}
@@ -187,15 +224,13 @@ export default function LeaderboardPage() {
                           </div>
                           
                           {/* Avatar */}
-                          <Avatar className="leaderboard-avatar">
-                            <AvatarImage
-                              src={AvatarStorage.resolveAvatarUrl({ username: player.username, avatar: player.avatar }) || "/images/placeholder-user.jpg"}
-                              alt={player.username}
-                            />
-                            <AvatarFallback className="bg-primary text-primary-foreground text-responsive-xs font-semibold">
-                              {player.username.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserAvatar 
+                            user={{ username: player.username, avatar: player.avatar }}
+                            size="lg"
+                            variant="faceit"
+                            showBorder={true}
+                            className="leaderboard-avatar"
+                          />
                           
                           {/* Player Info */}
                           <div className="leaderboard-info">

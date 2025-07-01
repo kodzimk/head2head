@@ -310,7 +310,7 @@ export default function SignInPage() {
               style={{ backgroundColor: 'hsl(220 13% 12% / 0.95)' }}>
         <div className="flex items-center gap-2 sm:gap-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/sign-up')}
             className="flex items-center text-muted-foreground hover:text-primary transition-colors p-1 sm:p-2 rounded-lg hover:bg-card/20"
           >
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import AvatarStorage from '../utils/avatar-storage';
+import { API_BASE_URL } from '../interface/gloabL_var';
 
 interface User {
   username: string;
@@ -19,7 +20,7 @@ export const useAvatarPersistence = (user: User) => {
       const localAvatar = AvatarStorage.getAvatar(user.username);
       
       if (localAvatar) {
-        setPersistentAvatarUrl('http://localhost:8000/avatars/'+localAvatar);
+        setPersistentAvatarUrl(`${API_BASE_URL}/avatars/${localAvatar}`);
         setIsLoading(false);
       } else if (user.avatar) {
         // If no local avatar but server avatar exists, cache it
@@ -30,16 +31,16 @@ export const useAvatarPersistence = (user: User) => {
             // Construct full URL if needed
             if (serverUrl && !serverUrl.startsWith('http')) {
               if (serverUrl.startsWith('/')) {
-                serverUrl = `http://localhost:8000${serverUrl}`;
+                serverUrl = `${API_BASE_URL}${serverUrl}`;
               } else {
-                serverUrl = `http://localhost:8000/avatars/${serverUrl}`;
+                serverUrl = `${API_BASE_URL}/avatars/${serverUrl}`;
               }
             }
             
             if (serverUrl) {
               await AvatarStorage.cacheServerAvatar(user.username, serverUrl);
               const cachedAvatar = AvatarStorage.getAvatar(user.username);
-              setPersistentAvatarUrl('http://localhost:8000/avatars/'+cachedAvatar);
+              setPersistentAvatarUrl(`${API_BASE_URL}/avatars/${cachedAvatar}`);
             }
           } catch (error) {
             console.warn('[useAvatarPersistence] Failed to cache server avatar:', error);
@@ -63,7 +64,7 @@ export const useAvatarPersistence = (user: User) => {
   const updateAvatar = async (file: File) => {
     try {
       const localAvatarUrl = await AvatarStorage.saveAvatar(user.username, file);
-      setPersistentAvatarUrl('http://localhost:8000/avatars/'+localAvatarUrl);
+      setPersistentAvatarUrl(`${API_BASE_URL}/avatars/${localAvatarUrl}`);
       return localAvatarUrl;
     } catch (error) {
       console.error('[useAvatarPersistence] Failed to update avatar:', error);

@@ -4,7 +4,6 @@ import axios from 'axios'
 import { Button } from '../../shared/ui/button'
 import { UserPlus, Home, Play, List, Trophy, BookOpen, Users, Bell, UserIcon, LogOut, ArrowLeft } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../../shared/ui/dropdown-menu'
 import type { User } from '../../shared/interface/user'
 import { initialUser } from '../../shared/interface/user'
@@ -13,6 +12,7 @@ import { cancelFriendRequest } from '../../shared/websockets/websocket'
 import { API_BASE_URL, useGlobalStore } from "../../shared/interface/gloabL_var"
 import { newSocket } from '../../app/App'
 import AvatarStorage from '../../shared/utils/avatar-storage'
+import { UserAvatar } from '../../shared/ui/user-avatar'
 
 export const ViewProfile = ({user}: {user: User}) => {
   const { username } = useParams<{ username: string }>()
@@ -311,16 +311,12 @@ export const ViewProfile = ({user}: {user: User}) => {
               variant="ghost"
               className="relative h-10 w-10 sm:h-12 sm:w-12 md:h-10 md:w-12 rounded-full hover:bg-card"
             >
-              <Avatar className="h-10 w-10 sm:h-12 sm:w-12 md:h-10 md:w-12">
-                <AvatarImage
-                  src={AvatarStorage.resolveAvatarUrl(user) || "/placeholder.svg"}
-                  alt={user.username}
-                  username={user.username}
-                />
-                <AvatarFallback className="bg-orange-500 text-white">
-                  {user.username.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                user={user}
+                size="md"
+                variant="default"
+                className="h-10 w-10 sm:h-12 sm:w-12 md:h-10 md:w-12"
+              />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -409,26 +405,13 @@ export const ViewProfile = ({user}: {user: User}) => {
             <div className="p-6">
               <div className="flex items-center space-x-4 mb-6">
                 <div className="relative">
-                  {viewUser.avatar ? (
-                    <div 
-                      className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-20 lg:w-20 lg:h-20 rounded-full overflow-hidden border-2 sm:border-3 md:border-4 lg:border-3 border-primary aspect-square"
-                      style={{ clipPath: 'circle(50%)' }}
-                    >
-                      <img
-                        src={AvatarStorage.resolveAvatarUrl(viewUser) || '/images/placeholder-user.jpg'}
-                        alt={`${viewUser.username}'s avatar`}
-                        className="w-full h-full object-cover object-center"
-                        style={{ clipPath: 'circle(50%)' }}
-                      />
-                    </div>
-                  ) : (
-                    <div 
-                      className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-20 lg:w-20 lg:h-20 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-lg sm:text-xl md:text-2xl lg:text-xl font-bold border-2 sm:border-3 md:border-4 lg:border-3 border-primary aspect-square"
-                      style={{ clipPath: 'circle(50%)' }}
-                    >
-                      {viewUser.username.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
+                  <UserAvatar
+                    user={viewUser}
+                    size="xl"
+                    variant="gaming"
+                    showBorder={true}
+                    className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-20 lg:w-20 lg:h-20"
+                  />
                 </div>
                 <div>
                   <h1 className="text-heading-2 text-foreground">{viewUser.username}</h1>

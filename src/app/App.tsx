@@ -11,7 +11,7 @@ import BattlesPage from '../modules/battle/battle'
 import WaitingPage from '../modules/battle/waiting-room'
 import { useState, useEffect } from 'react'
 
-import { BattleStore, CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore, RefreshViewStore, useRefreshViewStore } from '../shared/interface/gloabL_var'
+import { BattleStore, CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore, RefreshViewStore, useRefreshViewStore, OpponentStore } from '../shared/interface/gloabL_var'
 import { ViewProfile } from '../modules/profile/view-profile'
 import LeaderboardPage from '../modules/leaderboard/leaderboard'
 import SelectionPage from '../modules/selection/selection'
@@ -115,8 +115,15 @@ export default function App() {
   const [result, setResult] = useState<string>('');
   const [battle, setBattle] = useState<Battle[]>([]);
   const [activeBattleId, setActiveBattleId] = useState<string | null>(null);
+  const [opponentUsername, setOpponentUsername] = useState<string>('');
+  const [opponentAvatar, setOpponentAvatar] = useState<string>('');
   const navigate = useNavigate()
   const {refreshView, setRefreshView} = useRefreshViewStore()
+  
+  const setOpponent = (username: string, avatar: string) => {
+    setOpponentUsername(username);
+    setOpponentAvatar(avatar);
+  };
   // Handle manual page reload
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -423,6 +430,7 @@ export default function App() {
           <LoserStore.Provider value={{loser, setLoser: (loser: string) => setLoser(loser)}}>
           <ResultStore.Provider value={{result, setResult: (result: string) => setResult(result)}}>
           <BattleStore.Provider value={{battle, setBattle: (battle: Battle[]) => setBattle(battle)}}>
+          <OpponentStore.Provider value={{opponentUsername, opponentAvatar, setOpponentUsername, setOpponentAvatar, setOpponent}}>
           <RefreshViewStore.Provider value={{refreshView, setRefreshView: (view: boolean) => setRefreshView(view)}}>
             <div className={theme ? 'dark' : ''}>
             <Routes>
@@ -450,6 +458,7 @@ export default function App() {
             </Routes>
           </div>
           </RefreshViewStore.Provider>
+          </OpponentStore.Provider>
           </BattleStore.Provider>
           </ResultStore.Provider>
           </LoserStore.Provider>

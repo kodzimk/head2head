@@ -8,9 +8,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '../../shared/ui/button';
 import { Card, CardContent, CardHeader } from '../../shared/ui/card';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useCurrentQuestionStore, useGlobalStore, useScoreStore, useTextStore, useWinnerStore, useLoserStore, useResultStore } from '../../shared/interface/gloabL_var';
+import { useCurrentQuestionStore, useGlobalStore, useScoreStore, useTextStore, useWinnerStore, useLoserStore, useResultStore, useOpponentStore } from '../../shared/interface/gloabL_var';
 import { BattleWebSocket } from '../../shared/websockets/battle-websocket';
 import type { Question } from '../../shared/interface/question';
+import axios from 'axios';
+import { API_BASE_URL } from '../../shared/interface/gloabL_var';
 
 const QUESTION_TIME_LIMIT = 10; // 10 seconds per question
 
@@ -23,6 +25,7 @@ export default function QuizQuestionPage() {
   const { setWinner } = useWinnerStore();
   const { setLoser } = useLoserStore();
   const { setResult } = useResultStore();
+  const { setOpponent } = useOpponentStore();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -39,6 +42,27 @@ export default function QuizQuestionPage() {
   const wsRef = useRef<BattleWebSocket | null>(null);
   const questionsRef = useRef<any[]>([]); // Use ref to avoid stale closure
   const currentIndexRef = useRef<number>(0); // Track current index in ref
+  const opponentDataFetched = useRef<boolean>(false); // Track if opponent data was already fetched
+
+  // Function to fetch and set opponent data
+  const fetchOpponentData = async (opponentUsername: string) => {
+    if (opponentDataFetched.current || !opponentUsername) return;
+    
+    try {
+      console.log('[BATTLE_WS] Fetching opponent data for:', opponentUsername);
+      const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${opponentUsername}`);
+      const opponentAvatar = response.data.avatar || '';
+      
+      setOpponent(opponentUsername, opponentAvatar);
+      opponentDataFetched.current = true;
+      console.log('[BATTLE_WS] Opponent data set:', opponentUsername, opponentAvatar);
+    } catch (error) {
+      console.error('[BATTLE_WS] Error fetching opponent data:', error);
+      // Set opponent with username only if fetch fails
+      setOpponent(opponentUsername, '');
+      opponentDataFetched.current = true;
+    }
+  };
 
   // Motivational messages array
   const motivationalMessages = {
@@ -172,6 +196,11 @@ export default function QuizQuestionPage() {
           setFirstOpponentScore(data.scores[user.username] || 0);
           const opponentUsername = Object.keys(data.scores).find(name => name !== user.username);
           setSecondOpponentScore(opponentUsername ? data.scores[opponentUsername] : 0);
+          
+          // Fetch opponent data when first determined
+          if (opponentUsername) {
+            fetchOpponentData(opponentUsername);
+          }
         }
         
         // Check if this was the last question

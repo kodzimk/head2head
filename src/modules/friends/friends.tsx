@@ -175,13 +175,13 @@ export default function FriendsPage({user}: {user: User}) {
             <h1 className="text-heading-2 text-foreground">{title}</h1>
             <div className="w-full sm:w-auto">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2  transform -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
                   placeholder="Search users..."
                   value={searchQuery}
                   onChange={handleInputChange}
-                  className="pl-10 w-full sm:w-64"
+                  className="pl-10 w-full sm:w-64 bg-card text-white border"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       handleSearch()

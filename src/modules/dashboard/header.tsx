@@ -11,7 +11,7 @@ import {
 } from '../../shared/ui/dropdown-menu';
 import { Badge } from '../../shared/ui/badge';
 import type { User } from '../../shared/interface/user';
-import AvatarStorage from '../../shared/utils/avatar-storage';
+import { UserAvatar } from '../../shared/ui/user-avatar';
 
 interface HeaderProps {
   user: User | null;
@@ -112,19 +112,15 @@ export default function Header({ user }: HeaderProps) {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-12 w-12 sm:h-14 sm:w-14 md:h-14 md:w-16 lg:h-14 lg:w-14 rounded-full hover:scale-105 transition-all duration-200">
                     <div className="relative">
-                    <div 
-                      className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-14 lg:w-14 lg:h-14 rounded-full overflow-hidden border-2 sm:border-3 border-primary/50 shadow-xl aspect-square"
-                      style={{ clipPath: 'circle(50%)' }}
-                    >
-                                                <img
-                            src={AvatarStorage.resolveAvatarUrl(user) || '/images/placeholder-user.jpg'}
-                            alt={user.username || 'User'}
-                            className="w-full h-full object-cover object-center"
-                            style={{ clipPath: 'circle(50%)' }}
-                          />
-                    </div>
-                      {/* Online Status Indicator */}
-                      <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-4 lg:w-4 lg:h-4 bg-green-500 rounded-full border-1 sm:border-2 border-background"></div>
+                      <UserAvatar 
+                        user={user}
+                        size="xl"
+                        variant="gaming"
+                        status="online"
+                        showBorder={true}
+                        showGlow={true}
+                        className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-14 lg:w-14 lg:h-14"
+                      />
                       
                       {/* Notification Badge */}
                       {notificationCount > 0 && (
@@ -140,17 +136,13 @@ export default function Header({ user }: HeaderProps) {
                 >
                   <div className="p-3 sm:p-4 lg:p-5 border-b border-border/50">
                     <div className="flex items-center gap-3 sm:gap-4">
-                      <div 
-                        className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-14 lg:w-14 lg:h-14 rounded-full overflow-hidden border-2 sm:border-3 border-primary/50 shadow-xl aspect-square"
-                        style={{ clipPath: 'circle(50%)' }}
-                      >
-                        <img
-                          src={AvatarStorage.resolveAvatarUrl(user) || '/images/placeholder-user.jpg'}
-                          alt={user.username || 'User'}
-                          className="w-full h-full object-cover object-center"
-                          style={{ clipPath: 'circle(50%)' }}
-                        />
-                      </div>
+                      <UserAvatar 
+                        user={user}
+                        size="xl"
+                        variant="gaming"
+                        showBorder={true}
+                        className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-14 lg:w-14 lg:h-14"
+                      />
                       <div className="flex-1 min-w-0">
                         <p className="font-rajdhani font-bold text-base sm:text-lg lg:text-xl text-foreground truncate">
                           {user.username || 'Player'}

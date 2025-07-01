@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from './avatar';
 import AvatarStorage from '../utils/avatar-storage';
 
@@ -39,8 +39,33 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   showFallback = true,
   onClick
 }) => {
-  const avatarUrl = AvatarStorage.resolveAvatarUrl(user);
-  const hasValidAvatar = avatarUrl && user.avatar && user.avatar.trim() !== '';
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load avatar asynchronously with proper priority
+  useEffect(() => {
+    const loadAvatar = async () => {
+      if (!user?.username) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const resolvedUrl = await AvatarStorage.resolveAvatarUrlAsync(user);
+        setAvatarUrl(resolvedUrl);
+      } catch (error) {
+        console.error('[UserAvatar] Failed to load avatar:', error);
+        setAvatarUrl(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAvatar();
+  }, [user?.username, user?.avatar]);
+
+  const hasValidAvatar = avatarUrl && avatarUrl.trim() !== '';
 
   // Enhanced click handling with hover effects
   const handleClick = onClick ? () => {
@@ -68,7 +93,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         showBorder={showBorder}
         showGlow={showGlow}
       >
-        {hasValidAvatar ? (
+        {hasValidAvatar && !isLoading ? (
           <AvatarImage
             src={avatarUrl}
             alt={user.username}
@@ -77,7 +102,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
         ) : null}
         {showFallback && (
           <AvatarFallback username={user.username} variant={variant}>
-            {user.username ? user.username.slice(0, 2).toUpperCase() : 'U'}
+            {isLoading ? '...' : (user.username ? user.username.slice(0, 2).toUpperCase() : 'U')}
           </AvatarFallback>
         )}
       </Avatar>

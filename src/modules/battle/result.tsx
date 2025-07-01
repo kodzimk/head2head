@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
 import { Button } from '../../shared/ui/button';
-import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, useTextStore, useWinnerStore } from '../../shared/interface/gloabL_var';
+import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, useTextStore, useWinnerStore, useOpponentStore } from '../../shared/interface/gloabL_var';
 import { useNavigate } from 'react-router-dom';
 import type { User } from '../../shared/interface/user';
 import { API_BASE_URL, useGlobalStore } from '../../shared/interface/gloabL_var';
@@ -18,6 +18,7 @@ export default function BattleResultPage({user}: {user: User}) {
   const [showResult, setShowResult] = useState(false);
   const navigate = useNavigate();
   const { result, setResult } = useResultStore();
+  const { opponentUsername, opponentAvatar } = useOpponentStore();
   const { setUser } = useGlobalStore();
 
   // Check if we have the necessary data to show results
@@ -261,12 +262,22 @@ export default function BattleResultPage({user}: {user: User}) {
                 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-muted/20 rounded-full flex items-center justify-center border-2 border-border/30">
-                      <span className="text-lg font-bold text-muted-foreground">?</span>
-                    </div>
+                    {opponentUsername && opponentAvatar ? (
+                      <FaceitAvatar 
+                        user={{ username: opponentUsername, avatar: opponentAvatar }} 
+                        size="xl" 
+                        status="online" 
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-muted/20 rounded-full flex items-center justify-center border-2 border-border/30">
+                        <span className="text-lg font-bold text-muted-foreground">?</span>
+                      </div>
+                    )}
                     <div>
                       <div className="text-sm font-medium text-muted-foreground">Opponent</div>
-                      <div className="text-lg font-bold text-card-foreground">Anonymous</div>
+                      <div className="text-lg font-bold text-card-foreground">
+                        {opponentUsername || 'Anonymous'}
+                      </div>
                     </div>
                   </div>
                   <div className={`text-3xl font-bold px-4 py-2 rounded-lg ${

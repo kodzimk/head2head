@@ -173,8 +173,8 @@ export const useBattleStore = () => {
 }
 
 // API Configuration
-export const API_BASE_URL = "http://localhost:8000";
-export const WS_BASE_URL = "ws://localhost:8000"
+export const API_BASE_URL = "https://api.head2head.dev";
+export const WS_BASE_URL = "wss://api.head2head.dev"
 
 // Battle-specific state management
 interface BattleState {
@@ -210,6 +210,30 @@ export const useBattleStateStore = () => {
   const context = useContext(BattleStateStore)
   if (!context) {
     throw new Error('useBattleStateStore must be used within a BattleStateProvider')
+  }
+  return context
+}
+
+interface OpponentStoreType {
+  opponentUsername: string;
+  opponentAvatar: string;
+  setOpponentUsername: (username: string) => void;
+  setOpponentAvatar: (avatar: string) => void;
+  setOpponent: (username: string, avatar: string) => void;
+}
+
+export const OpponentStore = createContext<OpponentStoreType>({
+  opponentUsername: '',
+  opponentAvatar: '',
+  setOpponentUsername: () => {},
+  setOpponentAvatar: () => {},
+  setOpponent: () => {}
+})
+
+export const useOpponentStore = () => {
+  const context = useContext(OpponentStore)
+  if (!context) {
+    throw new Error("useOpponentStore must be used within a OpponentStoreProvider")
   }
   return context
 }
