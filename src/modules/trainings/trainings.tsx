@@ -53,12 +53,23 @@ interface TrainingQuestion {
   originalAnswerId?: string;
 }
 
+interface Flashcard {
+  id: string;
+  term: string;
+  definition: string;
+  sport: string;
+  level: string;
+  userAnswer?: string;
+  source: 'incorrect_answer' | 'sport_knowledge';
+  originalQuestionId?: string;
+}
+
 
 export default function TrainingsPage() {
   const { user } = useGlobalStore();
   const [selectedSport, setSelectedSport] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
-  const [selectedQuestionType, setSelectedQuestionType] = useState<string>("incorrect_answers");
+  const [selectedQuestionType, setSelectedQuestionType] = useState<string>("Flashcards");
   const [trainingStats, setTrainingStats] = useState<TrainingStats | null>(null);
   const [incorrectAnswers, setIncorrectAnswers] = useState<IncorrectAnswer[]>([]);
   const [isTrainingActive, setIsTrainingActive] = useState(false);
@@ -71,6 +82,12 @@ export default function TrainingsPage() {
   const [timeLeft, setTimeLeft] = useState(15);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Flashcard-specific state
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
+  const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
+  const [isFlashcardMode, setIsFlashcardMode] = useState(false);
 
   const sports = [
     { value: "football", label: "Football", icon: <Trophy className="w-5 h-5" /> },
@@ -89,16 +106,16 @@ export default function TrainingsPage() {
   ];
 
   const questionTypes = [
-    { 
-      value: "mixed", 
-      label: "Mixed Questions", 
-      description: "5 questions from 5 different sports",
+    {
+      value: "Flashcards",
+      label: "Flashcards",
+      description: "Study terms and learn from your battle mistakes",
       icon: <Brain className="w-5 h-5" /> 
     },
     { 
       value: "random", 
-      label: "Random  Questions", 
-      description: "Random questions from selected sport",
+      label: "Random Questions", 
+      description: "Fresh random questions from selected sport",
       icon: <Zap className="w-5 h-5" /> 
     },
   ];
@@ -119,7 +136,7 @@ export default function TrainingsPage() {
     }
     
     try {
-      const url = `${API_BASE_URL}/api/training/training-stats/${user.username}`;
+      const url = `${API_BASE_URL}/training/training-stats/${user.username}`;
       const response = await fetch(url);
       
       if (response.ok) {
@@ -155,7 +172,7 @@ export default function TrainingsPage() {
       if (selectedLevel && selectedLevel !== "all") params.append('level', selectedLevel);
       params.append('limit', '50');
 
-      const url = `${API_BASE_URL}/api/training/incorrect-answers/${user.username}?${params}`;
+      const url = `${API_BASE_URL}/training/incorrect-answers/${user.username}?${params}`;
       
       const response = await fetch(url);
       
@@ -176,7 +193,7 @@ export default function TrainingsPage() {
       params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
       params.append('count', '5');
 
-      const url = `${API_BASE_URL}/api/training/generate-random-questions?${params}`;
+      const url = `${API_BASE_URL}/training/generate-random-questions?${params}`;
       
       const response = await fetch(url, {
         method: 'POST',
@@ -206,7 +223,7 @@ export default function TrainingsPage() {
       if (selectedSport !== "all") params.append('sport', selectedSport);
       if (selectedLevel !== "all") params.append('level', selectedLevel);
 
-      const response = await fetch(`${API_BASE_URL}/api/training/start-session?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/training/start-session?${params}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -216,13 +233,16 @@ export default function TrainingsPage() {
         setCurrentSession(session.session_id);
         
         // Prepare training questions based on type
-        if (selectedQuestionType === 'incorrect_answers') {
-          await prepareIncorrectAnswersQuestions();
+        if (selectedQuestionType === 'Flashcards') {
+          await prepareFlashcards();
+          setIsFlashcardMode(true);
         } else if (selectedQuestionType === 'random') {
           await prepareRandomQuestions();
+          setIsFlashcardMode(false);
         } else {
           // For mixed questions, you could generate new questions or use a different source
           await prepareMixedQuestions();
+          setIsFlashcardMode(false);
         }
         
         setIsTrainingActive(true);
@@ -242,64 +262,44 @@ export default function TrainingsPage() {
     }
   };
 
-  const prepareIncorrectAnswersQuestions = async () => {
-    if (incorrectAnswers.length === 0) {
-      // Create sample questions when no incorrect answers exist
-      const sampleQuestions: TrainingQuestion[] = [
-        {
-          question: "What is the capital of France?",
-          answers: [
-            { label: 'A', text: 'Paris', correct: true },
-            { label: 'B', text: 'London', correct: false },
-            { label: 'C', text: 'Berlin', correct: false },
-            { label: 'D', text: 'Madrid', correct: false }
-          ],
-          correctAnswer: 'Paris',
-          sport: 'general',
-          level: 'easy'
-        },
-        {
-          question: "Which planet is closest to the Sun?",
-          answers: [
-            { label: 'A', text: 'Venus', correct: false },
-            { label: 'B', text: 'Mercury', correct: true },
-            { label: 'C', text: 'Earth', correct: false },
-            { label: 'D', text: 'Mars', correct: false }
-          ],
-          correctAnswer: 'Mercury',
-          sport: 'general',
-          level: 'easy'
-        }
-      ];
-      setTrainingQuestions(sampleQuestions);
-      return;
+
+  const generateAIQuestionsForPractice = async (count: number): Promise<TrainingQuestion[]> => {
+    try {
+      const params = new URLSearchParams();
+      if (selectedSport && selectedSport !== "all") params.append('sport', selectedSport);
+      params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
+      params.append('count', count.toString());
+
+      const url = `${API_BASE_URL}/training/generate-random-questions?${params}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const questions = data.questions || [];
+        
+        // Convert AI questions to training question format
+        return questions.map((question: any) => ({
+          question: question.question || question.text || '',
+          answers: question.answers || [],
+          correctAnswer: question.correctAnswer || question.correct_answer || '',
+          sport: question.sport || selectedSport,
+          level: question.level || selectedLevel
+        }));
+      } else {
+        console.error("Failed to generate AI practice questions:", response.status);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error generating AI practice questions:', error);
+      return [];
     }
-    
-    // Convert incorrect answers to training questions
-    const questions: TrainingQuestion[] = incorrectAnswers.map((answer, index) => {
-      // Create multiple choice options (this is a simplified version)
-      const options = [
-        { label: 'A', text: answer.correct_answer, correct: true },
-        { label: 'B', text: answer.user_answer, correct: false },
-        { label: 'C', text: `Option ${index + 3}`, correct: false },
-        { label: 'D', text: `Option ${index + 4}`, correct: false }
-      ];
-
-      // Shuffle options
-      const shuffledOptions = options.sort(() => Math.random() - 0.5);
-
-      return {
-        question: answer.question_text,
-        answers: shuffledOptions,
-        correctAnswer: answer.correct_answer,
-        sport: answer.sport,
-        level: answer.level,
-        originalAnswerId: answer.id
-      };
-    });
-
-    setTrainingQuestions(questions);
   };
+
+
 
   const prepareMixedQuestions = async () => {
     // Get available sports (excluding "all")
@@ -324,7 +324,7 @@ export default function TrainingsPage() {
         params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
         params.append('count', '1');
 
-        const url = `${API_BASE_URL}/api/training/generate-random-questions?${params}`;
+        const url = `${API_BASE_URL}/training/generate-random-questions?${params}`;
         
         const response = await fetch(url, {
           method: 'POST',
@@ -345,73 +345,368 @@ export default function TrainingsPage() {
       }
     }
     
+    // If we have mixed questions, use them. Otherwise, generate AI questions as fallback
     if (mixedQuestions.length > 0) {
       setTrainingQuestions(mixedQuestions);
     } else {
-      const sampleQuestions: TrainingQuestion[] = [
-        {
-          question: "What is the capital of France?",
-          answers: [
-            { label: 'A', text: 'Paris', correct: true },
-            { label: 'B', text: 'London', correct: false },
-            { label: 'C', text: 'Berlin', correct: false },
-            { label: 'D', text: 'Madrid', correct: false }
-          ],
-          correctAnswer: 'Paris',
-          sport: 'general',
-          level: 'easy'
-        },
-        {
-          question: "Which planet is closest to the Sun?",
-          answers: [
-            { label: 'A', text: 'Venus', correct: false },
-            { label: 'B', text: 'Mercury', correct: true },
-            { label: 'C', text: 'Earth', correct: false },
-            { label: 'D', text: 'Mars', correct: false }
-          ],
-          correctAnswer: 'Mercury',
-          sport: 'general',
-          level: 'easy'
-        },
-        {
-          question: "What is 2 + 2?",
-          answers: [
-            { label: 'A', text: '3', correct: false },
-            { label: 'B', text: '4', correct: true },
-            { label: 'C', text: '5', correct: false },
-            { label: 'D', text: '6', correct: false }
-          ],
-          correctAnswer: '4',
-          sport: 'general',
-          level: 'easy'
-        },
-        {
-          question: "What color is the sky?",
-          answers: [
-            { label: 'A', text: 'Blue', correct: true },
-            { label: 'B', text: 'Red', correct: false },
-            { label: 'C', text: 'Green', correct: false },
-            { label: 'D', text: 'Yellow', correct: false }
-          ],
-          correctAnswer: 'Blue',
-          sport: 'general',
-          level: 'easy'
-        },
-        {
-          question: "How many continents are there?",
-          answers: [
-            { label: 'A', text: '5', correct: false },
-            { label: 'B', text: '6', correct: false },
-            { label: 'C', text: '7', correct: true },
-            { label: 'D', text: '8', correct: false }
-          ],
-          correctAnswer: '7',
-          sport: 'general',
-          level: 'easy'
-        }
-      ];
-      setTrainingQuestions(sampleQuestions);
+      // Generate AI questions as fallback when mixed generation fails
+      const fallbackQuestions = await generateAIQuestionsForPractice(5);
+      setTrainingQuestions(fallbackQuestions);
     }
+  };
+
+  const prepareFlashcards = async () => {
+    let allFlashcards: Flashcard[] = [];
+
+    // Create educational flashcards from battle mistakes if available
+    if (incorrectAnswers.length > 0) {
+      const flashcardsFromIncorrect: Flashcard[] = incorrectAnswers.slice(0, 8).map((answer) => {
+        const term = createBattleSpecificTerm(answer);
+        
+        // Create a comprehensive educational definition
+        const definition = createBattleMistakeDefinition(answer);
+        
+        return {
+          id: answer.id,
+          term: term,
+          definition: definition,
+          sport: answer.sport,
+          level: answer.level,
+          userAnswer: answer.user_answer,
+          source: 'incorrect_answer' as const,
+          originalQuestionId: answer.id
+        };
+      });
+      
+      allFlashcards.push(...flashcardsFromIncorrect);
+    }
+
+    // Generate AI-powered flashcards to supplement learning (fewer if we have battle mistakes)
+    const aiCount = incorrectAnswers.length > 0 ? Math.max(2, 10 - incorrectAnswers.length) : 8;
+    const aiGeneratedFlashcards = await generateAIFlashcards(aiCount);
+    allFlashcards.push(...aiGeneratedFlashcards);
+    
+    // Prioritize battle mistakes, then shuffle the rest
+    const battleMistakes = allFlashcards.filter(card => card.source === 'incorrect_answer');
+    const aiCards = allFlashcards.filter(card => card.source === 'sport_knowledge');
+    const shuffledAI = aiCards.sort(() => Math.random() - 0.5);
+    
+    // Combine: prioritize battle mistakes, then add AI cards
+    const finalFlashcards = [...battleMistakes, ...shuffledAI].slice(0, 10);
+    setFlashcards(finalFlashcards);
+  };
+
+  const createBattleMistakeDefinition = (answer: IncorrectAnswer): string => {
+    // Create sports-specific terms and facts that are commonly asked in battles
+    const correctAnswer = answer.correct_answer;
+    const sport = answer.sport;
+    
+    // Create term-based definitions that focus on the key concept
+    let definition = '';
+    
+    // Try to identify what type of sports fact this is
+    if (isPlayerName(correctAnswer)) {
+      definition = `🏆 PLAYER: ${correctAnswer}
+      
+🎯 SPORT: ${sport.charAt(0).toUpperCase() + sport.slice(1)}
+
+❌ YOU ANSWERED: "${answer.user_answer}"
+
+💡 REMEMBER: ${correctAnswer} is a key player in ${sport} - study top players and their achievements!`;
+    } else if (isTeamName(correctAnswer)) {
+      definition = `🏟️ TEAM: ${correctAnswer}
+      
+🎯 SPORT: ${sport.charAt(0).toUpperCase() + sport.slice(1)}
+
+❌ YOU ANSWERED: "${answer.user_answer}"
+
+💡 REMEMBER: ${correctAnswer} is an important team in ${sport} - learn major teams and their history!`;
+    } else if (isRule(answer.question_text)) {
+      definition = `📋 RULE: ${correctAnswer}
+      
+🎯 SPORT: ${sport.charAt(0).toUpperCase() + sport.slice(1)}
+
+❌ YOU ANSWERED: "${answer.user_answer}"
+
+💡 REMEMBER: This is a crucial ${sport} rule - master the key regulations!`;
+    } else if (isTechnique(answer.question_text)) {
+      definition = `⚡ TECHNIQUE: ${correctAnswer}
+      
+🎯 SPORT: ${sport.charAt(0).toUpperCase() + sport.slice(1)}
+
+❌ YOU ANSWERED: "${answer.user_answer}"
+
+💡 REMEMBER: ${correctAnswer} is an important technique in ${sport} - study game moves and skills!`;
+    } else if (isRecord(answer.question_text)) {
+      definition = `📊 RECORD/FACT: ${correctAnswer}
+      
+🎯 SPORT: ${sport.charAt(0).toUpperCase() + sport.slice(1)}
+
+❌ YOU ANSWERED: "${answer.user_answer}"
+
+💡 REMEMBER: Important ${sport} statistic - focus on records and achievements!`;
+    } else {
+      // Generic sports fact
+      definition = `⭐ SPORTS FACT: ${correctAnswer}
+      
+🎯 SPORT: ${sport.charAt(0).toUpperCase() + sport.slice(1)}
+
+❌ YOU ANSWERED: "${answer.user_answer}"
+
+💡 REMEMBER: Key ${sport} knowledge - review essential facts and terminology!`;
+    }
+    
+    return definition;
+  };
+
+  const isPlayerName = (answer: string): boolean => {
+    // Check if answer looks like a player name (contains spaces, proper capitalization)
+    return /^[A-Z][a-z]+(?: [A-Z][a-z]+)+$/.test(answer) || 
+           /^[A-Z]\. [A-Z][a-z]+$/.test(answer) ||
+           answer.split(' ').length >= 2;
+  };
+
+  const isTeamName = (answer: string): boolean => {
+    // Check for common team indicators
+    const teamKeywords = ['FC', 'United', 'City', 'Athletic', 'Club', 'Team', 'Lakers', 'Warriors', 'Bulls', 'Heat', 'Celtics'];
+    return teamKeywords.some(keyword => answer.includes(keyword)) ||
+           (answer.includes(' ') && !answer.includes('technique') && !answer.includes('rule'));
+  };
+
+  const isRule = (question: string): boolean => {
+    const ruleKeywords = ['rule', 'regulation', 'law', 'penalty', 'foul', 'violation', 'illegal', 'allowed', 'permitted'];
+    return ruleKeywords.some(keyword => question.toLowerCase().includes(keyword));
+  };
+
+  const isTechnique = (question: string): boolean => {
+    const techniqueKeywords = ['technique', 'move', 'skill', 'dribble', 'pass', 'shot', 'serve', 'block', 'tackle', 'kick'];
+    return techniqueKeywords.some(keyword => question.toLowerCase().includes(keyword));
+  };
+
+  const isRecord = (question: string): boolean => {
+    const recordKeywords = ['record', 'most', 'highest', 'fastest', 'winner', 'champion', 'title', 'world cup', 'olympics', 'scored'];
+    return recordKeywords.some(keyword => question.toLowerCase().includes(keyword));
+  };
+
+  const createBattleSpecificTerm = (answer: IncorrectAnswer): string => {
+    const correctAnswer = answer.correct_answer;
+    const question = answer.question_text.toLowerCase();
+    const sport = answer.sport;
+
+    // Create specific terms based on the type of battle question
+    if (isPlayerName(correctAnswer)) {
+      return correctAnswer; // Use player name directly
+    } else if (isTeamName(correctAnswer)) {
+      return correctAnswer; // Use team name directly
+    } else if (isRule(question)) {
+      // Create rule-based terms
+      if (question.includes('offside')) return 'Offside Rule';
+      if (question.includes('foul')) return 'Foul Rule';
+      if (question.includes('penalty')) return 'Penalty Rule';
+      if (question.includes('yellow card')) return 'Yellow Card';
+      if (question.includes('red card')) return 'Red Card';
+      if (question.includes('handball')) return 'Handball Rule';
+      if (question.includes('three-second')) return 'Three-Second Rule';
+      if (question.includes('traveling')) return 'Traveling Violation';
+      if (question.includes('double dribble')) return 'Double Dribble';
+      return `${sport.charAt(0).toUpperCase() + sport.slice(1)} Rule`;
+    } else if (isTechnique(question)) {
+      // Create technique-based terms
+      if (question.includes('dribble')) return 'Dribbling';
+      if (question.includes('crossover')) return 'Crossover Dribble';
+      if (question.includes('fadeaway')) return 'Fadeaway Shot';
+      if (question.includes('free throw')) return 'Free Throw';
+      if (question.includes('slam dunk')) return 'Slam Dunk';
+      if (question.includes('three-pointer')) return 'Three-Pointer';
+      if (question.includes('ace')) return 'Ace Serve';
+      if (question.includes('smash')) return 'Smash Shot';
+      if (question.includes('volley')) return 'Volley';
+      if (question.includes('spike')) return 'Spike Attack';
+      if (question.includes('tackle')) return 'Tackle Technique';
+      return `${sport.charAt(0).toUpperCase() + sport.slice(1)} Technique`;
+    } else if (isRecord(question)) {
+      // Create record/achievement terms
+      if (question.includes('world cup')) return 'World Cup Winner';
+      if (question.includes('olympics')) return 'Olympic Champion';
+      if (question.includes('champion')) return 'Championship Winner';
+      if (question.includes('most goals')) return 'Goal Scoring Record';
+      if (question.includes('most points')) return 'Point Scoring Record';
+      if (question.includes('fastest')) return 'Speed Record';
+      if (question.includes('longest')) return 'Distance Record';
+      return `${sport.charAt(0).toUpperCase() + sport.slice(1)} Record`;
+    } else {
+      // Create sport-specific general terms
+      const sportTerms = {
+        football: ['Goal', 'Assist', 'Clean Sheet', 'Hat-trick', 'Derby'],
+        basketball: ['Rebound', 'Assist', 'Block', 'Steal', 'Triple-Double'],
+        tennis: ['Set', 'Game', 'Match Point', 'Break Point', 'Deuce'],
+        cricket: ['Over', 'Wicket', 'Century', 'Six', 'Boundary'],
+        baseball: ['Home Run', 'Strike', 'Ball', 'Inning', 'RBI'],
+        volleyball: ['Set', 'Match', 'Rotation', 'Dig', 'Kill'],
+        boxing: ['Round', 'Knockout', 'TKO', 'Jab', 'Uppercut']
+      };
+
+      const terms = sportTerms[sport as keyof typeof sportTerms] || ['Sports Fact'];
+      
+      // Try to match the correct answer with common terms
+      for (const term of terms) {
+        if (correctAnswer.toLowerCase().includes(term.toLowerCase()) || 
+            question.includes(term.toLowerCase())) {
+          return term;
+        }
+      }
+      
+      // If answer is short and looks like a term, use it
+      if (correctAnswer.length <= 20 && !correctAnswer.includes(' ')) {
+        return correctAnswer;
+      }
+      
+      return `${sport.charAt(0).toUpperCase() + sport.slice(1)} Fact`;
+    }
+  };
+
+  const generateAIFlashcards = async (count: number = 8): Promise<Flashcard[]> => {
+    try {
+      // Generate AI questions and convert them to flashcards
+      const params = new URLSearchParams();
+      if (selectedSport && selectedSport !== "all") params.append('sport', selectedSport);
+      params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
+      params.append('count', count.toString()); // Generate specified number of AI flashcards
+
+      const url = `${API_BASE_URL}/training/generate-random-questions?${params}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const questions = data.questions || [];
+        
+        // Convert AI questions to flashcards
+        return questions.map((question: any, index: number) => {
+          const term = extractKeyTermFromAIQuestion(question);
+          const definition = createDefinitionFromAIQuestion(question);
+          
+          return {
+            id: `ai_generated_${index}`,
+            term: term,
+            definition: definition,
+            sport: question.sport || selectedSport,
+            level: question.level || selectedLevel,
+            source: 'sport_knowledge' as const
+          };
+        });
+      } else {
+        console.error("Failed to generate AI flashcards:", response.status);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error generating AI flashcards:', error);
+      return [];
+    }
+  };
+
+  const extractKeyTermFromAIQuestion = (question: any): string => {
+    // Use the actual question text as the term for better learning
+    const questionText = question.question || question.text || '';
+    const sport = question.sport || selectedSport;
+    
+    if (!questionText) {
+      return `${sport.charAt(0).toUpperCase() + sport.slice(1)} Question`;
+    }
+    
+    // For most questions, use the full question as the term for battle-like practice
+    const lowerQuestion = questionText.toLowerCase();
+    
+    // Handle specific question patterns that need cleaning
+    if (lowerQuestion.includes('stand for') || lowerQuestion.includes('acronym')) {
+      // Keep "what does X stand for" questions as-is - these are perfect battle questions
+      return questionText;
+    } else if (lowerQuestion.includes('nickname') && lowerQuestion.includes('who')) {
+      // Keep nickname questions as-is
+      return questionText;
+    } else if (lowerQuestion.includes('who won') || lowerQuestion.includes('winner of')) {
+      // Keep winner questions as-is
+      return questionText;
+    } else if (lowerQuestion.includes('which team') || lowerQuestion.includes('which club')) {
+      // Keep team questions as-is
+      return questionText;
+    } else if (lowerQuestion.includes('how many') || lowerQuestion.includes('what is the record')) {
+      // Keep record questions as-is
+      return questionText;
+    } else if (lowerQuestion.includes('what year') || lowerQuestion.includes('when did')) {
+      // Keep year/date questions as-is
+      return questionText;
+    } else if (lowerQuestion.includes('what is') && lowerQuestion.includes('called')) {
+      // Keep "what is called" questions as-is
+      return questionText;
+    } else if (lowerQuestion.includes('who is') && (lowerQuestion.includes('known as') || lowerQuestion.includes('nicknamed'))) {
+      // Keep identity/nickname questions as-is
+      return questionText;
+    } else {
+      // For other questions, use the full question text
+      // This gives users practice with actual battle-style questions
+      return questionText;
+    }
+  };
+
+  const createDefinitionFromAIQuestion = (question: any): string => {
+    // Create a meaningful definition that helps users learn
+    const questionText = question.question || question.text || '';
+    const correctAnswer = question.correctAnswer || question.correct_answer || '';
+    
+    if (questionText && correctAnswer) {
+      // Extract the meaningful part of the question to help users understand
+      let cleanQuestion = questionText
+        .replace(/^(What|Which|Who|When|Where|How|Why)\s+/i, '')
+        .replace(/\?$/, '')
+        .replace(/^(is|are|was|were|has|have|had|do|does|did)\s+/i, '')
+        .trim();
+      
+      // Make the first letter uppercase for better formatting
+      if (cleanQuestion.length > 0) {
+        cleanQuestion = cleanQuestion.charAt(0).toUpperCase() + cleanQuestion.slice(1);
+      }
+      
+      // If the cleaned question is meaningful, use it as the description
+      if (cleanQuestion.length > 3 && !cleanQuestion.toLowerCase().includes('answer')) {
+        return `${cleanQuestion}: ${correctAnswer}`;
+      } else {
+        // Fallback to the original question format if cleaning didn't work well
+        return `${questionText}: ${correctAnswer}`;
+      }
+    }
+    
+    return correctAnswer || 'Sports knowledge term';
+  };
+
+
+
+
+  const nextFlashcard = () => {
+    if (currentFlashcardIndex < flashcards.length - 1) {
+      setCurrentFlashcardIndex(currentFlashcardIndex + 1);
+      setShowFlashcardAnswer(false);
+    } else {
+      // Flashcard session completed
+      completeTrainingSession();
+    }
+  };
+
+  const flipFlashcard = () => {
+    setShowFlashcardAnswer(!showFlashcardAnswer);
+  };
+
+  const markFlashcardKnown = () => {
+    // Optional: Track which flashcards user knows well
+    nextFlashcard();
+  };
+
+  const markFlashcardNeedsReview = () => {
+    // Optional: Mark for review later
+    nextFlashcard();
   };
 
   const prepareRandomQuestions = async () => {
@@ -420,9 +715,7 @@ export default function TrainingsPage() {
     
     if (randomQuestions.length > 0) {
       setTrainingQuestions(randomQuestions);
-    } else {
-      await prepareIncorrectAnswersQuestions();
-    }
+      } 
   };
 
   const handleAnswerSelect = (label: string) => {
@@ -460,7 +753,7 @@ export default function TrainingsPage() {
         params.append('original_answer_id', question.originalAnswerId);
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/training/submit-answer?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/training/submit-answer?${params}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -505,7 +798,7 @@ export default function TrainingsPage() {
         params.append('original_answer_id', question.originalAnswerId);
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/training/submit-answer?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/training/submit-answer?${params}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -539,7 +832,7 @@ export default function TrainingsPage() {
     if (!currentSession) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/training/complete-session/${currentSession}`, {
+      const response = await fetch(`${API_BASE_URL}/training/complete-session/${currentSession}`, {
         method: 'POST'
       });
 
@@ -549,6 +842,12 @@ export default function TrainingsPage() {
         setCurrentSession(null);
         setTrainingQuestions([]);
         setCurrentQuestionIndex(0);
+        
+        // Reset flashcard state
+        setFlashcards([]);
+        setCurrentFlashcardIndex(0);
+        setShowFlashcardAnswer(false);
+        setIsFlashcardMode(false);
         
         // Refresh stats with detailed logging
         await fetchTrainingStats();
@@ -597,6 +896,7 @@ export default function TrainingsPage() {
 
   if (isTrainingActive) {
     const currentQuestion = trainingQuestions[currentQuestionIndex];
+    const currentFlashcard = flashcards[currentFlashcardIndex];
 
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
@@ -607,52 +907,127 @@ export default function TrainingsPage() {
             <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
               <div>
                 <h1 className="text-heading-2 text-foreground">
-                  Training Session
+                  {isFlashcardMode ? 'Flashcard Training' : 'Training Session'}
                 </h1>
                 <p className="text-responsive-sm text-muted-foreground">
-                  Question {currentQuestionIndex + 1} of {trainingQuestions.length}
+                  {isFlashcardMode 
+                    ? `Flashcard ${currentFlashcardIndex + 1} of ${flashcards.length}`
+                    : `Question ${currentQuestionIndex + 1} of ${trainingQuestions.length}`
+                  }
                 </p>
               </div>
             </div>
 
-            {/* Timer and Controls */}
-            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-              <div className="flex items-center justify-center sm:justify-start gap-4">
-                <div className="text-center">
-                  <div className={`text-2xl sm:text-3xl font-bold ${
-                    timeLeft <= 5 ? 'text-red-600 animate-pulse' : 
-                    timeLeft <= 10 ? 'text-orange-600' : 
-                    'text-blue-600'
-                  }`}>
-                    {timeLeft}s
+            {/* Timer and Controls - Only show for non-flashcard mode */}
+            {!isFlashcardMode && (
+              <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <div className="flex items-center justify-center sm:justify-start gap-4">
+                  <div className="text-center">
+                    <div className={`text-2xl sm:text-3xl font-bold ${
+                      timeLeft <= 5 ? 'text-red-600 animate-pulse' : 
+                      timeLeft <= 10 ? 'text-orange-600' : 
+                      'text-blue-600'
+                    }`}>
+                      {timeLeft}s
+                    </div>
+                    <div className="text-responsive-xs text-muted-foreground">Time Left</div>
                   </div>
-                  <div className="text-responsive-xs text-muted-foreground">Time Left</div>
+                </div>
+                
+                <div className="flex justify-center sm:justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={skipQuestion}
+                    className="px-3 py-2 sm:px-4 sm:py-2"
+                  >
+                    <SkipForward className="w-4 h-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Skip</span>
+                  </Button>
                 </div>
               </div>
-              
-              <div className="flex justify-center sm:justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={skipQuestion}
-                  className="px-3 py-2 sm:px-4 sm:py-2"
-                >
-                  <SkipForward className="w-4 h-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Skip</span>
-                </Button>
-              </div>
-            </div>
+            )}
 
-            {/* Question Card */}
-            <Card className="mb-4 sm:mb-6">
-              <CardHeader className="pb-3 sm:pb-4">
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
-                  Training Question
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {currentQuestion && (
+            {/* Flashcard Display */}
+            {isFlashcardMode && currentFlashcard && (
+              <Card className="mb-4 sm:mb-6">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
+                    Sports Flashcard
+                    <div className={`ml-auto px-2 py-1 rounded text-xs font-medium ${
+                      currentFlashcard.source === 'incorrect_answer' 
+                        ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                    }`}>
+                      {currentFlashcard.source === 'incorrect_answer' ? 'Review' : 'Knowledge'}
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="min-h-[200px] flex flex-col justify-center">
+                    {!showFlashcardAnswer ? (
+                      /* Front of flashcard - Term */
+                      <div className="text-center space-y-4">
+                        <div className="text-2xl sm:text-3xl font-bold text-foreground mb-4">
+                          {currentFlashcard.term}
+                        </div>
+                        <Button 
+                          onClick={flipFlashcard}
+                          className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Show Definition
+                        </Button>
+                      </div>
+                    ) : (
+                      /* Back of flashcard - Definition */
+                      <div className="text-center space-y-4">
+                        <div className="text-lg sm:text-xl font-semibold text-foreground mb-2">
+                          {currentFlashcard.term}
+                        </div>
+                        <div className="text-sm sm:text-base text-muted-foreground bg-card p-4 rounded-lg border leading-relaxed">
+                          {currentFlashcard.definition}
+                        </div>
+                        {currentFlashcard.source === 'incorrect_answer' && currentFlashcard.userAnswer && (
+                          <div className="text-xs text-orange-600 dark:text-orange-400 italic mt-2">
+                            This is based on a question you answered incorrectly in a previous battle
+                          </div>
+                        )}
+                        <div className="flex gap-2 justify-center mt-6">
+                          <Button 
+                            onClick={markFlashcardNeedsReview}
+                            variant="outline"
+                            className="border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-300"
+                          >
+                            Need Review
+                          </Button>
+                          <Button 
+                            onClick={markFlashcardKnown}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Got It!
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Question Card - Only for non-flashcard mode */}
+            {!isFlashcardMode && (
+              <Card className="mb-4 sm:mb-6">
+                <CardHeader className="pb-3 sm:pb-4">
+                  <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                    <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
+                    Training Question
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {currentQuestion && (
                   <>
                     <div className="text-responsive-sm font-semibold p-3 sm:p-4 bg-card rounded-lg break-words leading-relaxed border">
                       {currentQuestion.question}
@@ -789,10 +1164,11 @@ export default function TrainingsPage() {
                         </div>
                       </div>
                     )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </main>
       </div>
@@ -953,48 +1329,7 @@ export default function TrainingsPage() {
                           </div>
                         </div>
                         
-                        {/* Show message when no data */}
-                        {trainingStats.total_answers === 0 && trainingStats.total_incorrect === 0 && trainingStats.training_sessions === 0 && (
-                          <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                            <div className="text-center">
-                              <div className="text-2xl mb-2">📊</div>
-                              <p className="text-responsive-sm font-semibold text-primary mb-2">
-                                Welcome to Training Stats!
-                              </p>
-                              <p className="text-responsive-xs text-muted-foreground mb-4 leading-relaxed">
-                                Your statistics will appear here once you complete battles or training sessions. 
-                                Start your learning journey by playing some battles or trying a training session!
-                              </p>
-                              <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedSport("football");
-                                    setSelectedLevel("easy");
-                                    setSelectedQuestionType("random");
-                                    startTrainingSession();
-                                  }}
-                                  className="text-xs bg-card"
-                                >
-                                  🎯 Start Sample Training
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    window.location.href = '/dashboard';
-                                  }}
-                                  className="text-xs bg-card"
-                                >
-                                  ⚔️ Go to Battles
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        
-             
+            
                       </>
                     ) : (
                       <div className="text-center py-6">

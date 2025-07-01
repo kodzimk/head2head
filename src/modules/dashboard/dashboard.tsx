@@ -400,15 +400,6 @@ export function Dashboard() {
               </div>
             </div>
             
-            {/* Draw Insights */}
-            {battles.filter(battle => battle.result === 'draw').length > 0 && (
-              <div className="mt-4 pt-4 border-t border-border/50">
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium text-warning">Draw Insights:</span> You've had {battles.filter(battle => battle.result === 'draw').length} evenly matched battle{battles.filter(battle => battle.result === 'draw').length !== 1 ? 's' : ''}, 
-                  showing consistent performance against skilled opponents. Draws indicate competitive gameplay!
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

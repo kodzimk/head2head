@@ -86,6 +86,7 @@ export const ViewProfile = ({user}: {user: User}) => {
         setViewUser(userData)
         setRequestSent(response.data.friendRequests.includes(user.username))
         setHasSentRequestToViewUser(user.friendRequests.includes(response.data.username))
+        setAreFriends(user.friends.includes(response.data.username))
         setIsLoading(false)
       } catch (error) {
         setIsLoading(false)
@@ -146,6 +147,9 @@ export const ViewProfile = ({user}: {user: User}) => {
               invitations: updatedUserData.invitations
             }
             setUser(updatedUser)
+            
+            // Check if the viewed user is now a friend
+            setAreFriends(updatedUserData.friends.includes(viewUser.username))
           }
           
           // If the updated user is the viewed user, update the view
@@ -193,6 +197,9 @@ export const ViewProfile = ({user}: {user: User}) => {
               invitations: updatedUserData.invitations
             }
             setUser(updatedUser)
+            
+            // Check if the viewed user is now a friend
+            setAreFriends(updatedUserData.friends.includes(viewUser.username))
           }
           
           // If the updated user is the viewed user, update the view

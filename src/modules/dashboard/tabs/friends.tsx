@@ -150,7 +150,7 @@ export default function Friends({user}: {user: User}) {
                     {friends.map((friend) => (
                       <div
                         key={friend.username}
-                        className="w-full cursor-pointer p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex flex-col sm:flex-row items-center gap-4 hover:shadow-lg"
+                        className="w-full cursor-pointer p-4 border bg-card flex flex-col sm:flex-row items-center gap-4 hover:shadow-lg"
                         onClick={() => navigate(`/profile/${friend.username}`)}
                       >
                         <div className="flex items-center gap-4 w-full">
@@ -175,7 +175,7 @@ export default function Friends({user}: {user: User}) {
                             </div>
                           )}
                           <div className="flex-grow min-w-0">
-                            <h3 className="font-medium text-gray-900 dark:text-white truncate text-lg">
+                            <h3 className="font-medium text-white truncate text-lg">
                               {friend.username}
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">

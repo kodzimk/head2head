@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Settings, Users, LogOut, Trophy, Target, Zap, SlidersHorizontal } from 'lucide-react';
+import { Bell, Settings, Users, LogOut, Trophy, Target, Zap, SlidersHorizontal, Pickaxe } from 'lucide-react';
 import { Button } from '../../shared/ui/button';
 import {
   DropdownMenu,
@@ -55,7 +55,7 @@ export default function Header({ user }: HeaderProps) {
             <Link to="/dashboard" className="nav-gaming">
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <Trophy className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
-                <span className="text-sm lg:text-base">Dashboard</span>
+                <span className="text-sm lg:text-base">Home</span>
               </div>
             </Link>
             <Link to="/battles" className="nav-gaming">
@@ -74,6 +74,12 @@ export default function Header({ user }: HeaderProps) {
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <SlidersHorizontal className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
                 <span className="text-sm lg:text-base">Selection</span>
+              </div>
+            </Link>
+            <Link to={`/${user?.username}/trainings`} className="nav-gaming"> 
+              <div className="flex items-center gap-1.5 lg:gap-2">
+                <Pickaxe className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
+                <span className="text-sm lg:text-base">Trainings</span>
               </div>
             </Link>
           </nav>
@@ -117,7 +123,14 @@ export default function Header({ user }: HeaderProps) {
                             style={{ clipPath: 'circle(50%)' }}
                           />
                     </div>
+                      {/* Online Status Indicator */}
                       <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-4 lg:w-4 lg:h-4 bg-green-500 rounded-full border-1 sm:border-2 border-background"></div>
+                      
+                      {/* Notification Badge */}
+                      {notificationCount > 0 && (
+                        <div className="absolute top-1 right-1 w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full border-2 border-white shadow-lg z-20" style={{ animation: 'pulse 2s infinite' }}>
+                        </div>
+                      )}
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
@@ -167,7 +180,7 @@ export default function Header({ user }: HeaderProps) {
                   <div className="lg:hidden">
                     <DropdownMenuItem onClick={() => navigate(`/${user.username}`)} className="hover:bg-card/50 py-2 sm:py-3">
                       <Trophy className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-sm sm:text-base">Dashboard</span>
+                      <span className="text-sm sm:text-base">Home</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/battles')} className="hover:bg-card/50 py-2 sm:py-3">
                       <Zap className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
@@ -181,6 +194,10 @@ export default function Header({ user }: HeaderProps) {
                       <SlidersHorizontal className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                       <span className="text-sm sm:text-base">Selection</span>
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate(`/${user.username}/trainings`)} className="hover:bg-card/50 py-2 sm:py-3">
+                      <Pickaxe className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="text-sm sm:text-base">Trainings</span>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-border/50" />
                   </div>
 
@@ -191,11 +208,6 @@ export default function Header({ user }: HeaderProps) {
                   <DropdownMenuItem onClick={() => navigate(`/${user.username}/friends`)} className="hover:bg-card/50 py-2 sm:py-3">
                     <Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-sm sm:text-base">Friends</span>
-                    {notificationCount > 0 && (
-                      <Badge variant="secondary" className="ml-auto text-xs sm:text-sm">
-                        {notificationCount}
-                      </Badge>
-                    )}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(`/${user.username}/notifications`)} className="hover:bg-card/50 py-2 sm:py-3">
                     <Bell className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />

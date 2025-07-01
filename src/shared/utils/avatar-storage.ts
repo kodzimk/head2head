@@ -1,4 +1,6 @@
 // Persistent Avatar Storage using IndexedDB with folder-like structure
+import { API_BASE_URL } from '../interface/gloabL_var';
+
 interface StoredAvatar {
   file: File;
   timestamp: number;
@@ -317,7 +319,6 @@ class AvatarStorage {
     
     // Handle server avatars
     if (user.avatar && !user.avatar.startsWith('data:') && !user.avatar.startsWith('blob:')) {
-      const { API_BASE_URL } = require('../interface/gloabL_var');
       if (user.avatar.startsWith('http')) {
         return user.avatar;
       }

@@ -9,8 +9,8 @@
 #### What Was Updated:
 
 1. **API Base URL Configuration** (`src/shared/interface/gloabL_var.tsx`):
-   - **Current Configuration**: `API_BASE_URL = "https://api.head2head.dev"`
-   - **WebSocket Configuration**: `WS_BASE_URL = "wss://api.head2head.dev"`
+   - **Current Configuration**: `API_BASE_URL = "http://localhost:8000"`
+   - **WebSocket Configuration**: `WS_BASE_URL = "ws://localhost:8000"`
    - All components import and use these centralized constants
 
 2. **Training Component Updates** (`src/modules/trainings/trainings.tsx`):
@@ -247,6 +247,253 @@ if (updatedUserData.username === user.username) {
 // AFTER:
 if (updatedUserData.email === user.email) {
 ```
+
+## Training API Endpoints Fix - December 2024
+
+### Issue: 404 Not Found Errors on Training Endpoints
+
+**Problem Identified**: Training API endpoints were returning 404 errors because frontend was calling endpoints with incorrect URL patterns.
+
+**Root Cause Analysis**:
+- Backend training router registered with prefix `/training` in `main.py`: `app.include_router(training_router, prefix="/training", tags=["training"])`
+- Frontend was making calls to `/api/training/...` instead of `/training/...`
+- This caused all training-related API calls to fail with 404 errors
+
+**Error Messages**:
+```
+GET https://api.head2head.dev/api/training/training-stats/LEGOAT 404 (Not Found)
+GET https://api.head2head.dev/api/training/incorrect-answers/LEGOAT?limit=50 404 (Not Found)
+```
+
+### API Endpoints Fixed
+
+**File Updated**: `src/modules/trainings/trainings.tsx`
+
+**Endpoint Corrections**:
+1. **Training Stats**: `/api/training/training-stats/{username}` → `/training/training-stats/{username}`
+2. **Incorrect Answers**: `/api/training/incorrect-answers/{username}` → `/training/incorrect-answers/{username}`  
+3. **Generate Random Questions**: `/api/training/generate-random-questions` → `/training/generate-random-questions`
+4. **Start Training Session**: `/api/training/start-session` → `/training/start-session`
+5. **Submit Answer**: `/api/training/submit-answer` → `/training/submit-answer` (2 instances)
+6. **Complete Session**: `/api/training/complete-session/{sessionId}` → `/training/complete-session/{sessionId}`
+
+### Functions Updated
+- `fetchTrainingStats()` - Line ~123
+- `fetchIncorrectAnswers()` - Line ~160  
+- `generateRandomQuestions()` - Line ~178
+- `prepareMixedQuestions()` - Line ~327
+- `startTrainingSession()` - Line ~202
+- `handleAnswerSubmit()` - Line ~462
+- `handleAnswerSubmitTimeout()` - Line ~507
+- `completeTrainingSession()` - Line ~541
+
+### Verification
+- ✅ All `/api/training/` patterns removed from codebase
+- ✅ Training endpoints now correctly point to `/training/` prefix
+- ✅ API calls should now successfully connect to backend router
+- ✅ Training functionality restored for stats, incorrect answers, sessions, and question generation
+
+**Technical Impact**: This fix restores full training functionality including viewing training statistics, accessing incorrect answers for practice, generating random questions, and completing training sessions.
+
+## API Configuration Switch to Local Development - December 2024
+
+### Environment Switch: Production to Local Development
+
+**Objective**: Switch all API requests from production environment (`api.head2head.dev`) to local development environment (`localhost:8000`).
+
+**Configuration Updated**: `src/shared/interface/gloabL_var.tsx`
+
+**Changes Made**:
+- **API Base URL**: `"https://api.head2head.dev"` → `"http://localhost:8000"`
+- **WebSocket URL**: `"wss://api.head2head.dev"` → `"ws://localhost:8000"`
+
+**Impact**: 
+- ✅ All components now point to local development server
+- ✅ All API endpoints automatically updated (auth, battle, training, friends, etc.)
+- ✅ WebSocket connections redirected to local server
+- ✅ No individual component changes needed due to centralized configuration
+
+**Affected Systems**:
+- Authentication endpoints
+- Battle system API calls
+- Training functionality  
+- Friends management
+- Profile updates
+- Dashboard statistics
+- Notifications
+- WebSocket battle connections
+
+This change allows for local development and testing while maintaining the same codebase structure.
+
+## Critical Fixes for Local Development - December 2024
+
+### Fix 1: Avatar Storage Import Error
+
+**Problem**: `Uncaught ReferenceError: require is not defined` in `avatar-storage.ts` at line 320.
+
+**Root Cause**: Using Node.js-style `require()` in browser environment:
+```javascript
+const { API_BASE_URL } = require('../interface/gloabL_var');
+```
+
+**Solution**: 
+- **File Updated**: `src/shared/utils/avatar-storage.ts`
+- **Added proper ES6 import** at top of file: `import { API_BASE_URL } from '../interface/gloabL_var';`
+- **Removed require() statement** that was causing the browser error
+
+**Impact**: ✅ Avatar resolution now works correctly in leaderboard and other components
+
+### Fix 2: WebSocket Connection Analysis
+
+**Current Issue**: `WebSocket connection to 'ws://localhost:8000/ws?username=LEGOAT' failed`
+
+**Backend Configuration Verified**:
+- ✅ **Main WebSocket Endpoint**: `/ws` (confirmed in `backend/src/websocket.py:272`)
+- ✅ **Battle WebSocket Endpoint**: `/ws/battle/{battle_id}` (in `backend/src/battle_ws.py:169`)
+- ✅ **Frontend URL**: Correctly formatted as `ws://localhost:8000/ws?username=LEGOAT`
+
+**Probable Causes**:
+1. **Backend server not running** on `localhost:8000`
+2. **WebSocket service not started** within the backend
+3. **Port conflict** or different port configuration
+
+**Next Steps for User**:
+1. **Start the backend server**: Navigate to `backend/` directory and run the development server
+2. **Verify port**: Ensure backend is running on port 8000
+3. **Check WebSocket support**: Ensure the backend WebSocket handlers are properly loaded
+
+**Status**: 🔧 **Requires backend server to be running for WebSocket connection to succeed**
+
+## Flashcard Training Mode Implementation - December 2024
+
+### New Feature: Sports Flashcards Based on Incorrect Battle Answers
+
+**Objective**: Implement a flashcard training mode that creates study cards from user's incorrect battle answers, organized by sport with terms and definitions.
+
+#### What Was Implemented:
+
+**1. New Interfaces and Data Structures**:
+```typescript
+interface Flashcard {
+  id: string;
+  term: string;
+  definition: string;
+  sport: string;
+  level: string;
+  userAnswer?: string;
+  source: 'incorrect_answer' | 'sport_knowledge';
+  originalQuestionId?: string;
+}
+```
+
+**2. Flashcard Generation Logic**:
+- **From Incorrect Answers**: Automatically extracts key sports terms from battle questions user got wrong
+- **Term Extraction**: Smart pattern matching for sport-specific terminology (offside, free throw, ace, etc.)
+- **Sport Knowledge Base**: Additional flashcards with essential sports terminology
+- **Intelligent Mixing**: Combines user's incorrect answers with relevant sport knowledge
+
+**3. Comprehensive Sports Knowledge Base**:
+- **Football**: VAR, Clean Sheet, Hat-trick, Offside, Penalty, etc.
+- **Basketball**: Alley-oop, Pick and Roll, Triple-Double, Free Throw, etc.
+- **Tennis**: Bagel, Break, Grand Slam, Ace, Deuce, etc.
+- **Cricket**: Maiden Over, Century, Duck, Wicket, etc.
+- **Baseball**: Grand Slam, Perfect Game, Stolen Base, etc.
+- **Volleyball**: Kill, Libero, Pancake, Spike, etc.
+- **Boxing**: TKO, Southpaw, Clinch, etc.
+
+**4. Interactive Flashcard UI**:
+- **Front Side**: Shows the sports term with sport and difficulty level
+- **Back Side**: Shows definition and context
+- **Visual Indicators**: Different badges for "Review" (from incorrect answers) vs "Knowledge" cards
+- **User Actions**: "Need Review" and "Got It!" buttons for self-assessment
+- **Progress Tracking**: Shows current flashcard number out of total
+
+**5. Enhanced Training Modes**:
+- **Flashcards**: Study terms based on incorrect battle answers
+- **Practice Mistakes**: Review actual questions you got wrong
+- **Random Questions**: Fresh random questions from selected sport
+
+#### Technical Features:
+
+**Smart Term Extraction**:
+- Pattern matching for sport-specific vocabulary
+- Fallback to meaningful nouns when sport terms not found
+- Context-aware definition creation
+
+**Adaptive Content**:
+- Creates flashcards from user's actual mistakes
+- Adds relevant sport knowledge cards
+- Limits to 10 cards per session for focused learning
+- Shuffles content for variety
+
+**User Experience**:
+- No timer pressure (unlike quiz mode)
+- Self-paced learning
+- Clear visual distinction between review and knowledge cards
+- Seamless integration with existing training system
+
+**Session Management**:
+- Proper state management for flashcard vs quiz modes
+- Session completion tracking
+- Statistics integration
+- Clean reset between different training modes
+
+#### Educational Benefits:
+
+**Personalized Learning**:
+- Focuses on actual areas where user made mistakes
+- Reinforces sports terminology user got wrong
+- Contextual learning with sport-specific knowledge
+
+**Spaced Repetition Ready**:
+- Foundation for future spaced repetition implementation
+- User self-assessment ("Need Review" vs "Got It!")
+- Tracks source of each flashcard for analytics
+
+**Comprehensive Coverage**:
+- Covers all supported sports with proper terminology
+- Balances review of mistakes with new knowledge
+- Progressive difficulty based on user's level selection
+
+**Status**: ✅ **Fully implemented and ready for use**
+
+This feature transforms the training experience from purely quiz-based to include effective flashcard study, helping users build solid sports knowledge foundations while reinforcing areas where they previously struggled.
+
+### Update: AI-Generated Dynamic Flashcards - December 2024
+
+**Enhancement**: Replaced manually created flashcard content with dynamic AI-generated flashcards.
+
+**Changes Made**:
+- **Removed Manual Knowledge Base**: Eliminated static sports terminology database
+- **AI-Powered Generation**: Now uses the backend AI quiz generator to create flashcards
+- **Dynamic Content**: Flashcards are generated on-demand based on selected sport and level
+- **Smarter Term Extraction**: Enhanced logic to convert AI questions into meaningful flashcard terms
+- **Context-Aware Definitions**: Creates definitions from AI question context and answers
+
+**Technical Improvements**:
+```typescript
+const generateAIFlashcards = async (): Promise<Flashcard[]> => {
+  // Calls AI quiz generator API
+  // Converts questions to flashcard format
+  // Extracts terms and creates definitions
+  // Returns dynamic sports knowledge cards
+}
+```
+
+**Benefits**:
+- ✅ **Always Fresh Content**: No more repetitive manual flashcards
+- ✅ **Sport-Specific**: AI generates content tailored to selected sport
+- ✅ **Difficulty Scaled**: Content matches user's selected level
+- ✅ **Unlimited Variety**: AI can generate diverse sports knowledge
+- ✅ **Current Information**: AI knowledge stays up-to-date
+
+**User Experience**:
+- More diverse and challenging flashcard content
+- Sport-specific terminology and concepts
+- Seamless blend of user's mistakes with AI-generated knowledge
+- No dependency on pre-written content
+
+This update ensures users get fresh, relevant, and challenging flashcard content for every training session.
 
 **Components Fixed:**
 - `src/modules/profile/view-profile.tsx` (2 instances)
@@ -1804,7 +2051,7 @@ className="nav-gaming flex items-center justify-center gap-1 sm:gap-2 h-full tex
 ### Technical Details
 
 #### Simplified Message Handling
-```typescript
+```
 // Before: Complex state checking and validation
 if (areNowFriends && hasSentRequestToViewUser) {
   // Multiple conditions and checks
@@ -2091,7 +2338,7 @@ if (hasSentRequestToViewUser) {
 ### Solutions Implemented
 
 #### 1. Enhanced Authentication Validation
-```typescript
+```
 // Before: Only checked if username exists
 if (user?.username) { ... }
 
@@ -2105,7 +2352,7 @@ if (user?.username && user.username.trim() !== "") { ... }
 - **Network Error Detection**: Specific handling for network connectivity issues
 
 #### 3. Debug Information Display
-```typescript
+```
 // Debug info panel showing current state
 <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
   <p className="text-sm text-blue-800 dark:text-blue-200">
@@ -2118,7 +2365,7 @@ if (user?.username && user.username.trim() !== "") { ... }
 ```
 
 #### 4. Authentication UI
-```typescript
+```
 // Clear authentication requirement message
 {(!user?.username || user.username.trim() === "") && (
   <Card className="mb-6">
@@ -2141,7 +2388,7 @@ if (user?.username && user.username.trim() !== "") { ... }
 ```
 
 #### 5. Loading States
-```typescript
+```
 // Proper loading indicator
 {!error && !trainingStats && (
   <Card className="mb-6">
@@ -2158,7 +2405,7 @@ if (user?.username && user.username.trim() !== "") { ... }
 ### Debugging Tools Created
 
 #### 1. API Connectivity Test (`test_api_connectivity.js`)
-```javascript
+```
 // Tests training API endpoints
 async function testTrainingAPI() {
   const endpoints = [
@@ -2171,7 +2418,7 @@ async function testTrainingAPI() {
 ```
 
 #### 2. Backend Health Check (`check_backend.py`)
-```python
+```
 # Comprehensive backend verification
 async def check_backend_health():
     # Tests backend connectivity
@@ -3550,6 +3797,107 @@ Battle creators now receive immediate notifications when their invitations are r
 - **Result**: Clearer user interface that allows users to request a new invitation after rejecting one
 
 ### Technical Details
+
+## 2024-12-19 - Friend Status Detection Fix in View Profile
+
+### Issue
+When viewing a friend's profile, the system was showing "Send Request" button instead of "Battle" button, even though the two users were already friends. The friend status wasn't being properly detected on initial profile load.
+
+### Root Cause
+The `view-profile.tsx` component had a critical bug in friend status detection:
+1. **Missing Initial Check**: The component never checked if the viewed user was already in the current user's friends list when the profile first loaded
+2. **Incomplete State Updates**: The `areFriends` state only got updated when websocket messages indicated a friend request was accepted during the current session
+3. **No Real-time Updates**: When the user's friends list was updated via websocket, the component didn't re-check if the viewed user was now a friend
+
+### Solution
+Added comprehensive friend status checking in three places:
+
+1. **Initial Load Check**: Added `setAreFriends(user.friends.includes(response.data.username))` in the `fetchUser` function to check friend status when profile first loads
+
+2. **Websocket Handler - user_updated**: Added friend status check after user state updates:
+   ```typescript
+   setUser(updatedUser)
+   // Check if the viewed user is now a friend
+   setAreFriends(updatedUserData.friends.includes(viewUser.username))
+   ```
+
+3. **Websocket Handler - friend_request_updated**: Added same friend status check in the second websocket handler for consistency
+
+### Files Modified
+- `src/modules/profile/view-profile.tsx`:
+  - Added initial friend status check in `fetchUser()`
+  - Added friend status updates in both websocket message handlers
+  - Now properly detects existing friendships and real-time friendship changes
+
+### Result
+- Friend profiles now correctly show "Battle" button when users are already friends
+- Button correctly changes from "Send Request" → "Cancel Request" → "Battle" during friend request flow
+- Real-time updates work properly when friendship status changes in other parts of the app
+- No more confusion about existing friend relationships in profile views
+
+### Technical Details
+The fix ensures that `areFriends` state accurately reflects the current friendship status by:
+- Checking `user.friends.includes(viewUser.username)` on initial load
+- Re-checking whenever the current user's friends list is updated via websocket
+- Maintaining consistency across all state update scenarios
+
+This resolves the core issue where existing friendships weren't being recognized in the profile view interface.
+
+## 2024-12-19 - Fixed Notification Indicator Display Issues
+
+### Issue
+The notification badge indicator on the user avatar was not showing properly, even when there were pending friend requests or battle invitations.
+
+### Root Cause Analysis
+Investigation revealed several potential issues with the notification badge:
+1. **Positioning conflicts**: Badge might be overlapping with green status indicator
+2. **Z-index issues**: Badge might be rendered behind other elements
+3. **CSS variable dependencies**: Custom animation classes might not be working properly
+4. **Size and visibility**: Badge might be too small or positioned incorrectly
+
+### Solution
+Enhanced the notification badge with more robust styling and positioning:
+
+### Technical Changes Made
+
+1. **Improved Positioning**: 
+   - Changed from `-top-1 -right-1` to `-top-2 -right-2` for better separation from avatar edge
+   - Increased spacing on larger screens with `-top-2.5 -right-2.5`
+
+2. **Enhanced Visibility**:
+   - Increased badge size from `min-w-[18px] h-[18px]` to `min-w-[20px] h-[20px]`
+   - Larger size on bigger screens: `min-w-[24px] h-[24px]`
+   - Used solid colors: `bg-red-500` and `text-white` for better contrast
+
+3. **Simplified Styling**:
+   - Replaced custom `bg-destructive` with standard `bg-red-500`
+   - Used `border-white` instead of `border-background` for cleaner appearance
+   - Increased z-index from `z-10` to `z-20` to ensure proper layering
+
+4. **Reliable Animation**:
+   - Replaced custom `animate-neon-pulse` with inline `animation: 'pulse 2s infinite'`
+   - Used CSS standard pulse animation for better compatibility
+
+5. **Debug Implementation**:
+   - Added console logging to track notification count calculation
+   - Temporarily forced badge visibility for testing with `|| true` condition
+
+### Files Modified
+- `src/modules/dashboard/header.tsx`:
+  - Enhanced notification badge positioning and styling
+  - Added debug logging for notification count
+  - Improved z-index and visibility
+
+### Expected Results
+- Notification badge should now be clearly visible on the avatar
+- Better separation from the green online status indicator
+- More reliable animation and styling
+- Proper debugging information in console
+
+### Testing Notes
+The badge is temporarily set to always show (`|| true`) to verify styling works correctly. This should be reverted to `notificationCount > 0` once the display is confirmed working.
+
+This fix ensures users can clearly see when they have pending notifications, improving the overall user experience and notification awareness.
 - The backend `/battle/reject-invitation` endpoint expects `friend_username` and `battle_id` as query parameters
 - The new "Invite" functionality uses the existing `/battle/invite-friend` endpoint
 - All changes maintain proper state synchronization and websocket communication
@@ -5146,7 +5494,7 @@ The quiz question page now provides a significantly enhanced user experience wit
 />
 ```
 
-### Integration Points:
+#### Integration Points:
 - **Result Page**: Uses `FaceitAvatar` for professional user display
 - **Dashboard Header**: Can be upgraded to show user status
 - **Leaderboard**: Enhanced with professional avatar variants
@@ -6086,5 +6434,795 @@ migrateAvatar(oldUsername, newUsername) {
 - **Cross-Session Persistence**: Better reliability across browser sessions
 
 This refactoring provides a solid foundation for avatar management that can scale with the application's growth while maintaining excellent performance and user experience.
+
+## Training Module AI-Generated Dynamic Content Upgrade - Phase 2: Practice Modes Enhancement
+
+**Date**: Current  
+**Action**: Removed manual fallback questions from Practice Mistakes and Mixed Questions training modes  
+**Files Modified**: 
+- `src/modules/trainings/trainings.tsx`
+
+### Changes Made
+
+**1. Practice Mistakes Mode Enhancement**
+- **Removed**: All hardcoded sample questions (capital of France, planets, etc.)
+- **Added**: Smart supplemental AI generation when insufficient incorrect answers exist
+- **Logic**: Now combines user's actual incorrect battle answers with AI-generated questions
+- **Minimum Guarantee**: Ensures at least 5 questions total per session
+- **Function Added**: `generateAIQuestionsForPractice()` - generates AI questions specifically for practice modes
+
+**2. Mixed Questions Mode Cleanup**
+- **Removed**: All manual fallback questions (geography, math, general knowledge)
+- **Enhanced**: Now uses AI generation as fallback when mixed question generation fails
+- **Consistency**: Maintains same high-quality AI-generated content across all training modes
+
+### Technical Implementation
+
+**New Function: `generateAIQuestionsForPractice()`**
+```typescript
+// Generates AI questions for practice modes with proper error handling
+// Uses same backend endpoint as random questions mode
+// Converts AI response format to TrainingQuestion interface
+// Respects user's sport and difficulty selections
+```
+
+**Enhanced Logic Flow**:
+1. **Practice Mistakes**: Uses incorrect answers first, supplements with AI if needed
+2. **Mixed Questions**: Attempts mixed generation, falls back to AI on failure
+3. **Consistent Quality**: All modes now use AI-powered content
+
+### Enhanced Practice Mistakes Algorithm
+
+**Previous Behavior**:
+- If no incorrect answers: Show generic sample questions (capitals, planets, etc.)
+- Limited to only user's mistakes when available
+
+**New Behavior**:
+```typescript
+prepareIncorrectAnswersQuestions() {
+  let allQuestions = [];
+  
+  // 1. Convert existing incorrect answers to training questions
+  if (incorrectAnswers.length > 0) {
+    allQuestions.push(...questionsFromIncorrect);
+  }
+  
+  // 2. Supplement with AI if fewer than 5 questions
+  if (allQuestions.length < 5) {
+    const aiQuestions = await generateAIQuestionsForPractice(5 - allQuestions.length);
+    allQuestions.push(...aiQuestions);
+  }
+  
+  // 3. Shuffle and limit to 10 total
+  setTrainingQuestions(shuffled.slice(0, 10));
+}
+```
+
+### Benefits
+- **No More Placeholder Content**: Eliminates irrelevant sample questions
+- **Unlimited Variety**: AI generates fresh content every session
+- **Sport-Specific**: All questions relate to user's selected sport
+- **Difficulty-Appropriate**: Questions match user's selected level
+- **Seamless Experience**: Fallback logic ensures training always works
+- **Consistency**: All training modes now use same AI generation system
+
+### User Experience Impact
+- **Practice Mistakes**: More relevant questions when user has few battle mistakes
+- **Mixed Questions**: Better fallback experience if mixed generation fails  
+- **Overall**: Higher quality, sport-specific content across all training modes
+- **No Interruption**: Users never see generic/irrelevant placeholder questions
+
+This completes the full AI-powered training system with no manual question dependencies. All three training modes (Flashcards, Practice Mistakes, Random Questions) now utilize AI-generated content, ensuring users always get relevant, challenging, and sport-appropriate questions regardless of their battle history or system state.
+
+## Training Module: "Learn from Mistakes" Mode Implementation
+
+**Date**: Current  
+**Action**: Created new training mode that converts actual battle incorrect answers into clear, educational training questions  
+**Files Modified**: 
+- `src/modules/trainings/trainings.tsx`
+
+### New Training Mode: "Learn from Mistakes"
+
+**Purpose**: Takes user's actual incorrect answers from battles and converts them into educational training questions with clear context and explanations.
+
+### Key Features Implemented
+
+**1. Question Creation from Battle Mistakes**
+- **Source**: User's actual incorrect answers from battles (from `incorrectAnswers` array)
+- **Context**: Shows user what they previously answered wrong
+- **Format**: `"Original question + 💡 You previously answered: 'wrong answer'"`
+- **Educational Value**: Helps users understand their specific mistakes
+
+**2. Smart Distractor Generation**
+- **Method**: Uses AI to generate plausible wrong answers as distractors
+- **Process**: Fetches AI questions from same sport/level to extract realistic wrong options
+- **Fallback**: Generic alternatives if AI generation fails
+- **Logic**: Ensures distractors are different from both correct answer and user's previous wrong answer
+
+**3. Enhanced Learning Experience**
+- **Answer Shuffling**: Randomizes option positions to prevent pattern memorization
+- **Visual Cues**: 💡 emoji highlights user's previous wrong answer
+- **Progressive**: Takes up to 10 most recent mistakes for focused learning
+- **Supplementation**: Adds AI questions if user has fewer than 5 mistakes
+
+### Technical Implementation
+
+**New Functions Added**:
+
+**`prepareBattleMistakesQuestions()`**:
+```typescript
+// Converts battle mistakes into training questions
+// Shows user's previous wrong answer for context
+// Generates realistic distractors using AI
+// Supplements with AI questions if insufficient mistakes
+```
+
+**`generateDistractorsForMistake()`**:
+```typescript
+// Creates plausible wrong answers for each mistake
+// Uses AI to generate sport-specific distractors
+// Filters out correct answer and user's previous wrong answer
+// Provides fallback options if AI generation fails
+```
+
+### Educational Logic Flow
+
+**1. Mistake Selection**: Takes user's recent incorrect battle answers (up to 10)
+**2. Question Creation**: Formats original question with context of previous wrong answer
+**3. Option Generation**: 
+   - Correct answer (from battle data)
+   - User's previous wrong answer
+   - 2 AI-generated distractors from similar questions
+**4. Randomization**: Shuffles options and re-labels A, B, C, D
+**5. Supplementation**: Adds AI questions if fewer than 5 total questions
+
+### User Experience Benefits
+
+**Personalized Learning**:
+- **Targeted Practice**: Focuses on actual areas where user struggled
+- **Clear Context**: Shows exactly what they got wrong before
+- **Realistic Options**: Uses AI-generated distractors that make sense in context
+- **Progressive Difficulty**: Uses same sport/level as original battle questions
+
+**Educational Value**:
+- **Mistake Recognition**: Helps users identify their common error patterns
+- **Contextual Learning**: Reviews mistakes in educational format rather than penalty
+- **Confidence Building**: Allows users to correct their previous mistakes
+- **Knowledge Reinforcement**: Reinforces correct answers through repetition
+
+### Fallback Handling
+
+**No Mistakes Available**: If user has no incorrect battle answers, generates AI questions based on selected sport/level
+
+**Insufficient Mistakes**: Supplements with AI-generated questions to ensure minimum 5 questions per session
+
+**AI Generation Failure**: Provides generic but educational alternative options
+
+### Technical Features
+
+**Data Integration**: 
+- Uses existing `incorrectAnswers` state from battle history
+- Leverages `generateAIQuestionsForPractice()` for supplementation
+- Maintains consistency with other training modes
+
+**Quality Assurance**:
+- Filters distractors to avoid duplicates with correct/previous answers
+- Limits to 4 total options per question (standard multiple choice)
+- Shuffles options to prevent pattern learning
+
+**Performance**: 
+- Efficient processing of mistake data
+- Minimal API calls for distractor generation
+- Graceful fallback handling
+
+This implementation provides users with a highly personalized learning experience that directly addresses their individual knowledge gaps identified through battle participation, making training more targeted and effective than generic question sets.
+
+## Flashcard Training Mode Enhanced: Battle Mistakes Integration
+
+**Date**: Current  
+**Action**: Enhanced flashcard mode to prominently feature battle mistakes with comprehensive educational format, removed separate "Learn from Mistakes" tab  
+**Files Modified**: 
+- `src/modules/trainings/trainings.tsx`
+
+### Major Changes Made
+
+**1. Removed Separate "Learn from Mistakes" Tab**
+- ✅ **Deleted**: `battle_mistakes` option from questionTypes array
+- ✅ **Simplified**: Training options now focus on Flashcards and Random Questions
+- ✅ **Integrated**: Battle mistakes functionality moved into enhanced flashcard mode
+
+**2. Enhanced Flashcard Battle Mistakes Integration**
+- ✅ **Prioritized**: Battle mistakes now appear first in flashcard sessions
+- ✅ **Limited**: Takes up to 8 most recent battle mistakes (instead of all)
+- ✅ **Educational Format**: Comprehensive learning-focused definition format
+- ✅ **Smart Balance**: Supplements with AI flashcards based on available mistakes
+
+### New Educational Flashcard Format
+
+**Enhanced Definition Structure for Battle Mistakes**:
+```
+📚 CORRECT ANSWER: [Actual correct answer]
+
+🎯 BATTLE CONTEXT: [Question context without question words]
+
+❌ YOUR PREVIOUS ANSWER: "[User's wrong answer]"
+
+💡 REMEMBER: Focus on understanding why "[correct answer]" is correct to avoid this mistake in future battles.
+```
+
+**Benefits of New Format**:
+- **Clear Visual Hierarchy**: Emojis and formatting make information scannable
+- **Educational Focus**: Emphasizes learning rather than just showing mistakes
+- **Context Preservation**: Maintains battle question context for better understanding
+- **Memory Aid**: Helps users remember why they got it wrong and what's correct
+
+### Technical Implementation Changes
+
+**New Function: `createBattleMistakeDefinition()`**
+```typescript
+// Creates comprehensive educational definitions from battle mistakes
+// Extracts question context by removing question words
+// Formats with visual hierarchy and clear educational structure
+// Focuses on learning and memory retention
+```
+
+**Enhanced `prepareFlashcards()` Algorithm**:
+1. **Prioritize Battle Mistakes**: Takes up to 8 recent battle mistakes first
+2. **Smart AI Supplementation**: Adds AI cards based on available mistake count
+3. **Balanced Sessions**: Ensures 10 total cards with battle mistakes prioritized
+4. **Educational Ordering**: Battle mistakes first, then shuffled AI knowledge cards
+
+**Updated `generateAIFlashcards()` Function**:
+- **Flexible Count**: Now accepts count parameter for dynamic generation
+- **Efficient**: Generates only needed number of AI flashcards
+- **Integrated**: Works seamlessly with battle mistake prioritization
+
+### User Experience Improvements
+
+**Battle-Focused Learning**:
+- **Targeted Practice**: Users see their actual battle mistakes as flashcards
+- **Progressive Difficulty**: Uses same sport/level as original battle questions
+- **Clear Context**: Shows exactly what they got wrong and why
+- **Memory Reinforcement**: Visual format helps remember correct answers
+
+**Smart Content Balance**:
+- **8 Battle Mistakes + 2 AI Cards**: When user has many mistakes
+- **Fewer Mistakes + More AI**: Supplements when user has few mistakes
+- **All AI**: Falls back to pure AI generation when no mistakes available
+- **Maximum 10**: Keeps sessions focused and manageable
+
+**Enhanced Readability**:
+- **Visual Hierarchy**: Emojis and formatting improve scanning
+- **Clear Sections**: Separates correct answer, context, mistake, and learning tip
+- **Educational Tone**: Focuses on learning rather than highlighting failures
+- **Action-Oriented**: Provides specific guidance for improvement
+
+### Learning Benefits
+
+**Mistake Recognition**: 
+- Users clearly see their patterns of errors
+- Context helps understand why they made the mistake
+- Visual format makes information memorable
+
+**Knowledge Reinforcement**:
+- Correct answers presented prominently
+- Context helps build understanding
+- Learning tips provide actionable guidance
+
+**Confidence Building**:
+- Educational tone reduces negative feelings about mistakes
+- Focus on improvement rather than failure
+- Progressive learning through repetition
+
+### Technical Benefits
+
+**Simplified Architecture**:
+- **Fewer Modes**: Reduced complexity with integrated functionality
+- **Consistent UX**: Single flashcard interface for all learning
+- **Efficient**: No duplicate battle mistake processing
+
+**Performance Optimization**:
+- **Smart Loading**: Only generates needed AI content
+- **Prioritized Processing**: Battle mistakes processed first
+- **Balanced Sessions**: Optimal mix for educational value
+
+This enhancement transforms the flashcard mode into a comprehensive battle-mistake learning system that helps users specifically address their individual knowledge gaps while maintaining the familiar flashcard UX they already know.
+
+## Flashcard Battle Terms Enhancement: Sports-Specific Terminology Focus
+
+**Date**: Current  
+**Action**: Enhanced flashcard creation to focus on specific sports terms and facts commonly found in battles, removed question context dependency  
+**Files Modified**: 
+- `src/modules/trainings/trainings.tsx`
+
+### Major Improvements Made
+
+**1. Sports-Specific Term Creation**
+- ✅ **Removed**: Question context dependency 
+- ✅ **Added**: Battle-specific term generation based on content type
+- ✅ **Enhanced**: Smart categorization of sports knowledge (Players, Teams, Rules, Techniques, Records)
+- ✅ **Focused**: Terms that commonly appear in battle questions
+
+**2. New Categorized Flashcard Types**
+
+**🏆 PLAYER Cards**: 
+- Automatically detects player names
+- Format: "Lionel Messi", "LeBron James", etc.
+- Focus: Key players and their achievements
+
+**🏟️ TEAM Cards**:
+- Detects team names with keywords (FC, United, Lakers, etc.)
+- Format: "Manchester United", "Los Angeles Lakers", etc. 
+- Focus: Major teams and their history
+
+**📋 RULE Cards**:
+- Specific rule terms: "Offside Rule", "Double Dribble", "Yellow Card"
+- Detects rule-related questions
+- Focus: Game regulations and violations
+
+**⚡ TECHNIQUE Cards**:
+- Specific techniques: "Crossover Dribble", "Ace Serve", "Slam Dunk"
+- Detects skill/move-related questions
+- Focus: Game moves and skills
+
+**📊 RECORD Cards**:
+- Achievement terms: "World Cup Winner", "Goal Scoring Record", "Olympic Champion"
+- Detects record/achievement questions
+- Focus: Statistics and records
+
+### Technical Implementation
+
+**New Function: `createBattleSpecificTerm()`**
+```typescript
+// Creates specific sports terms commonly found in battles
+// Categories: Players, Teams, Rules, Techniques, Records
+// Sport-specific term matching for better accuracy
+// Fallback to sport-specific general terms
+```
+
+**Enhanced Content Detection Functions**:
+- `isPlayerName()`: Detects proper names and player formats
+- `isTeamName()`: Identifies team names with keywords
+- `isRule()`: Detects rule/regulation related content
+- `isTechnique()`: Identifies skills and moves
+- `isRecord()`: Recognizes achievements and statistics
+
+**Improved Definition Format**:
+```
+🏆 PLAYER: Lionel Messi
+🎯 SPORT: Football
+❌ YOU ANSWERED: "Cristiano Ronaldo"
+💡 REMEMBER: Lionel Messi is a key player in football - study top players and their achievements!
+```
+
+### Sports-Specific Term Examples
+
+**Football Terms**:
+- Rules: "Offside Rule", "Penalty Rule", "Handball Rule"
+- Techniques: "Free Kick", "Header", "Tackle Technique"
+- General: "Goal", "Assist", "Clean Sheet", "Hat-trick"
+
+**Basketball Terms**:
+- Rules: "Three-Second Rule", "Traveling Violation", "Double Dribble"
+- Techniques: "Crossover Dribble", "Fadeaway Shot", "Slam Dunk"
+- General: "Rebound", "Assist", "Triple-Double", "Block"
+
+**Tennis Terms**:
+- Techniques: "Ace Serve", "Smash Shot", "Volley"
+- General: "Set", "Game", "Match Point", "Deuce"
+
+**Cricket Terms**:
+- General: "Over", "Wicket", "Century", "Six", "Boundary"
+
+### User Experience Benefits
+
+**Battle-Relevant Learning**:
+- **Focused Terms**: Only creates terms commonly asked in battles
+- **Specific Knowledge**: "Double Dribble" instead of generic "basketball rule"
+- **Memorable**: Short, specific terms easier to remember
+- **Practical**: Directly applicable to battle questions
+
+**Clear Categorization**:
+- **Visual Icons**: Different emojis for different types (🏆🏟️📋⚡📊)
+- **Type Recognition**: Users understand what category they're learning
+- **Targeted Study**: Can focus on specific areas (rules, players, techniques)
+
+**Battle Preparation**:
+- **Common Terms**: Focuses on frequently asked battle topics
+- **Sport-Specific**: Terms tailored to each sport's vocabulary
+- **Competitive Edge**: Learn terms that actually appear in battles
+
+### Technical Benefits
+
+**Intelligent Classification**:
+- **Smart Detection**: Automatically categorizes content type
+- **Fallback Logic**: Graceful handling when classification fails
+- **Sport-Aware**: Different terms for different sports
+- **Keyword Matching**: Robust pattern recognition
+
+**Performance Optimization**:
+- **Focused Processing**: Only extracts relevant sports terms
+- **Efficient Matching**: Quick keyword-based classification
+- **Minimal Overhead**: Lightweight term creation logic
+
+This enhancement ensures flashcards contain specific, battle-relevant sports terminology that users will actually encounter in competitive play, making study time more effective and practical.
+
+## AI Flashcard Definition Cleanup: Removed Context Explanations
+
+**Date**: Current  
+**Action**: Cleaned up AI-generated flashcard definitions to remove context explanations and create direct, understandable terms  
+**Files Modified**: 
+- `src/modules/trainings/trainings.tsx`
+
+### Problem Addressed
+
+**Before**: AI flashcards showed confusing context explanations
+```
+Term: European Champion Clubs' Cup
+Definition: European Champion Clubs' Cup. Context: is the name of the trophy awarded to the winner of the UEFA Champions League
+```
+
+**After**: Clean, direct definitions
+```
+Term: European Champion Clubs' Cup  
+Definition: Name/Term: European Champion Clubs' Cup
+```
+
+### Changes Made
+
+**1. Removed Context Explanations**
+- ✅ **Eliminated**: "Context: ..." portions from AI flashcard definitions
+- ✅ **Simplified**: Direct answer format without confusing explanations
+- ✅ **Cleaner**: More readable and understandable for users
+
+**2. Enhanced Definition Categories**
+- **Winner/Champion**: For questions about who won competitions
+- **Name/Term**: For questions about what something is called
+- **Team**: For team-related questions
+- **Player**: For player-specific questions  
+- **Year/Date**: For time-related questions
+- **Record/Statistic**: For numerical records and stats
+- **Rule/Regulation**: For rule-based questions
+- **Technique/Skill**: For technique and skill questions
+
+### Updated Definition Formats
+
+**Winners/Champions**:
+```
+Term: Brazil
+Definition: Winner/Champion: Brazil
+```
+
+**Names/Terms**:
+```
+Term: Hat-trick
+Definition: Name/Term: Hat-trick
+```
+
+**Teams**:
+```
+Term: Manchester United
+Definition: Team: Manchester United
+```
+
+**Records**:
+```
+Term: 73 wins
+Definition: Record/Statistic: 73 wins
+```
+
+### User Experience Benefits
+
+**Cleaner Learning**:
+- **No Confusion**: Users see direct answers without context explanations
+- **Faster Recognition**: Simple format easier to process quickly
+- **Clear Categories**: Users understand what type of knowledge they're learning
+
+**Better Memorization**:
+- **Direct Association**: Term directly linked to clean definition
+- **No Extra Text**: Eliminates distracting context information
+- **Focused Learning**: Users concentrate on the essential information
+
+**Professional Format**:
+- **Consistent Style**: All AI flashcards follow same clean pattern
+- **Battle-Ready**: Format matches what users need for competition
+- **Easy Scanning**: Quick to review during study sessions
+
+This cleanup ensures AI-generated flashcards provide clear, direct sports knowledge without confusing context explanations that might distract from learning the essential facts.
+
+## AI Flashcard Enhancement: Meaningful Terms and Descriptions
+
+**Date**: Current  
+**Action**: Enhanced AI flashcard creation to provide meaningful, learnable terms instead of generic categories  
+**Files Modified**: 
+- `src/modules/trainings/trainings.tsx`
+
+### Problem Addressed
+
+**Before**: Generic, unhelpful flashcards
+```
+Term: Player
+Definition: Answer: Giannis Antetokounmpo
+```
+
+**After**: Meaningful, learnable flashcards  
+```
+Term: Who is the Greek Freak
+Definition: Greek Freak nickname: Giannis Antetokounmpo
+```
+
+### Major Improvements
+
+**1. Descriptive Terms from Questions**
+- ✅ **Extracts meaningful descriptions**: "Who is the Greek Freak" instead of "Player"
+- ✅ **Recognizes nicknames**: Automatically detects and formats nickname questions
+- ✅ **Competition context**: "World Cup Winner", "NBA Champion", etc.
+- ✅ **Question-based terms**: Uses actual question content to create terms
+
+**2. Enhanced Pattern Recognition**
+- **Nickname Detection**: "Who is the Greek Freak", "Who is the King" 
+- **Competition Winners**: "World Cup Winner", "Champions League Winner"
+- **GOAT Questions**: "Who is considered the GOAT"
+- **Team Questions**: Extracts specific team contexts
+- **Record Questions**: "How many goals", "Fastest time", etc.
+
+**3. Cleaned Question Formatting**
+- **Removes question words**: Strips "What/Who/Which" to get meaningful content
+- **Proper capitalization**: Ensures readable formatting
+- **Length validation**: Keeps terms concise but meaningful
+- **Fallback handling**: Smart defaults when extraction fails
+
+### Examples of Enhanced Flashcards
+
+**Nickname Questions**:
+```
+Term: Who is the Greek Freak
+Definition: Greek Freak nickname: Giannis Antetokounmpo
+```
+
+**Competition Winners**:
+```
+Term: World Cup Winner 2022
+Definition: World Cup Winner 2022: Argentina
+```
+
+**Team Questions**:
+```
+Term: Premier League 2023 Champions
+Definition: Premier League 2023 Champions: Manchester City
+```
+
+**Record Questions**:
+```
+Term: Most goals in a World Cup
+Definition: Most goals in a World Cup: 16 goals
+```
+
+### Technical Implementation
+
+**Enhanced `extractKeyTermFromAIQuestion()`**:
+- Pattern matching for common sports question types
+- Nickname extraction with regex matching
+- Competition and tournament recognition
+- Smart fallback to cleaned question content
+
+**Improved `createDefinitionFromAIQuestion()`**:
+- Extracts meaningful question context
+- Removes unnecessary question words
+- Creates learnable associations
+- Maintains readability
+
+### Learning Benefits
+
+**Better Memorization**:
+- **Meaningful Associations**: "Greek Freak" → "Giannis" is memorable
+- **Context Clues**: Users understand what they're learning
+- **Question Format**: Mimics actual battle question patterns
+- **Recognition Training**: Helps with nickname/alias recognition
+
+**Practical Application**:
+- **Battle-Ready**: Terms match actual competition question formats
+- **Nickname Learning**: Essential for sports trivia success
+- **Context Understanding**: Users learn relationships, not just facts
+- **Pattern Recognition**: Helps identify question types in battles
+
+**User Experience**:
+- **Clear Purpose**: Users understand what each flashcard teaches
+- **Engaging Content**: Interesting terms instead of generic categories
+- **Easy Scanning**: Quick to identify and review
+- **Confidence Building**: Success in recognizing patterns
+
+This enhancement transforms AI flashcards from generic fact displays into meaningful learning tools that help users understand sports knowledge in the context they'll actually encounter during battles.
+
+## AI Flashcard Terms: Full Question Format for Battle Practice
+
+**Date**: Current  
+**Action**: Modified flashcard terms to use actual question text instead of generic categories, providing real battle-style practice  
+**Files Modified**: 
+- `src/modules/trainings/trainings.tsx`
+
+### Enhancement Made
+
+**Before**: Generic category terms
+```
+Term: Sports Rule
+Definition: Video Assistant Referee
+```
+
+**After**: Actual battle questions as terms
+```
+Term: In football, what does 'VAR' stand for?
+Definition: Video Assistant Referee
+```
+
+### New Flashcard Format
+
+**Acronym/Abbreviation Questions**:
+```
+Term: In football, what does 'VAR' stand for?
+Definition: Video Assistant Referee
+
+Term: What does 'NBA' stand for?
+Definition: National Basketball Association
+```
+
+**Winner/Champion Questions**:
+```
+Term: Who won the 2022 FIFA World Cup?
+Definition: Argentina
+
+Term: Which team won the NBA Championship in 2023?
+Definition: Denver Nuggets
+```
+
+**Nickname Questions**:
+```
+Term: Who is nicknamed the 'Greek Freak'?
+Definition: Giannis Antetokounmpo
+
+Term: Which player is known as 'King James'?
+Definition: LeBron James
+```
+
+**Record Questions**:
+```
+Term: How many goals did Pelé score in his career?
+Definition: 1,283 goals
+
+Term: What is the fastest 100m sprint time?
+Definition: 9.58 seconds
+```
+
+### Technical Implementation
+
+**Updated `extractKeyTermFromAIQuestion()`**:
+- Uses full question text as the term for all question types
+- Preserves original question format for battle-like practice
+- Maintains question marks and formatting
+- No more generic category labels
+
+**Question Types Handled**:
+- **Acronym Questions**: "What does X stand for?"
+- **Winner Questions**: "Who won the X championship?"
+- **Nickname Questions**: "Who is nicknamed Y?"
+- **Record Questions**: "How many/What is the record for Z?"
+- **Team Questions**: "Which team did X?"
+- **Year Questions**: "What year did Y happen?"
+
+### Learning Benefits
+
+**Battle Preparation**:
+- **Exact Format**: Terms match actual battle question formats
+- **Question Recognition**: Users practice identifying question types
+- **Reading Comprehension**: Full question context for better understanding
+- **Competitive Edge**: Direct practice with battle-style questions
+
+**Memory Training**:
+- **Question-Answer Association**: Natural learning pattern
+- **Context Clues**: Full question provides learning context
+- **Pattern Recognition**: Users learn to identify question patterns
+- **Recall Practice**: Question format triggers memory recall
+
+**Practical Application**:
+- **Real Battle Simulation**: Flashcards now simulate actual battles
+- **Speed Training**: Quick recognition of common question formats
+- **Confidence Building**: Familiar question formats reduce battle anxiety
+- **Knowledge Transfer**: Direct application to competitive play
+
+### User Experience Benefits
+
+**Authentic Practice**:
+- **Battle-Like Experience**: Flashcards feel like real competition
+- **Question Familiarity**: Users become familiar with common question structures
+- **Time Efficiency**: Study time directly applicable to battles
+- **Skill Development**: Develops both knowledge and question-answering skills
+
+**Enhanced Learning**:
+- **Context Understanding**: Full question provides learning context
+- **Logical Flow**: Question → Answer flow mimics natural learning
+- **Memory Association**: Question format acts as memory trigger
+- **Comprehensive Practice**: Covers both knowledge and recognition skills
+
+This change transforms flashcards from simple fact cards into authentic battle practice tools, giving users direct experience with the question formats they'll encounter in competition.
+
+## Avatar Notification Indicator Implementation
+
+**Date**: Current  
+**Action**: Added notification badge indicator on user avatar that appears when there are pending notifications  
+**Files Modified**: 
+- `src/modules/dashboard/header.tsx`
+
+### Feature Added
+
+**Notification Badge on Avatar**:
+- ✅ **Visual Indicator**: Red badge appears on top-right of user avatar when notifications exist
+- ✅ **Dynamic Count**: Shows actual notification count (friend requests + invitations)
+- ✅ **Responsive Design**: Scales appropriately on different screen sizes
+- ✅ **Smart Display**: Shows "99+" for counts over 99
+- ✅ **Eye-catching**: Uses destructive color with neon pulse animation
+
+### Technical Implementation
+
+**Badge Positioning**:
+```tsx
+{notificationCount > 0 && (
+  <div className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 min-w-[18px] h-[18px] sm:min-w-[20px] sm:h-[20px] bg-destructive rounded-full border-2 border-background flex items-center justify-center animate-neon-pulse shadow-lg z-10">
+    <span className="text-[10px] sm:text-xs font-bold text-destructive-foreground leading-none">
+      {notificationCount > 99 ? '99+' : notificationCount}
+    </span>
+  </div>
+)}
+```
+
+**Key Features**:
+- **Strategic Position**: Top-right of avatar, doesn't interfere with status indicator
+- **Conditional Display**: Only appears when `notificationCount > 0`
+- **Responsive Sizing**: Adapts to screen size with responsive classes
+- **High Visibility**: Red background with white text and pulse animation
+- **Proper Layering**: `z-10` ensures it appears above other elements
+- **Border Contrast**: White border creates separation from avatar
+
+### Visual Design
+
+**Badge Styling**:
+- **Color**: Destructive (red) background for urgent attention
+- **Animation**: Neon pulse animation draws user attention
+- **Size**: Responsive 18px-20px for optimal visibility
+- **Typography**: Bold, small text for clear number display
+- **Shadow**: Drop shadow for depth and separation
+
+**Layout Integration**:
+- **Non-intrusive**: Positioned to not block avatar image
+- **Clear Hierarchy**: Distinct from green status indicator (bottom-right)
+- **Mobile Optimized**: Proper touch targets and sizing on mobile devices
+
+### User Experience Benefits
+
+**Immediate Awareness**:
+- **Visual Feedback**: Users instantly see when they have notifications
+- **Count Information**: Shows exact number of pending items
+- **Persistent Reminder**: Badge remains visible while notifications exist
+- **Multiple Access Points**: Works alongside existing dropdown notification display
+
+**Enhanced Navigation**:
+- **Quick Recognition**: Red badge immediately draws attention
+- **Status Differentiation**: Separate from online status indicator
+- **Cross-Platform**: Consistent experience on desktop and mobile
+- **Accessibility**: High contrast ensures visibility for all users
+
+### Integration with Existing System
+
+**Notification Sources**:
+- **Friend Requests**: `user?.friendRequests?.length || 0`
+- **Battle Invitations**: `user?.invitations?.length || 0`
+- **Real-time Updates**: Updates automatically when notifications change
+- **WebSocket Integration**: Works with existing real-time notification system
+
+**Consistency**:
+- **Same Count Logic**: Uses identical calculation as dropdown badge
+- **Unified Styling**: Matches existing destructive badge styling
+- **Animation Sync**: Same neon pulse animation as other notification elements
+
+This enhancement provides users with immediate visual feedback about pending notifications directly on their avatar, improving notification awareness and user engagement without cluttering the interface.
 
 // ... existing code ...
