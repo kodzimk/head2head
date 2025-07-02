@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
 import { Button } from '../../shared/ui/button'
-import { UserPlus, Play, Users, ArrowLeft } from 'lucide-react'
+import { UserPlus, Users, ArrowLeft } from 'lucide-react'
 import type { User } from '../../shared/interface/user'
 import { initialUser } from '../../shared/interface/user'
 import { sendFriendRequest, sendMessage } from '../../shared/websockets/websocket'
@@ -36,10 +36,6 @@ export const ViewProfile = ({user}: {user: User}) => {
     setRequestSent(false)
     setHasSentRequestToViewUser(false)
   };
-
-  const handleBattle = async () => {
-    navigate(`/battles`)
-  }
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -318,14 +314,6 @@ export const ViewProfile = ({user}: {user: User}) => {
                   {t('profile.view.actions.alreadyFriends')}
                 </Button>
               )}
-
-              <Button
-                onClick={handleBattle}
-                className="flex-1"
-              >
-                <Play className="w-4 h-4 mr-2" />
-                {t('profile.view.actions.battle')}
-              </Button>
             </div>
           </div>
         )}

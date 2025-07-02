@@ -16,7 +16,9 @@
     "retry": "Retry",
     "refresh": "Refresh",
     "goToHomepage": "Go to Homepage",
-    "goBack": "Go Back"
+    "goBack": "Go Back",
+    "accept": "Accept",
+    "reject": "Reject"
   },
   "navigation": {
     "home": "Home",
@@ -323,11 +325,21 @@
     "noData": "No leaderboard data available"
   },
   "profile": {
-    "profile": "Profile",
+    "title": "Profile",
     "editProfile": "Edit Profile",
     "profileSettings": "Profile Settings",
     "accountSettings": "Account Settings",
     "changeAvatar": "Change Avatar",
+    "uploadAvatar": "Upload Avatar",
+    "removeAvatar": "Remove Avatar",
+    "username": "Username",
+    "email": "Email",
+    "bio": "Bio",
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "view-profile-back": "Back to Profile",
+    "loading": "Loading profile...",
+    "error": "Error loading profile",
     "favoritesSport": "Favorite Sport",
     "nickname": "Nickname",
     "statistics": "Statistics",

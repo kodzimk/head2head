@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator 
 } from '../../shared/ui/dropdown-menu';
-import { Badge } from '../../shared/ui/badge';
 import { UserAvatar } from '../../shared/ui/user-avatar';
 import { LanguageFlag } from '../../shared/ui/language-switcher';
 import { useGlobalStore } from '../../shared/interface/gloabL_var';
@@ -198,11 +197,6 @@ export default function Header() {
                   <DropdownMenuItem onClick={() => navigate(`/${user.username}/friends`)} className="hover:bg-card/50 py-2 sm:py-3">
                     <Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-sm sm:text-base">{t('navigation.friends')}</span>
-                    {(user?.friendRequests?.length || 0) > 0 && (
-                      <Badge className="ml-auto bg-red-500 text-white border-red-600 text-xs px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center">
-                        {user.friendRequests.length}
-                      </Badge>
-                    )}
                   </DropdownMenuItem>
                   
                   <DropdownMenuSeparator className="bg-border/50" />
