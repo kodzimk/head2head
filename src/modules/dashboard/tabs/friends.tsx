@@ -11,6 +11,7 @@ import { useRefreshViewStore } from "../../../shared/interface/gloabL_var"
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var"
 import { newSocket } from "../../../app/App"
 import { UserAvatar } from '../../../shared/ui/user-avatar'
+import AvatarStorage from '../../../shared/utils/avatar-storage'
 
 export default function Friends({user}: {user: User}) {
   const [friends, setFriends] = useState<Friend[]>([])
@@ -18,13 +19,43 @@ export default function Friends({user}: {user: User}) {
   const { t } = useTranslation()
   const { refreshView, setRefreshView } = useRefreshViewStore()
 
-  // Function to fetch friend data
+  // Function to fetch friend data with avatar caching
   const fetchFriendData = async (friendUsername: string): Promise<Friend> => {
     try {
       const friendData = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`);
+      
+      // Handle avatar caching
+      let avatarUrl = null;
+      if (friendData.data.avatar) {
+        // Check for persistent avatar first
+        const persistentAvatar = await AvatarStorage.getAvatar(friendUsername);
+        if (persistentAvatar === null && friendData.data.avatar) {
+          // Cache server avatar locally for faster future access
+          try {
+            const fullAvatarUrl = friendData.data.avatar.startsWith('http') 
+              ? friendData.data.avatar 
+              : `${API_BASE_URL}${friendData.data.avatar}`;
+            
+            // Fetch and cache the server avatar
+            const response = await fetch(fullAvatarUrl);
+            if (response.ok) {
+              const blob = await response.blob();
+              const file = new File([blob], 'avatar.jpg', { type: blob.type });
+              await AvatarStorage.saveAvatar(friendUsername, file);
+              console.log('[Dashboard Friends] Cached server avatar for', friendUsername);
+            }
+          } catch (error) {
+            console.warn('[Dashboard Friends] Failed to cache server avatar:', error);
+          }
+        }
+        avatarUrl = friendData.data.avatar.startsWith('http') 
+          ? friendData.data.avatar 
+          : `${API_BASE_URL}${friendData.data.avatar}`;
+      }
+      
       return {
         username: friendUsername,
-        avatar: friendData.data.avatar ? `${API_BASE_URL}${friendData.data.avatar}` : null,
+        avatar: avatarUrl,
         rank: friendData.data.ranking.toString(),
         status: ""
       };

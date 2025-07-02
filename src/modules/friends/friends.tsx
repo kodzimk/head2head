@@ -12,6 +12,7 @@ import { API_BASE_URL, useRefreshViewStore } from "../../shared/interface/gloabL
 import { newSocket } from "../../app/App"
 import { UserAvatar } from "../../shared/ui/user-avatar"
 import { useTranslation } from 'react-i18next'
+import AvatarStorage from "../../shared/utils/avatar-storage"
 
 export default function FriendsPage({user}: {user: User}) {
   const { t } = useTranslation()
@@ -22,14 +23,44 @@ export default function FriendsPage({user}: {user: User}) {
   const navigate = useNavigate()
   const {refreshView} = useRefreshViewStore()
   const {setRefreshView} = useRefreshViewStore()
-  // Function to fetch friend data
+  // Function to fetch friend data with enhanced avatar caching
   const fetchFriendData = async (friendUsername: string): Promise<Friend> => {
     try {
       const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`)
+      
+      // Enhanced avatar handling with caching
+      let avatarUrl = null;
+      if (response.data.avatar) {
+        // Check for persistent avatar first
+        const persistentAvatar = await AvatarStorage.getAvatar(friendUsername);
+        if (persistentAvatar === null) {
+          // Cache server avatar locally for faster future access
+          try {
+            const fullAvatarUrl = response.data.avatar.startsWith('http') 
+              ? response.data.avatar 
+              : `${API_BASE_URL}${response.data.avatar}`;
+            
+            // Fetch and cache the server avatar
+            const avatarResponse = await fetch(fullAvatarUrl);
+            if (avatarResponse.ok) {
+              const blob = await avatarResponse.blob();
+              const file = new File([blob], 'avatar.jpg', { type: blob.type });
+              await AvatarStorage.saveAvatar(friendUsername, file);
+              console.log('[Friends Page] Cached server avatar for', friendUsername);
+            }
+          } catch (error) {
+            console.warn('[Friends Page] Failed to cache server avatar:', error);
+          }
+        }
+        avatarUrl = response.data.avatar.startsWith('http') 
+          ? response.data.avatar 
+          : `${API_BASE_URL}${response.data.avatar}`;
+      }
+      
       return {
         username: response.data.username,
         status: "",
-        avatar: response.data.avatar ? `${API_BASE_URL}${response.data.avatar}` : null,
+        avatar: avatarUrl,
         rank: response.data.ranking.toString()
       }
     } catch (error) {
@@ -132,10 +163,40 @@ export default function FriendsPage({user}: {user: User}) {
       try {
         const response = await axios.get(`${API_BASE_URL}/friends/search-user?username=${searchQuery}`)
         const userData = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${response.data.username}`)
+        
+        // Enhanced avatar handling for search results
+        let avatarUrl = null;
+        if (userData.data.avatar) {
+          // Check for persistent avatar first
+          const persistentAvatar = await AvatarStorage.getAvatar(response.data.username);
+          if (persistentAvatar === null) {
+            // Cache server avatar locally for faster future access
+            try {
+              const fullAvatarUrl = userData.data.avatar.startsWith('http') 
+                ? userData.data.avatar 
+                : `${API_BASE_URL}${userData.data.avatar}`;
+              
+              // Fetch and cache the server avatar
+              const avatarResponse = await fetch(fullAvatarUrl);
+              if (avatarResponse.ok) {
+                const blob = await avatarResponse.blob();
+                const file = new File([blob], 'avatar.jpg', { type: blob.type });
+                await AvatarStorage.saveAvatar(response.data.username, file);
+                console.log('[Friends Search] Cached server avatar for', response.data.username);
+              }
+            } catch (error) {
+              console.warn('[Friends Search] Failed to cache server avatar:', error);
+            }
+          }
+          avatarUrl = userData.data.avatar.startsWith('http') 
+            ? userData.data.avatar 
+            : `${API_BASE_URL}${userData.data.avatar}`;
+        }
+        
         setSearchResults([{
           username: response.data.username,
           status: "",
-          avatar: userData.data.avatar ? `${API_BASE_URL}${userData.data.avatar}` : null,
+          avatar: avatarUrl,
           rank: userData.data.ranking.toString()
         }])
       } catch (error) {
