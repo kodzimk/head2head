@@ -43,26 +43,40 @@ class AIQuizGenerator:
             # Create unique context for this battle
             battle_context = f"Battle ID: {battle_id}" if battle_id else f"Session: {int(time.time())}"
             
-            # Build the prompt for question generation
-            prompt = self._build_question_prompt(sport, level, count, battle_context, language)
+            # First generate questions in English
+            english_prompt = self._build_question_prompt(sport, level, count, battle_context, "en")
+            english_response = self.model.generate_content(english_prompt)
             
-            # Generate questions using Gemini
-            response = self.model.generate_content(prompt)
-            
-            if not response.text:
+            if not english_response.text:
                 logger.error("Empty response from Gemini API")
                 return self._get_fallback_questions(sport, level, count, language)
             
-            # Parse the response
-            questions = self._parse_ai_response(response.text, sport, level)
+            # Parse English questions
+            english_questions = self._parse_ai_response(english_response.text, sport, level)
+            
+            # If target language is English, return the questions
+            if language == "en":
+                validated_questions = self._validate_questions(english_questions, count)
+                return self._finalize_questions(validated_questions, battle_id)
+            
+            # For other languages, translate the questions
+            translation_prompt = self._build_translation_prompt(english_questions, language)
+            translation_response = self.model.generate_content(translation_prompt)
+            
+            if not translation_response.text:
+                logger.error("Empty translation response from Gemini API")
+                return self._get_fallback_questions(sport, level, count, language)
+            
+            # Parse translated questions
+            translated_questions = self._parse_ai_response(translation_response.text, sport, level)
             
             # Validate and format questions
-            validated_questions = self._validate_questions(questions, count)
+            validated_questions = self._validate_questions(translated_questions, count)
             
             # Add labels and ensure uniqueness
             final_questions = self._finalize_questions(validated_questions, battle_id)
             
-            logger.info(f"Successfully generated {len(final_questions)} questions for {sport} {level} in {language}")
+            logger.info(f"Successfully generated and translated {len(final_questions)} questions for {sport} {level} in {language}")
             return final_questions
             
         except Exception as e:
@@ -567,6 +581,103 @@ Example for {sport} {level} questions in {language.upper()}:
             fallback_questions.extend(fallback_questions[:count - len(fallback_questions)])
         
         return fallback_questions[:count]
+    
+    def _build_translation_prompt(self, questions: List[Dict[str, Any]], target_language: str) -> str:
+        """Build a prompt for translating questions to the target language"""
+        
+        language_names = {
+            "ru": "Russian (русский)",
+            "en": "English"
+        }
+        
+        questions_json = json.dumps(questions, indent=2, ensure_ascii=False)
+        
+        prompt = f"""
+You are an expert sports translator. Translate the following sports quiz questions from English to {language_names.get(target_language, target_language)}.
+
+Important requirements:
+1. Maintain the exact same JSON structure
+2. Translate all text fields (question and answer texts) into {language_names.get(target_language, target_language)}
+3. Keep all other fields (difficulty, time_limit, etc.) unchanged
+4. Ensure proper grammar and sports terminology in {language_names.get(target_language, target_language)}
+5. Keep the same meaning and difficulty level
+6. Keep the same correct/incorrect answer flags
+
+Questions to translate:
+{questions_json}
+
+Return ONLY the translated JSON array with exactly the same structure. Do not include any other text or explanations.
+"""
+        return prompt
+
+    def translate_flashcards(self, flashcards: List[Dict[str, Any]], target_language: str) -> List[Dict[str, Any]]:
+        """
+        Translate flashcards to the target language
+        
+        Args:
+            flashcards: List of flashcard dictionaries
+            target_language: Language code (en, ru) for translation
+            
+        Returns:
+            List of translated flashcard dictionaries
+        """
+        try:
+            if target_language == "en":
+                return flashcards
+                
+            logger.info(f"Translating {len(flashcards)} flashcards to {target_language}")
+            
+            # Build translation prompt for flashcards
+            translation_prompt = self._build_flashcard_translation_prompt(flashcards, target_language)
+            translation_response = self.model.generate_content(translation_prompt)
+            
+            if not translation_response.text:
+                logger.error("Empty translation response from Gemini API")
+                return flashcards
+            
+            try:
+                translated_flashcards = json.loads(translation_response.text)
+                if isinstance(translated_flashcards, list):
+                    logger.info(f"Successfully translated {len(translated_flashcards)} flashcards to {target_language}")
+                    return translated_flashcards
+                else:
+                    logger.error("Invalid translation response format")
+                    return flashcards
+            except json.JSONDecodeError:
+                logger.error("Failed to parse translated flashcards JSON")
+                return flashcards
+                
+        except Exception as e:
+            logger.error(f"Error translating flashcards: {str(e)}")
+            return flashcards
+
+    def _build_flashcard_translation_prompt(self, flashcards: List[Dict[str, Any]], target_language: str) -> str:
+        """Build a prompt for translating flashcards to the target language"""
+        
+        language_names = {
+            "ru": "Russian (русский)",
+            "en": "English"
+        }
+        
+        flashcards_json = json.dumps(flashcards, indent=2, ensure_ascii=False)
+        
+        prompt = f"""
+You are an expert sports translator. Translate the following sports flashcards from English to {language_names.get(target_language, target_language)}.
+
+Important requirements:
+1. Maintain the exact same JSON structure
+2. Translate only the 'term' and 'definition' fields into {language_names.get(target_language, target_language)}
+3. Keep all other fields (id, sport, level, source, etc.) unchanged
+4. Ensure proper grammar and sports terminology in {language_names.get(target_language, target_language)}
+5. Keep the same meaning and difficulty level
+6. Preserve any special formatting or numbers in the text
+
+Flashcards to translate:
+{flashcards_json}
+
+Return ONLY the translated JSON array with exactly the same structure. Do not include any other text or explanations.
+"""
+        return prompt
 
 # Global instance
 ai_quiz_generator = AIQuizGenerator() 

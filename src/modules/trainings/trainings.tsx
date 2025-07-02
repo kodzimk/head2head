@@ -409,6 +409,27 @@ export default function TrainingsPage() {
     const aiGeneratedFlashcards = await generateAIFlashcards(aiCount);
     allFlashcards.push(...aiGeneratedFlashcards);
     
+    // Translate flashcards if needed
+    if (i18n.language !== "en" && allFlashcards.length > 0) {
+      try {
+        const params = new URLSearchParams();
+        params.append('language', i18n.language);
+        
+        const response = await fetch(`${API_BASE_URL}/training/translate-flashcards`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(allFlashcards)
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          allFlashcards = data.flashcards || allFlashcards;
+        }
+      } catch (error) {
+        console.error('Error translating flashcards:', error);
+      }
+    }
+    
     // Prioritize battle mistakes, then shuffle the rest
     const battleMistakes = allFlashcards.filter(card => card.source === 'incorrect_answer');
     const aiCards = allFlashcards.filter(card => card.source === 'sport_knowledge');
@@ -595,6 +616,7 @@ export default function TrainingsPage() {
       if (selectedSport && selectedSport !== "all") params.append('sport', selectedSport);
       params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
       params.append('count', count.toString()); // Generate specified number of AI flashcards
+      params.append('language', i18n.language); // Add current language
 
       const url = `${API_BASE_URL}/training/generate-random-questions?${params}`;
       

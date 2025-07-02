@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Body
 from sqlalchemy import select, and_, func
 from init import SessionLocal
 from models import UserAnswer, TrainingSession, TrainingAnswer, UserData
@@ -378,4 +378,24 @@ async def generate_random_training_questions(
         
     except Exception as e:
         logger.error(f"Error generating random training questions: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to generate random questions") 
+        raise HTTPException(status_code=500, detail="Failed to generate random questions")
+
+@training_router.post("/translate-flashcards")
+async def translate_flashcards(
+    flashcards: List[Dict[str, Any]] = Body(...),
+    language: str = Query("en")
+):
+    """Translate flashcards to the specified language"""
+    try:
+        # Use AI generator to translate flashcards
+        translated_flashcards = ai_generator.translate_flashcards(flashcards, language)
+        
+        return {
+            "flashcards": translated_flashcards,
+            "total": len(translated_flashcards),
+            "language": language
+        }
+        
+    except Exception as e:
+        logger.error(f"Error translating flashcards: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to translate flashcards") 
