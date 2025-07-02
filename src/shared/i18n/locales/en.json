@@ -149,6 +149,10 @@
           "description": "Welcome to your mobile dashboard! Here you can track your progress and find new battles on the go."
         }
       },
+      "welcomeMobile": {
+        "title": "Welcome to Head2Head! 📱",
+        "description": "Your mobile gaming dashboard - track progress, view stats, and battle opponents on the go!"
+      },
       "userAvatar": {
         "title": "Your Profile",
         "description": "Click your avatar to access your profile settings, notifications, and account preferences.",
@@ -156,9 +160,17 @@
           "description": "Tap your avatar to access your profile settings and notifications."
         }
       },
+      "userAvatarMobile": {
+        "title": "Your Profile Hub 👤",
+        "description": "Tap your avatar for profile settings, notifications, and account preferences."
+      },
       "navigation": {
         "title": "Navigate Like a Pro 🧭",
         "description": "Access all platform sections: Dashboard (home), Battles (compete), Leaderboard (rankings), Selection (find opponents), and Trainings (practice)."
+      },
+      "quickActionsMobile": {
+        "title": "Quick Battle Actions ⚡",
+        "description": "Start quick battles or practice mode instantly - your gateway to competitive action!"
       },
       "statsGrid": {
         "title": "Your Stats Overview",
@@ -167,6 +179,10 @@
           "description": "Track your performance with key stats like wins, losses, and win rate."
         }
       },
+      "statsGridMobile": {
+        "title": "Performance Stats 🏆",
+        "description": "Track your gaming performance - wins, rank, battles played, and win rate at a glance."
+      },
       "battleStatsBreakdown": {
         "title": "Battle Statistics",
         "description": "Dive deep into your battle performance with detailed statistics and trends.",
@@ -174,12 +190,20 @@
           "description": "View your battle performance stats and trends at a glance."
         }
       },
+      "dashboardTabsMobile": {
+        "title": "Dashboard Navigation 📊",
+        "description": "Switch between Overview (stats), Battles (history), and Friends (social) tabs."
+      },
       "overviewProfile": {
         "title": "Profile Overview",
         "description": "Your public profile shows your achievements and ranking to other players.",
         "mobile": {
           "description": "Your public profile displays your achievements and ranking."
         }
+      },
+      "overviewContentMobile": {
+        "title": "Your Overview 🎯",
+        "description": "Your public profile showcase - achievements, ranking, and progress for all to see."
       },
       "recentBattles": {
         "title": "Recent Battles",
@@ -749,6 +773,34 @@
     "allRightsReserved": "All rights reserved"
   },
   "onboarding": {
+    "next": "Next",
+    "previous": "Previous", 
+    "finish": "Finish",
+    "skip": "Skip",
+    "welcomeMobile": {
+      "title": "Welcome to Head2Head! 📱",
+      "description": "Your mobile gaming dashboard - track progress, view stats, and battle opponents on the go!"
+    },
+    "userAvatarMobile": {
+      "title": "Your Profile Hub 👤",
+      "description": "Tap your avatar for profile settings, notifications, and account preferences."
+    },
+    "quickActionsMobile": {
+      "title": "Quick Battle Actions ⚡",
+      "description": "Start quick battles or practice mode instantly - your gateway to competitive action!"
+    },
+    "statsGridMobile": {
+      "title": "Performance Stats 🏆",
+      "description": "Track your gaming performance - wins, rank, battles played, and win rate at a glance."
+    },
+    "dashboardTabsMobile": {
+      "title": "Dashboard Navigation 📊",
+      "description": "Switch between Overview (stats), Battles (history), and Friends (social) tabs."
+    },
+    "overviewContentMobile": {
+      "title": "Your Overview 🎯",
+      "description": "Your public profile showcase - achievements, ranking, and progress for all to see."
+    },
     "welcomeToBattleArena": "Welcome to Battle Arena",
     "battleArenaDesc": "This is your competitive arena! Here you can create and join real-time sports trivia battles against players worldwide. Let's explore how to dominate the competition!",
     "howBattlesWork": "How Battles Work",

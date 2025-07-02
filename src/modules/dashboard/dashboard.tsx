@@ -24,6 +24,7 @@ import Friends from './tabs/friends';
 import type { User, RecentBattle } from '../../shared/interface/user';
 import { API_BASE_URL } from '../../shared/interface/gloabL_var';
 import Onboarding from '../../shared/ui/onboarding';
+import MobileOnboarding from '../../shared/ui/mobile-onboarding';
 import { useGlobalStore } from '../../shared/interface/gloabL_var';
 
 const getAllDashboardOnboardingSteps = () => [
@@ -99,6 +100,52 @@ const getAllDashboardOnboardingSteps = () => [
   }
 ];
 
+// Mobile-specific onboarding steps
+const getMobileDashboardOnboardingSteps = () => [
+  {
+    id: "welcome",
+    target: "[data-onboarding='welcome-section']",
+    translationKey: "welcomeMobile",
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
+  },
+  {
+    id: "user-avatar",
+    target: "[data-onboarding='user-avatar']",
+    translationKey: "userAvatarMobile",
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
+  },
+  {
+    id: "quick-actions",
+    target: "[data-onboarding='quick-actions']",
+    translationKey: "quickActionsMobile",
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
+  },
+  {
+    id: "stats-grid",
+    target: "[data-onboarding='stats-grid']",
+    translationKey: "statsGridMobile",
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
+  },
+  {
+    id: "dashboard-tabs",
+    target: "[data-onboarding='dashboard-tabs']",
+    translationKey: "dashboardTabsMobile",
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
+  },
+  {
+    id: "overview-content",
+    target: "[data-onboarding='overview-profile']",
+    translationKey: "overviewContentMobile",
+    position: "center" as const,
+    offset: { x: 0, y: 0 }
+  }
+];
+
 // Filter steps based on device type
 const getDashboardOnboardingSteps = () => {
   const isMobile = window.innerWidth < 768;
@@ -118,13 +165,18 @@ export function Dashboard() {
   const [error] = useState<string | null>(null);
   const [battles, setBattles] = useState<RecentBattle[]>([]);
   const [onboardingSteps, setOnboardingSteps] = useState(getDashboardOnboardingSteps());
+  const [mobileOnboardingSteps] = useState(getMobileDashboardOnboardingSteps());
   const { user, setUser } = useGlobalStore();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     // Check if this is a new user by looking for the isNewUser flag in localStorage
     const isNewUser = localStorage.getItem('isNewUser') === 'true';
-    setShowOnboarding(isNewUser);
+    const hasCompletedOnboarding = localStorage.getItem('head2head-dashboard-onboarding') === 'completed';
+    
+    // Show onboarding if user is new OR hasn't completed onboarding yet
+    const shouldShow = isNewUser || !hasCompletedOnboarding;
+    setShowOnboarding(shouldShow);
     
     // Remove the flag after checking it
     if (isNewUser) {
@@ -133,7 +185,6 @@ export function Dashboard() {
   }, []);
 
   const handleOnboardingComplete = () => {
-    console.log('Dashboard onboarding completed');
     setShowOnboarding(false);
   };
 
@@ -288,10 +339,20 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Onboarding */}
+      {/* Desktop Onboarding */}
       {showOnboarding && (
         <Onboarding
           steps={onboardingSteps}
+          onComplete={handleOnboardingComplete}
+          storageKey="head2head-dashboard-onboarding"
+          autoStart={true}
+        />
+      )}
+
+      {/* Mobile Onboarding */}
+      {showOnboarding && (
+        <MobileOnboarding
+          steps={mobileOnboardingSteps}
           onComplete={handleOnboardingComplete}
           storageKey="head2head-dashboard-onboarding"
           autoStart={true}

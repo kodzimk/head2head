@@ -37,7 +37,6 @@ export default function Header() {
 
   const notificationCount = (user?.friendRequests?.length || 0) + (user?.invitations?.length || 0);
 
-
   return (
     <header className={`header-gaming transition-all duration-300 ${
       isScrolled ? 'bg-background/90 shadow-gaming' : 'bg-background/80'
