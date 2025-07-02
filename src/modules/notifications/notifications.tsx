@@ -485,14 +485,6 @@ export default function NotificationsPage() {
       <div className="container max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold tracking-tight">{t('notifications.title')}</h1>
-          {hasNotifications && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {friendRequests.length + invitations.length} {t('notifications.unread')}
-              </span>
-              <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            </div>
-          )}
         </div>
 
         {!hasNotifications && (

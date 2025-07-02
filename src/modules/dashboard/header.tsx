@@ -117,7 +117,10 @@ export default function Header() {
                       
                       {/* Notification Badge */}
                       {notificationCount > 0 && (
-                        <div className="absolute top-1 right-1 w-3 h-3 sm:w-4 sm:h-4 bg-red-500 rounded-full border-2 border-white shadow-lg z-20" style={{ animation: 'pulse 2s infinite' }}>
+                        <div className="absolute -top-1 -right-1 min-w-[20px] h-[20px] sm:min-w-[24px] sm:h-[24px] bg-red-500 rounded-full border-2 border-white flex items-center justify-center shadow-lg z-20" style={{ animation: 'pulse 2s infinite' }}>
+                          <span className="text-[10px] sm:text-xs font-bold text-white leading-none">
+                            {notificationCount > 99 ? '99+' : notificationCount}
+                          </span>
                         </div>
                       )}
                     </div>

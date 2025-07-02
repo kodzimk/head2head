@@ -154,7 +154,7 @@ export default function Friends({user}: {user: User}) {
                       <div
                         key={friend.username}
                         className="w-full cursor-pointer p-4 border bg-card flex flex-col sm:flex-row items-center gap-4 hover:shadow-lg"
-                        onClick={() => navigate(`/profile/${friend.username}`)}
+                        onClick={() => navigate(`/view-profile/${friend.username}`)}
                       >
                         <div className="flex items-center gap-4 w-full">
                           <UserAvatar
