@@ -15,8 +15,10 @@ import {
 import { Avatar, AvatarFallback } from '../../shared/ui/avatar'
 import { cancelInvitation, invitebattleFriend, cancelBattle } from '../../shared/websockets/websocket'
 import { newSocket } from '../../app/App'
+import { useTranslation } from 'react-i18next'
 
 export default function WaitingRoom() {
+  const { t } = useTranslation()
   const { user } = useGlobalStore()
   const { id } = useParams() as { id: string }
   const navigate = useNavigate()
@@ -193,13 +195,13 @@ export default function WaitingRoom() {
 
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
-      <Header user={user} />
+      <Header />
       <main className="container-gaming py-8">
         <Card className="card-surface max-w-2xl mx-auto">
           <CardHeader className="responsive-padding">
             <CardTitle className="text-responsive-lg text-center flex items-center justify-center gap-2">
-              <Clock className="w-5 h-5 text-primary" />
-              Waiting for Opponent
+              <Timer className="w-6 h-6 text-primary" />
+              {t('battles.waitingForOpponent')}
             </CardTitle>
           </CardHeader>
           <CardContent className="responsive-padding space-y-6">
@@ -215,102 +217,93 @@ export default function WaitingRoom() {
               
               <div>
                 <p className="text-responsive-base font-medium text-foreground">
-                  Battle Starting Soon...
+                  {t('battles.battleStartingSoon')}
                 </p>
                 <p className="text-responsive-sm text-muted-foreground mt-1">
-                  Waiting for another player to join your battle
+                  {t('battles.waitingForAnotherPlayer')}
                 </p>
               </div>
             </div>
 
             {/* Battle Info */}
-            <Card className="card-surface-1">
-              <CardContent className="responsive-padding">
-                <div className="grid grid-cols-2 gap-4 text-center">
-                  <div>
-                    <p className="text-responsive-xs text-muted-foreground uppercase tracking-wide font-mono">Battle ID</p>
-                    <p className="text-responsive-sm font-bold text-primary font-mono">{id}</p>
-                  </div>
-                  <div>
-                    <p className="text-responsive-xs text-muted-foreground uppercase tracking-wide font-mono">Waiting Time</p>
-                    <p className="text-responsive-sm font-bold text-foreground font-mono">{formatTime(waitingTime)}</p>
-                  </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50">
+                <Clock className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <div className="text-sm font-medium">{t('battles.waitingTime')}</div>
+                  <div className="text-2xl font-bold text-primary">{formatTime(waitingTime)}</div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50">
+                <Users className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <div className="text-sm font-medium">{t('battles.battleId')}</div>
+                  <div className="text-2xl font-bold text-primary">{id}</div>
+                </div>
+              </div>
+            </div>
 
             {/* Inactivity Warning */}
-            <Card className="card-surface-1 border-warning/30 bg-warning/5">
-              <CardContent className="responsive-padding">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-responsive-sm text-warning font-medium">Auto-Cancel Notice</p>
-                    <p className="text-responsive-xs text-muted-foreground mt-1">
-                      Your battle will be automatically cancelled after 10 minutes of inactivity to keep the arena fresh for other players.
-                    </p>
-                  </div>
+            <div className="flex items-start gap-3 p-4 rounded-lg bg-card/50 border border-border/50">
+              <AlertCircle className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <div className="font-medium">{t('battles.autoCancel')}</div>
+                <div className="text-sm text-muted-foreground">
+                  {t('battles.autoCancelDesc')}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="flex-1 border-primary/30 hover:border-primary/60 hover:bg-primary/5"
-                  >
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Invite Friends
+                  <Button className="w-full" size="lg">
+                    <UserPlus className="w-5 h-5 mr-2" />
+                    {t('battles.inviteFriends')}
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="bg-card border-border">
+                <SheetContent>
                   <SheetHeader>
-                    <SheetTitle className="text-responsive-lg text-foreground">Invite Friends to Battle</SheetTitle>
+                    <SheetTitle>{t('battles.inviteFriendsToBattle')}</SheetTitle>
                   </SheetHeader>
-                  <div className="mt-6 space-y-4">
+                  <div className="py-4">
                     {user.friends && user.friends.length > 0 ? (
-                      user.friends.map((friendUsername, index) => (
-                        <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border" style={{ backgroundColor: 'hsl(var(--card))' }}>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-8 h-8" variant="faceit">
-                              <AvatarFallback username={friendUsername} variant="faceit" />
-                            </Avatar>
-                            <span className="text-responsive-sm font-medium text-foreground">{friendUsername}</span>
-                          </div>
-                          {invitedFriends.includes(friendUsername) ? (
-                            <Button
-                              onClick={() => undoInvite(friendUsername)}
-                              variant="outline"
-                              size="sm"
-                              className="border-destructive/30 text-destructive hover:bg-destructive/5"
-                            >
-                              <Undo className="w-3 h-3 mr-1" />
-                              Undo
-                            </Button>
-                          ) : (
-                            <Button
-                              onClick={() => inviteFriend(friendUsername)}
-                              size="sm"
-                              className="btn-neon"
-                            >
-                              <UserPlus className="w-3 h-3 mr-1" />
-                              Invite
-                            </Button>
-                          )}
-                        </div>
-                      ))
+                      <div className="space-y-4">
+                        {user.friends.map((friend) => {
+                          const isInvited = invitedFriends.includes(friend)
+                          return (
+                            <div key={friend} className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Avatar>
+                                  <AvatarFallback>{friend[0].toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium">{friend}</span>
+                              </div>
+                              <Button
+                                variant={isInvited ? "destructive" : "default"}
+                                onClick={() => isInvited ? undoInvite(friend) : inviteFriend(friend)}
+                                size="sm"
+                              >
+                                {isInvited ? (
+                                  <>
+                                    <Undo className="w-4 h-4 mr-2" />
+                                    {t('battles.cancelInvite')}
+                                  </>
+                                ) : (
+                                  <>
+                                    <UserPlus className="w-4 h-4 mr-2" />
+                                    {t('battles.invite')}
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          )
+                        })}
+                      </div>
                     ) : (
-                      <div className="text-center py-8 space-y-3">
-                        <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
-                          <Users className="w-8 h-8 text-muted-foreground/50" />
-                        </div>
-                        <div>
-                          <p className="text-responsive-sm text-muted-foreground font-medium">No friends yet</p>
-                          <p className="text-responsive-xs text-muted-foreground/70 mt-1">Add friends to invite them to battles!</p>
-                        </div>
+                      <div className="text-center text-muted-foreground">
+                        {t('battles.noFriendsToInvite')}
                       </div>
                     )}
                   </div>
@@ -319,11 +312,10 @@ export default function WaitingRoom() {
 
               <Button 
                 onClick={quitBattle} 
-                variant="outline"
-                className="flex-1 border-destructive/30 text-destructive hover:bg-destructive/5 hover:border-destructive/50"
+                variant="destructive"
+                className="flex-1"
               >
-                <Undo className="w-4 h-4 mr-2" />
-                Cancel Battle
+                {t('battles.cancelBattle')}
               </Button>
             </div>
 

@@ -4,6 +4,7 @@ import { Button } from "../../../shared/ui/button"
 import { Plus, ChevronRight, AlertTriangle } from "lucide-react"
 import type { Friend, User } from "../../../shared/interface/user"
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from "react"
 import axios from "axios"
 import { useRefreshViewStore } from "../../../shared/interface/gloabL_var"
@@ -14,6 +15,7 @@ import { UserAvatar } from '../../../shared/ui/user-avatar'
 export default function Friends({user}: {user: User}) {
   const [friends, setFriends] = useState<Friend[]>([])
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { refreshView, setRefreshView } = useRefreshViewStore()
 
   // Function to fetch friend data
@@ -130,9 +132,9 @@ export default function Friends({user}: {user: User}) {
           <Card data-onboarding="friends-list-content">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                Friends ({friends.length})
+                {t('dashboard.friends')} ({friends.length})
                 <Button variant="ghost" size="sm" className="w-32 h-8" onClick={() => navigate(`/${user.username}/friends`)}>
-                  View All <ChevronRight className="w-4 h-4 ml-1" />
+                  {t('dashboard.viewAll')} <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </CardTitle>
             </CardHeader>
@@ -140,10 +142,10 @@ export default function Friends({user}: {user: User}) {
               <div className="space-y-4 w-full">
                 {friends.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500 text-lg mb-4">You don't have any friends yet</p>
+                    <p className="text-gray-500 text-lg mb-4">{t('dashboard.noFriendsYet')}</p>
                     <Button variant="outline" className="gap-2" onClick={() => navigate(`/${user.username}/friends`)}>
                       <Plus className="w-4 h-4" />
-                      Add Friends
+                      {t('dashboard.addFriends')}
                     </Button>
                   </div>
                 ) : (
@@ -166,7 +168,7 @@ export default function Friends({user}: {user: User}) {
                               {friend.username}
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                              Rank: #{friend.rank}
+                              {t('dashboard.rank')}: #{friend.rank}
                             </p>
                           </div>
                         </div>
@@ -179,7 +181,7 @@ export default function Friends({user}: {user: User}) {
                             navigate(`/profile/${friend.username}`);
                           }}
                         >
-                          View Profile
+                          {t('dashboard.viewProfile')}
                         </Button>
                       </div>
                     ))}
@@ -192,25 +194,16 @@ export default function Friends({user}: {user: User}) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                Friend Activity
+                {t('dashboard.friendActivity')}
                 <Button variant="ghost" size="sm" className="w-32 h-8">
-                  View All <ChevronRight className="w-4 h-4 ml-1" />
+                  {t('dashboard.viewAll')} <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4 w-full">
-                <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                  <div className="p-3 bg-orange-100 dark:bg-orange-800/30 rounded-full">
-                    <AlertTriangle className="w-8 h-8 text-orange-500 dark:text-orange-400" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-xl font-semibold text-orange-800 dark:text-orange-300">Coming Soon!</h3>
-                    <p className="text-orange-600 dark:text-orange-400 max-w-md">
-                      The Friends feature is currently under development. We're working hard to bring you an amazing social experience!
-                    </p>
-                  </div>
-                </div>
+              <div className="text-center py-8">
+                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <p className="text-gray-500 text-lg">{t('dashboard.comingSoon')}</p>
               </div>
             </CardContent>
           </Card>

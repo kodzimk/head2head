@@ -19,6 +19,8 @@ import {
   SkipForward,
   RefreshCw,
 } from "lucide-react";
+import { useI18nLoading } from "../../shared/hooks/use-i18n-loading";
+import { useTranslation } from "react-i18next";
 
 
 interface TrainingStats {
@@ -68,7 +70,9 @@ interface Flashcard {
 
 
 export default function TrainingsPage() {
+  const { t, i18n } = useTranslation();
   const { user } = useGlobalStore();
+  const isLanguageLoading = useI18nLoading();
   const [selectedSport, setSelectedSport] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [selectedQuestionType, setSelectedQuestionType] = useState<string>("Flashcards");
@@ -94,29 +98,57 @@ export default function TrainingsPage() {
 
 
   const sports = [
-    { value: "football", label: "Football", icon: <Trophy className="w-5 h-5" /> },
-    { value: "basketball", label: "Basketball", icon: <Target className="w-5 h-5" /> },
-    { value: "tennis", label: "Tennis", icon: <Zap className="w-5 h-5" /> },
-    { value: "cricket", label: "Cricket", icon: <Sword className="w-5 h-5" /> },
-    { value: "baseball", label: "Baseball", icon: <Target className="w-5 h-5" /> },
-    { value: "volleyball", label: "Volleyball", icon: <Zap className="w-5 h-5" /> },
-    { value: "boxing", label: "Boxing", icon: <Sword className="w-5 h-5" /> },
+    { value: "all", label: t('training.sports.all'), icon: <Trophy className="w-5 h-5" /> },
+    { value: "football", label: t('training.sports.football'), icon: <Trophy className="w-5 h-5" /> },
+    { value: "basketball", label: t('training.sports.basketball'), icon: <Target className="w-5 h-5" /> },
+    { value: "tennis", label: t('training.sports.tennis'), icon: <Zap className="w-5 h-5" /> },
+    { value: "cricket", label: t('training.sports.cricket'), icon: <Sword className="w-5 h-5" /> },
+    { value: "baseball", label: t('training.sports.baseball'), icon: <Target className="w-5 h-5" /> },
+    { value: "volleyball", label: t('training.sports.volleyball'), icon: <Zap className="w-5 h-5" /> },
+    { value: "boxing", label: t('training.sports.boxing'), icon: <Sword className="w-5 h-5" /> }
   ];
 
   const levels = [
-    { value: "easy", label: "Easy", color: "bg-green-500" },
-    { value: "medium", label: "Medium", color: "bg-yellow-500" },
-    { value: "hard", label: "Hard", color: "bg-red-500" }
+    { value: "all", label: t('training.levels.all'), color: "bg-blue-500" },
+    { value: "easy", label: t('training.levels.easy'), color: "bg-green-500" },
+    { value: "medium", label: t('training.levels.medium'), color: "bg-yellow-500" },
+    { value: "hard", label: t('training.levels.hard'), color: "bg-red-500" }
   ];
-  // Fetch training stats and incorrect answers on component mount
+
+  // Check authentication and load data
   useEffect(() => {
-    if (user?.username && user.username.trim() !== "") {
-      fetchTrainingStats();
-      fetchIncorrectAnswers();     
-    } else {
-      setError("Please sign in to access training features.");
-    }
-  }, [user?.username]);
+    const initializeTraining = async () => {
+      // Wait for language to load
+      if (isLanguageLoading) {
+        setLoading(true);
+        return;
+      }
+
+      // Check if user is authenticated
+      if (!user || !user.username || user.username.trim() === "") {
+        setError(t('training.error.pleaseSignIn'));
+        setLoading(false);
+        return;
+      }
+
+      // Load training data
+      try {
+        setLoading(true);
+        await Promise.all([
+          fetchTrainingStats(),
+          fetchIncorrectAnswers()
+        ]);
+        setError(null);
+      } catch (error) {
+        console.error("Error loading training data:", error);
+        setError(t('training.error.failedToLoad'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeTraining();
+  }, [user, isLanguageLoading, t]);
 
   const fetchTrainingStats = async () => {
     if (!user?.username || user.username.trim() === "") {
@@ -180,6 +212,7 @@ export default function TrainingsPage() {
       if (selectedSport && selectedSport !== "all") params.append('sport', selectedSport);
       params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
       params.append('count', '5');
+      params.append('language', i18n.language);
 
       const url = `${API_BASE_URL}/training/generate-random-questions?${params}`;
       
@@ -257,6 +290,7 @@ export default function TrainingsPage() {
       if (selectedSport && selectedSport !== "all") params.append('sport', selectedSport);
       params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
       params.append('count', count.toString());
+      params.append('language', i18n.language);
 
       const url = `${API_BASE_URL}/training/generate-random-questions?${params}`;
       
@@ -311,6 +345,7 @@ export default function TrainingsPage() {
         params.append('sport', sport);
         params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
         params.append('count', '1');
+        params.append('language', i18n.language);
 
         const url = `${API_BASE_URL}/training/generate-random-questions?${params}`;
         
@@ -886,21 +921,24 @@ export default function TrainingsPage() {
     const currentQuestion = trainingQuestions[currentQuestionIndex];
     const currentFlashcard = flashcards[currentFlashcardIndex];
 
-  return (
-    <div className="min-h-screen bg-background bg-gaming-pattern">
-      <Header user={user} />
-      <main className="container-gaming py-8">
-        <div className="max-w-4xl mx-auto">
+    return (
+      <div className="min-h-screen bg-background bg-gaming-pattern">
+        <Header />
+        <main className="container-gaming py-8">
+          <div className="max-w-4xl mx-auto">
             {/* Training Header */}
             <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
               <div>
                 <h1 className="text-heading-2 text-foreground">
-                  {isFlashcardMode ? 'Flashcard Training' : 'Training Session'}
+                  {isFlashcardMode 
+                    ? t('training.session.flashcardTitle')
+                    : t('training.session.trainingTitle')
+                  }
                 </h1>
                 <p className="text-responsive-sm text-muted-foreground">
                   {isFlashcardMode 
-                    ? `Flashcard ${currentFlashcardIndex + 1} of ${flashcards.length}`
-                    : `Question ${currentQuestionIndex + 1} of ${trainingQuestions.length}`
+                    ? t('training.session.flashcardProgress', { current: currentFlashcardIndex + 1, total: flashcards.length })
+                    : t('training.session.questionProgress', { current: currentQuestionIndex + 1, total: trainingQuestions.length })
                   }
                 </p>
               </div>
@@ -918,7 +956,9 @@ export default function TrainingsPage() {
                     }`}>
                       {timeLeft}s
                     </div>
-                    <div className="text-responsive-xs text-muted-foreground">Time Left</div>
+                    <div className="text-responsive-xs text-muted-foreground">
+                      {t('training.session.timeLeft')}
+                    </div>
                   </div>
                 </div>
                 
@@ -930,7 +970,7 @@ export default function TrainingsPage() {
                     className="px-3 py-2 sm:px-4 sm:py-2"
                   >
                     <SkipForward className="w-4 h-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">Skip</span>
+                    <span className="hidden sm:inline">{t('training.session.skip')}</span>
                   </Button>
                 </div>
               </div>
@@ -942,7 +982,7 @@ export default function TrainingsPage() {
                 <CardHeader className="pb-3 sm:pb-4">
                   <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                     <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
-                    Sports Flashcard
+                    {t('training.session.flashcardTitle')}
                     <div className={`ml-auto px-2 py-1 rounded text-xs font-medium ${
                       currentFlashcard.source === 'incorrect_answer' 
                         ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
@@ -965,7 +1005,7 @@ export default function TrainingsPage() {
                           className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3"
                         >
                           <RefreshCw className="w-4 h-4 mr-2" />
-                          Show Definition
+                          {t('training.session.showDefinition')}
                         </Button>
                       </div>
                     ) : (
@@ -979,7 +1019,7 @@ export default function TrainingsPage() {
                         </div>
                         {currentFlashcard.source === 'incorrect_answer' && currentFlashcard.userAnswer && (
                           <div className="text-xs text-orange-600 dark:text-orange-400 italic mt-2">
-                            This is based on a question you answered incorrectly in a previous battle
+                            {t('training.session.reviewNote')}
                           </div>
                         )}
                         <div className="flex gap-2 justify-center mt-6">
@@ -988,14 +1028,14 @@ export default function TrainingsPage() {
                             variant="outline"
                             className="border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-300"
                           >
-                            Need Review
+                            {t('training.session.needReview')}
                           </Button>
                           <Button 
                             onClick={markFlashcardKnown}
                             className="bg-green-600 hover:bg-green-700 text-white"
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            Got It!
+                            {t('training.session.gotIt')}
                           </Button>
                         </div>
                       </div>
@@ -1011,7 +1051,7 @@ export default function TrainingsPage() {
                 <CardHeader className="pb-3 sm:pb-4">
                   <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                     <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
-                    Training Question
+                    {t('training.session.trainingTitle')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1067,7 +1107,7 @@ export default function TrainingsPage() {
                           onClick={handleAnswerSubmit}
                           className="px-6 sm:px-8 py-2 sm:py-3 bg-orange-600 hover:bg-orange-700 text-white font-semibold text-sm sm:text-base w-full sm:w-auto"
                         >
-                          Submit Answer
+                          {t('training.session.submitAnswer')}
                         </Button>
                       </div>
                     )}
@@ -1087,7 +1127,7 @@ export default function TrainingsPage() {
                           <span className={`text-base sm:text-lg font-bold ${
                             isCorrect ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'
                           }`}>
-                            {isCorrect ? 'Correct! 🎉' : 'Incorrect! ❌'}
+                            {isCorrect ? t('training.session.correct') : t('training.session.incorrect')}
                           </span>
                         </div>
                         {!isCorrect && (
@@ -1095,36 +1135,40 @@ export default function TrainingsPage() {
                             {selectedAnswer ? (
                               <>
                                 <p className="text-responsive-xs text-muted-foreground">
-                                  Your answer: <span className="font-semibold text-destructive">
+                                  {t('training.session.yourAnswer')}{' '}
+                                  <span className="font-semibold text-destructive">
                                     {currentQuestion.answers.find(ans => ans.label === selectedAnswer)?.text || selectedAnswer}
                                   </span>
                                 </p>
                                 <p className="text-responsive-xs text-muted-foreground">
-                                  Correct answer: <span className="font-semibold text-green-600">{currentQuestion.correctAnswer}</span>
+                                  {t('training.session.correctAnswer')}{' '}
+                                  <span className="font-semibold text-green-600">{currentQuestion.correctAnswer}</span>
                                 </p>
                                 <p className="text-responsive-xs text-muted-foreground/70 italic">
-                                  Don't worry! This is a learning opportunity. Review the correct answer and try to understand why it's right.
+                                  {t('training.feedback.learningOpportunity')}
                                 </p>
                               </>
                             ) : (
                               <>
                                 <p className="text-responsive-xs text-muted-foreground">
-                                  <span className="font-semibold text-orange-600">⏰ Time's up!</span> You didn't select an answer in time.
+                                  <span className="font-semibold text-orange-600">{t('training.session.timeUp')}</span>{' '}
+                                  {t('training.session.noAnswer')}
                                 </p>
                                 <p className="text-responsive-xs text-muted-foreground">
-                                  Correct answer: <span className="font-semibold text-green-600">{currentQuestion.correctAnswer}</span>
+                                  {t('training.session.correctAnswer')}{' '}
+                                  <span className="font-semibold text-green-600">{currentQuestion.correctAnswer}</span>
                                 </p>
                                 <p className="text-responsive-xs text-muted-foreground/70 italic">
-                                  Try to answer faster next time! The timer is set to 15 seconds per question.
+                                  {t('training.feedback.timerNote')}
                                 </p>
                               </>
                             )}
                           </div>
                         )}
                         {isCorrect && (
-                                                  <p className="text-responsive-xs text-green-600 dark:text-green-400 mb-4">
-                          Great job! You got this one right! 🎯
-                        </p>
+                          <p className="text-responsive-xs text-green-600 dark:text-green-400 mb-4">
+                            {t('training.feedback.greatJob')}
+                          </p>
                         )}
                         
                         {/* Next Question Button */}
@@ -1140,12 +1184,12 @@ export default function TrainingsPage() {
                             {currentQuestionIndex < trainingQuestions.length - 1 ? (
                               <>
                                 <SkipForward className="w-4 h-4 mr-2" />
-                                Next Question
+                                {t('training.session.nextQuestion')}
                               </>
                             ) : (
                               <>
                                 <CheckCircle className="w-4 h-4 mr-2" />
-                                Complete Training
+                                {t('training.session.completeTraining')}
                               </>
                             )}
                           </Button>
@@ -1165,7 +1209,7 @@ export default function TrainingsPage() {
 
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
-      <Header user={user} />
+      <Header />
       <main className="container-gaming py-8">
         <div className="max-w-4xl mx-auto">
 
@@ -1174,10 +1218,10 @@ export default function TrainingsPage() {
             <>
               <div className="text-center mb-6 sm:mb-8">
                 <h1 className="text-heading-1 text-foreground mb-2 sm:mb-4">
-                  Sports Training Center
+                  {t('training.title')}
                 </h1>
                 <p className="text-responsive-base text-muted-foreground px-2">
-                  Practice with your previously incorrect answers and improve your knowledge
+                  {t('training.subtitle')}
                 </p>
               </div>
 
@@ -1187,19 +1231,20 @@ export default function TrainingsPage() {
                   <CardHeader className="pb-4 sm:pb-6">
                     <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                       <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
-                      Training Setup
+                      {t('training.setup.title')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4 sm:space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="sport" className="text-sm sm:text-base">Select Sport</Label>
+                        <Label htmlFor="sport" className="text-sm sm:text-base">
+                          {t('training.setup.selectSport')}
+                        </Label>
                         <Select value={selectedSport} onValueChange={setSelectedSport}>
                           <SelectTrigger className="h-10 sm:h-11">
-                            <SelectValue placeholder="Choose sport" />
+                            <SelectValue placeholder={t('training.setup.chooseSport')} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">All Sports</SelectItem>
                             {sports.map((sport) => (
                               <SelectItem key={sport.value} value={sport.value}>
                                 <div className="flex items-center gap-2">
@@ -1213,13 +1258,14 @@ export default function TrainingsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="level" className="text-sm sm:text-base">Difficulty Level</Label>
+                        <Label htmlFor="level" className="text-sm sm:text-base">
+                          {t('training.setup.difficultyLevel')}
+                        </Label>
                         <Select value={selectedLevel} onValueChange={setSelectedLevel}>
                           <SelectTrigger className="h-10 sm:h-11">
-                            <SelectValue placeholder="Choose level" />
+                            <SelectValue placeholder={t('training.setup.chooseLevel')} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">All Levels</SelectItem>
                             {levels.map((level) => (
                               <SelectItem key={level.value} value={level.value}>
                                 <div className="flex items-center gap-2">
@@ -1234,7 +1280,7 @@ export default function TrainingsPage() {
                     </div>
 
                     <div className="space-y-3">
-                      <Label className="text-sm sm:text-base">Training Mode</Label>
+                      <Label className="text-sm sm:text-base">{t('training.setup.trainingMode')}</Label>
                       <div className="flex flex-col sm:flex-row sm:justify-between gap-4 sm:gap-6">
                         {/* Left Side - Flashcards */}
                         <Button
@@ -1244,10 +1290,12 @@ export default function TrainingsPage() {
                         >
                           <div className="flex items-center gap-2 mb-2">
                             <Brain className="w-5 h-5" />
-                            <span className="font-semibold text-sm sm:text-base">Flashcards</span>
+                            <span className="font-semibold text-sm sm:text-base">
+                              {t('training.modes.flashcards.title')}
+                            </span>
                           </div>
                           <div className="text-xs text-muted-foreground text-center leading-tight">
-                            Study terms and learn from your battle mistakes
+                            {t('training.modes.flashcards.description')}
                           </div>
                         </Button>
 
@@ -1259,10 +1307,12 @@ export default function TrainingsPage() {
                         >
                           <div className="flex items-center gap-2 mb-2">
                             <Zap className="w-5 h-5" />
-                            <span className="font-semibold text-sm sm:text-base">Random Questions</span>
+                            <span className="font-semibold text-sm sm:text-base">
+                              {t('training.modes.random.title')}
+                            </span>
                           </div>
                           <div className="text-xs text-muted-foreground text-center leading-tight">
-                            Fresh random questions from selected sport
+                            {t('training.modes.random.description')}
                           </div>
                         </Button>
                       </div>
@@ -1279,7 +1329,7 @@ export default function TrainingsPage() {
                         ) : (
                           <>
                             <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                            Start Training Session
+                            {t('training.session.startTraining')}
                           </>
                         )}
                       </Button>
@@ -1293,7 +1343,7 @@ export default function TrainingsPage() {
                     <CardTitle className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-lg sm:text-xl">
                         <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
-                        Your Training Stats
+                        {t('training.stats.title')}
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -1305,7 +1355,7 @@ export default function TrainingsPage() {
                           className="flex items-center gap-2"
                         >
                           <RefreshCw className="w-4 h-4" />
-                          <span className="hidden sm:inline">Refresh</span>
+                          <span className="hidden sm:inline">{t('common.refresh')}</span>
                         </Button>
                       </div>
                     </CardTitle>
@@ -1315,20 +1365,36 @@ export default function TrainingsPage() {
                       <>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                           <div className="text-center">
-                            <div className="text-responsive-lg font-bold text-blue-600">{trainingStats.total_answers || 0}</div>
-                            <div className="text-responsive-xs text-muted-foreground">Total Answers</div>
+                            <div className="text-responsive-lg font-bold text-blue-600">
+                              {trainingStats.total_answers || 0}
+                            </div>
+                            <div className="text-responsive-xs text-muted-foreground">
+                              {t('training.stats.totalAnswers')}
+                            </div>
                           </div>
                           <div className="text-center">
-                            <div className="text-responsive-lg font-bold text-destructive">{trainingStats.total_incorrect || 0}</div>
-                            <div className="text-responsive-xs text-muted-foreground">Incorrect</div>
+                            <div className="text-responsive-lg font-bold text-destructive">
+                              {trainingStats.total_incorrect || 0}
+                            </div>
+                            <div className="text-responsive-xs text-muted-foreground">
+                              {t('training.stats.incorrect')}
+                            </div>
                           </div>
                           <div className="text-center">
-                            <div className="text-responsive-lg font-bold text-green-600">{trainingStats.accuracy_rate || 0}%</div>
-                            <div className="text-responsive-xs text-muted-foreground">Accuracy</div>
+                            <div className="text-responsive-lg font-bold text-green-600">
+                              {trainingStats.accuracy_rate || 0}%
+                            </div>
+                            <div className="text-responsive-xs text-muted-foreground">
+                              {t('training.stats.accuracy')}
+                            </div>
                           </div>
                           <div className="text-center">
-                            <div className="text-responsive-lg font-bold text-primary">{trainingStats.training_sessions || 0}</div>
-                            <div className="text-responsive-xs text-muted-foreground">Sessions</div>
+                            <div className="text-responsive-lg font-bold text-primary">
+                              {trainingStats.training_sessions || 0}
+                            </div>
+                            <div className="text-responsive-xs text-muted-foreground">
+                              {t('training.stats.sessions')}
+                            </div>
                           </div>
                         </div>
                         
@@ -1339,7 +1405,7 @@ export default function TrainingsPage() {
                         <div className="text-muted-foreground mb-4">
                           {error ? (
                             <div className="text-destructive">
-                              <p className="font-semibold text-responsive-sm">Error loading stats:</p>
+                              <p className="font-semibold text-responsive-sm">{t('training.stats.error')}</p>
                               <p className="text-responsive-xs">{error}</p>
                             </div>
                           ) : (
@@ -1347,7 +1413,7 @@ export default function TrainingsPage() {
                           )}
                         </div>
                         <p className="text-responsive-xs text-muted-foreground">
-                          {error ? "Click Refresh to try again" : "Loading training statistics..."}
+                          {error ? t('training.stats.tryAgain') : t('training.stats.loading')}
                         </p>
                       </div>
                     )}

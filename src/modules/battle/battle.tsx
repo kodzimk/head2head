@@ -14,13 +14,12 @@ import { API_BASE_URL } from "../../shared/interface/gloabL_var"
 import axios from 'axios'
 import { Badge } from '../../shared/ui/badge'
 import AvatarStorage from '../../shared/utils/avatar-storage'
-import { UserAvatar } from '../../shared/ui/user-avatar';
-
-
-
+import { UserAvatar } from '../../shared/ui/user-avatar'
+import { useTranslation } from 'react-i18next';
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
+  const { t } = useTranslation()
   const [selectedSport, setSelectedSport] = useState('')
   const [selectedLevel, setSelectedLevel] = useState<string>('')
   const { battle } = useBattleStore()
@@ -175,14 +174,14 @@ export default function BattlePage() {
     
     // Limit to 3 active waiting battles to prevent spam
     if (userActiveBattles.length >= 3) {
-      setCreationError("You can have up to 3 active battles waiting. Please wait for someone to join or cancel some battles first.");
+      setCreationError(t('ui.upTo3ActiveBattles'));
       return;
     }
     
     // Check if user already has a battle with the same sport and level
     const duplicateBattle = userActiveBattles.find(b => b.sport === selectedSport && b.level === selectedLevel);
     if (duplicateBattle) {
-      setCreationError(`You already have a ${selectedSport} (${selectedLevel}) battle waiting. Please wait for someone to join or cancel it first.`);
+      setCreationError(`${t('ui.alreadyHaveBattle')} ${selectedSport} (${selectedLevel}) ${t('ui.battleWaiting')}`);
       return;
     }
     
@@ -192,12 +191,12 @@ export default function BattlePage() {
     
     // Validate inputs
     if (!selectedSport) {
-      setCreationError("Please select a sport");
+      setCreationError(t('ui.pleaseSelectSport'));
       return;
     }
     
     if (!selectedLevel) {
-      setCreationError("Please select a difficulty level");
+      setCreationError(t('ui.pleaseSelectDifficulty'));
       return;
     }
     
@@ -222,23 +221,23 @@ export default function BattlePage() {
       if (response.data && response.data.id) {
         console.log("Battle created successfully, redirecting to waiting room:", response.data.id);
         // Redirect to waiting room for the new battle
-        navigate(`/waiting/${response.data.id}`);
+        navigate(`/waiting-room/${response.data.id}`);
       } else {
         console.error("Battle creation failed - no battle ID in response");
-        setCreationError("Failed to create battle. Please try again.");
+        setCreationError(t('ui.failedToCreateBattle') + '. ' + t('ui.pleaseTryAgain'));
       }
     } catch (error: any) {
       console.error("Battle creation error:", error);
       if (error.response) {
         // Server responded with error status
         const errorMessage = error.response.data?.detail || error.response.data?.message || "Server error occurred";
-        setCreationError(`Failed to create battle: ${errorMessage}`);
+        setCreationError(`${t('ui.failedToCreateBattle')}: ${errorMessage}`);
       } else if (error.request) {
         // Request was made but no response received
         setCreationError("No response from server. Please check your connection and try again.");
       } else {
         // Something else happened
-        setCreationError("Failed to create battle. Please try again.");
+        setCreationError(t('ui.failedToCreateBattle') + '. ' + t('ui.pleaseTryAgain'));
       }
       setIsCreatingBattle(false);
       setIsBattleBeingCreated(false);
@@ -309,7 +308,7 @@ export default function BattlePage() {
       
       if (data.type === 'battle_started') {
         console.log('Battle started:', data.data)
-        navigate(`/battle/${data.data}/countdown`)
+        navigate(`/${data.data}/countdown`)
       }
     }
 
@@ -324,21 +323,17 @@ export default function BattlePage() {
     }
   }, [navigate])
 
-
-
-
-
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
-      <Header user={user} />
+      <Header />
       <main className="container-gaming py-6 sm:py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="text-center space-y-4 sm:space-y-6">
             <h1 className="text-heading-1 text-foreground">
-              Battle Arena
+              {t('battles.battleArena')}
             </h1>
             <p className="text-responsive-sm text-muted-foreground max-w-2xl mx-auto">
-              Challenge yourself against other players in real-time trivia battles. Choose your sport and difficulty level to get started.
+              {t('battles.description')}
             </p>
           </div>
 
@@ -349,7 +344,7 @@ export default function BattlePage() {
                 <div className="flex items-start gap-3">
                   <div className="text-destructive">⚠️</div>
                   <div>
-                    <p className="text-responsive-sm text-destructive font-medium">Error</p>
+                    <p className="text-responsive-sm text-destructive font-medium">{t('common.error')}</p>
                     <p className="text-responsive-xs text-muted-foreground mt-1">{creationError}</p>
                   </div>
                 </div>
@@ -364,8 +359,8 @@ export default function BattlePage() {
                 <div className="flex items-start gap-3">
                   <div className="text-success">✅</div>
                   <div>
-                    <p className="text-responsive-sm text-success font-medium">Success</p>
-                    <p className="text-responsive-xs text-muted-foreground mt-1">Battle created successfully! Redirecting to waiting room...</p>
+                    <p className="text-responsive-sm text-success font-medium">{t('common.success')}</p>
+                    <p className="text-responsive-xs text-muted-foreground mt-1">{t('ui.battleCreatedSuccessfully')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -387,57 +382,57 @@ export default function BattlePage() {
             <CardHeader className="responsive-padding">
               <CardTitle className="text-responsive-lg flex items-center gap-2">
                 <Play className="w-5 h-5 text-primary" />
-                Create New Battle
+                {t('battles.createBattle')}
               </CardTitle>
             </CardHeader>
             <CardContent className="responsive-padding space-y-4 sm:space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 {/* Sport Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="sport" className="text-responsive-sm font-medium">Sport Category</Label>
+                  <Label htmlFor="sport" className="text-responsive-sm font-medium">{t('battles.selectSport')}</Label>
                   <Select value={selectedSport} onValueChange={setSelectedSport}>
                     <SelectTrigger className="input-gaming">
-                      <SelectValue placeholder="Choose your sport" />
+                      <SelectValue placeholder={t('battles.selectSport')} />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border">
-                      <SelectItem value="football">🏈 Football</SelectItem>
-                      <SelectItem value="basketball">🏀 Basketball</SelectItem>
-                      <SelectItem value="baseball">⚾ Baseball</SelectItem>
-                      <SelectItem value="soccer">⚽ Soccer</SelectItem>
-                      <SelectItem value="hockey">🏒 Hockey</SelectItem>
-                      <SelectItem value="tennis">🎾 Tennis</SelectItem>
-                      <SelectItem value="golf">⛳ Golf</SelectItem>
-                      <SelectItem value="cricket">🏏 Cricket</SelectItem>
-                      <SelectItem value="rugby">🏉 Rugby</SelectItem>
-                      <SelectItem value="volleyball">🏐 Volleyball</SelectItem>
+                      <SelectItem value="football">🏈 {t('sports.football')}</SelectItem>
+                      <SelectItem value="basketball">🏀 {t('sports.basketball')}</SelectItem>
+                      <SelectItem value="baseball">⚾ {t('sports.baseball')}</SelectItem>
+                      <SelectItem value="soccer">⚽ {t('sports.soccer')}</SelectItem>
+                      <SelectItem value="hockey">🏒 {t('sports.hockey')}</SelectItem>
+                      <SelectItem value="tennis">🎾 {t('sports.tennis')}</SelectItem>
+                      <SelectItem value="golf">⛳ {t('sports.golf')}</SelectItem>
+                      <SelectItem value="cricket">🏏 {t('sports.cricket')}</SelectItem>
+                      <SelectItem value="rugby">🏉 {t('sports.rugby')}</SelectItem>
+                      <SelectItem value="volleyball">🏐 {t('sports.volleyball')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Difficulty Selection */}
                 <div className="space-y-2">
-                  <Label htmlFor="level" className="text-responsive-sm font-medium">Difficulty Level</Label>
+                  <Label htmlFor="level" className="text-responsive-sm font-medium">{t('battles.selectDifficulty')}</Label>
                   <Select value={selectedLevel} onValueChange={setSelectedLevel}>
                     <SelectTrigger className="input-gaming">
-                      <SelectValue placeholder="Select difficulty" />
+                      <SelectValue placeholder={t('battles.selectDifficulty')} />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border">
                       <SelectItem value="easy">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-success"></div>
-                          Easy
+                          {t('battles.easy')}
                         </div>
                       </SelectItem>
                       <SelectItem value="medium">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-warning"></div>
-                          Medium
+                          {t('battles.medium')}
                         </div>
                       </SelectItem>
                       <SelectItem value="hard">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-destructive"></div>
-                          Hard
+                          {t('battles.hard')}
                         </div>
                       </SelectItem>      
                     </SelectContent>
@@ -454,12 +449,12 @@ export default function BattlePage() {
                   {isCreatingBattle ? (
                     <div className="flex items-center gap-2">
                     <div className="loading-gaming w-4 h-4 rounded"></div>
-                      Creating Battle...
+                      {t('ui.creatingBattle')}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <Play className="w-4 h-4" />
-                      Create Battle
+                      {t('battles.createBattle')}
                     </div>
                   )}
                 </Button>
@@ -472,7 +467,7 @@ export default function BattlePage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="text-responsive-lg flex items-center gap-2">
                   <Clock className="w-5 h-5 text-primary" />
-                  Available Battles ({battle.length})
+                  {t('battles.allBattles')} ({battle.length})
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   <Button
@@ -487,7 +482,7 @@ export default function BattlePage() {
                     ) : (
                       <RefreshCw className="w-4 h-4 mr-2" />
                     )}
-                    Refresh
+                    {isRefreshing ? t('ui.refreshing') : t('ui.refreshBattles')}
                   </Button>
                 </div>
               </div>
@@ -501,8 +496,8 @@ export default function BattlePage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-responsive-base text-muted-foreground font-medium">No battles available</p>
-                    <p className="text-responsive-xs text-muted-foreground/70 mt-1">Be the first to create a battle and challenge other players!</p>
+                    <p className="text-responsive-base text-muted-foreground font-medium">{t('ui.noBattlesAvailable')}</p>
+                    <p className="text-responsive-xs text-muted-foreground/70 mt-1">{t('ui.createFirstBattleToSee')}</p>
                   </div>
                 </div>
               ) : (
@@ -564,7 +559,7 @@ export default function BattlePage() {
                               className="border-destructive/30 text-destructive hover:bg-destructive/5"
                             >
                               <Undo className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                              <span className="hidden sm:inline">Cancel</span>
+                              <span className="hidden sm:inline">{t('ui.cancel')}</span>
                             </Button>
                           ) : (
                             <Button
@@ -573,7 +568,7 @@ export default function BattlePage() {
                               className="btn-neon"
                             >
                               <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                              <span className="hidden sm:inline">Join Battle</span>
+                              <span className="hidden sm:inline">{t('ui.join')}</span>
                             </Button>
                           )}
                         </div>

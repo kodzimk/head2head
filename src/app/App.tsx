@@ -10,8 +10,10 @@ import FriendsPage from '../modules/friends/friends'
 import BattlesPage from '../modules/battle/battle'
 import WaitingPage from '../modules/battle/waiting-room'
 import { useState, useEffect } from 'react'
+import { useI18nLoading } from '../shared/hooks/use-i18n-loading'
+import { useTranslation } from 'react-i18next'
 
-import { BattleStore, CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore, RefreshViewStore, useRefreshViewStore, OpponentStore } from '../shared/interface/gloabL_var'
+import { BattleStore, CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore, useRefreshViewStore, OpponentStore } from '../shared/interface/gloabL_var'
 import { ViewProfile } from '../modules/profile/view-profile'
 import LeaderboardPage from '../modules/leaderboard/leaderboard'
 import SelectionPage from '../modules/selection/selection'
@@ -25,10 +27,11 @@ import {sendMessage } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
 import BattleCountdown from '../modules/battle/countdown'
 import BattleResultPage from '../modules/battle/result'
-import TrainingPage from '../modules/trainings/trainings'
 import NotFoundPage from '../modules/entry-page/not-found'
 import { WS_BASE_URL } from "../shared/interface/gloabL_var";
 import AvatarStorage from '../shared/utils/avatar-storage';
+import { setUserLanguage } from '../shared/i18n/i18n';
+import { LanguageLoadingIndicator } from '../shared/ui/language-loading';
 
 export let newSocket: WebSocket | null = null;
 let isManualReload = false; // Track if user manually reloaded
@@ -119,11 +122,42 @@ export default function App() {
   const [opponentAvatar, setOpponentAvatar] = useState<string>('');
   const navigate = useNavigate()
   const {refreshView, setRefreshView} = useRefreshViewStore()
+  const isLanguageLoading = useI18nLoading();
+  const { i18n } = useTranslation();
   
   const setOpponent = (username: string, avatar: string) => {
     setOpponentUsername(username);
     setOpponentAvatar(avatar);
   };
+
+  // Initialize language from localStorage
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("language");
+    if (savedLanguage && ['en', 'ru'].includes(savedLanguage)) {
+      i18n.changeLanguage(savedLanguage);
+    } else {
+      localStorage.setItem("language", i18n.language);
+    }
+  }, [i18n]);
+
+  // Handle language changes
+  useEffect(() => {
+    const handleLanguageChange = (lng: string) => {
+      localStorage.setItem("language", lng);
+      if (user && user.username) {
+        const updatedUser = { ...user, preferredLanguage: lng };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    };
+
+    i18n.on('languageChanged', handleLanguageChange);
+
+    return () => {
+      i18n.off('languageChanged', handleLanguageChange);
+    };
+  }, [i18n, user, setUser]);
+
   // Handle manual page reload
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -158,6 +192,49 @@ export default function App() {
       console.log("Initial websocket connection for existing user");
       isInitialConnection = true; // Set flag for initial connection
       newSocket = createWebSocket(username);
+    }
+  }, []);
+
+  // Set user's language preference when user data changes
+  useEffect(() => {
+    if (user && user.username && user.language && ['en', 'ru'].includes(user.language)) {
+      console.log(`Setting user language preference: ${user.language}`);
+      setUserLanguage(user);
+    }
+  }, [user.username, user.language]);
+
+  // Load user data from localStorage on app start
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        const parsedUser: User = JSON.parse(savedUser);
+        if (parsedUser.username) {
+          setUser(parsedUser);
+          
+          // Set language based on priority:
+          // 1. User's preferred language
+          // 2. Language from localStorage
+          // 3. Current i18n language
+          const languageToUse = parsedUser.language || 
+                               localStorage.getItem("language") || 
+                               i18n.language;
+          
+          if (languageToUse) {
+            i18n.changeLanguage(languageToUse);
+            localStorage.setItem("language", languageToUse);
+            
+            // Update user's preferred language if it's different
+            if (parsedUser.language !== languageToUse) {
+              const updatedUser = { ...parsedUser, language: languageToUse };
+              setUser(updatedUser);
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Error loading user from localStorage:', error);
     }
   }, []);
 
@@ -216,7 +293,8 @@ export default function App() {
              friendRequests: data.data.friendRequests,
              avatar: data.data.avatar,
              battles: data.data.battles,
-             invitations: data.data.invitations
+             invitations: data.data.invitations,
+             language: data.data.language || user.language || "en"
            }
            
            // Handle username change
@@ -259,7 +337,8 @@ export default function App() {
                friendRequests: data.data.friendRequests,
                avatar: data.data.avatar,
                battles: data.data.battles,
-               invitations: data.data.invitations
+               invitations: data.data.invitations,
+               language: data.data.language || user.language || "en"
              }
              setUser(updatedUser)
              localStorage.setItem('user', JSON.stringify(updatedUser))
@@ -285,7 +364,8 @@ export default function App() {
                friendRequests: data.data.friendRequests,
                avatar: data.data.avatar,
                battles: data.data.battles,
-               invitations: data.data.invitations
+               invitations: data.data.invitations,
+               language: data.data.language || user.language || "en"
              }
              setUser(updatedUser)
              localStorage.setItem('user', JSON.stringify(updatedUser))
@@ -324,7 +404,7 @@ export default function App() {
          }
          else if(data.type === 'battle_started'){
            // Redirect to countdown page for the battle
-           navigate(`/battle/${data.data}/countdown`);
+           navigate(`/${data.data}/countdown`);
          }
          else if(data.type === 'battle_cancelled'){
            // Battle was successfully cancelled
@@ -415,58 +495,54 @@ export default function App() {
   useEffect(() => {
     // Clean up any base64 avatar data in user localStorage on app start
     AvatarStorage.cleanupUserStorageData();
-    
+    localStorage.clear();
     // ... existing initialization code ...
   }, []);
 
   return (
-
-      <GlobalStore.Provider value={{user, setUser: (user: User) => setUser(user)}}>
-        <ThemeStore.Provider value={{theme, setTheme: (theme: boolean) => setTheme(theme)}}>
-          <CurrentQuestionStore.Provider value={{currentQuestion, setCurrentQuestion: (currentQuestion: any) => setCurrentQuestion(currentQuestion)}}>
-          <ScoreStore.Provider value={{firstOpponentScore: firstOpponentScore, secondOpponentScore: secondOpponentScore, setFirstOpponentScore: (firstOpponentScore: number) => setFirstOpponentScore(firstOpponentScore), setSecondOpponentScore: (secondOpponentScore: number) => setSecondOpponentScore(secondOpponentScore)}}>
-          <WinnerStore.Provider value={{winner, setWinner: (winner: string) => setWinner(winner)}}>
-          <TextStore.Provider value={{text, setText: (text: string) => setText(text)}}>
-          <LoserStore.Provider value={{loser, setLoser: (loser: string) => setLoser(loser)}}>
-          <ResultStore.Provider value={{result, setResult: (result: string) => setResult(result)}}>
-          <BattleStore.Provider value={{battle, setBattle: (battle: Battle[]) => setBattle(battle)}}>
-          <OpponentStore.Provider value={{opponentUsername, opponentAvatar, setOpponentUsername, setOpponentAvatar, setOpponent}}>
-          <RefreshViewStore.Provider value={{refreshView, setRefreshView: (view: boolean) => setRefreshView(view)}}>
-            <div className={theme ? 'dark' : ''}>
-            <Routes>
-            <Route path='/training' element={<TrainingPage />} />
-              <Route path="/" element={<EntryPage />} />
-              <Route path="/sign-up" element={<SignUpPage />} />
-              <Route path="/signup-email" element={<EmailSignUpPage />} />
-              <Route path="/sign-in" element={<SignInPage />} />
-              <Route path="/:username" element={<DashboardPage />} ></Route>
-              <Route path="/:username/profile" element={<ProfilePage />} />
-              <Route path="/:username/friends" element={<FriendsPage user={user} />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/profile/:username" element={<ViewProfile user={user} />} />
-              <Route path="/leaderboard" element={<LeaderboardPage />} />
-              <Route path="/selection" element={<SelectionPage />} />
-              <Route path="/:username/trainings" element={<TrainingsPage />} />
-              <Route path="/:username/notifications" element={<NotificationsPage />} />
-              <Route path="/battles" element={<BattlesPage />} />
-              <Route path="/waiting/:id" element={<WaitingPage />} />
-              <Route path="/battle/:id/quiz" element={<QuizQuestionPage />} />
-              <Route path="/battle/:id/countdown" element={<BattleCountdown />} />
-              <Route path="/battle/:id/result" element={<BattleResultPage user={user} />} />
-              <Route path="/:username/all-battles" element={<AllBattlesPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </div>
-          </RefreshViewStore.Provider>
-          </OpponentStore.Provider>
-          </BattleStore.Provider>
-          </ResultStore.Provider>
-          </LoserStore.Provider>
-          </TextStore.Provider>
-          </WinnerStore.Provider>
+    <GlobalStore.Provider value={{ user, setUser }}>
+      <ThemeStore.Provider value={{ theme, setTheme }}>
+        <CurrentQuestionStore.Provider value={{ currentQuestion, setCurrentQuestion }}>
+          <ScoreStore.Provider value={{ firstOpponentScore, secondOpponentScore, setFirstOpponentScore, setSecondOpponentScore }}>
+            <WinnerStore.Provider value={{ winner, setWinner }}>
+              <TextStore.Provider value={{ text, setText }}>
+                <LoserStore.Provider value={{ loser, setLoser }}>
+                  <ResultStore.Provider value={{ result, setResult }}>
+                    <BattleStore.Provider value={{ battle, setBattle }}>
+                      <OpponentStore.Provider value={{ opponentUsername, opponentAvatar, setOpponentUsername, setOpponentAvatar, setOpponent }}>
+                        <div className="relative">
+                          {isLanguageLoading && <LanguageLoadingIndicator />}
+                          <Routes>
+                            <Route path="/" element={<EntryPage />} />
+                            <Route path="/sign-up" element={<SignUpPage />} />
+                            <Route path="/sign-up/email" element={<EmailSignUpPage />} />
+                            <Route path="/sign-in" element={<SignInPage />} />
+                            <Route path="/:username" element={<DashboardPage />} />
+                            <Route path="/:username/profile" element={<ProfilePage />} />
+                            <Route path="/:username/friends" element={<FriendsPage user={user} />} />
+                            <Route path="/battles" element={<BattlesPage />} />
+                            <Route path="/waiting-room/:id" element={<WaitingPage />} />
+                            <Route path="/view-profile/:username" element={<ViewProfile user={user} />} />
+                            <Route path="/leaderboard" element={<LeaderboardPage />} />
+                            <Route path="/selection" element={<SelectionPage />} />
+                            <Route path="/:username/trainings" element={<TrainingsPage />} />
+                            <Route path="/:username/notifications" element={<NotificationsPage />} />
+                            <Route path="/:username/all-battles" element={<AllBattlesPage />} />
+                            <Route path="/:id/quiz-question" element={<QuizQuestionPage />} />
+                            <Route path="/:id/countdown" element={<BattleCountdown />} />
+                            <Route path="/:id/battle-result" element={<BattleResultPage user={user} />} />
+                            <Route path="*" element={<NotFoundPage />} />
+                          </Routes>
+                        </div>
+                      </OpponentStore.Provider>
+                    </BattleStore.Provider>
+                  </ResultStore.Provider>
+                </LoserStore.Provider>
+              </TextStore.Provider>
+            </WinnerStore.Provider>
           </ScoreStore.Provider>
-          </CurrentQuestionStore.Provider>
-        </ThemeStore.Provider>
-      </GlobalStore.Provider>
+        </CurrentQuestionStore.Provider>
+      </ThemeStore.Provider>
+    </GlobalStore.Provider>
   )
 }

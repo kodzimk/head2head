@@ -331,7 +331,8 @@ async def get_recent_training_sessions(username: str, limit: int = Query(10, ge=
 async def generate_random_training_questions(
     sport: Optional[str] = Query(None),
     level: str = Query("medium"),
-    count: int = Query(5, ge=1, le=10)
+    count: int = Query(5, ge=1, le=10),
+    language: str = Query("en")
 ):
     """Generate random training questions using AI"""
     try:
@@ -339,8 +340,8 @@ async def generate_random_training_questions(
         if not sport:
             sport = "mixed"
         
-        # Generate questions using AI
-        questions = ai_generator.generate_questions(sport, level, count, f"training_{uuid.uuid4()}")
+        # Generate questions using AI with language support
+        questions = ai_generator.generate_questions(sport, level, count, f"training_{uuid.uuid4()}", language)
         
         # Convert to training format
         training_questions = []

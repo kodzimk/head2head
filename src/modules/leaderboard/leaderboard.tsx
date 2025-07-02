@@ -11,6 +11,7 @@ import axios from "axios";
 import { API_BASE_URL } from "../../shared/interface/gloabL_var";
 import AvatarStorage from "../../shared/utils/avatar-storage";
 import { UserAvatar } from "../../shared/ui/user-avatar";
+import { useTranslation } from 'react-i18next';
 
 interface LeaderboardUser {
   rank: number;
@@ -33,6 +34,7 @@ const getRankIcon = (rank: number) => {
 export default function LeaderboardPage() {
   const { user } = useGlobalStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [,setError] = useState<string | null>(null);
@@ -116,7 +118,7 @@ export default function LeaderboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background bg-gaming-pattern">
-        {isAuthenticated ? <Header user={user} /> : <EntryHeader />}
+        {isAuthenticated ? <Header /> : <EntryHeader />}
         <main className="container-gaming pt-20 sm:pt-24 md:pt-28 pb-8">
           {/* Back Button - Only for unauthorized users */}
           {!isAuthenticated && (
@@ -127,17 +129,17 @@ export default function LeaderboardPage() {
                 className="flex items-center gap-2 text-white bg-primary/20 border-primary hover:bg-primary hover:text-white transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Back to Entry Page</span>
+                <span>{t('ui.backToEntryPage')}</span>
               </Button>
             </div>
           )}
           
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center space-y-4">
-              <div className="loading-gaming w-12 h-12 rounded-lg mx-auto"></div>
-              <p className="text-muted-foreground font-rajdhani">Loading leaderboard...</p>
+                      <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="text-center space-y-4">
+                <div className="loading-gaming w-12 h-12 rounded-lg mx-auto"></div>
+                <p className="text-muted-foreground font-rajdhani">{t('ui.loadingLeaderboard')}</p>
+              </div>
             </div>
-          </div>
         </main>
       </div>
     );
@@ -145,7 +147,7 @@ export default function LeaderboardPage() {
   
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
-      {isAuthenticated ? <Header user={user} /> : <EntryHeader />}
+      {isAuthenticated ? <Header /> : <EntryHeader />}
       <main className="container-gaming pt-20 sm:pt-24 md:pt-28 pb-8">
         {/* Back Button - Only for unauthorized users */}
         {!isAuthenticated && (
@@ -161,16 +163,16 @@ export default function LeaderboardPage() {
           </div>
         )}
 
-        <div className="space-y-6 sm:space-y-8">
-          {/* Header */}
-          <div className="text-center space-y-2 sm:space-y-3">
-            <h1 className="text-heading-1 text-foreground">
-              Global Leaderboard
-            </h1>
-            <p className="text-responsive-sm text-muted-foreground">
-              Top players ranked by points (wins, win rate, streaks, and consistency)
-            </p>
-          </div>
+                  <div className="space-y-6 sm:space-y-8">
+            {/* Header */}
+            <div className="text-center space-y-2 sm:space-y-3">
+              <h1 className="text-heading-1 text-foreground">
+                {t('ui.globalLeaderboard')}
+              </h1>
+              <p className="text-responsive-sm text-muted-foreground">
+                {t('ui.topPlayersRanked')}
+              </p>
+            </div>
 
           {/* User Rank Card - Only show for authenticated users */}
           {isAuthenticated && (
@@ -179,8 +181,8 @@ export default function LeaderboardPage() {
                 <CardContent className="responsive-padding">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-responsive-xs text-muted-foreground uppercase tracking-wide font-mono">Your Rank</p>
-                      <p className="text-responsive-xl font-bold text-primary font-rajdhani">#{currentUserRank || "Unranked"}</p>
+                      <p className="text-responsive-xs text-muted-foreground uppercase tracking-wide font-mono">{t('ui.yourRank')}</p>
+                      <p className="text-responsive-xl font-bold text-primary font-rajdhani">#{currentUserRank || t('ui.unranked')}</p>
                     </div>
                     <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-primary/70" />
                   </div>
@@ -194,7 +196,7 @@ export default function LeaderboardPage() {
             <CardHeader className="responsive-padding">
               <CardTitle className="flex items-center gap-2 text-responsive-lg">
                 <Trophy className="w-5 h-5 text-primary" />
-                Top Players
+                {t('ui.topPlayers')}
               </CardTitle>
             </CardHeader>
             <CardContent className="responsive-padding">

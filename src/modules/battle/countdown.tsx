@@ -3,8 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { startBattle } from '../../shared/websockets/websocket';
 import { useCurrentQuestionStore } from '../../shared/interface/gloabL_var';
 import { newSocket } from '../../app/App';
+import { useTranslation } from 'react-i18next';
 
 export default function BattleCountdown() {
+  const { t } = useTranslation();
   const { id } = useParams() as { id: string };
   const navigate = useNavigate();
   const [count, setCount] = useState(10);
@@ -56,9 +58,11 @@ export default function BattleCountdown() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-surface-1 to-surface-2">
-      <div className="text-6xl font-bold text-primary mb-4 animate-pulse">{count === 0 ? 'Go!' : count}</div>
+      <div className="text-6xl font-bold text-primary mb-4 animate-pulse">
+        {count === 0 ? t('battles.countdown.go') : count}
+      </div>
       <div className="text-xl text-muted-foreground mb-4">
-        Prepare yourself. 
+        {t('battles.countdown.prepare')}
       </div>
       
       <div className={`text-sm px-3 py-1 rounded-full ${
@@ -68,13 +72,13 @@ export default function BattleCountdown() {
           ? 'bg-destructive/20 text-destructive border border-destructive/30'
           : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
       }`}>
-        {connectionStatus === 'connected' ? 'Connected' : 
-         connectionStatus === 'disconnected' ? 'Disconnected' : 'Checking...'}
+        {connectionStatus === 'connected' ? t('battles.countdown.connected') : 
+         connectionStatus === 'disconnected' ? t('battles.countdown.disconnected') : t('battles.countdown.checking')}
       </div>
       
       {connectionStatus === 'disconnected' && (
         <div className="text-sm text-muted-foreground mt-2">
-          Trying to reconnect...
+          {t('battles.countdown.reconnecting')}
         </div>
       )}
     </div>

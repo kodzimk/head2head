@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 import {
   Trophy, 
@@ -23,85 +24,76 @@ import Friends from './tabs/friends';
 import type { User, RecentBattle } from '../../shared/interface/user';
 import { API_BASE_URL } from '../../shared/interface/gloabL_var';
 import Onboarding from '../../shared/ui/onboarding';
+import { useGlobalStore } from '../../shared/interface/gloabL_var';
 
 const getAllDashboardOnboardingSteps = () => [
   {
     id: "welcome",
     target: "[data-onboarding='welcome-section']",
-    title: "Welcome to Head2Head! 🎮",
-    description: "This is your gaming command center! Here you can track stats, start battles, and manage your competitive journey. Let's explore the key features together.",
+    translationKey: "welcome",
     position: "auto" as const,
     offset: { x: 0, y: 20 }
   },
   {
     id: "user-avatar",
     target: "[data-onboarding='user-avatar']",
-    title: "Your Player Hub 👤",
-    description: "Click your avatar to access profile settings and notifications. The red dot shows new friend requests or battle invitations waiting for you.",
+    translationKey: "userAvatar",
     position: "auto" as const,
     offset: { x: 0, y: 15 }
   },
   {
     id: "navigation",
     target: "[data-onboarding='navigation']",
-    title: "Navigate Like a Pro 🧭",
-    description: "Access all platform sections: Dashboard (home), Battles (compete), Leaderboard (rankings), Selection (find opponents), and Trainings (practice).",
+    translationKey: "navigation",
     position: "auto" as const,
     offset: { x: 0, y: 15 }
   },
   {
     id: "stats-grid",
     target: "[data-onboarding='stats-grid']",
-    title: "Track Your Progress 📊",
-    description: "Monitor your performance at a glance: global rank, total wins, battles played, and draws. These update automatically as you compete.",
+    translationKey: "statsGrid",
     position: "auto" as const,
     offset: { x: 0, y: 20 }
   },
   {
     id: "battle-stats-breakdown",
     target: "[data-onboarding='battle-stats-breakdown']",
-    title: "Battle Statistics Breakdown 🏆",
-    description: "Get a comprehensive overview of your battle performance! See your wins, draws, losses, and current streak with percentages. This visual breakdown helps you track your competitive progress at a glance.",
+    translationKey: "battleStatsBreakdown",
     position: "auto" as const,
     offset: { x: 0, y: 20 }
   },
   {
     id: "overview-profile",
     target: "[data-onboarding='overview-profile']",
-    title: "Your Profile Card 🏷️",
-    description: "View detailed stats including rank, wins, and favorite sport. Click 'Edit Profile' to customize your gaming identity.",
+    translationKey: "overviewProfile",
     position: "auto" as const,
     offset: { x: 20, y: 0 }
   },
   {
     id: "recent-battles",
     target: "[data-onboarding='recent-battles']",
-    title: "Battle History 📜",
-    description: "See your recent matches with opponents, sports, results, and scores. Start your first battle to populate this section!",
+    translationKey: "recentBattles",
     position: "auto" as const,
     offset: { x: -20, y: 0 }
   },
   {
     id: "battle-history-content",
     target: "[data-onboarding='battle-history-content']",
-    title: "Your Battle History ⚔️",
-    description: "See all your completed battles with opponents, sports played, match results, and scores. Each battle shows who you fought, what sport, and whether you won, lost, or drew.",
+    translationKey: "battleHistoryContent",
     position: "auto" as const,
     offset: { x: 0, y: 20 }
   },
   {
     id: "battle-stats-content",
     target: "[data-onboarding='battle-stats-content']",
-    title: "Detailed Battle Statistics 📊",
-    description: "Track your competitive performance: total battles fought, wins achieved, win rate percentage, and current winning streak. Perfect for monitoring your improvement!",
+    translationKey: "battleStatsContent",
     position: "auto" as const,
     offset: { x: 0, y: 20 }
   },
   {
     id: "friends-list-content",
     target: "[data-onboarding='friends-list-content']",
-    title: "Your Friends List 👥",
-    description: "View all your friends with their avatars, usernames, and ranks. Click on any friend to visit their profile, challenge them to battles, or see their achievements.",
+    translationKey: "friendsListContent",
     position: "auto" as const,
     offset: { x: 0, y: 20 }
   }
@@ -122,14 +114,27 @@ const getDashboardOnboardingSteps = () => {
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const [error] = useState<string | null>(null);
   const [battles, setBattles] = useState<RecentBattle[]>([]);
   const [onboardingSteps, setOnboardingSteps] = useState(getDashboardOnboardingSteps());
+  const { user, setUser } = useGlobalStore();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    // Check if this is a new user by looking for the isNewUser flag in localStorage
+    const isNewUser = localStorage.getItem('isNewUser') === 'true';
+    setShowOnboarding(isNewUser);
+    
+    // Remove the flag after checking it
+    if (isNewUser) {
+      localStorage.removeItem('isNewUser');
+    }
+  }, []);
 
   const handleOnboardingComplete = () => {
     console.log('Dashboard onboarding completed');
+    setShowOnboarding(false);
   };
 
   // Handle responsive onboarding steps
@@ -141,89 +146,6 @@ export function Dashboard() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  // Force clear onboarding on first load for testing
-  useEffect(() => {
-    // Uncomment the line below to force onboarding to show every time
-    // localStorage.removeItem("head2head-dashboard-onboarding");
-    console.log("[Dashboard] Onboarding status:", localStorage.getItem("head2head-dashboard-onboarding"));
-  }, []);
-
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const token = localStorage.getItem('access_token');
-        
-        if (!token) {
-          navigate('/sign-in');
-          return;
-        }
-
-        // First try to get user data from localStorage
-        const userData = localStorage.getItem('user');
-        if (userData) {
-          const parsedUser = JSON.parse(userData);
-          setUser(parsedUser);
-          setLoading(false);
-          return;
-        }
-
-        // If no localStorage data, fetch from API
-        try {
-          const response = await axios.get(`${API_BASE_URL}/db/get-user?token=${token}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-
-          if (response.data) {
-            const userData = response.data;
-            const formattedUser = {
-              email: userData.email,
-              username: userData.username,
-              nickname: userData.username,
-              wins: userData.winBattle,
-              favoritesSport: userData.favourite,
-              rank: userData.ranking,
-              winRate: userData.winRate,
-              totalBattles: userData.totalBattle,
-              streak: userData.streak,
-              password: userData.password,
-              avatar: userData.avatar,
-              friends: userData.friends || [],
-              friendRequests: userData.friendRequests || [],
-              battles: userData.battles || [],
-              invitations: userData.invitations || []
-            };
-            
-            setUser(formattedUser);
-            // Store in localStorage for future use
-            localStorage.setItem('user', JSON.stringify(formattedUser));
-          } else {
-            setError('No user data received from server');
-          }
-        } catch (apiError: any) {
-          console.error('Error fetching user data from API:', apiError);
-          if (apiError.response?.status === 401) {
-            // Token is invalid, redirect to sign-in
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('username');
-            navigate('/sign-in');
-            return;
-          }
-          setError('Failed to load user data. Please try signing in again.');
-        }
-      } catch (err) {
-        console.error('Error loading user data:', err);
-        setError('Failed to load user data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUserData();
-  }, [navigate, setUser]);
 
   const fetchBattles = async () => {
     if (!localStorage.getItem("username")) return;
@@ -352,23 +274,13 @@ export function Dashboard() {
 
   const stats = calculateBattleStats();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error || !user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
-          <p className="text-destructive">{error || 'Failed to load user data'}</p>
-          <Button onClick={() => navigate('/sign-in')}>Sign In Again</Button>
+          <p className="text-destructive">{error || t('dashboard.error.failedToLoad')}</p>
+          <Button onClick={() => navigate('/sign-in')}>{t('dashboard.error.signInAgain')}</Button>
         </div>
       </div>
     );
@@ -377,14 +289,16 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Onboarding */}
-      <Onboarding
-        steps={onboardingSteps}
-        onComplete={handleOnboardingComplete}
-        storageKey="head2head-dashboard-onboarding"
-        autoStart={true}
-      />
+      {showOnboarding && (
+        <Onboarding
+          steps={onboardingSteps}
+          onComplete={handleOnboardingComplete}
+          storageKey="head2head-dashboard-onboarding"
+          autoStart={true}
+        />
+      )}
 
-      <Header user={user} />
+      <Header />
 
       <main className="container-gaming py-8">
         {/* Welcome Section */}
@@ -396,11 +310,11 @@ export function Dashboard() {
             <div className="space-y-2">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                 <h1 className="text-gaming-lg text-foreground font-rajdhani">
-                  Welcome back, {user?.nickname || user?.username || 'Player'}
+                  {t('dashboard.welcome')}, {user?.nickname || user?.username || 'Player'}
                 </h1>
               </div>
               <p className="text-responsive-sm text-muted-foreground font-rajdhani max-w-2xl">
-                Ready for your next gaming challenge? Your opponents are waiting.
+                {t('dashboard.readyForChallenge')}
               </p>
             </div>
 
@@ -414,16 +328,16 @@ export function Dashboard() {
                 className="btn-neon group"
               >
                 <Play className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
-                Quick Battle
+                {t('dashboard.quickBattle')}
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
               <Button
                 variant="outline"
-                onClick={() => navigate('/training')}
+                onClick={() => navigate(`/${user?.username}/trainings`)}
                 className="border-primary/30 hover:border-primary/60 hover:bg-primary/5"
               >
                 <Target className="w-4 h-4 mr-2" />
-                Practice Mode
+                {t('dashboard.practiceMode')}
               </Button>
             </div>
           </div>
@@ -443,7 +357,7 @@ export function Dashboard() {
               </Badge>
             </div>
             <div className="stat-value">{user?.rank || 'N/A'}</div>
-            <div className="stat-label">Global Rank</div>
+            <div className="stat-label">{t('dashboard.globalRank')}</div>
           </div>
 
           <div className="stat-card animate-scale-in" style={{ animationDelay: '0.1s' }}>
@@ -455,7 +369,7 @@ export function Dashboard() {
               </Badge>
             </div>
             <div className="stat-value text-success">{user?.wins || 0}</div>
-            <div className="stat-label">Total Wins</div>
+            <div className="stat-label">{t('dashboard.totalWins')}</div>
           </div>
 
           <div className="stat-card animate-scale-in" style={{ animationDelay: '0.2s' }}>
@@ -466,7 +380,7 @@ export function Dashboard() {
               </Badge>
             </div>
             <div className="stat-value text-blue-400">{user?.totalBattles || 0}</div>
-            <div className="stat-label">Battles Played</div>
+            <div className="stat-label">{t('dashboard.battlesPlayed')}</div>
           </div>
 
           {/* Enhanced Draw Statistics Card */}
@@ -476,13 +390,13 @@ export function Dashboard() {
                 🤝
               </div>
               <Badge variant="secondary" className="bg-warning/15 text-warning border-warning/25">
-                <span className="text-xs">Win Rate</span>
+                <span className="text-xs">{t('dashboard.winRate')}</span>
               </Badge>
             </div>
             <div className="stat-value text-warning">
               {user?.winRate || 0}%
             </div>
-            <div className="stat-label">Win Rate</div>
+            <div className="stat-label">{t('dashboard.winRate')}</div>
           </div>
         </div>
 
@@ -491,7 +405,7 @@ export function Dashboard() {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg lg:text-xl font-semibold">
               <Trophy className="w-5 h-5 text-orange-500" />
-              Battle Statistics Breakdown
+              {t('dashboard.battleStatsBreakdown')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
@@ -501,7 +415,7 @@ export function Dashboard() {
                 <div className="text-2xl lg:text-3xl font-bold text-green-600 mb-1">
                   {stats.wins}
                 </div>
-                <div className="text-sm lg:text-base font-medium text-foreground mb-1">Wins</div>
+                <div className="text-sm lg:text-base font-medium text-foreground mb-1">{t('dashboard.wins')}</div>
                 <div className="text-xs lg:text-sm text-green-600 font-medium">
                   {stats.winPercentage}%
                 </div>
@@ -512,7 +426,7 @@ export function Dashboard() {
                 <div className="text-2xl lg:text-3xl font-bold text-yellow-600 mb-1">
                   {stats.draws}
                 </div>
-                <div className="text-sm lg:text-base font-medium text-foreground mb-1">Draws</div>
+                <div className="text-sm lg:text-base font-medium text-foreground mb-1">{t('dashboard.draws')}</div>
                 <div className="text-xs lg:text-sm text-yellow-600 font-medium">
                   {stats.drawPercentage}%
                 </div>
@@ -523,7 +437,7 @@ export function Dashboard() {
                 <div className="text-2xl lg:text-3xl font-bold text-red-600 mb-1">
                   {stats.losses}
                 </div>
-                <div className="text-sm lg:text-base font-medium text-foreground mb-1">Losses</div>
+                <div className="text-sm lg:text-base font-medium text-foreground mb-1">{t('dashboard.losses')}</div>
                 <div className="text-xs lg:text-sm text-red-600 font-medium">
                   {stats.lossPercentage}%
                 </div>
@@ -534,9 +448,9 @@ export function Dashboard() {
                 <div className="text-2xl lg:text-3xl font-bold text-orange-600 mb-1">
                   {user?.streak || 0}
                 </div>
-                <div className="text-sm lg:text-base font-medium text-foreground mb-1">Streak</div>
+                <div className="text-sm lg:text-base font-medium text-foreground mb-1">{t('dashboard.streak')}</div>
                 <div className="text-xs lg:text-sm text-orange-600 font-medium">
-                  {(user?.streak || 0) > 0 ? 'Win Streak' : 'No Streak'}
+                  {(user?.streak || 0) > 0 ? t('dashboard.winStreak') : t('dashboard.noStreak')}
                 </div>
               </div>
             </div>
@@ -555,24 +469,24 @@ export function Dashboard() {
               className="nav-gaming flex items-center justify-center gap-1 sm:gap-2 h-full text-xs sm:text-sm lg:text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 rounded-md"
             >
               <Trophy className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-              <span className="hidden xs:inline">Overview</span>
-              <span className="xs:hidden">Stats</span>
+              <span className="hidden xs:inline">{t('dashboard.overview')}</span>
+              <span className="xs:hidden">{t('dashboard.stats')}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="battles" 
               className="nav-gaming flex items-center justify-center gap-1 sm:gap-2 h-full text-xs sm:text-sm lg:text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 rounded-md"
             >
               <Zap className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-              <span className="hidden xs:inline">My Battles</span>
-              <span className="xs:hidden">Battles</span>
+              <span className="hidden xs:inline">{t('dashboard.myBattles')}</span>
+              <span className="xs:hidden">{t('dashboard.battles')}</span>
             </TabsTrigger>
             <TabsTrigger 
               value="friends" 
               className="nav-gaming flex items-center justify-center gap-1 sm:gap-2 h-full text-xs sm:text-sm lg:text-base font-medium data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 rounded-md"
             >
               <Users className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 flex-shrink-0" />
-              <span className="hidden xs:inline">Friends</span>
-              <span className="xs:hidden">Social</span>
+              <span className="hidden xs:inline">{t('dashboard.friends')}</span>
+              <span className="xs:hidden">{t('dashboard.social')}</span>
             </TabsTrigger>
           </TabsList>
 

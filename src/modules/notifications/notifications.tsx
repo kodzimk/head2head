@@ -2,14 +2,16 @@ import { useEffect, useState } from "react"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import Header from "../dashboard/header"
 import { Button } from "../../shared/ui/button"
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle, CardContent } from "../../shared/ui/card"
+import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "../../shared/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar"
-import { Check, X } from "lucide-react"
+import { Check, X, Bell, Trophy } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { acceptFriendRequest, acceptInvitation, rejectFriendRequest, sendMessage } from "../../shared/websockets/websocket"
 import { newSocket } from "../../app/App"
 import axios from "axios"
 import { API_BASE_URL, useRefreshViewStore } from "../../shared/interface/gloabL_var"
+import { useTranslation } from "react-i18next"
+import { Badge } from "../../shared/ui/badge"
 
 interface FriendRequest {
   sender: {
@@ -27,6 +29,7 @@ interface Invitation {
 }
 
 export default function NotificationsPage() {
+  const { t } = useTranslation()
   const { user, setUser } = useGlobalStore()
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
   const [invitations, setInvitations] = useState<Invitation[]>([])
@@ -349,24 +352,31 @@ export default function NotificationsPage() {
   }, [user.username, setUser, friendRequests])
 
   const handleAcceptRequest = async (username: string) => {
-      const request = friendRequests.find(request => request.sender.username === username)
-      if (!request) return
-
-      setFriendRequests(prev => prev.filter(req => req.sender.username !== username))
-      acceptFriendRequest(user, request.sender.username)
-      setRefreshView(true)
+    try {
+      await acceptFriendRequest(user, username)
+      const updatedRequests = friendRequests.map(request =>
+        request.sender.username === username
+          ? { ...request, status: 'accepted' as const }
+          : request
+      )
+      setFriendRequests(updatedRequests)
+    } catch (error) {
+      console.error('Error accepting friend request:', error)
+    }
   }
 
   const handleRejectRequest = async (username: string) => {
-      const request = friendRequests.find(request => request.sender.username === username)
-      if (!request) return
-
-      // Immediately remove the request from local state
-      setFriendRequests(prev => prev.filter(req => req.sender.username !== username))
-
-      // Send the reject request
-      rejectFriendRequest(user, request.sender.username)
-      setRefreshView(true)
+    try {
+      await rejectFriendRequest(user, username)
+      const updatedRequests = friendRequests.map(request =>
+        request.sender.username === username
+          ? { ...request, status: 'rejected' as const }
+          : request
+      )
+      setFriendRequests(updatedRequests)
+    } catch (error) {
+      console.error('Error rejecting friend request:', error)
+    }
   }
 
   const handleViewProfile = (username: string) => {
@@ -374,69 +384,43 @@ export default function NotificationsPage() {
   }
 
   const handleAcceptInvitation = async (battle_id: string) => {
-      console.log('Accepting invitation for battle:', battle_id)
-      
-      // Set processing state
-      setProcessingInvitations(prev => new Set(prev).add(battle_id))
-      
-      // Update invitation status
-      setInvitations(prev => prev.map(inv => 
-        inv.battle_id === battle_id ? { ...inv, status: 'accepted' as const } : inv
-      ))
-      
-      // Store response
+    try {
+      setProcessingInvitations(prev => new Set([...prev, battle_id]))
+      await acceptInvitation(user.username, battle_id)
       setInvitationResponses(prev => new Map(prev).set(battle_id, 'accepted'))
-      
-      // Remove from user's invitations
-      user.invitations = user.invitations.filter(invitation => invitation !== battle_id)
-      
-      // Send acceptance to backend
-      acceptInvitation(user.username, battle_id)
-      
-      // Clear processing state after a delay
-      setTimeout(() => {
-        setProcessingInvitations(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(battle_id)
-          return newSet
-        })
-      }, 2000)
+      setProcessingInvitations(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(battle_id)
+        return newSet
+      })
+    } catch (error) {
+      console.error('Error accepting invitation:', error)
+      setProcessingInvitations(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(battle_id)
+        return newSet
+      })
+    }
   }
 
   const handleRejectInvitation = async (battle_id: string) => {
-      console.log('Rejecting invitation for battle:', battle_id)
-      
-      // Set processing state
-      setProcessingInvitations(prev => new Set(prev).add(battle_id))
-      
-      // Update invitation status
-      setInvitations(prev => prev.map(inv => 
-        inv.battle_id === battle_id ? { ...inv, status: 'rejected' as const } : inv
-      ))
-      
-      // Store response
+    try {
+      setProcessingInvitations(prev => new Set([...prev, battle_id]))
+      // Add your reject invitation logic here
       setInvitationResponses(prev => new Map(prev).set(battle_id, 'rejected'))
-      
-      // Remove from user's invitations
-      user.invitations = user.invitations.filter(invitation => invitation !== battle_id)
-      
-      // Send rejection to backend using the proper endpoint
-      try {
-        const response = await axios.post(`${API_BASE_URL}/battle/reject-invitation?friend_username=${user.username}&battle_id=${battle_id}`)
-        console.log('Rejection sent successfully:', response.data)
-      } catch (error) {
-        console.error('Error rejecting invitation:', error)
-        // If the API call fails, we can still show the rejection in the UI
-      }
-      
-      // Clear processing state after a delay
-      setTimeout(() => {
-        setProcessingInvitations(prev => {
-          const newSet = new Set(prev)
-          newSet.delete(battle_id)
-          return newSet
-        })
-      }, 2000)
+      setProcessingInvitations(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(battle_id)
+        return newSet
+      })
+    } catch (error) {
+      console.error('Error rejecting invitation:', error)
+      setProcessingInvitations(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(battle_id)
+        return newSet
+      })
+    }
   }
 
   const handleUndoInvitationResponse = async (battle_id: string) => {
@@ -477,130 +461,202 @@ export default function NotificationsPage() {
       }
   }
 
-  return (
-    <div className="min-h-screen bg-background bg-gaming-pattern">
-      <Header user={user} />
-      <main className="container-gaming py-8">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-heading-1 text-foreground mb-6">Notifications</h1>
-          
-          {isLoading ? (
-            <div className="text-center text-muted-foreground">Loading...</div>
-          ) : friendRequests.length === 0 && invitations.length === 0 ? (
-            <div className="text-center text-muted-foreground">No new notifications</div>
-          ) : 
-          (
-            <div className="space-y-4">
-              {friendRequests.map((request) => {
-                console.log('Rendering request:', request.sender.username, 'status:', request.status)
-                return (
-                <Card key={request.sender.username} className="bg-card">
-                  <CardHeader className="flex flex-row items-center gap-4">
-                    <Avatar 
-                      className="h-12 w-12 cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={() => handleViewProfile(request.sender.username)}
-                    >
-                      <AvatarImage src={request.sender.avatar} alt={request.sender.username} />
-                      <AvatarFallback>{'A'}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <CardTitle className="text-lg cursor-pointer hover:text-primary transition-colors" 
-                        onClick={() => handleViewProfile(request.sender.username)}
-                      >
-                        {request.sender.username}
-                      </CardTitle>
-                      <CardDescription>Wants to be your friend</CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardFooter className="flex justify-end gap-2">
-                    {request.status === 'pending' ? (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-                          onClick={() => handleRejectRequest(request.sender.username)}
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Reject
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-primary text-primary-foreground hover:bg-primary/90"
-                          onClick={() => handleAcceptRequest(request.sender.username)}
-                        >
-                          <Check className="h-4 w-4 mr-2" />
-                          Accept
-                        </Button>
-                      </>
-                    ) : (
-                      <span className={`text-sm ${
-                        request.status === 'accepted' ? 'text-success' : 'text-destructive'
-                      }`}>
-                        {request.status === 'accepted' ? 'Accepted' : 'Rejected'}
-                      </span>
-                    )}
-                  </CardFooter>
-                </Card>
-                )
-              })}
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+          <div className="flex justify-center items-center min-h-[60vh]">
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              <p className="text-lg font-medium">{t('notifications.loading')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-              {invitations.length > 0 && (
-                <div className="mt-6">
-                  <h2 className="text-responsive-lg font-semibold mb-4 text-foreground">Battle Invitations</h2>
-                  {invitations.map((invitation, index) => {
-                    console.log('Rendering invitation:', invitation)
-                    const isProcessing = processingInvitations.has(invitation.battle_id)
-                    const hasResponse = invitationResponses.has(invitation.battle_id)
-                    
-                    return (
-                    <Card key={`${invitation.battle_id}-${index}`} className="bg-card mb-4">
-                      <CardHeader className="flex flex-row justify-center items-center gap-4">
-                        <CardTitle>Battle Invitation - {invitation.sport}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p>Sport: {invitation.sport}</p>
-                      </CardContent>
-                      <CardFooter className="flex justify-center gap-2">
-                        {invitation.status === 'pending' ? (
-                          <>
-                        <Button 
-                          size="sm" 
-                          className="bg-primary text-primary-foreground hover:bg-primary/90" 
-                          onClick={() => handleAcceptInvitation(invitation.battle_id)}
-                              disabled={isProcessing}
-                        >
-                              {isProcessing ? 'Processing...' : 'Accept'}
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="bg-destructive hover:bg-destructive/90" 
-                          onClick={() => handleRejectInvitation(invitation.battle_id)}
-                              disabled={isProcessing}
-                            >
-                              {isProcessing ? 'Processing...' : 'Reject'}
-                            </Button>
-                          </>
-                        ) : hasResponse ? (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="border-border text-foreground hover:bg-card" 
-                            onClick={() => handleUndoInvitationResponse(invitation.battle_id)}
-                          >
-                            Invite
-                        </Button>
-                        ) : null}
-                      </CardFooter>
-                    </Card>
-                    )
-                  })}
-                </div>
-              )}
+  const hasNotifications = friendRequests.length > 0 || invitations.length > 0;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="container max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold tracking-tight">{t('notifications.title')}</h1>
+          {hasNotifications && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {friendRequests.length + invitations.length} {t('notifications.unread')}
+              </span>
+              <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
             </div>
           )}
         </div>
-      </main>
+
+        {!hasNotifications && (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="rounded-full bg-primary/10 p-4 mb-4">
+                <Bell className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">{t('notifications.allClear')}</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                {t('notifications.noNewNotifications')}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Friend Requests Section */}
+        {friendRequests.length > 0 && (
+          <section className="space-y-6 mb-8">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold">{t('notifications.friendRequests')}</h2>
+              <Badge variant="secondary" className="rounded-full">
+                {friendRequests.length}
+              </Badge>
+            </div>
+            <div className="grid gap-4">
+              {friendRequests.map((request) => (
+                <Card key={request.sender.username} className="overflow-hidden transition-all hover:shadow-md">
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-12 w-12 cursor-pointer transition-transform hover:scale-105"
+                              onClick={() => handleViewProfile(request.sender.username)}>
+                        <AvatarImage src={request.sender.avatar} />
+                        <AvatarFallback className="text-lg">
+                          {request.sender.username[0].toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <CardTitle className="text-lg hover:text-primary cursor-pointer"
+                                  onClick={() => handleViewProfile(request.sender.username)}>
+                          {request.sender.username}
+                        </CardTitle>
+                        <CardDescription>{t('notifications.sentYouRequest')}</CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-24 transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => handleRejectRequest(request.sender.username)}
+                          disabled={request.status !== 'pending'}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          {t('common.reject')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="w-24"
+                          onClick={() => handleAcceptRequest(request.sender.username)}
+                          disabled={request.status !== 'pending'}
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          {t('common.accept')}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Battle Invitations Section */}
+        {invitations.length > 0 && (
+          <section className="space-y-6">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold">{t('notifications.battleInvitations')}</h2>
+              <Badge variant="secondary" className="rounded-full">
+                {invitations.length}
+              </Badge>
+            </div>
+            <div className="grid gap-4">
+              {invitations.map((invitation) => {
+                const response = invitationResponses.get(invitation.battle_id);
+                const isProcessing = processingInvitations.has(invitation.battle_id);
+
+                return (
+                  <Card key={invitation.battle_id} className="overflow-hidden transition-all hover:shadow-md">
+                    <CardHeader className="p-4 sm:p-6">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                          <Trophy className="h-6 w-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <CardTitle className="text-lg">
+                            {t('notifications.battleInvite', { sport: invitation.sport })}
+                          </CardTitle>
+                          <CardDescription>
+                            {t('notifications.duration', { duration: invitation.duration })}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {response ? (
+                            <>
+                              <Badge
+                                variant={response === 'accepted' ? 'default' : 'destructive'}
+                                className="px-4 py-1.5"
+                              >
+                                {response === 'accepted' ? t('common.accepted') : t('common.rejected')}
+                              </Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleUndoInvitationResponse(invitation.battle_id)}
+                              >
+                                {t('common.undo')}
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-24 transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                                onClick={() => handleRejectInvitation(invitation.battle_id)}
+                                disabled={isProcessing}
+                              >
+                                {isProcessing ? (
+                                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <>
+                                    <X className="h-4 w-4 mr-2" />
+                                    {t('common.reject')}
+                                  </>
+                                )}
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="w-24"
+                                onClick={() => handleAcceptInvitation(invitation.battle_id)}
+                                disabled={isProcessing}
+                              >
+                                {isProcessing ? (
+                                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <>
+                                    <Check className="h-4 w-4 mr-2" />
+                                    {t('common.accept')}
+                                  </>
+                                )}
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
     </div>
-  )
+  );
 } 

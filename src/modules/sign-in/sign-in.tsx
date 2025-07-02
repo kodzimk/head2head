@@ -11,9 +11,11 @@ import { GoogleLogin } from '@react-oauth/google'
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import { initializeWebSocketForNewUser } from "../../app/App"
 import { API_BASE_URL } from "../../shared/interface/gloabL_var"
+import { useTranslation } from 'react-i18next'
 
 export default function SignInPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -24,13 +26,14 @@ export default function SignInPage() {
   const {user, setUser} = useGlobalStore()
 
   useEffect(() => {
-    document.title = "Sign In";
-  }, []);
+    document.title = t('signIn.pageTitle');
+  }, [t]);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target
     setFormData((prev) => ({
@@ -42,7 +45,7 @@ export default function SignInPage() {
       if (value && !validateEmail(value)) {
         setValidationErrors(prev => ({
           ...prev,
-          email: 'Please enter a valid email address'
+          email: t('signIn.validation.invalidEmail')
         }))
       } else {
         setValidationErrors(prev => {
@@ -53,18 +56,19 @@ export default function SignInPage() {
       }
     }
   }
+
   const canSubmit = () => {
     const hasValidEmail = validateEmail(formData.email);
     const hasAllFields = formData.email && formData.password;
     return hasValidEmail && hasAllFields;
   }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canSubmit()) {
       return
     }
 
-    // Clear previous errors and set loading
     setValidationErrors({});
     setIsLoading(true);
 
@@ -114,46 +118,42 @@ export default function SignInPage() {
     } catch (error: any) {
       console.error('Sign in error:', error);
       
-      // Handle different types of errors
       if (error.response) {
         const status = error.response.status;
-        const errorMessage = error.response.data?.detail || error.response.data?.message;
         
         switch (status) {
           case 401:
             setValidationErrors({
-              submit: 'Invalid email or password. Please check your credentials and try again.'
+              submit: t('signIn.errors.invalidCredentials')
             });
             break;
           case 404:
             setValidationErrors({
-              submit: 'User not found. Please check your email or sign up for a new account.'
+              submit: t('signIn.errors.userNotFound')
             });
             break;
           case 422:
             setValidationErrors({
-              submit: 'Invalid input. Please check your email format and try again.'
+              submit: t('signIn.errors.invalidInput')
             });
             break;
           case 500:
             setValidationErrors({
-              submit: 'Server error. Please try again later.'
+              submit: t('signIn.errors.serverError')
             });
             break;
           default:
             setValidationErrors({
-              submit: errorMessage || 'An unexpected error occurred. Please try again.'
+              submit: t('signIn.errors.unexpectedError')
             });
         }
       } else if (error.request) {
-        // Network error
         setValidationErrors({
-          submit: 'Network error. Please check your internet connection and try again.'
+          submit: t('signIn.errors.networkError')
         });
       } else {
-        // Other error
         setValidationErrors({
-          submit: 'An error occurred. Please try again.'
+          submit: t('signIn.errors.genericError')
         });
       }
     } finally {
@@ -281,24 +281,27 @@ export default function SignInPage() {
             localStorage.setItem('access_token', signUpResponse.data.access_token);
             localStorage.setItem("username", userData.username);
             localStorage.setItem('user', JSON.stringify(updatedUser));
+            
+            // Set isNewUser flag for onboarding since this is a new signup through Google
+            localStorage.setItem('isNewUser', 'true');
+            
             navigate(`/${userData.username}`);
             initializeWebSocketForNewUser(userData.username);
           }
         } catch (signUpError: any) {
           setValidationErrors({
-            submit: 'Google sign-up failed. Please try again or use email sign-in.'
+            submit: t('signIn.errors.googleSignUpError')
           });
         }
       } else {
         setValidationErrors({
-          submit: 'Google sign-in failed. Please try again or use email sign-in.'
+          submit: t('signIn.errors.googleSignInError')
         });
       }
     } finally {
       setIsLoading(false);
     }
   }
-  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-surface-1/30 via-background to-primary/5 relative overflow-hidden">
@@ -314,7 +317,7 @@ export default function SignInPage() {
             className="flex items-center text-muted-foreground hover:text-primary transition-colors p-1 sm:p-2 rounded-lg hover:bg-card/20"
           >
             <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
-            <span className="text-xs sm:text-sm font-medium">Back</span>
+            <span className="text-xs sm:text-sm font-medium">{t('signIn.back')}</span>
           </button>
         </div>  
       </header>
@@ -324,8 +327,8 @@ export default function SignInPage() {
           <div className="relative">
             <Card className="card-surface backdrop-blur-sm border-border/50 shadow-xl sm:shadow-2xl">
               <CardHeader className="text-center pb-4 sm:pb-6 px-4 sm:px-6 pt-6 sm:pt-8">
-                <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">Welcome Back</CardTitle>
-                <p className="text-sm sm:text-base text-muted-foreground mt-2">Sign in to continue your sports journey</p>
+                <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">{t('signIn.title')}</CardTitle>
+                <p className="text-sm sm:text-base text-muted-foreground mt-2">{t('signIn.subtitle')}</p>
               </CardHeader>
 
               <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6 pb-6 sm:pb-8">
@@ -337,7 +340,7 @@ export default function SignInPage() {
                       onError={() => {
                         console.log('Login Failed');
                         setValidationErrors({
-                          submit: 'Google sign-in failed. Please try again.'
+                          submit: t('signIn.errors.googleSignInError')
                         });
                       }}
                       useOneTap
@@ -354,7 +357,7 @@ export default function SignInPage() {
                     <div className="w-full border-t border-border"></div>
                   </div>
                   <div className="relative flex justify-center text-xs sm:text-sm">
-                    <span className="px-3 sm:px-4 bg-card text-muted-foreground font-medium">Or sign in with email</span>
+                    <span className="px-3 sm:px-4 bg-card text-muted-foreground font-medium">{t('signIn.or')}</span>
                   </div>
                 </div>
 
@@ -362,14 +365,14 @@ export default function SignInPage() {
                 <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                   {/* Email */}
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm sm:text-base font-medium text-foreground">Email Address</Label>
+                    <Label htmlFor="email" className="text-sm sm:text-base font-medium text-foreground">{t('signIn.form.emailLabel')}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 sm:w-5 sm:h-5" />
                       <Input
                         id="email"
                         name="email"
                         type="email"
-                        placeholder="Enter your email"
+                        placeholder={t('signIn.form.emailPlaceholder')}
                         value={formData.email}
                         onChange={handleInputChange}
                         className="w-full pl-10 sm:pl-12 h-10 sm:h-12 lg:h-14 text-sm sm:text-base border-border focus:border-primary focus:ring-primary/20 bg-background"
@@ -387,12 +390,12 @@ export default function SignInPage() {
                   {/* Password */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-sm sm:text-base font-medium text-foreground">Password</Label>
+                      <Label htmlFor="password" className="text-sm sm:text-base font-medium text-foreground">{t('signIn.form.passwordLabel')}</Label>
                       <Link
                         to="/forgot-password"
                         className="text-xs sm:text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                       >
-                        Forgot password?
+                        {t('signIn.form.forgotPassword')}
                       </Link>
                     </div>
                     <div className="relative">
@@ -401,7 +404,7 @@ export default function SignInPage() {
                         id="password"
                         name="password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
+                        placeholder={t('signIn.form.passwordPlaceholder')}
                         value={formData.password}
                         onChange={handleInputChange}
                         className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 h-10 sm:h-12 lg:h-14 text-sm sm:text-base border-border focus:border-primary focus:ring-primary/20 bg-background"
@@ -432,11 +435,11 @@ export default function SignInPage() {
                     {isLoading ? (
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                        Signing In...
+                        {t('signIn.form.signingIn')}
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-2">
-                        Sign In
+                        {t('signIn.form.signIn')}
                         <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
                     )}
@@ -446,12 +449,12 @@ export default function SignInPage() {
                 {/* Sign Up Link */}
                 <div className="text-center pt-4 border-t border-border/50">
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    Don't have an account?{" "}
+                    {t('signIn.noAccount')} {" "}
                     <Link
                       to="/sign-up"
                       className="text-primary hover:text-primary/80 font-medium transition-colors"
                     >
-                      Sign up now
+                      {t('signIn.createAccount')}
                     </Link>
                   </p>
                 </div>

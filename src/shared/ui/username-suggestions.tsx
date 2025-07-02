@@ -3,44 +3,44 @@ import { Button } from './button';
 import { Card, CardContent } from './card';
 import { RefreshCw, Check, Info } from 'lucide-react';
 import { generateUsernameSuggestions, isValidUsername } from '../utils/username-normalization';
+import { useTranslation } from 'react-i18next';
 
 interface UsernameSuggestionsProps {
-  displayName: string;
-  currentUsername: string;
-  onUsernameSelect: (username: string) => void;
+  username: string;
+  onSelect: (username: string) => void;
   className?: string;
 }
 
 export const UsernameSuggestions: React.FC<UsernameSuggestionsProps> = ({
-  displayName,
-  currentUsername,
-  onUsernameSelect,
+  username,
+  onSelect,
   className = ''
 }) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const { t } = useTranslation();
 
   // Check if the current username needs normalization
-  const needsNormalization = currentUsername && !/^[a-zA-Z0-9_]*$/.test(currentUsername);
-  const validation = isValidUsername(currentUsername);
+  const needsNormalization = username && !/^[a-zA-Z0-9_]*$/.test(username);
+  const validation = isValidUsername(username);
 
   useEffect(() => {
     if (needsNormalization || !validation.valid) {
-      const newSuggestions = generateUsernameSuggestions(displayName || currentUsername, 4);
+      const newSuggestions = generateUsernameSuggestions(username, 4);
       setSuggestions(newSuggestions);
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
     }
-  }, [displayName, currentUsername, needsNormalization, validation.valid]);
+  }, [username, needsNormalization, validation.valid]);
 
   const regenerateSuggestions = () => {
-    const newSuggestions = generateUsernameSuggestions(displayName || currentUsername, 4);
+    const newSuggestions = generateUsernameSuggestions(username, 4);
     setSuggestions(newSuggestions);
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    onUsernameSelect(suggestion);
+    onSelect(suggestion);
     setShowSuggestions(false);
   };
 
@@ -55,12 +55,12 @@ export const UsernameSuggestions: React.FC<UsernameSuggestionsProps> = ({
           <Info className="w-4 h-4 text-orange-600 dark:text-orange-400 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
-              Username Suggestions
+              {t('username.suggestions')}
             </p>
             <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
               {needsNormalization 
-                ? "Your name contains non-English characters. Here are some username suggestions:"
-                : "Here are some username suggestions based on your name:"
+                ? t('username.nonEnglishChars')
+                : t('username.basedOnName')
               }
             </p>
           </div>
@@ -69,6 +69,7 @@ export const UsernameSuggestions: React.FC<UsernameSuggestionsProps> = ({
             size="sm"
             onClick={regenerateSuggestions}
             className="h-6 w-6 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-100 dark:text-orange-400 dark:hover:text-orange-300"
+            title={t('username.regenerate')}
           >
             <RefreshCw className="w-3 h-3" />
           </Button>
@@ -91,7 +92,7 @@ export const UsernameSuggestions: React.FC<UsernameSuggestionsProps> = ({
 
         {needsNormalization && (
           <div className="text-xs text-orange-600 dark:text-orange-400 pt-1 border-t border-orange-200 dark:border-orange-800">
-            <strong>Note:</strong> Usernames can only contain letters, numbers, and underscores for best compatibility.
+            {t('username.note')}
           </div>
         )}
       </CardContent>

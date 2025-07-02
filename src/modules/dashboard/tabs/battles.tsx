@@ -10,6 +10,7 @@ import type { User, RecentBattle } from "../../../shared/interface/user";
 import { Button } from "../../../shared/ui/button";
 import { ChevronRight, Sword, Trophy, Target, Zap} from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var";
@@ -41,6 +42,7 @@ export default function Battles({
   setBattles: (battles: RecentBattle[]) => void;
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export default function Battles({
           <Card className="lg:col-span-2" data-onboarding="battle-history-content">
             <CardHeader className="pb-4">
               <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <span className="text-lg lg:text-xl font-semibold">Battle History</span>
+                <span className="text-lg lg:text-xl font-semibold">{t('dashboard.battleHistory')}</span>
                 <div className="flex items-center gap-2">
                   <Button 
                     variant="outline" 
@@ -72,7 +74,7 @@ export default function Battles({
                     className="w-full sm:w-auto h-9 px-4"
                     onClick={() => navigate(`/${user.username}/all-battles`)}
                   >
-                    View All <ChevronRight className="w-4 h-4 ml-1" />
+                    {t('dashboard.viewAll')} <ChevronRight className="w-4 h-4 ml-1" />
                   </Button>
                 </div>
               </CardTitle>
@@ -81,14 +83,14 @@ export default function Battles({
               <div className="space-y-3 lg:space-y-4">
                 {isLoading ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500 text-base lg:text-lg mb-4">Loading battles...</p>
+                    <p className="text-gray-500 text-base lg:text-lg mb-4">{t('dashboard.loadingBattles')}</p>
                   </div>
                 ) : battles.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-500 text-base lg:text-lg mb-4">There are no battles yet</p>
+                    <p className="text-gray-500 text-base lg:text-lg mb-4">{t('dashboard.noBattlesYet')}</p>
                     <Button variant="outline" className="gap-2">
                       <Sword className="w-4 h-4" />
-                      Start Your First Battle
+                      {t('dashboard.startFirstBattle')}
                     </Button>
                   </div>
                 ) : (
@@ -118,8 +120,8 @@ export default function Battles({
                           }
                           className="w-fit text-xs lg:text-sm"
                         >
-                          {battle.result === "win" ? "Victory" : 
-                           battle.result === "lose" ? "Defeat" : "Draw"}
+                          {battle.result === "win" ? t('dashboard.victory') : 
+                           battle.result === "lose" ? t('dashboard.defeat') : t('dashboard.draw')}
                         </Badge>
                         <p className="text-sm lg:text-lg font-bold text-right">{battle.score}</p>
                       </div>
@@ -132,24 +134,24 @@ export default function Battles({
 
           <Card data-onboarding="battle-stats-content">
             <CardHeader className="pb-4">
-              <CardTitle className="text-lg lg:text-xl font-semibold">Battle Stats</CardTitle>
+              <CardTitle className="text-lg lg:text-xl font-semibold">{t('dashboard.battleStats')}</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm lg:text-base">Total Battles</span>
+                  <span className="text-sm lg:text-base">{t('dashboard.totalBattles')}</span>
                   <span className="font-bold text-lg lg:text-xl">{user.totalBattles || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm lg:text-base">Wins</span>
+                  <span className="text-sm lg:text-base">{t('dashboard.wins')}</span>
                   <span className="font-bold text-lg lg:text-xl text-green-600">{user.wins || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm lg:text-base">Win Rate</span>
+                  <span className="text-sm lg:text-base">{t('dashboard.winRate')}</span>
                   <span className="font-bold text-lg lg:text-xl text-blue-600">{user.winRate || 0}%</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm lg:text-base">Current Streak</span>
+                  <span className="text-sm lg:text-base">{t('dashboard.streak')}</span>
                   <span className="font-bold text-lg lg:text-xl text-orange-600">{user.streak || 0}</span>
                 </div>
               </div>

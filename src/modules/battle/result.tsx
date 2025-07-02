@@ -7,9 +7,10 @@ import type { User } from '../../shared/interface/user';
 import { API_BASE_URL, useGlobalStore } from '../../shared/interface/gloabL_var';
 import { Trophy, Target, TrendingUp, Home } from 'lucide-react';
 import { FaceitAvatar } from '../../shared/ui/user-avatar';
+import { useTranslation } from 'react-i18next';
 
 export default function BattleResultPage({user}: {user: User}) {
-
+  const { t } = useTranslation();
   const {  setText } = useTextStore();
   const { firstOpponentScore, secondOpponentScore, setFirstOpponentScore, setSecondOpponentScore } = useScoreStore();
   const {  setWinner } = useWinnerStore();
@@ -166,20 +167,20 @@ export default function BattleResultPage({user}: {user: User}) {
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
               </div>
               <CardTitle className="text-xl font-bold text-card-foreground">
-                {hasResultData ? 'Calculating Results' : 'Loading Battle Results'}
+                {hasResultData ? t('battles.calculatingResults') : t('battles.loadingResults')}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <div className="text-center">
                 <div className="text-muted-foreground mb-4">
                   {hasResultData 
-                    ? 'Determining the winner and updating your statistics...'
-                    : 'Loading your battle results and statistics...'
+                    ? t('battles.determiningWinner')
+                    : t('battles.loadingStats')
                   }
                 </div>
                 <div className="bg-accent/10 rounded-lg px-4 py-3 border border-accent/20">
                   <div className="text-sm text-accent font-medium">
-                    This may take a few moments
+                    {t('battles.pleaseWait')}
                   </div>
                 </div>
               </div>
@@ -205,33 +206,29 @@ export default function BattleResultPage({user}: {user: User}) {
           <CardHeader className="text-center pb-6">
             {/* Result Icon */}
             <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${
-              isWin ? 'bg-success/20' : isLose ? 'bg-destructive/20' : 'bg-warning/20'
+              isWin ? 'bg-green-500/20' : isLose ? 'bg-red-500/20' : 'bg-yellow-500/20'
             }`}>
-              {isWin ? (
-                <Trophy className="w-10 h-10 text-success" />
-              ) : isLose ? (
-                <Target className="w-10 h-10 text-destructive" />
-              ) : (
-                <TrendingUp className="w-10 h-10 text-warning" />
-              )}
+              {isWin && <Trophy className="w-10 h-10 text-green-500" />}
+              {isLose && <Target className="w-10 h-10 text-red-500" />}
+              {isDraw && <TrendingUp className="w-10 h-10 text-yellow-500" />}
             </div>
             
             {/* Result Title */}
             <CardTitle className={`text-2xl font-bold mb-2 ${
-              isWin ? 'text-success' : isLose ? 'text-destructive' : 'text-warning'
+              isWin ? 'text-green-500' : isLose ? 'text-red-500' : 'text-yellow-500'
             }`}>
-              {isWin ? '🎉 Victory! 🎉' : 
-               isLose ? '💪 Good Fight! 💪' : 
-               '🤝 Draw! 🤝'}
+              {isWin && t('battles.victory')}
+              {isLose && t('battles.defeat')}
+              {isDraw && t('battles.draw')}
             </CardTitle>
             
             {/* Result Subtitle */}
             <div className={`text-lg font-semibold ${
-              isWin ? 'text-success/80' : isLose ? 'text-destructive/80' : 'text-warning/80'
+              isWin ? 'text-green-500/80' : isLose ? 'text-red-500/80' : 'text-yellow-500/80'
             }`}>
-              {isWin ? 'Outstanding Performance!' : 
-               isLose ? 'Keep Training!' : 
-               'Evenly Matched!'}
+              {isWin && t('battles.outstandingPerformance')}
+              {isLose && t('battles.keepTraining')}
+              {isDraw && t('battles.evenlyMatched')}
             </div>
           </CardHeader>
           
@@ -243,12 +240,12 @@ export default function BattleResultPage({user}: {user: User}) {
                   <div className="flex items-center gap-3">
                     <FaceitAvatar user={user} size="xl" status="online" />
                     <div>
-                      <div className="text-sm font-medium text-muted-foreground">You</div>
+                      <div className="text-sm font-medium text-muted-foreground">{t('battles.yourScore')}</div>
                       <div className="text-lg font-bold text-card-foreground">{user.username}</div>
                     </div>
                   </div>
                   <div className={`text-3xl font-bold px-4 py-2 rounded-lg ${
-                    isWin ? 'text-success bg-success/10' : 'text-primary bg-primary/10'
+                    isWin ? 'text-green-500 bg-green-500/10' : 'text-primary bg-primary/10'
                   }`}>
                     {firstOpponentScore}
                   </div>
@@ -274,14 +271,14 @@ export default function BattleResultPage({user}: {user: User}) {
                       </div>
                     )}
                     <div>
-                      <div className="text-sm font-medium text-muted-foreground">Opponent</div>
+                      <div className="text-sm font-medium text-muted-foreground">{t('battles.opponentScore')}</div>
                       <div className="text-lg font-bold text-card-foreground">
                         {opponentUsername || 'Anonymous'}
                       </div>
                     </div>
                   </div>
                   <div className={`text-3xl font-bold px-4 py-2 rounded-lg ${
-                    isLose ? 'text-destructive bg-destructive/10' : 'text-muted-foreground bg-muted/10'
+                    isLose ? 'text-red-500 bg-red-500/10' : 'text-muted-foreground bg-muted/10'
                   }`}>
                     {secondOpponentScore}
                   </div>
@@ -291,28 +288,28 @@ export default function BattleResultPage({user}: {user: User}) {
 
             {/* Performance Message */}
             <div className={`text-center mb-6 p-4 rounded-xl border ${
-              isWin ? 'bg-success/5 border-success/20 text-success' :
-              isLose ? 'bg-destructive/5 border-destructive/20 text-destructive' :
-              'bg-warning/5 border-warning/20 text-warning'
+              isWin ? 'bg-green-500/5 border-green-500/20 text-green-500' :
+              isLose ? 'bg-red-500/5 border-red-500/20 text-red-500' :
+              'bg-yellow-500/5 border-yellow-500/20 text-yellow-500'
             }`}>
               <div className="font-semibold mb-1">
-                {isWin ? 'Incredible knowledge and speed!' :
-                 isLose ? 'Every battle makes you stronger!' :
-                 isDraw ? 'Perfectly matched knowledge!' : 'Well matched opponents!'}
+                {isWin && t('battles.incredibleKnowledge')}
+                {isLose && t('battles.everyBattle')}
+                {isDraw && t('battles.perfectlyMatched')}
               </div>
               <div className="text-sm opacity-80">
-                {isWin ? 'You dominated this trivia challenge!' :
-                 isLose ? 'Keep practicing and learning!' :
-                 isDraw ? 'Both players showed equal expertise!' : 'Great effort from both players!'}
+                {isWin && t('battles.youDominated')}
+                {isLose && t('battles.keepPracticing')}
+                {isDraw && t('battles.bothPlayers')}
               </div>
               
               {/* Enhanced Draw Statistics */}
               {isDraw && (
-                <div className="mt-3 pt-3 border-t border-warning/20">
-                  <div className="text-xs text-warning/70 space-y-1">
-                    <div>🎯 Both players answered {firstOpponentScore} questions correctly</div>
-                    <div>⏱️ Similar response times and accuracy</div>
-                    <div>🤝 Draws count toward total battles but don't break win streaks</div>
+                <div className="mt-3 pt-3 border-t border-yellow-500/20">
+                  <div className="text-xs text-yellow-70 space-y-1">
+                    <div>🎯 {t('battles.bothPlayersAnswered')} {firstOpponentScore} {t('battles.correctly')}</div>
+                    <div>⏱️ {t('battles.similarResponseTimes')} {t('battles.andAccuracy')}</div>
+                    <div>🤝 {t('battles.drawsCount')} {t('battles.towardTotalBattles')} {t('battles.butDontBreakWinStreaks')}</div>
                   </div>
                 </div>
               )}
@@ -326,7 +323,7 @@ export default function BattleResultPage({user}: {user: User}) {
                 className="w-full h-12 text-base font-medium border-border/50 hover:bg-accent/50"
               >
                 <Home className="w-5 h-5 mr-2" />
-                Back to Dashboard
+                {t('battles.backToDashboard')}
               </Button>
             </div>
           </CardContent>

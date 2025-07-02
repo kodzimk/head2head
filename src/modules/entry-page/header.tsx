@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Button } from "../../shared/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function Header() {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
   
   return (
     <header className="fixed top-0 w-full z-50 border-b border-border/50 backdrop-blur-md" 
@@ -28,23 +30,25 @@ export default function Header() {
               className="btn-neon text-sm lg:text-base"
               onClick={() => navigate("/sign-up")}
             >
-              Start Competing
+              {t('hero.startCompeting')}
             </Button>
           </nav>
 
           {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="md:hidden p-2"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-5 h-5 text-foreground" />
-            ) : (
-              <Menu className="w-5 h-5 text-foreground" />
-            )}
-          </Button>
+          <div className="flex items-center gap-2 md:hidden">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5 text-foreground" />
+              ) : (
+                <Menu className="w-5 h-5 text-foreground" />
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Mobile Navigation Menu */}
@@ -58,7 +62,7 @@ export default function Header() {
                   setIsMobileMenuOpen(false);
                 }}
               >
-                Start Competing
+                {t('hero.startCompeting')}
               </Button>
             </nav>
           </div>

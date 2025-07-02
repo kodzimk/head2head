@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from './button';
 import { Card, CardContent } from './card';
 import { X, ArrowRight, ArrowLeft, Target, Lightbulb } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface OnboardingStep {
   id: string;
   target: string; // CSS selector for the element to highlight
-  title: string;
-  description: string;
+  translationKey: string; // Key for i18n translation
   position?: 'top' | 'bottom' | 'left' | 'right' | 'auto';
   offset?: { x: number; y: number };
 }
@@ -20,6 +20,8 @@ interface OnboardingProps {
 }
 
 export default function Onboarding({ steps, onComplete, storageKey, autoStart = true }: OnboardingProps) {
+  const { t } = useTranslation();
+  
   // Early mobile detection - skip onboarding completely for mobile devices
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   
@@ -576,8 +578,6 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
     onComplete();
   };
 
-
-
   if (!isActive || !steps[currentStep] || !targetElement || !elementRect) {
     return null;
   }
@@ -657,7 +657,7 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-foreground mb-1">
-                    {step.title}
+                    {t(`dashboard.onboarding.${step.translationKey}.title`)}
                   </h3>
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-muted-foreground">
@@ -684,7 +684,7 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
             {/* Content */}
             <div className="mb-6">
               <p className="text-foreground leading-relaxed text-[15px]">
-                {step.description}
+                {t(`dashboard.onboarding.${step.translationKey}.description`)}
               </p>
             </div>
 

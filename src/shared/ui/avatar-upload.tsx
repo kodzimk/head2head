@@ -6,6 +6,7 @@ import axios from 'axios';
 import { API_BASE_URL } from '../interface/gloabL_var';
 import AvatarStorage from '../utils/avatar-storage';
 import { UserAvatar } from './user-avatar';
+import { useTranslation } from 'react-i18next';
 
 interface AvatarUploadProps {
   user: {
@@ -24,6 +25,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
   onAvatarUpdate,
   className = ''
 }) => {
+  const { t } = useTranslation();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -44,11 +46,11 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return 'Please select a valid image file (JPEG, PNG, or WebP)';
+      return t('profile.settings.avatar.errors.invalid_type');
     }
     
     if (file.size > MAX_FILE_SIZE) {
-      return 'File size must be less than 5MB';
+      return t('profile.settings.avatar.errors.too_large');
     }
     
     return null;
@@ -156,6 +158,7 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
             variant="default"
             showBorder={true}
             className="border-4 border-orange-500/20 shadow-lg"
+            aria-label={t('profile.settings.avatar.aria.current_avatar')}
           />
         </div>
         
@@ -174,16 +177,17 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
         variant="outline"
         size="sm"
         className="bg-white hover:bg-gray-50 border-2 border-orange-500 text-orange-600 hover:text-orange-700 px-4 py-2 rounded-lg transition-all duration-200"
+        aria-label={t('profile.settings.avatar.aria.upload_button')}
       >
         {isUploading ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Uploading...
+            {t('profile.settings.avatar.button.uploading')}
           </>
         ) : (
           <>
             <Camera className="w-4 h-4 mr-2" />
-            Change Avatar
+            {t('profile.settings.avatar.button.change')}
           </>
         )}
       </Button>
@@ -196,15 +200,14 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
         className="hidden"
         onChange={handleFileSelect}
         disabled={isUploading}
+        aria-label={t('profile.settings.avatar.aria.upload_button')}
       />
 
       {/* Error Messages */}
       {error && (
-        <Alert className="border-red-200 bg-red-50 max-w-xs">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800 text-sm">
-            {error}
-          </AlertDescription>
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

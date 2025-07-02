@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {  Settings, Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import {  Settings, Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home, Bell } from 'lucide-react';
 import { Button } from '../../shared/ui/button';
-import {
+import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -10,15 +11,16 @@ import {
   DropdownMenuSeparator 
 } from '../../shared/ui/dropdown-menu';
 import { Badge } from '../../shared/ui/badge';
-import type { User } from '../../shared/interface/user';
 import { UserAvatar } from '../../shared/ui/user-avatar';
+import { LanguageFlag } from '../../shared/ui/language-switcher';
+import { useGlobalStore } from '../../shared/interface/gloabL_var';
 
-interface HeaderProps {
-  user: User | null;
-}
 
-export default function Header({ user }: HeaderProps) {
+
+export default function Header() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { user } = useGlobalStore();
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function Header({ user }: HeaderProps) {
   return (
     <header className={`header-gaming transition-all duration-300 ${
       isScrolled ? 'bg-background/90 shadow-gaming' : 'bg-background/80'
-    }`}>
+    } sticky top-0 z-50 w-full border-b border-border/40 backdrop-blur supports-[backdrop-filter]:bg-background/60`}>
       <div className="container-gaming">
         <div className="flex items-center justify-between h-14 sm:h-16 lg:h-18">
           <div className="flex items-center gap-2">
@@ -60,56 +62,40 @@ export default function Header({ user }: HeaderProps) {
             <Link to="/dashboard" className="nav-gaming">
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <Home className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
-                <span className="text-sm lg:text-base">Home</span>
+                <span className="text-sm lg:text-base">{t('navigation.home')}</span>
               </div>
             </Link>
             <Link to="/battles" className="nav-gaming">
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <Zap className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
-                <span className="text-sm lg:text-base">Battles</span>
+                <span className="text-sm lg:text-base">{t('navigation.battles')}</span>
               </div>
             </Link>
             <Link to="/leaderboard" className="nav-gaming">
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <Target className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
-                <span className="text-sm lg:text-base">Leaderboard</span>
+                <span className="text-sm lg:text-base">{t('navigation.leaderboard')}</span>
               </div>
             </Link>
             <Link to="/selection" className="nav-gaming">
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <SlidersHorizontal className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
-                <span className="text-sm lg:text-base">Selection</span>
+                <span className="text-sm lg:text-base">{t('navigation.selection')}</span>
               </div>
             </Link>
             <Link to={`/${user?.username}/trainings`} className="nav-gaming"> 
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <Pickaxe className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
-                <span className="text-sm lg:text-base">Trainings</span>
+                <span className="text-sm lg:text-base">{t('navigation.training')}</span>
               </div>
             </Link>
           </nav>
 
           {/* User Section */}
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
-            {/* User Stats (Desktop) */}
-            {user && (
-              <div className="hidden md:flex items-center gap-2 lg:gap-4">
-                <div className="stat-card bg-card/50 p-2 lg:p-3 rounded-lg lg:rounded-xl border border-border/50">
-                  <div className="flex items-center gap-2 lg:gap-3">
-                    <div className="text-center">
-                      <div className="stat-value text-xs lg:text-sm xl:text-base font-semibold">{user.rank || 'N/A'}</div>
-                      <div className="stat-label text-xs">Rank</div>
-                    </div>
-                    <div className="w-px h-6 lg:h-8 bg-border"></div>
-                    <div className="text-center">
-                      <div className="stat-value text-xs lg:text-sm xl:text-base font-semibold">{user.wins || 0}</div>
-                      <div className="stat-label text-xs">Wins</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
+            {/* Language Switcher */}
+            <LanguageFlag className="transition-transform hover:scale-110" />
 
             {/* User Menu */}
             {user && (
@@ -180,34 +166,38 @@ export default function Header({ user }: HeaderProps) {
                   <div className="lg:hidden">
                     <DropdownMenuItem onClick={() => navigate(`/${user.username}`)} className="hover:bg-card/50 py-2 sm:py-3">
                       <Home className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-sm sm:text-base">Home</span>
+                      <span className="text-sm sm:text-base">{t('navigation.home')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/battles')} className="hover:bg-card/50 py-2 sm:py-3">
                       <Zap className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-sm sm:text-base">Battles</span>
+                      <span className="text-sm sm:text-base">{t('navigation.battles')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/leaderboard')} className="hover:bg-card/50 py-2 sm:py-3">
                       <Target className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-sm sm:text-base">Leaderboard</span>
+                      <span className="text-sm sm:text-base">{t('navigation.leaderboard')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/selection')} className="hover:bg-card/50 py-2 sm:py-3">
                       <SlidersHorizontal className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-sm sm:text-base">Selection</span>
+                      <span className="text-sm sm:text-base">{t('navigation.selection')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate(`/${user.username}/trainings`)} className="hover:bg-card/50 py-2 sm:py-3">
                       <Pickaxe className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-sm sm:text-base">Trainings</span>
+                      <span className="text-sm sm:text-base">{t('navigation.training')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator className="bg-border/50" />
                   </div>
 
+                  <DropdownMenuItem onClick={() => navigate(`/${user.username}/notifications`)} className="hover:bg-card/50 py-2 sm:py-3">
+                    <Bell className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-sm sm:text-base">{t('navigation.notifications')}</span>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(`/${user.username}/profile`)} className="hover:bg-card/50 py-2 sm:py-3">
                     <Settings className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-sm sm:text-base">Profile Settings</span>
+                    <span className="text-sm sm:text-base">{t('profile.profileSettings')}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(`/${user.username}/friends`)} className="hover:bg-card/50 py-2 sm:py-3">
                     <Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-sm sm:text-base">Friends</span>
+                    <span className="text-sm sm:text-base">{t('navigation.friends')}</span>
                     {(user?.friendRequests?.length || 0) > 0 && (
                       <Badge className="ml-auto bg-red-500 text-white border-red-600 text-xs px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center">
                         {user.friendRequests.length}
@@ -218,12 +208,13 @@ export default function Header({ user }: HeaderProps) {
                   <DropdownMenuSeparator className="bg-border/50" />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive hover:bg-destructive/10 py-2 sm:py-3">
                     <LogOut className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-sm sm:text-base">Sign Out</span>
+                    <span className="text-sm sm:text-base">{t('auth.signOut')}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
           </div>
+    
         </div>
       </div>
     </header>

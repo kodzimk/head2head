@@ -23,7 +23,7 @@ class AIQuizGenerator:
         self.model = model
         self.used_questions = set()  # Track used questions to ensure uniqueness
         
-    def generate_questions(self, sport: str, level: str, count: int = 5, battle_id: str = None) -> List[Dict[str, Any]]:
+    def generate_questions(self, sport: str, level: str, count: int = 5, battle_id: str = None, language: str = "en") -> List[Dict[str, Any]]:
         """
         Generate unique sports quiz questions using Gemini AI
         
@@ -32,25 +32,26 @@ class AIQuizGenerator:
             level: Difficulty level (easy, medium, hard)
             count: Number of questions to generate
             battle_id: Battle ID for uniqueness
+            language: Language code (en, ru) for question generation
             
         Returns:
             List of question dictionaries with proper format
         """
         try:
-            logger.info(f"Generating {count} {level} {sport} questions for battle {battle_id}")
+            logger.info(f"Generating {count} {level} {sport} questions for battle {battle_id} in {language}")
             
             # Create unique context for this battle
             battle_context = f"Battle ID: {battle_id}" if battle_id else f"Session: {int(time.time())}"
             
             # Build the prompt for question generation
-            prompt = self._build_question_prompt(sport, level, count, battle_context)
+            prompt = self._build_question_prompt(sport, level, count, battle_context, language)
             
             # Generate questions using Gemini
             response = self.model.generate_content(prompt)
             
             if not response.text:
                 logger.error("Empty response from Gemini API")
-                return self._get_fallback_questions(sport, level, count)
+                return self._get_fallback_questions(sport, level, count, language)
             
             # Parse the response
             questions = self._parse_ai_response(response.text, sport, level)
@@ -61,14 +62,14 @@ class AIQuizGenerator:
             # Add labels and ensure uniqueness
             final_questions = self._finalize_questions(validated_questions, battle_id)
             
-            logger.info(f"Successfully generated {len(final_questions)} questions for {sport} {level}")
+            logger.info(f"Successfully generated {len(final_questions)} questions for {sport} {level} in {language}")
             return final_questions
             
         except Exception as e:
             logger.error(f"Error generating AI questions: {str(e)}")
-            return self._get_fallback_questions(sport, level, count)
+            return self._get_fallback_questions(sport, level, count, language)
     
-    def _build_question_prompt(self, sport: str, level: str, count: int, battle_context: str) -> str:
+    def _build_question_prompt(self, sport: str, level: str, count: int, battle_context: str, language: str = "en") -> str:
         """Build a comprehensive prompt for question generation"""
         
         difficulty_guidelines = {
@@ -77,10 +78,18 @@ class AIQuizGenerator:
             "hard": "Detailed statistics, records, specific dates, advanced rules, and expert-level knowledge"
         }
         
+        # Language-specific instructions
+        language_instructions = {
+            "en": "Generate questions in English.",
+            "ru": "Generate questions in Russian. Use proper Russian grammar and sports terminology."
+        }
+        
         prompt = f"""
 You are an expert sports quiz question generator. Generate exactly {count} unique multiple-choice questions about {sport}.
 
 Context: {battle_context}
+
+Language Instructions: {language_instructions.get(language, language_instructions["en"])}
 
 Requirements:
 1. Difficulty Level: {level} - {difficulty_guidelines.get(level, "Medium difficulty")}
@@ -90,6 +99,7 @@ Requirements:
 5. Questions should be engaging and test real knowledge
 6. Avoid repetitive or similar questions
 7. Include a mix of topics: rules, history, players, statistics, championships, etc.
+8. All text must be in {language.upper()} language
 
 Format each question exactly as follows:
 {{
@@ -106,25 +116,72 @@ Format each question exactly as follows:
 
 Return ONLY a valid JSON array containing exactly {count} question objects. Do not include any other text, explanations, or formatting.
 
-Example for {sport} {level} questions:
+Example for {sport} {level} questions in {language.upper()}:
 """
         
         # Add sport-specific examples
         if sport.lower() == "football":
-            prompt += self._get_football_examples(level)
+            prompt += self._get_football_examples(level, language)
         elif sport.lower() == "basketball":
-            prompt += self._get_basketball_examples(level)
+            prompt += self._get_basketball_examples(level, language)
         elif sport.lower() == "tennis":
-            prompt += self._get_tennis_examples(level)
+            prompt += self._get_tennis_examples(level, language)
         else:
-            prompt += self._get_general_examples(level)
+            prompt += self._get_general_examples(level, language)
         
         return prompt
     
-    def _get_football_examples(self, level: str) -> str:
-        """Get football-specific examples based on difficulty"""
-        if level == "easy":
-            return '''
+    def _get_football_examples(self, level: str, language: str = "en") -> str:
+        """Get football-specific examples based on difficulty and language"""
+        if language == "ru":
+            if level == "easy":
+                return '''
+[
+    {
+        "question": "Сколько игроков в футбольной команде во время матча?",
+        "answers": [
+            {"text": "10", "correct": false},
+            {"text": "11", "correct": true},
+            {"text": "12", "correct": false},
+            {"text": "9", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "easy"
+    }
+]'''
+            elif level == "medium":
+                return '''
+[
+    {
+        "question": "Какая команда выиграла больше всего титулов Лиги чемпионов УЕФА?",
+        "answers": [
+            {"text": "Реал Мадрид", "correct": true},
+            {"text": "Барселона", "correct": false},
+            {"text": "Бавария Мюнхен", "correct": false},
+            {"text": "Милан", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "medium"
+    }
+]'''
+            else:  # hard
+                return '''
+[
+    {
+        "question": "Какой игрок забил больше всего голов за один сезон в Премьер-лиге?",
+        "answers": [
+            {"text": "Эрлинг Холанд (36 голов)", "correct": true},
+            {"text": "Мохамед Салах (32 гола)", "correct": false},
+            {"text": "Алан Ширер (34 гола)", "correct": false},
+            {"text": "Энди Коул (34 гола)", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "hard"
+    }
+]'''
+        else:  # English examples (default)
+            if level == "easy":
+                return '''
 [
     {
         "question": "How many players are on a football team during a match?",
@@ -138,8 +195,8 @@ Example for {sport} {level} questions:
         "difficulty": "easy"
     }
 ]'''
-        elif level == "medium":
-            return '''
+            elif level == "medium":
+                return '''
 [
     {
         "question": "Which team has won the most UEFA Champions League titles?",
@@ -153,8 +210,8 @@ Example for {sport} {level} questions:
         "difficulty": "medium"
     }
 ]'''
-        else:  # hard
-            return '''
+            else:  # hard
+                return '''
 [
     {
         "question": "Which player has scored the most goals in a single Premier League season?",
@@ -169,10 +226,57 @@ Example for {sport} {level} questions:
     }
 ]'''
     
-    def _get_basketball_examples(self, level: str) -> str:
-        """Get basketball-specific examples based on difficulty"""
-        if level == "easy":
-            return '''
+    def _get_basketball_examples(self, level: str, language: str = "en") -> str:
+        """Get basketball-specific examples based on difficulty and language"""
+        if language == "ru":
+            if level == "easy":
+                return '''
+[
+    {
+        "question": "Сколько очков стоит трехочковый бросок в баскетболе?",
+        "answers": [
+            {"text": "2", "correct": false},
+            {"text": "3", "correct": true},
+            {"text": "4", "correct": false},
+            {"text": "5", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "easy"
+    }
+]'''
+            elif level == "medium":
+                return '''
+[
+    {
+        "question": "Какая команда выиграла больше всего чемпионатов?",
+        "answers": [
+            {"text": "Бостон Селтикс", "correct": true},
+            {"text": "Лос-Анджелес Лейкерс", "correct": false},
+            {"text": "Чикаго Буллз", "correct": false},
+            {"text": "Голден Стейт Уорриорз", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "medium"
+    }
+]'''
+            else:  # hard
+                return '''
+[
+    {
+        "question": "Какой рекорд для наибольшего количества очков, набранного в одной игре NBA?",
+        "answers": [
+            {"text": "100 очков (Уилт Чемберлен)", "correct": true},
+            {"text": "81 очко (Коби Брайант)", "correct": false},
+            {"text": "73 очка (Дэвид Томпсон)", "correct": false},
+            {"text": "69 очков (Майкл Джордан)", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "hard"
+    }
+]'''
+        else:  # English examples (default)
+            if level == "easy":
+                return '''
 [
     {
         "question": "How many points is a three-pointer worth in basketball?",
@@ -186,8 +290,8 @@ Example for {sport} {level} questions:
         "difficulty": "easy"
     }
 ]'''
-        elif level == "medium":
-            return '''
+            elif level == "medium":
+                return '''
 [
     {
         "question": "Which NBA team has won the most championships?",
@@ -201,8 +305,8 @@ Example for {sport} {level} questions:
         "difficulty": "medium"
     }
 ]'''
-        else:  # hard
-            return '''
+            else:  # hard
+                return '''
 [
     {
         "question": "What is the record for most points scored in a single NBA game?",
@@ -217,10 +321,57 @@ Example for {sport} {level} questions:
     }
 ]'''
     
-    def _get_tennis_examples(self, level: str) -> str:
-        """Get tennis-specific examples based on difficulty"""
-        if level == "easy":
-            return '''
+    def _get_tennis_examples(self, level: str, language: str = "en") -> str:
+        """Get tennis-specific examples based on difficulty and language"""
+        if language == "ru":
+            if level == "easy":
+                return '''
+[
+    {
+        "question": "Сколько турниров Гранд-Слоун в теннисе?",
+        "answers": [
+            {"text": "3", "correct": false},
+            {"text": "4", "correct": true},
+            {"text": "5", "correct": false},
+            {"text": "6", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "easy"
+    }
+]'''
+            elif level == "medium":
+                return '''
+[
+    {
+        "question": "Какой игрок выиграл больше всего титулов Уимблдона?",
+        "answers": [
+            {"text": "Роджер Федерер", "correct": true},
+            {"text": "Питер Сампрас", "correct": false},
+            {"text": "Рафаэль Надаль", "correct": false},
+            {"text": "Новак Джокович", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "medium"
+    }
+]'''
+            else:  # hard
+                return '''
+[
+    {
+        "question": "Какой игрок имеет наибольшее количество сервисов в турнирах Гранд-Слоун?",
+        "answers": [
+            {"text": "Иво Каралович", "correct": true},
+            {"text": "Джон Изнер", "correct": false},
+            {"text": "Роджер Федерер", "correct": false},
+            {"text": "Питер Сампрас", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "hard"
+    }
+]'''
+        else:  # English examples (default)
+            if level == "easy":
+                return '''
 [
     {
         "question": "How many Grand Slam tournaments are there in tennis?",
@@ -234,8 +385,8 @@ Example for {sport} {level} questions:
         "difficulty": "easy"
     }
 ]'''
-        elif level == "medium":
-            return '''
+            elif level == "medium":
+                return '''
 [
     {
         "question": "Which player has won the most Wimbledon titles?",
@@ -249,8 +400,8 @@ Example for {sport} {level} questions:
         "difficulty": "medium"
     }
 ]'''
-        else:  # hard
-            return '''
+            else:  # hard
+                return '''
 [
     {
         "question": "Which player has the most career aces in Grand Slam tournaments?",
@@ -265,7 +416,7 @@ Example for {sport} {level} questions:
     }
 ]'''
     
-    def _get_general_examples(self, level: str) -> str:
+    def _get_general_examples(self, level: str, language: str = "en") -> str:
         """Get general sports examples"""
         return '''
 [
@@ -381,9 +532,9 @@ Example for {sport} {level} questions:
         
         return questions
     
-    def _get_fallback_questions(self, sport: str, level: str, count: int) -> List[Dict[str, Any]]:
+    def _get_fallback_questions(self, sport: str, level: str, count: int, language: str = "en") -> List[Dict[str, Any]]:
         """Get fallback questions when AI generation fails"""
-        logger.info(f"Using fallback questions for {sport} {level}")
+        logger.info(f"Using fallback questions for {sport} {level} in {language}")
         
         # Simple fallback questions
         fallback_questions = [

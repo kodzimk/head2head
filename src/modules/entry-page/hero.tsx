@@ -2,86 +2,93 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Trophy, Zap, Target, Play, ArrowRight, Award } from 'lucide-react'
 import { Button } from '../../shared/ui/button'
 import { Badge } from '../../shared/ui/badge'
+import { useTranslation } from 'react-i18next'
 
-const stats = [
-  { label: 'Battles Played', value: '1.5k+', icon: Zap, trend: '+%' },
-  { label: 'Sports Categories', value: '8+', icon: Trophy, trend: '+3' }
+const getStats = (t: any) => [
+  { label: t('hero.battlesPlayed'), value: '1.5k+', icon: Zap, trend: '+%' },
+  { label: t('hero.sportsCategories'), value: '8+', icon: Trophy, trend: '+3' }
 ];
 
-const sports = [
+const getSports = (t: any) => [
   { 
-    name: 'Football', 
+    name: t('sports.football'), 
     icon: '⚽', 
     matches: '1.2k+', 
-    difficulty: 'All Levels',
+    difficulty: t('hero.allLevels'),
     gradient: 'from-green-500 to-emerald-600'
   },
   { 
-    name: 'Basketball', 
+    name: t('sports.basketball'), 
     icon: '🏀', 
     matches: '800+', 
-    difficulty: 'Pro Ready',
+    difficulty: t('hero.proReady'),
     gradient: 'from-orange-500 to-red-600'
   },
   { 
-    name: 'Tennis', 
+    name: t('sports.tennis'), 
     icon: '🎾', 
     matches: '640+', 
-    difficulty: 'Competitive',
+    difficulty: t('hero.competitive'),
     gradient: 'from-yellow-500 to-green-600'
   },
   { 
-    name: 'Baseball', 
+    name: t('sports.baseball'), 
     icon: '⚾', 
     matches: '420+', 
-    difficulty: 'Expert',
+    difficulty: t('hero.expert'),
     gradient: 'from-blue-500 to-indigo-600'
   },
   { 
-    name: 'Hockey', 
+    name: t('sports.hockey'), 
     icon: '🏒', 
     matches: '380+', 
-    difficulty: 'Elite',
+    difficulty: t('hero.elite'),
     gradient: 'from-cyan-500 to-blue-600'
   },
   { 
-    name: 'Golf', 
+    name: t('sports.golf'), 
     icon: '⛳', 
     matches: '290+', 
-    difficulty: 'Masters',
+    difficulty: t('hero.masters'),
     gradient: 'from-teal-500 to-green-600'
   },
 ];
 
-const features = [
+const getFeatures = (t: any) => [
   {
     icon: Trophy,
-    title: 'Competitive Ranking',
-    description: 'Climb the global leaderboards and prove your sports knowledge',
-    highlight: 'Global Rankings'
+    title: t('hero.competitiveRanking'),
+    description: t('hero.competitiveRankingDesc'),
+    highlight: t('hero.globalRankings')
   },
   {
     icon: Zap,
-    title: 'Real-time Battles',
-    description: 'Challenge players worldwide in live trivia showdowns',
-    highlight: 'Live Matches'
+    title: t('hero.realTimeBattles'),
+    description: t('hero.realTimeBattlesDesc'),
+    highlight: t('hero.liveMatches')
   },
   {
     icon: Target,
-    title: 'Skill-based Matching',
-    description: 'Face opponents of similar skill levels for fair competition',
-    highlight: 'Fair Play'
+    title: t('hero.skillBasedMatching'),
+    description: t('hero.skillBasedMatchingDesc'),
+    highlight: t('hero.fairPlay')
   },
   {
     icon: Award,
-    title: 'Achievement System',
-    description: 'Unlock exclusive badges and climb division tiers',
-    highlight: 'Unlock Rewards'
+    title: t('hero.achievementSystem'),
+    description: t('hero.achievementSystemDesc'),
+    highlight: t('hero.unlockRewards')
   },
 ];
 
 export default function Hero() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  
+  const stats = getStats(t);
+  const sports = getSports(t);
+  const features = getFeatures(t);
+  
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Sports Background Image with Effects */}
@@ -120,15 +127,14 @@ export default function Hero() {
                 <div className="space-y-4 text-center lg:text-left">
 
                   <h1 className="text-display text-white leading-gaming drop-shadow-2xl">
-                    Dominate the
+                    {t('hero.dominateTitle')}
                     <span className="text-neon text-primary block drop-shadow-2xl">
-                      SPORTS BATTLES
+                      {t('hero.sportsBattles')}
                     </span>
                   </h1>
                   
                   <p className="text-body-large text-gray-200 max-w-xl mx-auto lg:mx-0 drop-shadow-lg">
-                    Challenge players worldwide in real-time sports trivia battles. 
-                    Climb the rankings, master multiple sports, and become the ultimate champion.
+                    {t('hero.challengePlayersWorldwide')}
                   </p>
                 </div>
 
@@ -137,7 +143,7 @@ export default function Hero() {
                   <Link to="/sign-up">
                     <Button size="lg" className="btn-neon group w-full sm:w-auto shadow-2xl">
                       <Play className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                      Start Competing
+                      {t('hero.startCompeting')}
                       <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
@@ -167,10 +173,10 @@ export default function Hero() {
               <div className="space-y-6">
                 <div className="text-center lg:text-left">
                   <h3 className="text-heading-2 text-white mb-2 font-rajdhani drop-shadow-lg">
-                    Choose Your Sport
+                    {t('hero.chooseSport')}
                   </h3>
                   <p className="text-gray-200 drop-shadow-sm">
-                    Master trivia across multiple sports categories
+                    {t('hero.masterTrivia')}
           </p>
                 </div>
 
@@ -191,7 +197,7 @@ export default function Hero() {
                             {sport.name}
                           </h4>
                           <p className="text-sm text-gray-300">
-                            {sport.matches} played
+                            {sport.matches} {t('hero.played')}
                           </p>
                         </div>
         </div>
@@ -218,12 +224,12 @@ export default function Hero() {
           <div className="container-gaming">
             <div className="text-center mb-8 mt-8">
               <h2 className="text-heading-1 text-white mb-4 font-rajdhani drop-shadow-lg">
-                Why Choose Head2Head?
-            </h2>
+                {t('hero.whyChoose')}
+              </h2>
               <p className="text-body-large text-gray-200 max-w-2xl mx-auto drop-shadow-sm">
-                Experience the most competitive sports trivia platform with cutting-edge features
-            </p>
-          </div>
+                {t('hero.experience')}
+              </p>
+            </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {features.map((feature, index) => (
@@ -262,12 +268,11 @@ export default function Hero() {
                 <div className="space-y-4">
                   
                   <h2 className="text-heading-1 text-white font-rajdhani ">
-                    Join the Elite Sport Community
+                    {t('hero.joinCommunity')}
                   </h2>
                   
                   <p className="text-body-large text-gray-200 max-w-2xl mx-auto drop-shadow-sm">
-                    Start your journey to becoming a sports trivia champion. Battle the best, 
-                    climb the rankings, and prove your expertise.
+                    {t('hero.startJourney')}
                   </p>
                 </div>
 
@@ -275,14 +280,14 @@ export default function Hero() {
                   <Link to="/sign-up">
                     <Button size="lg" className="btn-neon group w-full sm:w-auto shadow-2xl">
                       <Trophy className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                      Create Account
+                      {t('hero.createAccount')}
                       <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
                   
                   <Link to="/leaderboard">
                     <Button size="lg" variant="outline" className="w-full sm:w-auto border-primary/30 hover:border-primary/60 hover:bg-primary/10 backdrop-blur-sm text-white shadow-xl">
-                      View Leaderboard
+                      {t('hero.viewLeaderboard')}
                     </Button>
                   </Link>
                 </div>

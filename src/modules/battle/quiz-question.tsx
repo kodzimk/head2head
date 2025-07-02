@@ -13,10 +13,12 @@ import { BattleWebSocket } from '../../shared/websockets/battle-websocket';
 import type { Question } from '../../shared/interface/question';
 import axios from 'axios';
 import { API_BASE_URL } from '../../shared/interface/gloabL_var';
+import { useTranslation } from 'react-i18next';
 
 const QUESTION_TIME_LIMIT = 10; // 10 seconds per question
 
 export default function QuizQuestionPage() {
+  const { t } = useTranslation();
   const { id } = useParams() as { id: string };
   const { user, setUser } = useGlobalStore();  
   const { setCurrentQuestion, currentQuestion } = useCurrentQuestionStore();
@@ -638,164 +640,124 @@ export default function QuizQuestionPage() {
       </div>
     );
   }
-
-  const isQuizFinished = !currentQuestion || currentQuestion.question === 'No more questions';
-
+  
   return (
-    <div 
-      className="min-h-screen flex flex-col items-center justify-center relative bg-gradient-to-br from-background via-surface-1 to-surface-2"
-    >
-      {/* Enhanced background pattern */}
-      <div className="absolute inset-0 bg-gaming-pattern opacity-20"></div>
-      <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-transparent to-surface-2/60"></div>
-      
-      <div className="relative z-10 w-full max-w-lg px-4">
-        
-        {/* Enhanced Score Board */}
-        <div className="w-full mb-6">
-          <div className="bg-card/90 backdrop-blur-md rounded-xl shadow-lg border border-border/50 p-4">
-            <div className="flex justify-between items-center mb-3">
-              <div className="text-center flex-1">
-                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">You</div>
-                <div className="text-2xl font-bold text-primary bg-primary/10 rounded-lg px-3 py-1">{firstOpponentScore}</div>
-              </div>
-              <div className="flex flex-col items-center mx-4">
-                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">VS</div>
-                <div className="w-8 h-0.5 bg-border rounded-full"></div>
-              </div>
-              <div className="text-center flex-1">
-                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Opponent</div>
-                <div className="text-2xl font-bold text-destructive bg-destructive/10 rounded-lg px-3 py-1">{secondOpponentScore}</div>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-sm font-medium text-card-foreground bg-accent/20 rounded-full px-4 py-2 border border-accent/30">
-                {userFinishedAllQuestions ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="animate-pulse w-2 h-2 bg-warning rounded-full"></div>
-                    <span className="text-warning">Waiting for opponent...</span>
-                  </div>
-                ) : showNextQuestion ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-muted-foreground">Next question in:</span>
-                    <span className="text-xl font-bold text-primary animate-pulse">{nextQuestionCountdown}</span>
-                  </div>
-                ) : (
-                  <span className="text-primary font-semibold">{motivationalMessage}</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Question Card */}
-        <Card className="w-full bg-card/95 backdrop-blur-md border-border/50 shadow-xl">
-          <CardHeader className="pb-4">
-            <div className="flex justify-between items-center">
-              {!isQuizFinished && (
-                <div className="flex items-center gap-4">
-                  <div className={`text-xl font-bold px-3 py-1 rounded-lg border ${
-                    timeLeft <= 5 
-                      ? 'text-destructive border-destructive/30 bg-destructive/10 animate-pulse' 
-                      : timeLeft <= 10
-                      ? 'text-warning border-warning/30 bg-warning/10'
-                      : 'text-success border-success/30 bg-success/10'
-                  }`}>
-                    {timeLeft}s
-                  </div>
-                  <div className="text-sm text-muted-foreground bg-muted/20 rounded-lg px-3 py-1 border border-muted/30">
-                    Question {currentIndex + 1} of {questions.length}
-                  </div>
+    <div className="min-h-screen bg-background bg-gaming-pattern">
+      <main className="container-gaming py-8">
+        <Card className="card-surface max-w-4xl mx-auto">
+          <CardHeader className="responsive-padding">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-medium text-muted-foreground">
+                  {t('quiz.question')} {currentIndex + 1}/{questions.length}
                 </div>
-              )}
+                <div className="text-sm font-medium text-muted-foreground">
+                  {t('quiz.timeLeft')}: {timeLeft}s
+                </div>
+              </div>
+              <div className={`text-sm font-medium ${
+                connectionStatus === 'connected' 
+                  ? 'text-green-500' 
+                  : connectionStatus === 'disconnected'
+                  ? 'text-red-500'
+                  : 'text-yellow-500'
+              }`}>
+                {connectionStatus === 'connected' 
+                  ? t('battles.countdown.connected')
+                  : connectionStatus === 'disconnected'
+                  ? t('battles.countdown.disconnected')
+                  : t('battles.countdown.checking')
+                }
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
-            {isQuizFinished ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">✅</span>
+          <CardContent className="responsive-padding space-y-6">
+            {/* Question */}
+            {currentQuestion && (
+              <div className="space-y-6">
+                <div className="text-xl font-semibold">
+                  {currentQuestion.question}
                 </div>
-                <div className="text-xl font-bold text-card-foreground mb-3">You finished your quiz!</div>
-                <div className="text-muted-foreground">Wait for your opponent to finish.</div>
-                {showNextQuestion && (
-                  <div className="mt-4 text-center text-warning font-semibold bg-warning/10 rounded-lg px-4 py-2 border border-warning/30">
-                    Next question in {nextQuestionCountdown} seconds...
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {currentQuestion.answers.map((answer, index) => (
+                    <Button
+                      key={index}
+                      variant={selected === answer.label ? "default" : "outline"}
+                      className={`h-auto py-4 px-6 text-left justify-start ${
+                        selected === answer.label ? 'bg-primary text-primary-foreground' : ''
+                      }`}
+                      onClick={() => handleSelect(answer.label)}
+                      disabled={answerSubmitted || showNextQuestion}
+                    >
+                      {answer.text}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Submit Button */}
+            {!showNextQuestion && !answerSubmitted && (
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => handleAnswerSubmit(selected || '')}
+                disabled={!selected}
+              >
+                {t('quiz.submitAnswer')}
+              </Button>
+            )}
+
+            {/* Next Question Countdown */}
+            {showNextQuestion && !userFinishedAllQuestions && (
+              <div className="text-center space-y-4">
+                <div className="text-2xl font-bold">
+                  {selected === currentQuestion?.correctAnswer 
+                    ? t('quiz.correct')
+                    : t('quiz.incorrect')
+                  }
+                </div>
+                <div className="text-lg">
+                  {t('quiz.nextQuestion')} {nextQuestionCountdown}s
+                </div>
+              </div>
+            )}
+
+            {/* Motivational Message */}
+            {motivationalMessage && (
+              <div className="text-center text-lg font-semibold text-primary">
+                {motivationalMessage}
+              </div>
+            )}
+
+            {/* Waiting for Opponent */}
+            {waitingForOpponent && (
+              <div className="text-center text-lg font-semibold text-primary">
+                {t('battles.waitingForOpponent')}
+              </div>
+            )}
+
+            {/* Battle Finished */}
+            {battleFinished && (
+              <div className="text-center space-y-4">
+                <div className="text-2xl font-bold">
+                  {t('quiz.finalResults')}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-lg font-semibold">{t('quiz.yourScore')}</div>
+                    <div className="text-3xl font-bold text-primary">{firstOpponentScore}</div>
                   </div>
-                )}
+                  <div>
+                    <div className="text-lg font-semibold">{t('quiz.opponentScore')}</div>
+                    <div className="text-3xl font-bold text-primary">{secondOpponentScore}</div>
+                  </div>
+                </div>
               </div>
-            ) : userFinishedAllQuestions ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-warning border-t-transparent"></div>
-                </div>
-                <div className="text-lg font-semibold text-card-foreground mb-3">
-                  Waiting for opponent to finish...
-                </div>
-                <div className="text-muted-foreground">The battle will end once both players complete all questions.</div>
-              </div>
-            ) : showNextQuestion ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">⏳</span>
-                </div>
-                <div className="text-lg font-semibold text-card-foreground mb-3">
-                  Next question coming up...
-                </div>
-                <div className="text-muted-foreground">Get ready for the next challenge!</div>
-              </div>
-            ) : waitingForOpponent ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-warning border-t-transparent"></div>
-                </div>
-                <div className="text-lg font-semibold text-card-foreground mb-3">
-                  Waiting for opponent to finish...
-                </div>
-                <div className="text-muted-foreground">Hang tight while they answer their question.</div>
-              </div>
-            ) : (
-              <>
-                {/* Enhanced Question Display */}
-                <div className="text-lg font-semibold mb-6 p-4 bg-surface-1/50 border border-border/30 rounded-xl leading-relaxed text-card-foreground">
-                  {currentQuestion?.question}
-                </div>
-                
-                {/* Enhanced Answer Options */}
-                <div className="grid gap-3 mb-4">
-                  {currentQuestion?.answers?.map((ans: any, idx: number) => {
-                    const isSelected = selected === (ans.label || String.fromCharCode(65 + idx));
-                    return (
-                      <Button
-                        key={ans.label || String.fromCharCode(65 + idx)}
-                        variant={isSelected ? 'default' : 'outline'}
-                        className={`w-full h-auto min-h-[60px] p-4 text-left whitespace-normal break-words transition-all duration-300 hover:scale-[1.02] ${
-                          isSelected 
-                            ? 'bg-primary text-primary-foreground shadow-lg border-primary' 
-                            : 'bg-card hover:bg-accent/50 border-border/50 hover:border-primary/30'
-                        }`}
-                        onClick={() => handleSelect(ans.label || String.fromCharCode(65 + idx))}
-                        disabled={showNextQuestion || answerSubmitted || battleFinished}
-                      >
-                        <div className="flex items-start gap-3 w-full">
-                          <span className={`font-bold text-sm flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
-                            isSelected 
-                              ? 'bg-primary-foreground/20 text-primary-foreground' 
-                              : 'bg-primary/20 text-primary'
-                          }`}>
-                            {ans.label || String.fromCharCode(65 + idx)}
-                          </span>
-                          <span className="text-sm leading-relaxed font-medium">{ans.text}</span>
-                        </div>
-                      </Button>
-                    );
-                  })}
-                </div>
-              </>
             )}
           </CardContent>
         </Card>
-      </div>
+      </main>
     </div>
   );
 }

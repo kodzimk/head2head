@@ -9,12 +9,14 @@ import { initializeWebSocketForNewUser } from "../../app/App";
 import { useState } from "react";
 import { API_BASE_URL } from "../../shared/interface/gloabL_var";
 import { generateUsername } from "../../shared/utils/username-normalization";
+import { useTranslation } from "react-i18next";
 
 export default function SignUpPage() {
   const navigate = useNavigate();
   const { user, setUser } = useGlobalStore();
   const [isLoading, setIsLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const { t } = useTranslation();
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     if (!credentialResponse.credential) {
@@ -94,10 +96,14 @@ export default function SignUpPage() {
         localStorage.setItem("username", userData.username);
         localStorage.setItem('user', JSON.stringify(updatedUser));
         
+        // Set isNewUser flag for onboarding
+        localStorage.setItem('isNewUser', 'true');
+        
         // Clear onboarding localStorage keys for new users to ensure they see onboarding
         localStorage.removeItem('head2head-battle-onboarding');
         localStorage.removeItem('head2head-training-onboarding');
         localStorage.removeItem('head2head-dashboard-onboarding');
+        localStorage.removeItem('head2head-language');
         
         initializeWebSocketForNewUser(userData.username);
         navigate(`/${userData.username}`);
@@ -197,16 +203,12 @@ export default function SignUpPage() {
               className="hidden lg:block space-y-6"
             >
               <div className="space-y-4">
-                <h1 className="text-3xl xl:text-4xl 2xl:text-5xl font-bold text-foreground leading-tight">
-                  Start Your Sports
-                  <br />
-                  <span className="text-primary bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                    Battle Journey
-                  </span>
+                <h1 className="text-4xl xl:text-5xl font-bold text-foreground mb-4">
+                  {t('signUpLanding.titleStart')}{" "}
+                  <span className="text-primary">{t('signUpLanding.titleEnd')}</span>
                 </h1>
                 <p className="text-lg xl:text-xl text-muted-foreground leading-relaxed">
-                  Join over 500,000 sports fans competing in real-time trivia
-                  battles. Test your knowledge and climb the leaderboards!
+                  {t('signUpLanding.description')}
                 </p>
               </div>
   
@@ -215,12 +217,12 @@ export default function SignUpPage() {
             {/* Right Side - Sign Up Form */}
             <div className="w-full">
               <div className="lg:hidden mb-6 text-center">
-                <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
-                  Start Your Sports{" "}
-                  <span className="text-primary">Battle Journey</span>
+                <h1 className="text-4xl xl:text-5xl font-bold text-foreground mb-4">
+                  {t('signUpLanding.titleStart')}{" "}
+                  <span className="text-primary">{t('signUpLanding.titleEnd')}</span>
                 </h1>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Join the ultimate sports trivia community
+                <p className="text-lg xl:text-xl text-muted-foreground leading-relaxed">
+                  {t('signUpLanding.communityTitle')}
                 </p>
               </div>
               
@@ -229,10 +231,10 @@ export default function SignUpPage() {
               >
                 <CardHeader className="text-center pb-4 sm:pb-6 px-4 sm:px-6 pt-6 sm:pt-8">
                   <CardTitle className="text-xl sm:text-2xl font-bold text-foreground">
-                    Create Your Account
+                    {t('signUpLanding.createAccount')}
                   </CardTitle>
                   <p className="text-sm sm:text-base text-muted-foreground mt-2">
-                    Join thousands of sports trivia fans
+                    {t('signUpLanding.joinCommunity')}
                   </p>
                 </CardHeader>
 
@@ -265,7 +267,7 @@ export default function SignUpPage() {
                     {isLoading && (
                       <div className="flex items-center justify-center text-xs sm:text-sm text-primary text-center bg-primary/10 border border-primary/20 rounded-lg p-3 gap-2">
                         <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                        Creating your account. Please wait a moment.
+                        {t('signUpLanding.creatingAccount')}
                       </div>
                     )}
                   </div>
@@ -276,14 +278,14 @@ export default function SignUpPage() {
                     </div>
                     <div className="relative flex justify-center text-xs sm:text-sm">
                       <span className="px-3 sm:px-4 bg-card text-muted-foreground font-medium">
-                        Or sign up with email
+                        {t('signUpLanding.orSignUpEmail')}
                       </span>
                     </div>
                   </div>
 
                   {/* Form */}
                   <div className="space-y-4">
-                    <Link to="/signup-email">
+                    <Link to="/sign-up/email">
                       <Button 
                         className="w-full h-10 sm:h-12 lg:h-14 btn-neon text-sm sm:text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02]"
                         disabled={isLoading}
@@ -299,12 +301,12 @@ export default function SignUpPage() {
                     className="text-center pt-4 border-t border-border/50"
                   >
                     <p className="text-xs sm:text-sm text-muted-foreground">
-                      Already have an account?{" "}
+                      {t('signUpLanding.alreadyHaveAccount')}{" "}
                       <Link
                         to="/sign-in"
                         className="text-primary hover:text-primary/80 font-medium transition-colors"
                       >
-                        Sign in
+                        {t('signUpLanding.signIn')}
                       </Link>
                     </p>
                   </div>

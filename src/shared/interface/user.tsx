@@ -16,6 +16,7 @@ export interface User {
     invitations: string[];
     draws?: number;
     losses?: number;
+    language?: string;
 }
 
 export interface Battle {

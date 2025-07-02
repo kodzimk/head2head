@@ -1,32 +1,33 @@
 import React from 'react'
 import { Card, CardContent } from "../../shared/ui/card"
 import { ChevronDown } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = React.useState<number | null>(null)
+  const { t } = useTranslation()
 
   const faqs = [
     {
-      question: "What is Head2Head?",
-      answer: "Head2Head is a real-time sports trivia platform where you can challenge friends and players worldwide to test your sports knowledge. Compete in various battle modes and climb the leaderboards!"
+      question: t('faq.whatIsHead2Head.question'),
+      answer: t('faq.whatIsHead2Head.answer')
     },
     {
-      question: "When are tournaments held?",
-      answer: "After 1000 users, we will start holding tournaments. We will announce the date and time of the tournaments on the website."
+      question: t('faq.tournaments.question'),
+      answer: t('faq.tournaments.answer')
     },
     {
-      question: "Is it free to play?",
-      answer: "Yes, Head2Head is completely free to play! We offer various features and battle modes at no cost. Premium features may be added in the future."
+      question: t('faq.isFree.question'),
+      answer: t('faq.isFree.answer')
     },
     {
-      question: "Does platform have a mobile app?",
-      answer: "No, we don't have a mobile app yet. But we are working on it and it will be available soon."
+      question: t('faq.mobileApp.question'),
+      answer: t('faq.mobileApp.answer')
     },
     {
-      question: "How can I contact head2head?",
-      answer: "You can contact us at support@head2head.com"
-    },
- 
+      question: t('faq.contact.question'),
+      answer: t('faq.contact.answer')
+    }
   ]
 
   return (
@@ -34,11 +35,11 @@ export default function FAQ() {
       <div className="container responsive-padding">
         <div className="text-center mb-8 sm:mb-10 lg:mb-12 animate-fade-in">
           <h2 className="text-responsive-lg font-bold text-foreground mb-2 sm:mb-4 tracking-tight">
-            Frequently Asked Questions
+            {t('faq.title')}
           </h2>
           <div className="w-16 h-1 bg-gradient-to-r from-primary to-orange-500 mx-auto mb-3 sm:mb-4 rounded-full"></div>
           <p className="text-responsive-base text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Everything you need to know about Head2Head
+            {t('faq.subtitle')}
           </p>
         </div>
 

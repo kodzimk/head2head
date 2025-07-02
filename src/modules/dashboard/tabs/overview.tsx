@@ -5,6 +5,7 @@ import { Badge } from "../../../shared/ui/badge"
 import { Settings, Sword, Trophy, Target, Zap } from "lucide-react"
 import type { User, RecentBattle } from '../../../shared/interface/user'
 import { useNavigate } from "react-router-dom"
+import { useTranslation } from 'react-i18next'
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var"
 import AvatarStorage from "../../../shared/utils/avatar-storage"
 import { useEffect } from "react"
@@ -38,6 +39,7 @@ const getSportIcon = (sport: string) => {
   
 export default function Overview({user, battles}: {user: User, battles: RecentBattle[]}) {
   const navigate = useNavigate()  
+  const { t } = useTranslation()
  
   // Fetch and cache user avatar if needed
   useEffect(() => {
@@ -99,27 +101,27 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
 
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600 text-xs lg:text-sm">Rank</span>
+                <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.globalRank')}</span>
                 <span className="font-semibold text-xs lg:text-sm">#{user.rank}</span>
               </div>
               <div className=" flex justify-between">
-                <span className="text-gray-600 text-xs lg:text-sm">Battles Won</span>
+                <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.totalWins')}</span>
                 <span className="font-semibold text-xs lg:text-sm">{user.wins}</span>
               </div>
               <div className="sm:hidden flex justify-between">
-                <span className="text-gray-600 text-xs lg:text-sm">Winning Percentage</span>
+                <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.winRate')}</span>
                 <span className="font-semibold text-xs lg:text-sm">{user.winRate}%</span>
               </div>
               <div className="sm:hidden flex justify-between">
-                <span className="text-gray-600 text-xs lg:text-sm">Winning Streak</span>
+                <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.streak')}</span>
                 <span className="font-semibold text-xs lg:text-sm">{user.streak}</span>
               </div>
               <div className="sm:hidden flex justify-between">
-                <span className="text-gray-600 text-xs lg:text-sm">Total Battles</span>
+                <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.battlesPlayed')}</span>
                 <span className="font-semibold text-xs lg:text-sm">{user.totalBattles}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 text-xs lg:text-sm">Favorite Sport</span>
+                <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.favoriteSport')}</span>
                 <div className="flex items-center gap-1">
                   {getSportIcon(user.favoritesSport)}
                   <span className="font-semibold text-xs lg:text-sm">{user.favoritesSport}</span>
@@ -129,7 +131,7 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
 
             <Button variant="outline" className="w-full text-xs lg:text-sm" onClick={() => navigate("/profile")}>
               <Settings className="w-3 h-3 lg:w-4 lg:h-4 mr-2" />
-              Edit Profile
+              {t('dashboard.editProfile')}
             </Button>
           </CardContent>
         </Card>
@@ -139,13 +141,13 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
           data-onboarding="recent-battles"
         >
           <CardHeader>
-            <CardTitle className="text-lg lg:text-xl">Recent Battles</CardTitle>
+            <CardTitle className="text-lg lg:text-xl">{t('dashboard.recentBattles')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3 lg:space-y-4">
               {battles.length === 0 ? (
                 <div className="text-center py-6 lg:py-8">
-                  <p className="text-gray-500 text-base lg:text-lg mb-4">There are no battles yet</p>
+                  <p className="text-gray-500 text-base lg:text-lg mb-4">{t('dashboard.noBattlesYet')}</p>
                   <Button 
                     variant="outline" 
                     className="gap-2 text-xs lg:text-sm"
@@ -153,7 +155,7 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
                     onClick={() => navigate('/battles')}
                   >
                     <Sword className="w-3 h-3 lg:w-4 lg:h-4" />
-                    Start Your First Battle
+                    {t('dashboard.startFirstBattle')}
                   </Button>
                 </div>
               ) : (
@@ -181,8 +183,8 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
                         }
                         className="w-fit text-xs lg:text-sm"
                       >
-                        {battle.result === "win" ? "Victory" : 
-                         battle.result === "lose" ? "Defeat" : "Draw"}
+                        {battle.result === "win" ? t('dashboard.victory') : 
+                         battle.result === "lose" ? t('dashboard.defeat') : t('dashboard.draw')}
                       </Badge>
                       <p className="text-sm lg:text-lg font-bold text-right">{battle.score}</p>
                     </div>

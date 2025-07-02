@@ -11,9 +11,10 @@ import { removeFriend } from '../../shared/websockets/websocket'
 import { API_BASE_URL, useRefreshViewStore } from "../../shared/interface/gloabL_var"
 import { newSocket } from "../../app/App"
 import { UserAvatar } from "../../shared/ui/user-avatar"
-
+import { useTranslation } from 'react-i18next'
 
 export default function FriendsPage({user}: {user: User}) {
+  const { t } = useTranslation()
   const [friends, setFriends] = useState<Friend[]>([])
   const [searchResults, setSearchResults] = useState<Friend[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -155,22 +156,22 @@ export default function FriendsPage({user}: {user: User}) {
   }
 
   const displayedUsers = isSearching ? searchResults : friends
-  const emptyMessage = isSearching ? "No users found" : "No friends found"
-  const title = isSearching ? "Search Results" : "Friends List"
+  const emptyMessage = isSearching ? t('friends.search.no_results') : t('friends.list.empty')
+  const title = isSearching ? t('friends.search.title') : t('friends.title')
 
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
-      <Header user={user} />
+      <Header />
       <main className="flex-1 container-gaming py-6">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <h1 className="text-heading-2 text-foreground">{title}</h1>
             <div className="w-full sm:w-auto">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2  transform -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="text"
-                  placeholder="Search users..."
+                  placeholder={t('friends.search.placeholder')}
                   value={searchQuery}
                   onChange={handleInputChange}
                   className="pl-10 w-full sm:w-64 bg-card text-white border"
@@ -198,55 +199,39 @@ export default function FriendsPage({user}: {user: User}) {
                   {displayedUsers.map((item) => (
                     <div
                       key={item.username}
-                      className="w-full cursor-pointer p-4 rounded-lg transition-colors flex flex-col sm:flex-row items-center gap-4 hover:shadow-lg bg-card border hover:bg-card/80"
-                      onClick={() => navigate(`/profile/${item.username}`)}
+                      className="flex items-center justify-between p-4 bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg"
                     >
-                      <div className="flex flex-col sm:flex-row items-center gap-4 w-full">
+                      <div className="flex items-center gap-4">
                         <UserAvatar
-                          user={{
-                            username: item.username,
-                            avatar: item.avatar
-                          }}
+                          user={item}
                           size="lg"
-                          variant="default"
-                          showBorder={true}
-                          className="flex-shrink-0"
                         />
-                        <div className="flex-grow min-w-0 text-center sm:text-left">
-                          <h3 className="font-medium text-foreground truncate text-lg">
-                            {item.username}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Rank: #{item.rank}
+                        <div>
+                          <h3 className="text-base sm:text-lg font-semibold">{item.username}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {t('friends.list.rank')}: {item.rank}
                           </p>
                         </div>
                       </div>
-                      {isSearching ? (
+                      <div className="flex items-center gap-2">
                         <Button
-                          variant="outline"
-                          size="default"
-                          className="w-full sm:w-auto min-w-[120px]"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/profile/${item.username}`);
-                          }}
+                          variant="ghost"
+                          onClick={() => navigate(`/profile/${item.username}`)}
+                          className="text-sm"
                         >
-                          View Profile
+                          {t('friends.list.view_profile')}
                         </Button>
-                      ) : (
-                        <Button
-                          variant="destructive"
-                          size="default"
-                          className="w-full sm:w-auto min-w-[120px]"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveFriend(item.username);
-                          }}
-                        >
-                          <UserMinus className="w-4 h-4 mr-2" />
-                          Remove
-                        </Button>
-                      )}
+                        {!isSearching && (
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleRemoveFriend(item.username)}
+                            title={t('friends.list.remove_friend')}
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

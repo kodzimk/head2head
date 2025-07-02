@@ -1,0 +1,866 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "submit": "Submit",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "goToHomepage": "Go to Homepage",
+    "goBack": "Go Back"
+  },
+  "navigation": {
+    "home": "Home",
+    "battles": "Battles",
+    "friends": "Friends",
+    "leaderboard": "Leaderboard",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout",
+    "dashboard": "Dashboard",
+    "training": "Training",
+    "selection": "Selection",
+    "notifications": "Notifications",
+    "signout": "Sign Out"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "username": "Username",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "rememberMe": "Remember me",
+    "createAccount": "Create Account",
+    "alreadyHaveAccount": "Already have an account?",
+    "dontHaveAccount": "Don't have an account?",
+    "signUpWithEmail": "Sign Up with Email",
+    "signInWithGoogle": "Sign In with Google",
+    "signUpWithGoogle": "Sign Up with Google",
+    "agreeToTerms": "I agree to the Terms of Service and Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "emailAddress": "Email Address",
+    "chooseUsername": "Choose a unique username",
+    "createStrongPassword": "Create a strong password",
+    "fillDetails": "Fill in your details to get started",
+    "startJourney": "Start Your Sports Battle Journey",
+    "welcomeBack": "Welcome Back",
+    "signInToContinue": "Sign in to continue your sports battle journey"
+  },
+  "hero": {
+    "title": "Challenge Friends in Sports Knowledge",
+    "subtitle": "Test your sports expertise against friends in real-time battles. From football to basketball, prove you're the ultimate sports fan!",
+    "getStarted": "Get Started",
+    "learnMore": "Learn More",
+    "battleJourney": "Start Your Sports Battle Journey",
+    "joinThousands": "Join thousands of sports fans competing worldwide",
+    "startCompeting": "Start Competing",
+    "dominateTitle": "Dominate in",
+    "sportsBattles": "Sports Battles",
+    "challengePlayersWorldwide": "Challenge players worldwide in real-time sports trivia battles. Test your knowledge, climb the ranks, and become a champion!",
+    "chooseSport": "Choose Your Sport",
+    "masterTrivia": "Master trivia in your favorite sports",
+    "played": "matches played",
+    "battlesPlayed": "Battles Played",
+    "sportsCategories": "Sports Categories",
+    "allLevels": "All Levels",
+    "proReady": "Pro Ready",
+    "competitive": "Competitive",
+    "expert": "Expert",
+    "elite": "Elite",
+    "masters": "Masters",
+    "competitiveRanking": "Competitive Ranking",
+    "competitiveRankingDesc": "Climb the global leaderboards and prove your expertise",
+    "globalRankings": "Global Rankings",
+    "realTimeBattles": "Real-Time Battles",
+    "realTimeBattlesDesc": "Challenge friends and rivals to instant trivia matches",
+    "liveMatches": "Live Matches",
+    "skillBasedMatching": "Skill-Based Matching",
+    "skillBasedMatchingDesc": "Get matched with players of similar skill level",
+    "fairPlay": "Fair Play",
+    "achievementSystem": "Achievement System",
+    "achievementSystemDesc": "Unlock rewards as you progress and win battles",
+    "unlockRewards": "Unlock Rewards",
+    "whyChoose": "Why Choose Head2Head?",
+    "experience": "Experience the most competitive sports trivia platform with cutting-edge features",
+    "joinCommunity": "Join the Elite Sport Community",
+    "startJourney": "Start your journey to becoming a sports trivia champion. Battle the best, climb the rankings, and prove your expertise.",
+    "createAccount": "Create Account",
+    "viewLeaderboard": "View Leaderboard"
+  },
+  "features": {
+    "realTimeBattles": "Real-Time Battles",
+    "realTimeBattlesDesc": "Challenge friends to instant sports trivia battles",
+    "multiSports": "Multiple Sports",
+    "multiSportsDesc": "Football, basketball, tennis, and many more",
+    "leaderboards": "Global Leaderboards",
+    "leaderboardsDesc": "Climb the ranks and become the ultimate champion",
+    "friendSystem": "Friend System",
+    "friendSystemDesc": "Connect with friends and track your progress together"
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "readyForChallenge": "Ready for your next gaming challenge? Your opponents are waiting.",
+    "quickBattle": "Quick Battle",
+    "practiceMode": "Practice Mode",
+    "globalRank": "Global Rank",
+    "totalWins": "Total Wins",
+    "battlesPlayed": "Battles Played",
+    "winRate": "Win Rate",
+    "battleStatsBreakdown": "Battle Statistics Breakdown",
+    "wins": "Wins",
+    "draws": "Draws",
+    "losses": "Losses",
+    "streak": "Streak",
+    "winStreak": "Win Streak",
+    "noStreak": "No Streak",
+    "overview": "Overview",
+    "stats": "Stats",
+    "myBattles": "My Battles",
+    "battles": "Battles",
+    "friends": "Friends",
+    "social": "Social",
+    "loading": "Loading your dashboard...",
+    "error": {
+      "failedToLoad": "Failed to load user data",
+      "signInAgain": "Sign In Again",
+      "noUserData": "No user data received from server",
+      "tryAgain": "Failed to load user data. Please try signing in again."
+    },
+    "onboarding": {
+      "welcome": {
+        "title": "Welcome to Head2Head! 🎮",
+        "description": "This is your gaming command center! Here you can track stats, start battles, and manage your competitive journey. Let's explore the key features together."
+      },
+      "userAvatar": {
+        "title": "Your Player Hub 👤",
+        "description": "Click your avatar to access profile settings and notifications. The red dot shows new friend requests or battle invitations waiting for you."
+      },
+      "navigation": {
+        "title": "Navigate Like a Pro 🧭",
+        "description": "Access all platform sections: Dashboard (home), Battles (compete), Leaderboard (rankings), Selection (find opponents), and Trainings (practice)."
+      },
+      "statsGrid": {
+        "title": "Track Your Progress 📊",
+        "description": "Monitor your performance at a glance: global rank, total wins, battles played, and draws. These update automatically as you compete."
+      },
+      "battleStatsBreakdown": {
+        "title": "Battle Statistics Breakdown 🏆",
+        "description": "Get a comprehensive overview of your battle performance! See your wins, draws, losses, and current streak with percentages. This visual breakdown helps you track your competitive progress at a glance."
+      },
+      "overviewProfile": {
+        "title": "Your Profile Card 🏷️",
+        "description": "View detailed stats including rank, wins, and favorite sport. Click 'Edit Profile' to customize your gaming identity."
+      },
+      "recentBattles": {
+        "title": "Battle History 📜",
+        "description": "See your recent matches with opponents, sports, results, and scores. Start your first battle to populate this section!"
+      },
+      "battleHistoryContent": {
+        "title": "Your Battle History ⚔️",
+        "description": "See all your completed battles with opponents, sports played, match results, and scores. Each battle shows who you fought, what sport, and whether you won, lost, or drew."
+      },
+      "battleStatsContent": {
+        "title": "Detailed Battle Statistics 📊",
+        "description": "Track your competitive performance: total battles fought, wins achieved, win rate percentage, and current winning streak. Perfect for monitoring your improvement!"
+      },
+      "friendsListContent": {
+        "title": "Your Friends List 👥",
+        "description": "View all your friends with their avatars, usernames, and ranks. Click on any friend to visit their profile, challenge them to battles, or see their achievements."
+      }
+    },
+    "favoriteSport": "Favorite Sport",
+    "editProfile": "Edit Profile",
+    "recentBattles": "Recent Battles",
+    "noBattlesYet": "There are no battles yet",
+    "startFirstBattle": "Start Your First Battle",
+    "victory": "Victory",
+    "defeat": "Defeat",
+    "draw": "Draw",
+    "battleHistory": "Battle History",
+    "viewAll": "View All",
+    "loadingBattles": "Loading battles...",
+    "battleStats": "Battle Stats",
+    "totalBattles": "Total Battles",
+    "noFriendsYet": "You don't have any friends yet",
+    "addFriends": "Add Friends",
+    "rank": "Rank",
+    "viewProfile": "View Profile",
+    "friendActivity": "Friend Activity",
+    "comingSoon": "Coming Soon!"
+  },
+  "battles": {
+    "createBattle": "Create Battle",
+    "joinBattle": "Join Battle",
+    "battleArena": "Battle Arena",
+    "selectSport": "Select Sport",
+    "selectDifficulty": "Select Difficulty",
+    "easy": "Easy",
+    "medium": "Medium",
+    "hard": "Hard",
+    "waitingForOpponent": "Waiting for Opponent",
+    "battleStartingSoon": "Battle Starting Soon...",
+    "waitingForPlayer": "Waiting for another player to join your battle",
+    "battleId": "Battle ID",
+    "waitingTime": "Waiting Time",
+    "inviteFriends": "Invite Friends",
+    "inviteFriendsToBattle": "Invite Friends to Battle",
+    "cancelBattle": "Cancel Battle",
+    "quitBattle": "Quit Battle",
+    "battleFinished": "Battle Finished",
+    "victory": "Victory! 🎉",
+    "defeat": "Defeat 💪",
+    "draw": "Draw! 🤝",
+    "finalScore": "Final Score",
+    "playAgain": "Play Again",
+    "backToDashboard": "Back to Dashboard",
+    "correctAnswers": "Correct Answers",
+    "timeBonus": "Time Bonus",
+    "autoCancel": "Auto-Cancel Notice",
+    "autoCancelDesc": "Your battle will be automatically cancelled after 10 minutes of inactivity to keep the arena fresh for other players.",
+    "allBattles": "All Battles",
+    "activeBattles": "Active Battles",
+    "completedBattles": "Completed Battles",
+    "noBattles": "No battles found",
+    "startBattling": "Start battling to see your matches here",
+    "calculatingResults": "Calculating Results",
+    "loadingResults": "Loading Battle Results",
+    "determiningWinner": "Determining the winner and updating your statistics...",
+    "loadingStats": "Loading your battle results and statistics...",
+    "pleaseWait": "This may take a few moments",
+    "outstandingPerformance": "Outstanding Performance!",
+    "keepTraining": "Keep Training!",
+    "evenlyMatched": "Evenly Matched!",
+    "yourScore": "Your Score",
+    "opponentScore": "Opponent Score",
+    "incredibleKnowledge": "Incredible knowledge and speed!",
+    "everyBattle": "Every battle makes you stronger!",
+    "perfectlyMatched": "Perfectly matched knowledge!",
+    "youDominated": "You dominated this trivia challenge!",
+    "keepPracticing": "Keep practicing and learning!",
+    "bothPlayers": "Both players showed equal expertise!",
+    "bothPlayersAnswered": "Both players answered",
+    "correctly": "questions correctly",
+    "similarResponseTimes": "Similar response times",
+    "andAccuracy": "and accuracy",
+    "drawsCount": "Draws count",
+    "towardTotalBattles": "toward total battles",
+    "butDontBreakWinStreaks": "but don't break win streaks",
+    "countdown": {
+      "go": "Go!",
+      "prepare": "Prepare yourself.",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "checking": "Checking...",
+      "reconnecting": "Trying to reconnect..."
+    },
+    "waitingForAnotherPlayer": "Waiting for another player to join your battle",
+    "invite": "Invite",
+    "cancelInvite": "Cancel Invite",
+    "noFriendsToInvite": "No friends yet. Add friends to invite them to battles!",
+    "description": "Challenge yourself against other players in real-time trivia battles. Choose your sport and difficulty level to get started."
+  },
+  "friends": {
+    "title": "Friends List",
+    "search": {
+      "title": "Search Results",
+      "placeholder": "Search users...",
+      "no_results": "No users found"
+    },
+    "list": {
+      "empty": "No friends found",
+      "view_profile": "View Profile",
+      "remove_friend": "Remove Friend",
+      "rank": "Rank"
+    },
+    "friends": "Friends",
+    "addFriends": "Add Friends",
+    "friendRequests": "Friend Requests",
+    "noFriends": "You don't have any friends yet",
+    "addFriendsDesc": "Add friends to invite them to battles!",
+    "searchFriends": "Search for friends by username",
+    "sendRequest": "Send Request",
+    "acceptRequest": "Accept Request",
+    "rejectRequest": "Reject Request",
+    "cancelRequest": "Cancel Request",
+    "viewProfile": "View Profile",
+    "challengeToBattle": "Challenge to Battle",
+    "online": "Online",
+    "offline": "Offline",
+    "away": "Away",
+    "busy": "Busy",
+    "rank": "Rank",
+    "friendActivity": "Friend Activity",
+    "comingSoon": "Coming Soon!",
+    "friendsFeatureDesc": "The Friends feature is currently under development. We're working hard to bring you an amazing social experience!",
+    "invitedFriends": "Invited Friends",
+    "pending": "Pending",
+    "undo": "Undo",
+    "invite": "Invite",
+    "noFriendsYet": "No friends yet",
+    "addFriendsToInvite": "Add friends to invite them to battles!"
+  },
+  "leaderboard": {
+    "globalLeaderboard": "Global Leaderboard",
+    "topPlayers": "Top Players",
+    "yourRank": "Your Rank",
+    "points": "Points",
+    "wins": "Wins",
+    "winRate": "Win Rate",
+    "battles": "Battles",
+    "noData": "No leaderboard data available"
+  },
+  "profile": {
+    "profile": "Profile",
+    "editProfile": "Edit Profile",
+    "profileSettings": "Profile Settings",
+    "accountSettings": "Account Settings",
+    "changeAvatar": "Change Avatar",
+    "favoritesSport": "Favorite Sport",
+    "nickname": "Nickname",
+    "statistics": "Statistics",
+    "achievements": "Achievements",
+    "battleHistory": "Battle History",
+    "saveChanges": "Save Changes",
+    "resetProgress": "Reset Progress",
+    "deleteAccount": "Delete Account",
+    "avatarUpdated": "Avatar updated successfully!",
+    "profileUpdated": "Profile updated successfully!",
+    "maxFileSize": "Max 5MB • JPEG, PNG, WebP",
+    "selectValidImage": "Please select a valid image file (JPEG, PNG, or WebP)",
+    "fileTooLarge": "File size must be less than 5MB",
+    "settings": {
+      "title": "Profile Settings",
+      "description": "Manage your account and preferences",
+      "tabs": {
+        "profile": "Profile",
+        "account": "Account"
+      },
+      "profile": {
+        "title": "Profile",
+        "description": "Manage your profile information",
+        "overview": {
+          "title": "Profile Overview",
+          "description": "Your current profile information"
+        },
+        "account": {
+          "title": "Account Settings",
+          "description": "Manage your account settings",
+          "reset": {
+            "title": "Reset Game Progress",
+            "description": "This will reset all your game progress, including statistics, battle history, and achievements",
+            "button": "Reset Progress",
+            "confirm_button": "Confirm Reset"
+          },
+          "delete": {
+            "title": "Delete My Account",
+            "description": "This will permanently remove your account and all associated data",
+            "button": "Delete Account",
+            "confirm_button": "Confirm Delete",
+            "enter_username": "Enter your username to confirm"
+          }
+        },
+        "personal": {
+          "title": "Personal Details",
+          "description": "Customize your display name and preferences",
+          "email": {
+            "label": "Email Address",
+            "cannotChange": "Email cannot be changed for security reasons"
+          }
+        },
+        "username": "Username",
+        "nickname": "Nickname",
+        "favoriteSport": "Favorite Sport",
+        "avatar": "Avatar",
+        "avatarUpdated": "Avatar updated successfully",
+        "errors": {
+          "usernameEmpty": "Username cannot be empty",
+          "usernameShort": "Username must be at least 3 characters long",
+          "usernameExists": "This username is already taken",
+          "saveFailed": "Failed to save profile changes"
+        },
+        "saved": "Profile changes saved successfully",
+        "usernameChanged": "Username changed from {{old}} to {{new}}",
+        "sports": {
+          "title": "Favorite Sport",
+          "placeholder": "Select your favorite sport",
+          "description": "Used for personalized quiz content",
+          "options": {
+            "football": "🏈 Football",
+            "basketball": "🏀 Basketball",
+            "baseball": "⚾ Baseball",
+            "tennis": "🎾 Tennis",
+            "hockey": "🏒 Hockey",
+            "golf": "⛳ Golf",
+            "cricket": "🏏 Cricket",
+            "volleyball": "🏐 Volleyball"
+          }
+        },
+        "buttons": {
+          "cancel": "Cancel",
+          "save": "Save Changes",
+          "saving": "Saving..."
+        },
+        "fields": {
+          "username": {
+            "label": "Username",
+            "placeholder": "Enter your username"
+          },
+          "email": {
+            "label": "Email Address",
+            "placeholder": "Enter your email address",
+            "cannotChange": "Email cannot be changed for security reasons"
+          }
+        },
+        "danger": {
+          "reset": {
+            "button": "Reset Statistics",
+            "confirm_button": "Confirm Reset",
+            "cancel_button": "Cancel",
+            "select_type": "Select what to reset",
+            "types": {
+              "all": "All Statistics",
+              "battles": "Battle History",
+              "rankings": "Rankings"
+            }
+          },
+          "delete": {
+            "button": "Delete Account",
+            "confirm_button": "Confirm Deletion",
+            "cancel_button": "Cancel",
+            "enter_username": "Enter your username to confirm",
+            "username_mismatch": "Username does not match"
+          }
+        },
+        "messages": {
+          "reset_success": "Statistics reset successfully! {{message}}",
+          "reset_error": "Failed to reset statistics: {{error}}",
+          "delete_success": "Account deleted successfully",
+          "delete_error": "Failed to delete account: {{error}}"
+        },
+        "avatar": {
+          "button": {
+            "change": "Change Avatar",
+            "uploading": "Uploading..."
+          },
+          "errors": {
+            "invalid_type": "Please select a valid image file (JPEG, PNG, or WebP)",
+            "too_large": "File size must be less than 5MB",
+            "upload_failed": "Failed to save avatar. Please try again."
+          },
+          "success": "Avatar updated successfully",
+          "aria": {
+            "upload_button": "Upload new avatar",
+            "current_avatar": "Current profile picture"
+          }
+        }
+      },
+      "account": {
+        "title": "Account Settings",
+        "description": "Manage your account settings",
+        "reset": {
+          "title": "Reset Game Progress",
+          "description": "This will reset all your game progress, including statistics, battle history, and achievements",
+          "button": "Reset Progress",
+          "confirm_button": "Confirm Reset"
+        },
+        "delete": {
+          "title": "Delete My Account",
+          "description": "This will permanently remove your account and all associated data",
+          "button": "Delete Account",
+          "confirm_button": "Confirm Delete",
+          "enter_username": "Enter your username to confirm"
+        }
+      },
+      "stats": {
+        "reset": {
+          "all": "Reset all statistics",
+          "battles": "Reset battle history",
+          "rankings": "Reset rankings",
+          "success": "Statistics reset successfully!",
+          "failed": "Failed to reset statistics"
+        }
+      },
+      "preferences": {
+        "language": {
+          "changed": "Language preference updated successfully"
+        }
+      },
+      "delete": {
+        "confirm": "Please type your username to confirm account deletion",
+        "button": "Delete Account",
+        "warning": "This action cannot be undone"
+      }
+    },
+    "view": {
+      "title": "Profile",
+      "stats": {
+        "rank": "Rank",
+        "wins": "Wins",
+        "winRate": "Win Rate",
+        "totalBattles": "Total Battles",
+        "streak": "Current Streak"
+      },
+      "actions": {
+        "sendRequest": "Send Friend Request",
+        "cancelRequest": "Cancel Request",
+        "battle": "Battle",
+        "friends": "Friends",
+        "alreadyFriends": "Already Friends",
+        "back": "Back to Profile"
+      },
+      "loading": "Loading profile...",
+      "error": "Error loading profile"
+    }
+  },
+  "training": {
+    "title": "Sports Training Center",
+    "subtitle": "Practice with your previously incorrect answers and improve your knowledge",
+    "setup": {
+      "title": "Training Setup",
+      "selectSport": "Select Sport",
+      "chooseSport": "Choose sport",
+      "difficultyLevel": "Difficulty Level",
+      "chooseLevel": "Choose level",
+      "trainingMode": "Training Mode"
+    },
+    "modes": {
+      "flashcards": {
+        "title": "Flashcards",
+        "description": "Study terms and learn from your battle mistakes"
+      },
+      "random": {
+        "title": "Random Questions",
+        "description": "Fresh random questions from selected sport"
+      }
+    },
+    "stats": {
+      "title": "Training Statistics",
+      "totalAnswers": "Total Answers",
+      "incorrect": "Incorrect",
+      "accuracy": "Accuracy",
+      "sessions": "Sessions",
+      "sportBreakdown": "Sport Breakdown",
+      "noStats": "No training statistics available yet. Start training to see your progress!"
+    },
+    "session": {
+      "flashcardTitle": "Flashcard Training",
+      "trainingTitle": "Training Session",
+      "flashcardProgress": "Flashcard {{current}} of {{total}}",
+      "questionProgress": "Question {{current}} of {{total}}",
+      "timeLeft": "Time Left",
+      "skip": "Skip",
+      "showDefinition": "Show Definition",
+      "needReview": "Need Review",
+      "gotIt": "Got It!",
+      "submitAnswer": "Submit Answer",
+      "correct": "Correct! 🎉",
+      "incorrect": "Incorrect! ❌",
+      "yourAnswer": "Your answer:",
+      "correctAnswer": "Correct answer:",
+      "timeUp": "⏰ Time's up!",
+      "noAnswer": "You didn't select an answer in time.",
+      "nextQuestion": "Next Question",
+      "completeTraining": "Complete Training",
+      "reviewNote": "This is based on a question you answered incorrectly in a previous battle",
+      "startTraining": "Start Training Session"
+    },
+    "sports": {
+      "all": "All Sports",
+      "football": "Football",
+      "basketball": "Basketball",
+      "tennis": "Tennis",
+      "cricket": "Cricket",
+      "baseball": "Baseball",
+      "volleyball": "Volleyball",
+      "boxing": "Boxing"
+    },
+    "levels": {
+      "all": "All Levels",
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "feedback": {
+      "learningOpportunity": "Don't worry! This is a learning opportunity. Review the correct answer and try to understand why it's right.",
+      "timerNote": "Try to answer faster next time! The timer is set to 15 seconds per question.",
+      "greatJob": "Great job! You got this one right! 🎯"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "noNotifications": "No notifications",
+    "friendRequests": "Friend Requests",
+    "battleInvitations": "Battle Invitations",
+    "noFriendRequests": "No friend requests",
+    "noBattleInvitations": "No battle invitations",
+    "accept": "Accept",
+    "reject": "Reject",
+    "undo": "Undo",
+    "sentYouRequest": "sent you a friend request",
+    "invitedYouToBattle": "invited you to a battle",
+    "sportBattle": "{{sport}} Battle",
+    "duration": "Duration: {{duration}} minutes",
+    "viewProfile": "View Profile",
+    "acceptedRequest": "Request accepted",
+    "rejectedRequest": "Request rejected",
+    "acceptedInvitation": "Invitation accepted",
+    "rejectedInvitation": "Invitation rejected",
+    "loading": "Loading notifications...",
+    "allClear": "All Clear!",
+    "noNewNotifications": "You have no new notifications"
+  },
+  "quiz": {
+    "question": "Question",
+    "timeLeft": "Time left",
+    "nextQuestion": "Next question in",
+    "submitAnswer": "Submit Answer",
+    "correct": "Correct! 🎉",
+    "incorrect": "Incorrect! ❌",
+    "finalResults": "Final Results",
+    "yourScore": "Your Score",
+    "opponentScore": "Opponent Score"
+  },
+  "sports": {
+    "football": "Football",
+    "basketball": "Basketball",
+    "tennis": "Tennis",
+    "soccer": "Soccer",
+    "baseball": "Baseball",
+    "hockey": "Hockey",
+    "golf": "Golf",
+    "volleyball": "Volleyball",
+    "rugby": "Rugby",
+    "cricket": "Cricket"
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email address",
+    "passwordTooShort": "Password must be at least 8 characters long",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "usernameInvalid": "Username can only contain letters, numbers, and underscores",
+    "usernameTooShort": "Username must be at least 3 characters long",
+    "usernameTooLong": "Username must be less than 20 characters long",
+    "usernameReserved": "This username is reserved",
+    "usernameCannotStartWithNumber": "Username cannot start with a number",
+    "usernameEmpty": "Username cannot be empty"
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Please try again",
+    "networkError": "Network error. Please check your connection.",
+    "serverError": "Server error. Please try again later.",
+    "notFound": "Page Not Found",
+    "pageNotFoundMessage": "Oops! The page you're looking for doesn't exist.",
+    "pageNotFoundDesc": "It might have been moved, deleted, or you entered the wrong URL.",
+    "needHelp": "Need help? Contact our support team or check out our",
+    "forMoreInfo": "for more information.",
+    "unauthorized": "Unauthorized access",
+    "forbidden": "Access forbidden",
+    "signupFailed": "Sign up failed",
+    "signinFailed": "Sign in failed",
+    "accountExists": "Account already exists",
+    "invalidCredentials": "Invalid credentials",
+    "googleAuthFailed": "Google authentication failed",
+    "avatarUploadFailed": "Failed to upload avatar",
+    "profileUpdateFailed": "Failed to update profile"
+  },
+  "username": {
+    "suggestions": "Username Suggestions",
+    "nonEnglishChars": "Your name contains non-English characters. Here are some username suggestions:",
+    "basedOnName": "Here are some username suggestions based on your name:",
+    "note": "Note: Usernames can only contain letters, numbers, and underscores for best compatibility.",
+    "regenerate": "Generate new suggestions"
+  },
+  "language": {
+    "english": "English",
+    "russian": "Русский",
+    "selectLanguage": "Select Language",
+    "languageChanged": "Language changed successfully",
+    "languageChangedSuccessfully": "Language changed successfully",
+    "interfaceLanguage": "Interface Language",
+    "selectPreferredLanguage": "Select your preferred language",
+    "defaultLanguage": "Default Language",
+    "currentLanguage": "Current Language",
+    "switchTo": "Switch to {{language}}",
+    "loading": "Changing language..."
+  },
+  "footer": {
+    "shortLogo": "h2h",
+    "fullLogo": "head2head",
+    "instagram": "Instagram",
+    "linkedin": "LinkedIn",
+    "support": "Support",
+    "allRightsReserved": "All rights reserved"
+  },
+  "onboarding": {
+    "welcomeToBattleArena": "Welcome to Battle Arena",
+    "battleArenaDesc": "This is your competitive arena! Here you can create and join real-time sports trivia battles against players worldwide. Let's explore how to dominate the competition!",
+    "howBattlesWork": "How Battles Work",
+    "howBattlesWorkDesc": "Head-to-head trivia competition where speed and accuracy matter! Answer questions faster and more accurately than your opponent to win ranking points.",
+    "createFirstBattle": "Create Your First Battle",
+    "createFirstBattleDesc": "Set up your battle challenge here! Choose your sport and difficulty level. Once created, your battle becomes visible to all players who can join and compete.",
+    "chooseYourSport": "Choose Your Sport",
+    "chooseYourSportDesc": "Select from Football, Basketball, Tennis, and more! Each sport offers unique trivia covering rules, history, famous players, and current statistics.",
+    "pickChallengeLevel": "Pick Your Challenge Level",
+    "pickChallengeLevelDesc": "Easy (beginners), Medium (casual fans), or Hard (experts). Higher difficulty levels give more ranking points but require deeper sports knowledge!",
+    "launchYourBattle": "Launch Your Battle",
+    "launchYourBattleDesc": "Click to create your battle! You'll enter a waiting room where you can invite friends or wait for random opponents. Battles start automatically when someone joins.",
+    "joinExistingBattles": "Join Existing Battles",
+    "joinExistingBattlesDesc": "Browse all available battles created by other players. Click any battle to instantly join and start competing! The list updates automatically.",
+    "battleActionsManagement": "Battle Actions & Management",
+    "battleActionsManagementDesc": "Join battles (green button) or Cancel your own battles (red button). You can have up to 3 active battles waiting. Choose wisely!",
+    "stayUpdated": "Stay Updated",
+    "stayUpdatedDesc": "Click refresh to manually update the battle list, though it updates automatically. Perfect for ensuring you see the latest available battles!",
+    "restartBattleTutorial": "Restart Battle Tutorial"
+  },
+  "ui": {
+    "tutorial": "Tutorial",
+    "startTraining": "Start Training",
+    "comingSoon": "Coming Soon",
+    "backToEntryPage": "Back to Entry Page",
+    "loadingLeaderboard": "Loading leaderboard...",
+    "topPlayersRanked": "Top players ranked by points (wins, win rate, streaks, and consistency)",
+    "yourRank": "Your Rank",
+    "topPlayers": "Top Players",
+    "unranked": "Unranked",
+    "refreshBattles": "Refresh battles",
+    "cancel": "Cancel",
+    "join": "Join",
+    "inviteFriendsHelp": "Invite friends to battle",
+    "waitingTime": "Waiting Time",
+    "sport": "Sport",
+    "difficulty": "Difficulty",
+    "creator": "Creator",
+    "actions": "Actions",
+    "noBattlesAvailable": "No battles available",
+    "createFirstBattleToSee": "Create your first battle to see it here!",
+    "pleaseSelectSport": "Please select a sport",
+    "pleaseSelectDifficulty": "Please select a difficulty level",
+    "battleCreatedSuccessfully": "Battle created successfully! Redirecting to waiting room...",
+    "upTo3ActiveBattles": "You can have up to 3 active battles waiting. Please wait for someone to join or cancel some battles first.",
+    "alreadyHaveBattle": "You already have a",
+    "battleWaiting": "battle waiting. Please wait for someone to join or cancel it first.",
+    "failedToCreateBattle": "Failed to create battle",
+    "pleaseTryAgain": "Please try again",
+    "creatingBattle": "Creating battle...",
+    "refreshing": "Refreshing...",
+    "globalLeaderboard": "Global Leaderboard"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about Head2Head",
+    "whatIsHead2Head": {
+      "question": "What is Head2Head?",
+      "answer": "Head2Head is a real-time sports trivia platform where you can challenge friends and players worldwide to test your sports knowledge. Compete in various battle modes and climb the leaderboards!"
+    },
+    "tournaments": {
+      "question": "When are tournaments held?",
+      "answer": "After 1000 users, we will start holding tournaments. We will announce the date and time of the tournaments on the website."
+    },
+    "isFree": {
+      "question": "Is it free to play?",
+      "answer": "Yes, Head2Head is completely free to play! We offer various features and battle modes at no cost. Premium features may be added in the future."
+    },
+    "mobileApp": {
+      "question": "Does platform have a mobile app?",
+      "answer": "No, we don't have a mobile app yet. But we are working on it and it will be available soon."
+    },
+    "contact": {
+      "question": "How can I contact head2head?",
+      "answer": "You can contact us at support@head2head.com"
+    }
+  },
+  "signIn": {
+    "pageTitle": "Sign In - Head2Head",
+    "title": "Welcome Back",
+    "subtitle": "Sign in to continue your sports journey",
+    "back": "Back",
+    "form": {
+      "emailLabel": "Email Address",
+      "emailPlaceholder": "Enter your email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "forgotPassword": "Forgot password?",
+      "signIn": "Sign In",
+      "signingIn": "Signing In..."
+    },
+    "validation": {
+      "invalidEmail": "Please enter a valid email address"
+    },
+    "errors": {
+      "invalidCredentials": "Invalid email or password. Please check your credentials and try again.",
+      "userNotFound": "User not found. Please check your email or sign up for a new account.",
+      "invalidInput": "Invalid input. Please check your email format and try again.",
+      "serverError": "Server error. Please try again later.",
+      "unexpectedError": "An unexpected error occurred. Please try again.",
+      "networkError": "Network error. Please check your internet connection and try again.",
+      "genericError": "An error occurred. Please try again.",
+      "googleSignInError": "Google sign-in failed. Please try again or use email sign-in.",
+      "googleSignUpError": "Google sign-up failed. Please try again or use email sign-in."
+    },
+    "or": "Or sign in with email",
+    "noAccount": "Don't have an account?",
+    "createAccount": "Sign up now"
+  },
+  "signUp": {
+    "pageTitle": "Sign Up - Head2Head",
+    "title": "Create Your Account",
+    "subtitle": "Join the sports quiz community",
+    "form": {
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "Choose a unique username",
+      "emailLabel": "Email Address",
+      "emailPlaceholder": "Enter your email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Create a strong password",
+      "agreeToTerms": "I agree to the",
+      "termsLink": "Terms of Service",
+      "submit": "Create Account",
+      "alreadyHaveAccount": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "validation": {
+      "invalidEmail": "Please enter a valid email address",
+      "passwordLength": "Password must be at least 8 characters long",
+      "username": {
+        "tooShort": "Username must be at least 3 characters long",
+        "tooLong": "Username must be less than 30 characters",
+        "invalidChars": "Username can only contain letters, numbers, and underscores",
+        "exists": "This username is already taken"
+      }
+    },
+    "errors": {
+      "accountExists": "An account with this email already exists",
+      "usernameExists": "This username is already taken",
+      "fixErrors": "Please fix the errors above",
+      "generic": "Sign up failed. Please try again",
+      "noResponse": "No response from server. Please try again",
+      "unknown": "An error occurred. Please try again"
+    }
+  },
+  "signUpLanding": {
+    "titleStart": "Start Your Sports",
+    "titleEnd": "Battle Journey",
+    "description": "Join over 500,000 sports fans competing in real-time trivia battles. Test your knowledge and climb the leaderboards!",
+    "communityTitle": "Join the ultimate sports trivia community",
+    "createAccount": "Create Your Account",
+    "joinCommunity": "Join thousands of sports trivia fans",
+    "creatingAccount": "Creating your account. Please wait a moment.",
+    "orSignUpEmail": "Or sign up with email",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign in"
+  }
+} 
