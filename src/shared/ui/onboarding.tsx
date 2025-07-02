@@ -21,15 +21,6 @@ interface OnboardingProps {
 
 export default function Onboarding({ steps, onComplete, storageKey, autoStart = true }: OnboardingProps) {
   const { t } = useTranslation();
-  
-  // Early mobile detection - skip onboarding completely for mobile devices
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  
-  // If mobile device, skip onboarding entirely
-  if (isMobile) {
-    return null;
-  }
-
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [targetElement, setTargetElement] = useState<HTMLElement | null>(null);
@@ -37,6 +28,31 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
   const [actualPosition, setActualPosition] = useState<'top' | 'bottom' | 'left' | 'right'>('bottom');
   const [elementRect, setElementRect] = useState<DOMRect | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const [isMobileState, setIsMobileState] = useState(false);
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileState(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Skip onboarding on mobile devices
+  useEffect(() => {
+    if (isMobileState && isActive) {
+      console.log('[Onboarding] Skipping onboarding on mobile device');
+      setIsActive(false);
+      if (storageKey) {
+        localStorage.setItem(storageKey, 'completed');
+      }
+      onComplete?.();
+    }
+  }, [isMobileState, isActive, storageKey, onComplete]);
 
   // Restart function for manual activation
   const restart = () => {
@@ -91,21 +107,15 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
     }
   }, [isActive]);
 
-  // Check if onboarding has been completed and start immediately
+  // Auto-start effect
   useEffect(() => {
-    const hasCompletedOnboarding = localStorage.getItem(storageKey);
-    console.log(`[Onboarding] Checking storage key "${storageKey}":`, hasCompletedOnboarding);
-    console.log(`[Onboarding] AutoStart:`, autoStart);
-    console.log(`[Onboarding] Steps available:`, steps.length);
-    
-    if (!hasCompletedOnboarding && autoStart && steps.length > 0) {
-      console.log(`[Onboarding] Starting onboarding immediately for ${storageKey}`);
-      setIsActive(true);
-      setCurrentStep(0);
-    } else {
-      console.log(`[Onboarding] Skipping onboarding - completed: ${hasCompletedOnboarding}, autoStart: ${autoStart}, steps: ${steps.length}`);
+    if (autoStart && !isMobileState) {
+      const hasCompletedOnboarding = storageKey ? localStorage.getItem(storageKey) === 'completed' : false;
+      if (!hasCompletedOnboarding) {
+        setIsActive(true);
+      }
     }
-  }, [storageKey, autoStart, steps.length]);
+  }, [autoStart, storageKey, isMobileState]);
 
   // Find target element and update position when step changes
   useEffect(() => {
@@ -579,15 +589,21 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
   };
 
   const handleComplete = () => {
-    localStorage.setItem(storageKey, 'completed');
+    console.log('[Onboarding] Onboarding completed');
     setIsActive(false);
-    onComplete();
+    if (storageKey) {
+      localStorage.setItem(storageKey, 'completed');
+    }
+    onComplete?.();
   };
 
   const handleSkip = () => {
-    localStorage.setItem(storageKey, 'skipped');
+    console.log('[Onboarding] Onboarding skipped');
     setIsActive(false);
-    onComplete();
+    if (storageKey) {
+      localStorage.setItem(storageKey, 'completed');
+    }
+    onComplete?.();
   };
 
   if (!isActive || !steps[currentStep] || !targetElement || !elementRect) {
@@ -595,6 +611,8 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
   }
 
   const step = steps[currentStep];
+
+  if (isMobileState) return null;
 
   return (
     <>

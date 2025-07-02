@@ -4,11 +4,6 @@ import { Button } from '../../shared/ui/button'
 import { Badge } from '../../shared/ui/badge'
 import { useTranslation } from 'react-i18next'
 
-const getStats = (t: any) => [
-  { label: t('hero.battlesPlayed'), value: '1.5k+', icon: Zap, trend: '+%' },
-  { label: t('hero.sportsCategories'), value: '8+', icon: Trophy, trend: '+3' }
-];
-
 const getSports = (t: any) => [
   { 
     name: t('sports.football'), 
@@ -85,7 +80,6 @@ export default function Hero() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   
-  const stats = getStats(t);
   const sports = getSports(t);
   const features = getFeatures(t);
   
@@ -150,23 +144,6 @@ export default function Hero() {
 
                 </div>
 
-                {/* Quick Stats */}
-                <div className="flex gap-4 pt-8 justify-center lg:justify-start mx-auto lg:mx-0 max-w-fit lg:max-w-none">
-                  {stats.map((stat, index) => (
-                    <div 
-                      key={stat.label} 
-                      className="stat-card bg-black/40 backdrop-blur-sm border-primary/30 hover:border-primary/60 animate-fade-in shadow-2xl"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <stat.icon className="w-5 h-5 text-primary" />
-                  
-                      </div>
-                      <div className="stat-value text-xl text-white">{stat.value}</div>
-                      <div className="stat-label text-gray-300">{stat.label}</div>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               {/* Right Content - Enhanced Sports Grid */}

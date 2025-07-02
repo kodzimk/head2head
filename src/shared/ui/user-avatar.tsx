@@ -7,7 +7,7 @@ interface UserAvatarProps {
     username: string;
     avatar?: string | null;
   };
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl' | '6xl';
   variant?: 'default' | 'faceit' | 'gaming' | 'competitive';
   status?: 'online' | 'offline' | 'away' | 'busy';
   showBorder?: boolean;
@@ -15,17 +15,20 @@ interface UserAvatarProps {
   className?: string;
   showFallback?: boolean;
   onClick?: () => void;
+  isUploadAvatar?: boolean;
 }
 
 const sizeClasses = {
-  xs: 'h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6',
-  sm: 'h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8',
-  md: 'h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10',
-  lg: 'h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12 lg:h-12 lg:w-12',
-  xl: 'h-12 w-12 sm:h-14 sm:w-14 md:h-16 md:w-16 lg:h-16 lg:w-16',
-  '2xl': 'h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 lg:h-20 lg:w-20',
-  '3xl': 'h-20 w-20 sm:h-24 sm:w-24 md:h-32 md:w-32 lg:h-24 lg:w-24',
-  '4xl': 'h-24 w-24 sm:h-32 sm:w-32 md:h-40 md:w-40 lg:h-32 lg:w-32'
+  xs: 'h-4 w-4',
+  sm: 'h-6 w-6',
+  md: 'h-8 w-8',
+  lg: 'h-10 w-10',
+  xl: 'h-12 w-12',
+  '2xl': 'h-16 w-16',
+  '3xl': 'h-20 w-20',
+  '4xl': 'h-32 w-32',
+  '5xl': 'h-40 w-40',
+  '6xl': 'h-48 w-48'
 };
 
 export const UserAvatar: React.FC<UserAvatarProps> = ({
@@ -37,7 +40,8 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   showGlow = false,
   className = '',
   showFallback = true,
-  onClick
+  onClick,
+  isUploadAvatar = false
 }) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -73,10 +77,10 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   } : undefined;
 
   const wrapperClasses = `
-    ${sizeClasses[size]} 
+    ${isUploadAvatar ? 'w-full h-full' : sizeClasses[size]} 
     ${onClick ? 'cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95' : ''} 
     ${variant === 'faceit' ? 'hover:shadow-lg' : ''}
-    rounded-full overflow-hidden aspect-square
+    rounded-full overflow-hidden aspect-square flex items-center justify-center
     ${className}
   `.trim();
 
@@ -84,10 +88,14 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     <div 
       className={wrapperClasses} 
       onClick={handleClick}
-      style={{ clipPath: 'circle(50%)' }}
+      style={{ 
+        clipPath: 'circle(50%)',
+        overflow: 'hidden',
+        ...(isUploadAvatar ? { width: '100%', height: '100%' } : {})
+      }}
     >
       <Avatar 
-        className="w-full h-full"
+        className="w-full h-full flex items-center justify-center overflow-hidden"
         variant={variant}
         status={status}
         showBorder={showBorder}
@@ -98,10 +106,18 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
             src={avatarUrl}
             alt={user.username}
             username={user.username}
+            className="w-full h-full object-cover"
+            style={{
+              objectFit: 'cover',
+              objectPosition: 'center',
+              width: '100%',
+              height: '100%',
+              ...(isUploadAvatar ? { minWidth: '100%', minHeight: '100%' } : {})
+            }}
           />
         ) : null}
         {showFallback && (
-          <AvatarFallback username={user.username} variant={variant} />
+          <AvatarFallback username={user.username} variant={variant} className="w-full h-full flex items-center justify-center" />
         )}
       </Avatar>
     </div>

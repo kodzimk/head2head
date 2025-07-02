@@ -38,6 +38,38 @@ const CHAR_MAP: Record<string, string> = {
   'Ù': 'U', 'Ú': 'U', 'Û': 'U', 'Ý': 'Y'
 };
 
+// List of proper name components
+const PROPER_NAME_PREFIXES = [
+  'star', 'sky', 'sun', 'moon', 'wind', 'fire', 'ice', 'storm', 'rain', 'snow',
+  'leaf', 'wave', 'rock', 'sand', 'cloud', 'mist', 'dawn', 'dusk', 'night', 'day'
+];
+
+const PROPER_NAME_SUFFIXES = [
+  'rider', 'runner', 'walker', 'hunter', 'seeker', 'finder', 'keeper', 'master',
+  'chaser', 'racer', 'jumper', 'dancer', 'player', 'guard', 'scout', 'guide'
+];
+
+/**
+ * Generates a random proper name between 4 and 8 characters
+ */
+export function generateProperName(): string {
+  // Get random prefix and suffix
+  const prefix = PROPER_NAME_PREFIXES[Math.floor(Math.random() * PROPER_NAME_PREFIXES.length)];
+  const suffix = PROPER_NAME_SUFFIXES[Math.floor(Math.random() * PROPER_NAME_SUFFIXES.length)];
+  
+  // Combine and ensure length is between 4 and 8
+  let name = prefix + suffix;
+  if (name.length > 8) {
+    // If too long, take first 4 chars of prefix and first 4 chars of suffix
+    name = prefix.substring(0, 4) + suffix.substring(0, 4);
+  } else if (name.length < 4) {
+    // If too short (unlikely with our word lists), add random number
+    name += Math.floor(Math.random() * 100);
+  }
+  
+  return name;
+}
+
 /**
  * Normalizes a name by converting non-ASCII characters to ASCII equivalents
  */
@@ -54,8 +86,9 @@ export function normalizeToAscii(input: string): string {
  * Generates a clean username from a display name
  */
 export function generateUsername(displayName: string): string {
-  if (!displayName || displayName.trim().length === 0) {
-    return `user${Math.floor(Math.random() * 10000)}`;
+  if (!displayName || displayName.trim().length === 0 || displayName.includes('@')) {
+    // If empty, email address, or invalid, generate a proper name
+    return generateProperName();
   }
 
   // Step 1: Normalize to ASCII
@@ -63,14 +96,14 @@ export function generateUsername(displayName: string): string {
   
   // Step 2: Handle empty result
   if (!normalized || normalized.length === 0) {
-    return `user${Math.floor(Math.random() * 10000)}`;
+    return generateProperName();
   }
 
   // Step 3: Split into words and process
   const words = normalized.toLowerCase().split(/\s+/).filter(word => word.length > 0);
   
   if (words.length === 0) {
-    return `user${Math.floor(Math.random() * 10000)}`;
+    return generateProperName();
   }
 
   let username = '';

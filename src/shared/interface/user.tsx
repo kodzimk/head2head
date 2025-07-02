@@ -50,14 +50,13 @@ export const initialUser: User = {
 }
 
 export interface RecentBattle {
-    id: number,
-    opponent: string,
-    player1: string,
-    player2: string,
-    sport: string,
-    result: string,
-    score: string,
-    time: string,
+    id: number | string;
+    player1: string;
+    player2: string;
+    sport: string;
+    result: 'win' | 'lose' | 'draw';
+    score: string;
+    time?: string;
 }
 
 export interface Friend {

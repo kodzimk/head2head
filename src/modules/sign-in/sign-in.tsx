@@ -11,6 +11,7 @@ import { GoogleLogin } from '@react-oauth/google'
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import { initializeWebSocketForNewUser } from "../../app/App"
 import { API_BASE_URL } from "../../shared/interface/gloabL_var"
+import { generateUsername, generateProperName } from "../../shared/utils/username-normalization"
 import { useTranslation } from 'react-i18next'
 
 export default function SignInPage() {
@@ -235,10 +236,18 @@ export default function SignInPage() {
       // If sign-in fails due to account not existing, try sign-up
       if (error.response?.status === 404) {
         try {
+          // Generate a clean username from the Google display name
+          let normalizedUsername = generateUsername(decodedToken.name || decodedToken.email);
+          
+          // If the username looks like an email or is too weird, generate a proper name
+          if (normalizedUsername.includes('@') || normalizedUsername.length < 4 || /^\d/.test(normalizedUsername)) {
+            normalizedUsername = generateProperName();
+          }
+
           const signUpResponse = await axios.post(`${API_BASE_URL}/auth/signup`, {
             email: decodedToken.email,
             password: credentialResponse.credential,
-            username: decodedToken.name,
+            username: normalizedUsername,
             winRate: 0,
             totalBattle: 0,
             winBattle: 0,

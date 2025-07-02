@@ -109,9 +109,15 @@ const AvatarImage = React.forwardRef<
   return (
     <AvatarPrimitive.Image
       ref={ref}
-      className={`aspect-square h-full w-full object-cover object-center rounded-full ${className}`}
+      className={`aspect-square h-full w-full object-cover rounded-full ${className}`}
       src={finalAvatarUrl || undefined}
-      style={{ clipPath: 'circle(50%)' }}
+      style={{ 
+        clipPath: 'circle(50%)',
+        objectFit: 'cover',
+        objectPosition: 'center center',
+        width: '100%',
+        height: '100%'
+      }}
       {...props}
     />
   )
@@ -198,7 +204,7 @@ const AvatarFallback = React.forwardRef<
 
     const pattern = generatePatternFromUsername(username);
     
-    const baseClasses = "flex h-full w-full items-center justify-center rounded-full font-bold text-lg tracking-wide";
+    const baseClasses = "flex h-full w-full items-center justify-center rounded-full font-bold text-2xl tracking-wide";
     
     switch (variant) {
       case "faceit":
@@ -206,7 +212,7 @@ const AvatarFallback = React.forwardRef<
       case "gaming":
         return `${baseClasses} ${pattern} shadow-xl border-2 border-white/30 animate-pulse`;
       case "competitive":
-        return `${baseClasses} ${pattern} shadow-2xl border-3 border-white/40 font-extrabold text-xl tracking-wider`;
+        return `${baseClasses} ${pattern} shadow-2xl border-3 border-white/40 font-extrabold text-3xl tracking-wider`;
       default:
         return `${baseClasses} ${pattern}`;
     }
@@ -221,25 +227,30 @@ const AvatarFallback = React.forwardRef<
     return {
       background: `linear-gradient(135deg, ${colors.from} 0%, ${colors.to} 100%)`,
       color: colors.text,
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     };
   };
 
   return (
     <AvatarPrimitive.Fallback
       ref={ref}
-      className={`aspect-square ${getEnhancedVariantClasses()} ${className}`}
+      className={`w-full h-full ${getEnhancedVariantClasses()} ${className}`}
       style={{ 
         clipPath: 'circle(50%)',
         ...getInlineStyles()
       }}
       {...props}
     >
-      <span className="relative z-10 drop-shadow-sm">
+      <span className="relative z-10 drop-shadow-sm flex items-center justify-center w-full h-full text-[length:min(6vw,2.5rem)]">
         {getInitials(username)}
       </span>
       {/* Optional decorative pattern overlay */}
       <div 
-        className="absolute inset-0 opacity-10"
+        className="absolute inset-0 opacity-10 w-full h-full"
         style={{
           clipPath: 'circle(50%)',
           background: `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3) 2px, transparent 2px),

@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from './alert';
 import axios from 'axios';
 import { API_BASE_URL } from '../interface/gloabL_var';
 import AvatarStorage from '../utils/avatar-storage';
-import { UserAvatar } from './user-avatar';
+import { UploadAvatar } from './upload-avatar';
 import { useTranslation } from 'react-i18next';
 
 interface AvatarUploadProps {
@@ -25,12 +25,21 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
   onAvatarUpdate,
   className = ''
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Force language reload on mount
+  useEffect(() => {
+    const currentLang = i18n.language;
+    i18n.reloadResources(currentLang).then(() => {
+      console.log('Language resources reloaded:', currentLang);
+      console.log('Translation key after reload:', t('profile.avatar.button.change'));
+    });
+  }, []);
 
   // Load current avatar asynchronously
   useEffect(() => {
@@ -46,11 +55,11 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
   const validateFile = (file: File): string | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return t('profile.settings.avatar.errors.invalid_type');
+      return t('profile.settings.profile.avatar.errors.invalid_type');
     }
     
     if (file.size > MAX_FILE_SIZE) {
-      return t('profile.settings.avatar.errors.too_large');
+      return t('profile.settings.profile.avatar.errors.too_large');
     }
     
     return null;
@@ -145,27 +154,24 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
   const displayAvatarUrl = previewUrl || currentAvatarUrl;
 
   return (
-    <div className={`flex flex-col items-center space-y-4 ${className}`}>
-      {/* Enhanced Avatar Display using UserAvatar component */}
+    <div className={`flex flex-col items-center space-y-4 sm:space-y-6 ${className}`}>
+      {/* Enhanced Avatar Display using specialized UploadAvatar component */}
       <div className="relative">
-        <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:w-32">
-          <UserAvatar
-            user={{ 
-              username: user.username, 
-              avatar: displayAvatarUrl || user.avatar 
-            }}
-            size="4xl"
-            variant="default"
-            showBorder={true}
-            className="border-4 border-orange-500/20 shadow-lg"
-            aria-label={t('profile.settings.avatar.aria.current_avatar')}
-          />
-        </div>
+        <UploadAvatar
+          user={{ 
+            username: user.username, 
+            avatar: displayAvatarUrl || user.avatar 
+          }}
+          size="xl"
+          showBorder={true}
+          showGlow={true}
+          className="shadow-lg sm:shadow-xl md:shadow-2xl"
+        />
         
         {/* Loading overlay */}
         {isUploading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full">
-            <Loader2 className="w-8 h-8 text-white animate-spin" />
+            <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white animate-spin" />
           </div>
         )}
       </div>
@@ -176,18 +182,22 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
         disabled={isUploading}
         variant="outline"
         size="sm"
-        className="bg-white hover:bg-gray-50 border-2 border-orange-500 text-orange-600 hover:text-orange-700 px-4 py-2 rounded-lg transition-all duration-200"
-        aria-label={t('profile.settings.avatar.aria.upload_button')}
+        className="w-full max-w-[160px] sm:max-w-[180px] md:max-w-[200px] 
+                 bg-white/90 hover:bg-white dark:bg-gray-800 dark:hover:bg-gray-700 
+                 border-2 border-orange-500 text-orange-600 hover:text-orange-700 
+                 px-4 sm:px-5 md:px-6 py-1.5 sm:py-2 
+                 rounded-lg transition-all duration-200 shadow-sm hover:scale-105
+                 text-sm sm:text-base"
       >
         {isUploading ? (
           <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            {t('profile.settings.avatar.button.uploading')}
+            <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 animate-spin" />
+            {t('profile.settings.profile.avatar.button.uploading')}
           </>
         ) : (
           <>
-            <Camera className="w-4 h-4 mr-2" />
-            {t('profile.settings.avatar.button.change')}
+            <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+            {t('profile.settings.profile.avatar.button.change')}
           </>
         )}
       </Button>
@@ -200,19 +210,19 @@ export const AvatarUpload: React.FC<AvatarUploadProps> = ({
         className="hidden"
         onChange={handleFileSelect}
         disabled={isUploading}
-        aria-label={t('profile.settings.avatar.aria.upload_button')}
+        aria-label={t('profile.settings.profile.avatar.button.change')}
       />
 
       {/* Error Messages */}
       {error && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+        <Alert variant="destructive" className="mt-3 sm:mt-4">
+          <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <AlertDescription className="text-sm sm:text-base">{error}</AlertDescription>
         </Alert>
       )}
 
       {/* Upload Info */}
-      <div className="text-xs text-gray-500 text-center max-w-xs">
+      <div className="text-xs sm:text-sm text-gray-500 text-center max-w-[280px] sm:max-w-[320px]">
         <p>Max 5MB • JPEG, PNG, WebP</p>
       </div>
     </div>

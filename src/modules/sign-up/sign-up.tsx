@@ -8,7 +8,7 @@ import { useGlobalStore } from "../../shared/interface/gloabL_var";
 import { initializeWebSocketForNewUser } from "../../app/App";
 import { useState } from "react";
 import { API_BASE_URL } from "../../shared/interface/gloabL_var";
-import { generateUsername } from "../../shared/utils/username-normalization";
+import { generateUsername, generateProperName } from "../../shared/utils/username-normalization";
 import { useTranslation } from "react-i18next";
 
 export default function SignUpPage() {
@@ -45,7 +45,12 @@ export default function SignUpPage() {
     }
     
     // Generate a clean username from the Google display name
-    const normalizedUsername = generateUsername(decodedToken.name || decodedToken.email);
+    let normalizedUsername = generateUsername(decodedToken.name || decodedToken.email);
+    
+    // If the username looks like an email or is too weird, generate a proper name
+    if (normalizedUsername.includes('@') || normalizedUsername.length < 4 || /^\d/.test(normalizedUsername)) {
+      normalizedUsername = generateProperName();
+    }
     
     // Try sign-up, if fails, try sign-in
     try {

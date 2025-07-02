@@ -143,32 +143,50 @@
     },
     "onboarding": {
       "welcome": {
-        "title": "Welcome to Head2Head! 🎮",
-        "description": "This is your gaming command center! Here you can track stats, start battles, and manage your competitive journey. Let's explore the key features together."
+        "title": "Welcome to Head2Head!",
+        "description": "This is your personal dashboard where you can track your progress, view stats, and find new battles.",
+        "mobile": {
+          "description": "Welcome to your mobile dashboard! Here you can track your progress and find new battles on the go."
+        }
       },
       "userAvatar": {
-        "title": "Your Player Hub 👤",
-        "description": "Click your avatar to access profile settings and notifications. The red dot shows new friend requests or battle invitations waiting for you."
+        "title": "Your Profile",
+        "description": "Click your avatar to access your profile settings, notifications, and account preferences.",
+        "mobile": {
+          "description": "Tap your avatar to access your profile settings and notifications."
+        }
       },
       "navigation": {
         "title": "Navigate Like a Pro 🧭",
         "description": "Access all platform sections: Dashboard (home), Battles (compete), Leaderboard (rankings), Selection (find opponents), and Trainings (practice)."
       },
       "statsGrid": {
-        "title": "Track Your Progress 📊",
-        "description": "Monitor your performance at a glance: global rank, total wins, battles played, and draws. These update automatically as you compete."
+        "title": "Your Stats Overview",
+        "description": "Here you can see your key performance metrics, including wins, losses, and win rate.",
+        "mobile": {
+          "description": "Track your performance with key stats like wins, losses, and win rate."
+        }
       },
       "battleStatsBreakdown": {
-        "title": "Battle Statistics Breakdown 🏆",
-        "description": "Get a comprehensive overview of your battle performance! See your wins, draws, losses, and current streak with percentages. This visual breakdown helps you track your competitive progress at a glance."
+        "title": "Battle Statistics",
+        "description": "Dive deep into your battle performance with detailed statistics and trends.",
+        "mobile": {
+          "description": "View your battle performance stats and trends at a glance."
+        }
       },
       "overviewProfile": {
-        "title": "Your Profile Card 🏷️",
-        "description": "View detailed stats including rank, wins, and favorite sport. Click 'Edit Profile' to customize your gaming identity."
+        "title": "Profile Overview",
+        "description": "Your public profile shows your achievements and ranking to other players.",
+        "mobile": {
+          "description": "Your public profile displays your achievements and ranking."
+        }
       },
       "recentBattles": {
-        "title": "Battle History 📜",
-        "description": "See your recent matches with opponents, sports, results, and scores. Start your first battle to populate this section!"
+        "title": "Recent Battles",
+        "description": "Review your latest battles, scores, and opponents.",
+        "mobile": {
+          "description": "Check out your latest battles and scores."
+        }
       },
       "battleHistoryContent": {
         "title": "Your Battle History ⚔️",
@@ -201,7 +219,14 @@
     "rank": "Rank",
     "viewProfile": "View Profile",
     "friendActivity": "Friend Activity",
-    "comingSoon": "Coming Soon!"
+    "comingSoon": "Coming Soon!",
+    "header": {
+      "notifications": "Notifications",
+      "profile": "Profile",
+      "settings": "Settings",
+      "logout": "Logout",
+      "restartTutorial": "Restart Tutorial"
+    }
   },
   "battles": {
     "createBattle": "Create Battle",
@@ -378,11 +403,17 @@
             "confirm_button": "Confirm Reset"
           },
           "delete": {
-            "title": "Delete My Account",
-            "description": "This will permanently remove your account and all associated data",
+            "title": "Delete Account",
+            "description": "Once you delete your account, there is no going back. Please be certain.",
+            "enter_username": "Enter your username to confirm",
             "button": "Delete Account",
-            "confirm_button": "Confirm Delete",
-            "enter_username": "Enter your username to confirm"
+            "confirm_button": "Yes, Delete My Account",
+            "cancel_button": "No, Keep My Account",
+            "confirmation_title": "Are you absolutely sure?",
+            "confirmation_description": "This action cannot be undone. This will permanently delete your account and remove your data from our servers.",
+            "username_mismatch": "Username doesn't match",
+            "type_confirmation": "Please type \"{{username}}\" to confirm",
+            "final_warning": "You're about to delete your account"
           }
         },
         "personal": {
@@ -396,8 +427,21 @@
         "username": "Username",
         "nickname": "Nickname",
         "favoriteSport": "Favorite Sport",
-        "avatar": "Avatar",
-        "avatarUpdated": "Avatar updated successfully",
+        "avatar": {
+          "button": {
+            "change": "Change Photo",
+            "uploading": "Uploading..."
+          },
+          "errors": {
+            "invalid_type": "Invalid file type. Please use JPG, PNG or WebP",
+            "too_large": "File is too large. Maximum size is 5MB"
+          },
+          "success": "Avatar updated successfully",
+          "aria": {
+            "current_avatar": "Current avatar",
+            "upload_button": "Upload new avatar"
+          }
+        },
         "errors": {
           "usernameEmpty": "Username cannot be empty",
           "usernameShort": "Username must be at least 3 characters long",
@@ -462,22 +506,6 @@
           "reset_error": "Failed to reset statistics: {{error}}",
           "delete_success": "Account deleted successfully",
           "delete_error": "Failed to delete account: {{error}}"
-        },
-        "avatar": {
-          "button": {
-            "change": "Change Avatar",
-            "uploading": "Uploading..."
-          },
-          "errors": {
-            "invalid_type": "Please select a valid image file (JPEG, PNG, or WebP)",
-            "too_large": "File size must be less than 5MB",
-            "upload_failed": "Failed to save avatar. Please try again."
-          },
-          "success": "Avatar updated successfully",
-          "aria": {
-            "upload_button": "Upload new avatar",
-            "current_avatar": "Current profile picture"
-          }
         }
       },
       "account": {

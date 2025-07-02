@@ -45,6 +45,7 @@ export default function ProfileSettingsPage() {
   const [resetType] = useState('all')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (user?.favoritesSport) {
@@ -213,8 +214,6 @@ export default function ProfileSettingsPage() {
     }
   }
 
-
-
   const handleDelete = async () => {
     if (!showDeleteConfirm) {
       setShowDeleteConfirm(true)
@@ -222,16 +221,21 @@ export default function ProfileSettingsPage() {
     }
 
     if (deleteConfirmText !== user.username) {
+      setMessage(t('profile.settings.profile.account.delete.username_mismatch'))
+      setMessageType('error')
       return
     }
 
     try {
+      setIsDeleting(true)
       await deleteUser()
       localStorage.clear()
       navigate('/sign-in')
     } catch (error) {
       console.error('Failed to delete account:', error)
       setError(t('common.error'))
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -277,7 +281,7 @@ export default function ProfileSettingsPage() {
                     </p>
                   </div>
                   
-                  <div className="flex flex-col items-center p-4 sm:p-6 bg-card/30 border border-border/30 rounded-lg">
+                  <div className="flex flex-col items-center p-4 sm:p-6 ">
                     <div className="flex flex-col items-center text-center">
                       <div className="relative mb-4">
                         <AvatarUpload
@@ -447,23 +451,67 @@ export default function ProfileSettingsPage() {
                     <p className="text-sm text-muted-foreground">{t('profile.settings.profile.account.delete.description')}</p>
                     
                     {showDeleteConfirm && (
-                      <div className="space-y-2">
-                        <Label>{t('profile.settings.profile.account.delete.enter_username')}</Label>
-                        <Input
-                          value={deleteConfirmText}
-                          onChange={(e) => setDeleteConfirmText(e.target.value)}
-                          className="bg-card/50 border-border/50"
-                        />
+                      <div className="space-y-4 mt-4 p-4 border border-destructive/50 rounded-lg bg-destructive/5">
+                        <div className="space-y-2">
+                          <h5 className="text-base font-medium text-destructive">
+                            {t('profile.settings.profile.account.delete.confirmation_title')}
+                          </h5>
+                          <p className="text-sm text-muted-foreground">
+                            {t('profile.settings.profile.account.delete.confirmation_description')}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-destructive">
+                            {t('profile.settings.profile.account.delete.type_confirmation', { username: user.username })}
+                          </Label>
+                          <Input
+                            value={deleteConfirmText}
+                            onChange={(e) => setDeleteConfirmText(e.target.value)}
+                            className="bg-card/50 border-destructive/50 focus:border-destructive focus:ring-destructive/20"
+                            placeholder={user.username}
+                          />
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setShowDeleteConfirm(false);
+                              setDeleteConfirmText('');
+                            }}
+                            className="w-full sm:w-auto"
+                          >
+                            {t('profile.settings.profile.account.delete.cancel_button')}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={handleDelete}
+                            disabled={deleteConfirmText !== user.username || isDeleting}
+                            className="w-full sm:w-auto"
+                          >
+                            {isDeleting ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                {t('common.loading')}
+                              </>
+                            ) : (
+                              t('profile.settings.profile.account.delete.confirm_button')
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     )}
 
-                    <Button
-                      variant="destructive"
-                      onClick={handleDelete}
-                      disabled={showDeleteConfirm && deleteConfirmText !== user.username}
-                    >
-                      {showDeleteConfirm ? t('profile.settings.profile.account.delete.confirm_button') : t('profile.settings.profile.account.delete.button')}
-                    </Button>
+                    {!showDeleteConfirm && (
+                      <Button
+                        variant="destructive"
+                        onClick={handleDelete}
+                        className="mt-2"
+                      >
+                        {t('profile.settings.profile.account.delete.button')}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>

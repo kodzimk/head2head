@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {  Settings, Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home, Bell } from 'lucide-react';
+import {  Settings, Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home, Bell, HelpCircle } from 'lucide-react';
 import { Button } from '../../shared/ui/button';
 import { 
   DropdownMenu,
@@ -13,7 +13,6 @@ import {
 import { UserAvatar } from '../../shared/ui/user-avatar';
 import { LanguageFlag } from '../../shared/ui/language-switcher';
 import { useGlobalStore } from '../../shared/interface/gloabL_var';
-
 
 
 export default function Header() {
@@ -38,6 +37,17 @@ export default function Header() {
 
   const notificationCount = (user?.friendRequests?.length || 0) + (user?.invitations?.length || 0);
 
+  const handleRestartOnboarding = () => {
+    // Clear the onboarding completion flag to trigger restart
+    localStorage.removeItem('head2head-dashboard-onboarding');
+    
+    // Set the isNewUser flag to trigger onboarding
+    localStorage.setItem('isNewUser', 'true');
+    
+    // Reload the page to restart onboarding
+    window.location.reload();
+  };
+
   return (
     <header className={`header-gaming transition-all duration-300 ${
       isScrolled ? 'bg-background/90 shadow-gaming' : 'bg-background/80'
@@ -51,7 +61,7 @@ export default function Header() {
                         alt={'Logo'}
                         className="w-10 h-10 sm:w-11 sm:h-11 md:w-12 md:h-10 rounded-full  border-primary/50 shadow-xl"
                       />
-                      <h1 className="text-2xl font-bold">head2head</h1>
+                      <h1 className="text-2xl font-bold hidden md:block">head2head</h1>
           </div>
           {/* Desktop Navigation */}
           <nav 
@@ -95,6 +105,17 @@ export default function Header() {
 
             {/* Language Switcher */}
             <LanguageFlag className="transition-transform hover:scale-110" />
+
+            {/* Onboarding Test Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              onClick={handleRestartOnboarding}
+            >
+              <HelpCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">{t('dashboard.header.restartTutorial')}</span>
+            </Button>
 
             {/* User Menu */}
             {user && (
