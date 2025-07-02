@@ -216,7 +216,7 @@ export default function FriendsPage({user}: {user: User}) {
                       <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
-                          onClick={() => navigate(`/profile/${item.username}`)}
+                          onClick={() => navigate(`/view-profile/${item.username}`)}
                           className="text-sm"
                         >
                           {t('friends.list.view_profile')}
