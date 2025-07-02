@@ -30,7 +30,6 @@ import BattleResultPage from '../modules/battle/result'
 import NotFoundPage from '../modules/entry-page/not-found'
 import { WS_BASE_URL } from "../shared/interface/gloabL_var";
 import AvatarStorage from '../shared/utils/avatar-storage';
-import { setUserLanguage } from '../shared/i18n/i18n';
 import { LanguageLoadingIndicator } from '../shared/ui/language-loading';
 
 export let newSocket: WebSocket | null = null;
@@ -130,33 +129,24 @@ export default function App() {
     setOpponentAvatar(avatar);
   };
 
-  // Initialize language from localStorage
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem("language");
-    if (savedLanguage && ['en', 'ru'].includes(savedLanguage)) {
-      i18n.changeLanguage(savedLanguage);
-    } else {
-      localStorage.setItem("language", i18n.language);
-    }
-  }, [i18n]);
 
-  // Handle language changes
+  // Handle language changes for logged-in users
   useEffect(() => {
     const handleLanguageChange = (lng: string) => {
-      localStorage.setItem("language", lng);
-      if (user && user.username) {
-        const updatedUser = { ...user, preferredLanguage: lng };
+      if (user && user.username && lng !== user.language) {
+        // Update user's language preference
+        const updatedUser = { ...user, language: lng };
         setUser(updatedUser);
         localStorage.setItem('user', JSON.stringify(updatedUser));
       }
     };
 
     i18n.on('languageChanged', handleLanguageChange);
-
     return () => {
       i18n.off('languageChanged', handleLanguageChange);
     };
   }, [i18n, user, setUser]);
+
 
   // Handle manual page reload
   useEffect(() => {
@@ -192,49 +182,6 @@ export default function App() {
       console.log("Initial websocket connection for existing user");
       isInitialConnection = true; // Set flag for initial connection
       newSocket = createWebSocket(username);
-    }
-  }, []);
-
-  // Set user's language preference when user data changes
-  useEffect(() => {
-    if (user && user.username && user.language && ['en', 'ru'].includes(user.language)) {
-      console.log(`Setting user language preference: ${user.language}`);
-      setUserLanguage(user);
-    }
-  }, [user.username, user.language]);
-
-  // Load user data from localStorage on app start
-  useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem('user');
-      if (savedUser) {
-        const parsedUser: User = JSON.parse(savedUser);
-        if (parsedUser.username) {
-          setUser(parsedUser);
-          
-          // Set language based on priority:
-          // 1. User's preferred language
-          // 2. Language from localStorage
-          // 3. Current i18n language
-          const languageToUse = parsedUser.language || 
-                               localStorage.getItem("language") || 
-                               i18n.language;
-          
-          if (languageToUse) {
-            i18n.changeLanguage(languageToUse);
-            localStorage.setItem("language", languageToUse);
-            
-            // Update user's preferred language if it's different
-            if (parsedUser.language !== languageToUse) {
-              const updatedUser = { ...parsedUser, language: languageToUse };
-              setUser(updatedUser);
-              localStorage.setItem('user', JSON.stringify(updatedUser));
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('Error loading user from localStorage:', error);
     }
   }, []);
 
@@ -495,7 +442,7 @@ export default function App() {
   useEffect(() => {
     // Clean up any base64 avatar data in user localStorage on app start
     AvatarStorage.cleanupUserStorageData();
-    localStorage.clear();
+   
     // ... existing initialization code ...
   }, []);
 
@@ -528,7 +475,7 @@ export default function App() {
                             <Route path="/:username/trainings" element={<TrainingsPage />} />
                             <Route path="/:username/notifications" element={<NotificationsPage />} />
                             <Route path="/:username/all-battles" element={<AllBattlesPage />} />
-                            <Route path="/:id/quiz-question" element={<QuizQuestionPage />} />
+                            <Route path="/:id/quiz" element={<QuizQuestionPage />} />
                             <Route path="/:id/countdown" element={<BattleCountdown />} />
                             <Route path="/:id/battle-result" element={<BattleResultPage user={user} />} />
                             <Route path="*" element={<NotFoundPage />} />

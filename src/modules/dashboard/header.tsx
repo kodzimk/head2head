@@ -189,9 +189,16 @@ export default function Header() {
                     <DropdownMenuSeparator className="bg-border/50" />
                   </div>
 
-                  <DropdownMenuItem onClick={() => navigate(`/${user.username}/notifications`)} className="hover:bg-card/50 py-2 sm:py-3">
+                  <DropdownMenuItem onClick={() => navigate(`/${user.username}/notifications`)} className="hover:bg-card/50 py-2 sm:py-3 relative">
                     <Bell className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-sm sm:text-base">{t('navigation.notifications')}</span>
+                    {notificationCount > 0 && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 min-w-[20px] h-[20px] bg-red-500 rounded-full flex items-center justify-center shadow-sm">
+                        <span className="text-[10px] font-bold text-white leading-none px-1">
+                          {notificationCount > 99 ? '99+' : notificationCount}
+                        </span>
+                      </div>
+                    )}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(`/${user.username}/profile`)} className="hover:bg-card/50 py-2 sm:py-3">
                     <Settings className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />

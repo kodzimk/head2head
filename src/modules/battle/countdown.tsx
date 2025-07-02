@@ -44,13 +44,13 @@ export default function BattleCountdown() {
   useEffect(() => {
     if (countdownFinished && currentQuestion) {
       console.log("Navigating to quiz page for battle", id);
-      navigate(`/battle/${id}/quiz`);
+      navigate(`/${id}/quiz`);
     }
     // Fallback: if countdown finished but currentQuestion is not set after 2 seconds, force navigation
     if (countdownFinished && !currentQuestion) {
       const timer = setTimeout(() => {
         console.warn("Forcing navigation to quiz page due to missing currentQuestion", id);
-        navigate(`/battle/${id}/quiz`);
+        navigate(`/${id}/quiz`);
       }, 2000);
       return () => clearTimeout(timer);
     }

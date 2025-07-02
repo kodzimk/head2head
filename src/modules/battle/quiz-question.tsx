@@ -11,14 +11,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCurrentQuestionStore, useGlobalStore, useScoreStore, useTextStore, useWinnerStore, useLoserStore, useResultStore, useOpponentStore } from '../../shared/interface/gloabL_var';
 import { BattleWebSocket } from '../../shared/websockets/battle-websocket';
 import type { Question } from '../../shared/interface/question';
-import axios from 'axios';
-import { API_BASE_URL } from '../../shared/interface/gloabL_var';
-import { useTranslation } from 'react-i18next';
 
 const QUESTION_TIME_LIMIT = 10; // 10 seconds per question
 
 export default function QuizQuestionPage() {
-  const { t } = useTranslation();
   const { id } = useParams() as { id: string };
   const { user, setUser } = useGlobalStore();  
   const { setCurrentQuestion, currentQuestion } = useCurrentQuestionStore();
@@ -27,7 +23,7 @@ export default function QuizQuestionPage() {
   const { setWinner } = useWinnerStore();
   const { setLoser } = useLoserStore();
   const { setResult } = useResultStore();
-  const { setOpponent } = useOpponentStore();
+  const { opponentUsername, setOpponentUsername, setOpponentAvatar } = useOpponentStore();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
@@ -44,27 +40,6 @@ export default function QuizQuestionPage() {
   const wsRef = useRef<BattleWebSocket | null>(null);
   const questionsRef = useRef<any[]>([]); // Use ref to avoid stale closure
   const currentIndexRef = useRef<number>(0); // Track current index in ref
-  const opponentDataFetched = useRef<boolean>(false); // Track if opponent data was already fetched
-
-  // Function to fetch and set opponent data
-  const fetchOpponentData = async (opponentUsername: string) => {
-    if (opponentDataFetched.current || !opponentUsername) return;
-    
-    try {
-      console.log('[BATTLE_WS] Fetching opponent data for:', opponentUsername);
-      const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${opponentUsername}`);
-      const opponentAvatar = response.data.avatar || '';
-      
-      setOpponent(opponentUsername, opponentAvatar);
-      opponentDataFetched.current = true;
-      console.log('[BATTLE_WS] Opponent data set:', opponentUsername, opponentAvatar);
-    } catch (error) {
-      console.error('[BATTLE_WS] Error fetching opponent data:', error);
-      // Set opponent with username only if fetch fails
-      setOpponent(opponentUsername, '');
-      opponentDataFetched.current = true;
-    }
-  };
 
   // Motivational messages array
   const motivationalMessages = {
@@ -172,52 +147,11 @@ export default function QuizQuestionPage() {
       }
       
       if (data.type === 'quiz_ready') {
-        if (!data.questions || data.questions.length === 0) {
-          console.error('[Quiz] No questions received from server!');
-          alert('No questions received from server. Please try again.');
-          return;
-        }
-        setQuestions(data.questions);
-        questionsRef.current = data.questions; // Store in ref
-        setCurrentIndex(0);
-        currentIndexRef.current = 0; // Set ref immediately
-        setCurrentQuestion(data.questions[0]);
-        setSelected(null);
-        setShowNextQuestion(false);
-        setNextQuestionCountdown(7);
-        setMotivationalMessage(getRandomMotivationalMessage());
-        setTimeLeft(QUESTION_TIME_LIMIT);
-        setUserFinishedAllQuestions(false); // Reset when quiz starts
+        handleQuizReady(data);
       }
       
       if (data.type === 'answer_submitted') {
-        console.log('[BATTLE_WS] Answer submitted:', data);
-        
-        // Update scores
-        if (data.scores) {
-          setFirstOpponentScore(data.scores[user.username] || 0);
-          const opponentUsername = Object.keys(data.scores).find(name => name !== user.username);
-          setSecondOpponentScore(opponentUsername ? data.scores[opponentUsername] : 0);
-          
-          // Fetch opponent data when first determined
-          if (opponentUsername) {
-            fetchOpponentData(opponentUsername);
-          }
-        }
-        
-        // Check if this was the last question
-        const currentQuestionIndex = currentIndexRef.current;
-        if (currentQuestionIndex >= questionsRef.current.length - 1) {
-          setUserFinishedAllQuestions(true);
-          console.log('[BATTLE_WS] User finished all questions');
-        }
-        
-        // Start 3-second countdown for next question
-        if (data.start_countdown) {
-          setShowNextQuestion(true);
-          setNextQuestionCountdown(3);
-          setMotivationalMessage(getRandomMotivationalMessage());
-        }
+        handleAnswerSubmitted(data);
       }
       
       if (data.type === 'opponent_answered') {
@@ -286,6 +220,180 @@ export default function QuizQuestionPage() {
       }
       
       if (data.type === 'battle_finished') {
+        handleBattleFinished(data);
+      }
+    };
+    
+    ws.onMessage(handleMessage);
+    
+    return () => {
+      console.log('[BATTLE_WS] Cleaning up WebSocket connection');
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      // Clean up battle finished state
+      setBattleFinished(false);
+    };
+    // eslint-disable-next-line
+  }, [id, user.username]);
+
+  // Timer effect - only for auto-submission if no answer selected
+  useEffect(() => {
+    if (!currentQuestion || showNextQuestion || battleFinished || answerSubmitted) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          // Time's up - auto-submit first answer if no answer selected
+          if (!selected) {
+            handleAnswerSubmit('');
+          }
+          return QUESTION_TIME_LIMIT;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [currentQuestion, showNextQuestion, selected, battleFinished, answerSubmitted]);
+
+  // Countdown to next question
+  useEffect(() => {
+    if (!showNextQuestion || nextQuestionCountdown <= 0 || battleFinished) {
+      return;
+    }
+
+    const countdownTimer = setInterval(() => {
+      setNextQuestionCountdown((prev) => {
+        if (prev <= 1) {
+          setShowNextQuestion(false);
+          setMotivationalMessage('');
+          setAnswerSubmitted(false);
+          // Automatically advance to next question
+          advanceToNextQuestion();
+          return 0;
+        }
+        // Change motivational message every second
+        setMotivationalMessage(getRandomMotivationalMessage());
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownTimer);
+  }, [showNextQuestion, nextQuestionCountdown, battleFinished]);
+
+  const handleSelect = (label: string) => {
+    if (battleFinished || answerSubmitted) {
+      return;
+    }
+    
+    if (selected === label) {
+      setSelected(null);
+    } else {
+      setSelected(label);
+      // Immediately submit the answer when an option is selected
+      handleAnswerSubmit(label);
+    }
+  };
+
+  const handleAnswerSubmit = (answer: string) => {
+    if (!wsRef.current || !currentQuestion || battleFinished || answerSubmitted) {
+      return;
+    }
+
+    const currentQuestionIndex = currentIndexRef.current;
+    
+    if (currentQuestionIndex >= questionsRef.current.length) {
+      return;
+    }
+
+    // Mark as answered to prevent double submission
+    setAnswerSubmitted(true);
+    setSelected(answer);
+
+    // Send answer to server
+    wsRef.current.send({
+      type: 'submit_answer',
+      battle_id: id,
+      username: user.username,
+      answer: answer,
+      question_index: currentQuestionIndex
+    });
+  };
+
+  const advanceToNextQuestion = () => {
+    if (questionsRef.current.length === 0 || battleFinished) {
+      return;
+    }
+    
+    // Don't advance locally - wait for server to send next question
+    // Just reset the state for the next question
+    setSelected(null);
+    setShowNextQuestion(false);
+    setNextQuestionCountdown(3);
+    setMotivationalMessage(getRandomMotivationalMessage());
+    setTimeLeft(QUESTION_TIME_LIMIT);
+    setWaitingForOpponent(false);
+    setAnswerSubmitted(false);
+    
+    console.log('[BATTLE_WS] Waiting for server to send next question...');
+  };
+
+  // Update the quiz_ready handler
+  const handleQuizReady = (data: any) => {
+    console.log('[BATTLE_WS] Quiz ready:', data);
+    if (data.questions) {
+      setQuestions(data.questions);
+      questionsRef.current = data.questions;
+      setCurrentQuestion(data.questions[0]);
+      setCurrentIndex(0);
+      currentIndexRef.current = 0;
+      
+      // Set opponent info
+      if (data.opponent) {
+        setOpponentUsername(data.opponent.username || 'Anonymous');
+        setOpponentAvatar(data.opponent.avatar || '');
+      }
+    }
+  };
+
+  // Update the answer_submitted handler
+  const handleAnswerSubmitted = (data: any) => {
+    console.log('[BATTLE_WS] Answer submitted:', data);
+    
+    // Update scores and opponent username
+    if (data.scores) {
+      setFirstOpponentScore(data.scores[user.username] || 0);
+      const opponent = Object.keys(data.scores).find(name => name !== user.username);
+      setSecondOpponentScore(opponent ? data.scores[opponent] : 0);
+      if (opponent) {
+        setOpponentUsername(opponent);
+        // Try to get opponent's avatar from data
+        if (data.avatars && data.avatars[opponent]) {
+          setOpponentAvatar(data.avatars[opponent]);
+        }
+      }
+    }
+    
+    // Check if this was the last question
+    const currentQuestionIndex = currentIndexRef.current;
+    if (currentQuestionIndex >= questionsRef.current.length - 1) {
+      setUserFinishedAllQuestions(true);
+      console.log('[BATTLE_WS] User finished all questions');
+    }
+    
+    // Start 3-second countdown for next question
+    if (data.start_countdown) {
+      setShowNextQuestion(true);
+      setNextQuestionCountdown(3);
+      setMotivationalMessage(getRandomMotivationalMessage());
+    }
+  };
+
+  // Update the battle_finished handler
+  const handleBattleFinished = (data: any) => {
         console.log('[BATTLE_WS] Battle finished message received:', data);
         
         // Validate battle finished data
@@ -311,6 +419,15 @@ export default function QuizQuestionPage() {
         
         setFirstOpponentScore(validatedUserScore);
         setSecondOpponentScore(validatedOpponentScore);
+    
+    // Set opponent username and avatar
+    if (opponentUsername) {
+      setOpponentUsername(opponentUsername);
+      // Try to get opponent's avatar from data
+      if (data.avatars && data.avatars[opponentUsername]) {
+        setOpponentAvatar(data.avatars[opponentUsername]);
+      }
+    }
         
         // Determine winner/loser with proper validation
         let winner = '';
@@ -431,135 +548,7 @@ export default function QuizQuestionPage() {
         
         console.log('[BATTLE_WS] Navigating to result page immediately...');
         // Navigate to result page immediately after setting battle finished state
-        navigate(`/battle/${id}/result`);
-      }
-    };
-    
-    ws.onMessage(handleMessage);
-    
-    return () => {
-      console.log('[BATTLE_WS] Cleaning up WebSocket connection');
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-      // Clean up battle finished state
-      setBattleFinished(false);
-    };
-    // eslint-disable-next-line
-  }, [id, user.username]);
-
-  // Monitor currentIndex changes
-  useEffect(() => {
-    // currentIndex changed
-  }, [currentIndex]);
-
-  // Monitor questions state changes
-  useEffect(() => {
-    // questions state changed
-  }, [questions]);
-
-  // Timer effect - only for auto-submission if no answer selected
-  useEffect(() => {
-    if (!currentQuestion || showNextQuestion || battleFinished || answerSubmitted) {
-      return;
-    }
-
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          // Time's up - auto-submit first answer if no answer selected
-          if (!selected) {
-            handleAnswerSubmit('');
-          }
-          return QUESTION_TIME_LIMIT;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [currentQuestion, showNextQuestion, selected, battleFinished, answerSubmitted]);
-
-  // Countdown to next question
-  useEffect(() => {
-    if (!showNextQuestion || nextQuestionCountdown <= 0 || battleFinished) {
-      return;
-    }
-
-    const countdownTimer = setInterval(() => {
-      setNextQuestionCountdown((prev) => {
-        if (prev <= 1) {
-          setShowNextQuestion(false);
-          setMotivationalMessage('');
-          setAnswerSubmitted(false);
-          // Automatically advance to next question
-          advanceToNextQuestion();
-          return 0;
-        }
-        // Change motivational message every second
-        setMotivationalMessage(getRandomMotivationalMessage());
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(countdownTimer);
-  }, [showNextQuestion, nextQuestionCountdown, battleFinished]);
-
-  const handleSelect = (label: string) => {
-    if (battleFinished || answerSubmitted) {
-      return;
-    }
-    
-    if (selected === label) {
-      setSelected(null);
-    } else {
-      setSelected(label);
-      // Immediately submit the answer when an option is selected
-      handleAnswerSubmit(label);
-    }
-  };
-
-  const handleAnswerSubmit = (answer: string) => {
-    if (!wsRef.current || !currentQuestion || battleFinished || answerSubmitted) {
-      return;
-    }
-
-    const currentQuestionIndex = currentIndexRef.current;
-    
-    if (currentQuestionIndex >= questionsRef.current.length) {
-      return;
-    }
-
-    // Mark as answered to prevent double submission
-    setAnswerSubmitted(true);
-    setSelected(answer);
-
-    // Send answer to server
-    wsRef.current.send({
-      type: 'submit_answer',
-      battle_id: id,
-      username: user.username,
-      answer: answer,
-      question_index: currentQuestionIndex
-    });
-  };
-
-  const advanceToNextQuestion = () => {
-    if (questionsRef.current.length === 0 || battleFinished) {
-      return;
-    }
-    
-    // Don't advance locally - wait for server to send next question
-    // Just reset the state for the next question
-    setSelected(null);
-    setShowNextQuestion(false);
-    setNextQuestionCountdown(3);
-    setMotivationalMessage(getRandomMotivationalMessage());
-    setTimeLeft(QUESTION_TIME_LIMIT);
-    setWaitingForOpponent(false);
-    setAnswerSubmitted(false);
-    
-    console.log('[BATTLE_WS] Waiting for server to send next question...');
+    navigate(`/${id}/battle-result`);
   };
 
   // UI rendering logic (same as before, but uses questions/currentQuestion)
@@ -640,124 +629,164 @@ export default function QuizQuestionPage() {
       </div>
     );
   }
+
+  const isQuizFinished = !currentQuestion || currentQuestion.question === 'No more questions';
   
   return (
-    <div className="min-h-screen bg-background bg-gaming-pattern">
-      <main className="container-gaming py-8">
-        <Card className="card-surface max-w-4xl mx-auto">
-          <CardHeader className="responsive-padding">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-medium text-muted-foreground">
-                  {t('quiz.question')} {currentIndex + 1}/{questions.length}
+    <div 
+      className="min-h-screen flex flex-col items-center justify-center relative bg-gradient-to-br from-background via-surface-1 to-surface-2"
+    >
+      {/* Enhanced background pattern */}
+      <div className="absolute inset-0 bg-gaming-pattern opacity-20"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-transparent to-surface-2/60"></div>
+      
+      <div className="relative z-10 w-full max-w-lg px-4">
+        
+        {/* Enhanced Score Board */}
+        <div className="w-full mb-6">
+          <div className="bg-card/90 backdrop-blur-md rounded-xl shadow-lg border border-border/50 p-4">
+            <div className="flex justify-between items-center mb-3">
+              <div className="text-center flex-1">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">{user.username}</div>
+                <div className="text-2xl font-bold text-primary bg-primary/10 rounded-lg px-3 py-1">{firstOpponentScore}</div>
                 </div>
-                <div className="text-sm font-medium text-muted-foreground">
-                  {t('quiz.timeLeft')}: {timeLeft}s
+              <div className="flex flex-col items-center mx-4">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">VS</div>
+                <div className="w-8 h-0.5 bg-border rounded-full"></div>
                 </div>
-              </div>
-              <div className={`text-sm font-medium ${
-                connectionStatus === 'connected' 
-                  ? 'text-green-500' 
-                  : connectionStatus === 'disconnected'
-                  ? 'text-red-500'
-                  : 'text-yellow-500'
-              }`}>
-                {connectionStatus === 'connected' 
-                  ? t('battles.countdown.connected')
-                  : connectionStatus === 'disconnected'
-                  ? t('battles.countdown.disconnected')
-                  : t('battles.countdown.checking')
-                }
+              <div className="text-center flex-1">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">{opponentUsername || 'Anonymous'}</div>
+                <div className="text-2xl font-bold text-destructive bg-destructive/10 rounded-lg px-3 py-1">{secondOpponentScore}</div>
               </div>
             </div>
+            <div className="text-center">
+              <div className="text-sm font-medium text-card-foreground bg-accent/20 rounded-full px-4 py-2 border border-accent/30">
+                {userFinishedAllQuestions ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-pulse w-2 h-2 bg-warning rounded-full"></div>
+                    <span className="text-warning">Waiting for opponent...</span>
+                  </div>
+                ) : showNextQuestion ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-muted-foreground">Next question in:</span>
+                    <span className="text-xl font-bold text-primary animate-pulse">{nextQuestionCountdown}</span>
+                  </div>
+                ) : (
+                  <span className="text-primary font-semibold">{motivationalMessage}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Enhanced Question Card */}
+        <Card className="w-full bg-card/95 backdrop-blur-md border-border/50 shadow-xl">
+          <CardHeader className="pb-4">
+            <div className="flex justify-between items-center">
+              {!isQuizFinished && (
+                <div className="flex items-center gap-4">
+                  <div className={`text-xl font-bold px-3 py-1 rounded-lg border ${
+                    timeLeft <= 5 
+                      ? 'text-destructive border-destructive/30 bg-destructive/10 animate-pulse' 
+                      : timeLeft <= 10
+                      ? 'text-warning border-warning/30 bg-warning/10'
+                      : 'text-success border-success/30 bg-success/10'
+                  }`}>
+                    {timeLeft}s
+                  </div>
+                  <div className="text-sm text-muted-foreground bg-muted/20 rounded-lg px-3 py-1 border border-muted/30">
+                    Question {currentIndex + 1} of {questions.length}
+                  </div>
+                </div>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="responsive-padding space-y-6">
-            {/* Question */}
-            {currentQuestion && (
-              <div className="space-y-6">
-                <div className="text-xl font-semibold">
-                  {currentQuestion.question}
+          <CardContent className="p-6">
+            {isQuizFinished ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">✅</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {currentQuestion.answers.map((answer, index) => (
-                    <Button
-                      key={index}
-                      variant={selected === answer.label ? "default" : "outline"}
-                      className={`h-auto py-4 px-6 text-left justify-start ${
-                        selected === answer.label ? 'bg-primary text-primary-foreground' : ''
-                      }`}
-                      onClick={() => handleSelect(answer.label)}
-                      disabled={answerSubmitted || showNextQuestion}
-                    >
-                      {answer.text}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            {!showNextQuestion && !answerSubmitted && (
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={() => handleAnswerSubmit(selected || '')}
-                disabled={!selected}
-              >
-                {t('quiz.submitAnswer')}
-              </Button>
-            )}
-
-            {/* Next Question Countdown */}
-            {showNextQuestion && !userFinishedAllQuestions && (
-              <div className="text-center space-y-4">
-                <div className="text-2xl font-bold">
-                  {selected === currentQuestion?.correctAnswer 
-                    ? t('quiz.correct')
-                    : t('quiz.incorrect')
-                  }
-                </div>
-                <div className="text-lg">
-                  {t('quiz.nextQuestion')} {nextQuestionCountdown}s
-                </div>
-              </div>
-            )}
-
-            {/* Motivational Message */}
-            {motivationalMessage && (
-              <div className="text-center text-lg font-semibold text-primary">
-                {motivationalMessage}
-              </div>
-            )}
-
-            {/* Waiting for Opponent */}
-            {waitingForOpponent && (
-              <div className="text-center text-lg font-semibold text-primary">
-                {t('battles.waitingForOpponent')}
-              </div>
-            )}
-
-            {/* Battle Finished */}
-            {battleFinished && (
-              <div className="text-center space-y-4">
-                <div className="text-2xl font-bold">
-                  {t('quiz.finalResults')}
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="text-lg font-semibold">{t('quiz.yourScore')}</div>
-                    <div className="text-3xl font-bold text-primary">{firstOpponentScore}</div>
+                <div className="text-xl font-bold text-card-foreground mb-3">You finished your quiz!</div>
+                <div className="text-muted-foreground">Wait for your opponent to finish.</div>
+                {showNextQuestion && (
+                  <div className="mt-4 text-center text-warning font-semibold bg-warning/10 rounded-lg px-4 py-2 border border-warning/30">
+                    Next question in {nextQuestionCountdown} seconds...
                   </div>
-                  <div>
-                    <div className="text-lg font-semibold">{t('quiz.opponentScore')}</div>
-                    <div className="text-3xl font-bold text-primary">{secondOpponentScore}</div>
-                  </div>
-                </div>
+                )}
               </div>
+            ) : userFinishedAllQuestions ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-warning border-t-transparent"></div>
+                </div>
+                <div className="text-lg font-semibold text-card-foreground mb-3">
+                  Waiting for opponent to finish...
+                </div>
+                <div className="text-muted-foreground">The battle will end once both players complete all questions.</div>
+              </div>
+            ) : showNextQuestion ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">⏳</span>
+                </div>
+                <div className="text-lg font-semibold text-card-foreground mb-3">
+                  Next question coming up...
+                </div>
+                <div className="text-muted-foreground">Get ready for the next challenge!</div>
+              </div>
+            ) : waitingForOpponent ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-warning border-t-transparent"></div>
+                </div>
+                <div className="text-lg font-semibold text-card-foreground mb-3">
+                  Waiting for opponent to finish...
+              </div>
+                <div className="text-muted-foreground">Hang tight while they answer their question.</div>
+              </div>
+            ) : (
+              <>
+                {/* Enhanced Question Display */}
+                <div className="text-lg font-semibold mb-6 p-4 bg-surface-1/50 border border-border/30 rounded-xl leading-relaxed text-card-foreground">
+                  {currentQuestion?.question}
+                </div>
+                
+                {/* Enhanced Answer Options */}
+                <div className="grid gap-3 mb-4">
+                  {currentQuestion?.answers?.map((ans: any, idx: number) => {
+                    const isSelected = selected === (ans.label || String.fromCharCode(65 + idx));
+                    return (
+                      <Button
+                        key={ans.label || String.fromCharCode(65 + idx)}
+                        variant={isSelected ? 'default' : 'outline'}
+                        className={`w-full h-auto min-h-[60px] p-4 text-left whitespace-normal break-words transition-all duration-300 hover:scale-[1.02] ${
+                          isSelected 
+                            ? 'bg-primary text-primary-foreground shadow-lg border-primary' 
+                            : 'bg-card hover:bg-accent/50 border-border/50 hover:border-primary/30'
+                        }`}
+                        onClick={() => handleSelect(ans.label || String.fromCharCode(65 + idx))}
+                        disabled={showNextQuestion || answerSubmitted || battleFinished}
+                      >
+                        <div className="flex items-start gap-3 w-full">
+                          <span className={`font-bold text-sm flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${
+                            isSelected 
+                              ? 'bg-primary-foreground/20 text-primary-foreground' 
+                              : 'bg-primary/20 text-primary'
+                          }`}>
+                            {ans.label || String.fromCharCode(65 + idx)}
+                          </span>
+                          <span className="text-sm leading-relaxed font-medium">{ans.text}</span>
+                  </div>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

@@ -232,8 +232,8 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
     // Handle tab switching first, then find element
     handleTabSwitching();
 
-    // Simple and reliable element finding with better scrolling
-    const findElementAndScroll = async () => {
+    // Simple and reliable element finding with conditional instant scrolling
+    const findElementAndHighlight = async () => {
       console.log('[Onboarding] Finding element:', step.target);
       
       // Try to find element with retries
@@ -266,49 +266,61 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
         }
         return;
       }
-      
-      // Element found, now scroll to it
-      console.log('[Onboarding] Scrolling element into view...');
-      
-      // Store current body state
-      const bodyStyle = document.body.style;
-      const wasLocked = bodyStyle.overflow === 'hidden';
-      let originalScrollY = 0;
-      
-      if (wasLocked) {
-        // Temporarily unlock body for smooth scrolling
-        originalScrollY = parseInt(bodyStyle.top?.replace('-', '') || '0');
-        bodyStyle.overflow = '';
-        bodyStyle.position = '';
-        bodyStyle.top = '';
-        bodyStyle.width = '';
-        window.scrollTo(0, originalScrollY);
-      }
-      
-      // Use modern scrollIntoView for smooth, reliable scrolling
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'center'
-      });
-      
-      // Wait for scroll to complete
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      if (wasLocked) {
-        // Re-lock body with new scroll position
-        const newScrollY = window.pageYOffset || document.documentElement.scrollTop;
-        bodyStyle.overflow = 'hidden';
-        bodyStyle.position = 'fixed';
-        bodyStyle.top = `-${newScrollY}px`;
-        bodyStyle.width = '100%';
-      }
-      
-      // Set target element and calculate positioning
-      setTargetElement(element);
+
+      // Check if element is in viewport
       const rect = element.getBoundingClientRect();
-      setElementRect(rect);
-      calculateTooltipPosition(step, rect);
+      const isInViewport = (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+      );
+
+      // If element is not in viewport, instantly scroll to it
+      if (!isInViewport) {
+        console.log('[Onboarding] Element out of viewport, scrolling into view');
+        const bodyStyle = document.body.style;
+        const wasLocked = bodyStyle.overflow === 'hidden';
+        let originalScrollY = 0;
+
+        if (wasLocked) {
+          // Temporarily unlock body for instant scrolling
+          originalScrollY = parseInt(bodyStyle.top?.replace('-', '') || '0');
+          bodyStyle.overflow = '';
+          bodyStyle.position = '';
+          bodyStyle.top = '';
+          bodyStyle.width = '';
+          window.scrollTo(0, originalScrollY);
+        }
+
+        // Instant scroll without smooth behavior
+        element.scrollIntoView({
+          behavior: 'instant',
+          block: 'center',
+          inline: 'center'
+        });
+
+        if (wasLocked) {
+          // Re-lock body with new scroll position
+          const newScrollY = window.pageYOffset || document.documentElement.scrollTop;
+          bodyStyle.overflow = 'hidden';
+          bodyStyle.position = 'fixed';
+          bodyStyle.top = `-${newScrollY}px`;
+          bodyStyle.width = '100%';
+        }
+
+        // Get updated rect after scrolling
+        const updatedRect = element.getBoundingClientRect();
+        setElementRect(updatedRect);
+        calculateTooltipPosition(step, updatedRect);
+      } else {
+        // Element is in viewport, just highlight it
+        setElementRect(rect);
+        calculateTooltipPosition(step, rect);
+      }
+      
+      // Set target element
+      setTargetElement(element);
     };
 
     // For tab-switching steps, wait a moment for content to load
@@ -316,7 +328,7 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
     const initialDelay = needsTabSwitch ? 200 : 0;
 
     setTimeout(() => {
-      findElementAndScroll();
+      findElementAndHighlight();
     }, initialDelay);
   }, [currentStep, isActive, steps]);
 

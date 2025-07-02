@@ -219,6 +219,7 @@
     "waitingTime": "Waiting Time",
     "inviteFriends": "Invite Friends",
     "inviteFriendsToBattle": "Invite Friends to Battle",
+    "oneInviteAtATime": "You can only invite one friend at a time",
     "cancelBattle": "Cancel Battle",
     "quitBattle": "Quit Battle",
     "battleFinished": "Battle Finished",
@@ -534,7 +535,8 @@
         "back": "Back to Profile"
       },
       "loading": "Loading profile...",
-      "error": "Error loading profile"
+      "error": "Error loading profile",
+      "back": "Back to Profiles"
     }
   },
   "training": {
@@ -632,7 +634,8 @@
     "rejectedInvitation": "Invitation rejected",
     "loading": "Loading notifications...",
     "allClear": "All Clear!",
-    "noNewNotifications": "You have no new notifications"
+    "noNewNotifications": "You have no new notifications",
+    "battleInvite": "Battle invitation in {{sport}}"
   },
   "quiz": {
     "question": "Question",

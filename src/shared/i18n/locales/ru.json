@@ -205,19 +205,20 @@
   "battles": {
     "createBattle": "Создать битву",
     "joinBattle": "Присоединиться к битве",
-    "battleArena": "Арена битв",
-    "selectSport": "Выберите вид спорта",
-    "selectDifficulty": "Выберите сложность",
-    "easy": "Легко",
-    "medium": "Средне",
-    "hard": "Сложно",
+    "battleArena": "Арена битвы",
+    "selectSport": "Выбрать спорт",
+    "selectDifficulty": "Выбрать сложность",
+    "easy": "Легкий",
+    "medium": "Средний",
+    "hard": "Сложный",
     "waitingForOpponent": "Ожидание соперника",
     "battleStartingSoon": "Битва скоро начнется...",
-    "waitingForPlayer": "Ожидание другого игрока для присоединения к битве",
+    "waitingForPlayer": "Ожидание присоединения другого игрока к вашей битве",
     "battleId": "ID битвы",
     "waitingTime": "Время ожидания",
     "inviteFriends": "Пригласить друзей",
     "inviteFriendsToBattle": "Пригласить друзей в битву",
+    "oneInviteAtATime": "Вы можете пригласить только одного друга за раз",
     "cancelBattle": "Отменить битву",
     "quitBattle": "Покинуть битву",
     "battleFinished": "Битва завершена",
@@ -496,7 +497,8 @@
         "back": "Вернуться к профилю"
       },
       "loading": "Загрузка профиля...",
-      "error": "Ошибка загрузки профиля"
+      "error": "Ошибка загрузки профиля",
+      "back": "Вернуться к профилям"
     }
   },
   "training": {
@@ -585,7 +587,7 @@
     "undo": "Отменить",
     "sentYouRequest": "отправил вам запрос в друзья",
     "invitedYouToBattle": "пригласил вас на битву",
-    "sportBattle": "Битва по {{sport}}",
+    "sportBattle": "Битва {{sport}}",
     "duration": "Длительность: {{duration}} минут",
     "viewProfile": "Посмотреть профиль",
     "acceptedRequest": "Запрос принят",
@@ -594,7 +596,8 @@
     "rejectedInvitation": "Приглашение отклонено",
     "loading": "Загрузка уведомлений...",
     "allClear": "Всё чисто!",
-    "noNewNotifications": "У вас нет новых уведомлений"
+    "noNewNotifications": "У вас нет новых уведомлений",
+    "battleInvite": "Приглашение на битву по {{sport}}"
   },
   "quiz": {
     "question": "Вопрос",

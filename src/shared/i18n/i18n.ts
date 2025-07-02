@@ -39,8 +39,8 @@ const russianSpeakingCountries = [
 ];
 
 // Function to detect the initial language
-const detectInitialLanguage = (): string => {
-  // First check localStorage
+export const detectInitialLanguage = (): string => {
+
   const savedLanguage = localStorage.getItem("language");
   if (savedLanguage && ['en', 'ru'].includes(savedLanguage)) {
     console.log('Using saved language from localStorage:', savedLanguage);
@@ -161,7 +161,6 @@ export const saveLanguageToUserProfile = (language: string) => {
       const user: User = JSON.parse(userStr);
       user.language = language;
       localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem("language", language);
       console.log('Language saved to profile:', language);
       return user;
     }
@@ -178,7 +177,7 @@ i18n.changeLanguage = async (lng: string | undefined, callback?: ((err: any, t: 
   try {
     const result = await originalChangeLanguage(lng, callback);
     if (lng) {
-      localStorage.setItem("language", lng);
+      localStorage.setItem("language", navigator.language.split('-')[0]);
     }
     return result;
   } finally {

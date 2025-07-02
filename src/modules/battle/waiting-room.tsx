@@ -3,7 +3,7 @@ import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Timer, UserPlus, Undo, AlertCircle, Clock, Users } from 'lucide-react'
+import { Timer, UserPlus, Undo, AlertCircle, Clock } from 'lucide-react'
 import Header from '../dashboard/header'
 import {
   Sheet,
@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback } from '../../shared/ui/avatar'
 import { cancelInvitation, invitebattleFriend, cancelBattle } from '../../shared/websockets/websocket'
 import { newSocket } from '../../app/App'
 import { useTranslation } from 'react-i18next'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../shared/ui/tooltip"
 
 export default function WaitingRoom() {
   const { t } = useTranslation()
@@ -92,7 +93,7 @@ export default function WaitingRoom() {
         
         if (data.type === 'battle_started') {
           if (data.data === id) {
-            navigate(`/battle/${data.data}/countdown`)
+            navigate(`/${data.data}/countdown`)
           }
         } else if (data.type === 'battle_removed' && data.data === id) {
           // Battle was removed, redirect to battle page
@@ -234,13 +235,7 @@ export default function WaitingRoom() {
                   <div className="text-2xl font-bold text-primary">{formatTime(waitingTime)}</div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50">
-                <Users className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <div className="text-sm font-medium">{t('battles.battleId')}</div>
-                  <div className="text-2xl font-bold text-primary">{id}</div>
-                </div>
-              </div>
+
             </div>
 
             {/* Inactivity Warning */}
@@ -256,64 +251,83 @@ export default function WaitingRoom() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button className="w-full" size="lg">
-                    <UserPlus className="w-5 h-5 mr-2" />
-                    {t('battles.inviteFriends')}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>{t('battles.inviteFriendsToBattle')}</SheetTitle>
-                  </SheetHeader>
-                  <div className="py-4">
-                    {user.friends && user.friends.length > 0 ? (
-                      <div className="space-y-4">
-                        {user.friends.map((friend) => {
-                          const isInvited = invitedFriends.includes(friend)
-                          return (
-                            <div key={friend} className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Avatar>
-                                  <AvatarFallback>{friend[0].toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <span className="font-medium">{friend}</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="w-full sm:flex-1">
+                      <Sheet>
+                        <SheetTrigger asChild>
+                          <Button 
+                            className="w-full" 
+                            size="lg" 
+                            disabled={invitedFriends.length > 0}
+                          >
+                            <UserPlus className="w-5 h-5 mr-2" />
+                            {t('battles.inviteFriends')}
+                          </Button>
+                        </SheetTrigger>
+                        <SheetContent>
+                          <SheetHeader>
+                            <SheetTitle>{t('battles.inviteFriendsToBattle')}</SheetTitle>
+                          </SheetHeader>
+                          <div className="py-4">
+                            {user.friends && user.friends.length > 0 ? (
+                              <div className="space-y-4">
+                                {user.friends.map((friend) => {
+                                  const isInvited = invitedFriends.includes(friend)
+                                  return (
+                                    <div key={friend} className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <Avatar>
+                                          <AvatarFallback>{friend[0].toUpperCase()}</AvatarFallback>
+                                        </Avatar>
+                                        <span className="font-medium">{friend}</span>
+                                      </div>
+                                      <Button
+                                        variant={isInvited ? "destructive" : "default"}
+                                        onClick={() => isInvited ? undoInvite(friend) : inviteFriend(friend)}
+                                        size="sm"
+                                        disabled={!isInvited && invitedFriends.length > 0}
+                                      >
+                                        {isInvited ? (
+                                          <>
+                                            <Undo className="w-4 h-4 mr-2" />
+                                            {t('battles.cancelInvite')}
+                                          </>
+                                        ) : (
+                                          <>
+                                            <UserPlus className="w-4 h-4 mr-2" />
+                                            {t('battles.invite')}
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+                                  )
+                                })}
                               </div>
-                              <Button
-                                variant={isInvited ? "destructive" : "default"}
-                                onClick={() => isInvited ? undoInvite(friend) : inviteFriend(friend)}
-                                size="sm"
-                              >
-                                {isInvited ? (
-                                  <>
-                                    <Undo className="w-4 h-4 mr-2" />
-                                    {t('battles.cancelInvite')}
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserPlus className="w-4 h-4 mr-2" />
-                                    {t('battles.invite')}
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <div className="text-center text-muted-foreground">
-                        {t('battles.noFriendsToInvite')}
-                      </div>
-                    )}
-                  </div>
-                </SheetContent>
-              </Sheet>
+                            ) : (
+                              <div className="text-center text-muted-foreground">
+                                {t('battles.noFriendsToInvite')}
+                              </div>
+                            )}
+                          </div>
+                        </SheetContent>
+                      </Sheet>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {invitedFriends.length > 0 
+                      ? t('battles.oneInviteAtATime') 
+                      : t('battles.inviteFriendsToBattle')}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
               <Button 
                 onClick={quitBattle} 
                 variant="destructive"
-                className="flex-1"
+                size="lg"
+                className="w-full sm:flex-1"
               >
                 {t('battles.cancelBattle')}
               </Button>
