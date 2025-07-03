@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
+import redis
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -17,13 +18,19 @@ avatar_dir = "avatars"
 os.makedirs(avatar_dir, exist_ok=True)  # Ensure directory exists
 app.mount("/avatars", StaticFiles(directory=avatar_dir), name="avatars")
 
-# Add CORS middleware
+# Add CORS middleware with production domain
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",  # Development
+        "http://localhost:3000",  # Alternative development
+        "https://head2head.vercel.app",  # Production
+        "https://www.head2head.vercel.app",  # Production with www
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Database setup

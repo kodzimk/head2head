@@ -173,8 +173,22 @@ export const useBattleStore = () => {
 }
 
 // API Configuration
-export const API_BASE_URL = "https://api.head2head.dev";
-export const WS_BASE_URL = "wss://api.head2head.dev";
+const getBaseUrl = () => {
+  if (import.meta.env.MODE === 'development') {
+    return 'http://localhost:8000';
+  }
+  return 'https://api.head2head.dev';
+};
+
+const getWsBaseUrl = () => {
+  if (import.meta.env.MODE === 'development') {
+    return 'ws://localhost:8000';
+  }
+  return 'wss://api.head2head.dev';
+};
+
+export const API_BASE_URL = getBaseUrl();
+export const WS_BASE_URL = getWsBaseUrl();
 
 // API Key Management
 let currentKeyIndex = 0;

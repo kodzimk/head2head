@@ -94,12 +94,17 @@ const AvatarImage = React.forwardRef<
       if (avatarUrl.startsWith('http')) {
         return avatarUrl;
       }
-      // If it's a relative path starting with /avatars, prepend API base URL
+      // If it's a relative path starting with /avatars, handle based on environment
       if (avatarUrl.startsWith('/avatars/')) {
-        return `${API_BASE_URL}${avatarUrl}`;
+        // In development, use API_BASE_URL
+        if (import.meta.env.MODE === 'development') {
+          return `${API_BASE_URL}${avatarUrl}`;
+        }
+        // In production, use relative path (handled by Vercel rewrites)
+        return avatarUrl;
       }
       // If it's just a filename, assume it's in the avatars directory
-      return `${API_BASE_URL}/avatars/${avatarUrl}`;
+      return `/avatars/${avatarUrl}`;
     }
     return null;
   }
