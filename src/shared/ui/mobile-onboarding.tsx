@@ -30,8 +30,7 @@ export default function MobileOnboarding({
   const [elementRect, setElementRect] = useState<DOMRect | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
-
-  console.log('[Mobile Onboarding] Component rendered with:', {
+  console.log('[Mobile Onboarding] 📱 COMPONENT RENDERED WITH:', {
     stepsCount: steps.length,
     autoStart,
     storageKey,
@@ -70,13 +69,21 @@ export default function MobileOnboarding({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Auto-start effect for mobile only
+
+
+  // Auto-start effect for mobile devices ONLY - SIMPLIFIED
   useEffect(() => {
+    console.log('[Mobile Onboarding] 📱 MOBILE-ONLY AUTO-START CHECK:', {
+      autoStart,
+      isMobile,
+      windowWidth: window.innerWidth
+    });
+    
     if (autoStart && isMobile) {
-      console.log('[Mobile Onboarding] Auto-start triggered for mobile device');
+      console.log('[Mobile Onboarding] ✅ Auto-start triggered for mobile device (screen < 768px)');
       setIsActive(true);
     } else if (!isMobile) {
-      console.log('[Mobile Onboarding] Not a mobile device, deactivating');
+      console.log('[Mobile Onboarding] ❌ Not a mobile device (screen >= 768px), deactivating mobile onboarding');
       setIsActive(false);
     }
   }, [autoStart, isMobile]);
@@ -150,7 +157,7 @@ export default function MobileOnboarding({
   };
 
   const handleComplete = () => {
-    console.log('[Mobile Onboarding] Onboarding completed');
+    console.log('[Mobile Onboarding] 📱 Onboarding completed');
     setIsActive(false);
     if (storageKey) {
       localStorage.setItem(storageKey, 'completed');
@@ -159,7 +166,7 @@ export default function MobileOnboarding({
   };
 
   const handleSkip = () => {
-    console.log('[Mobile Onboarding] Onboarding skipped');
+    console.log('[Mobile Onboarding] 📱 Onboarding skipped');
     setIsActive(false);
     if (storageKey) {
       localStorage.setItem(storageKey, 'completed');
@@ -232,7 +239,7 @@ export default function MobileOnboarding({
       <>
         {/* Dark overlay with cutout */}
         <div 
-          className="fixed inset-0 bg-black/70 transition-opacity duration-300 z-[9997]"
+          className="fixed inset-0 bg-black/50 transition-opacity duration-300 z-[9997]"
           style={{
             clipPath: `polygon(
               0% 0%, 
@@ -249,50 +256,55 @@ export default function MobileOnboarding({
           }}
         />
         
-        {/* Animated highlight border */}
+        {/* Highlight border */}
         <div
-          className="fixed pointer-events-none z-[9998] transition-all duration-300 animate-pulse"
+          className="fixed pointer-events-none z-[9998] transition-all duration-300"
           style={{
             left: elementRect.left - padding,
             top: elementRect.top - padding,
             width: elementRect.width + padding * 2,
             height: elementRect.height + padding * 2,
-            border: '3px solid #3b82f6',
-            borderRadius: '12px',
-            boxShadow: '0 0 0 2px rgba(59, 130, 246, 0.3), 0 0 20px rgba(59, 130, 246, 0.4)',
-          }}
-        />
-        
-        {/* Pulsing dot indicator */}
-        <div
-          className="fixed pointer-events-none z-[9999] w-4 h-4 bg-blue-500 rounded-full animate-ping"
-          style={{
-            left: elementRect.left + elementRect.width / 2 - 8,
-            top: elementRect.top + elementRect.height / 2 - 8,
+            border: '2px solid #3b82f6',
+            borderRadius: '8px',
+            boxShadow: '0 0 0 4px rgba(59, 130, 246, 0.2)',
           }}
         />
       </>
     );
   };
 
-  // Don't render on desktop or if conditions aren't met
+
+  // Simple mobile-only render conditions
+  console.log('[Mobile Onboarding] 🔍 SIMPLE RENDER CHECK:', {
+    isMobile,
+    isActive,
+    hasSteps: !!steps[currentStep],
+    windowWidth: window.innerWidth,
+    willRender: isMobile && isActive && steps[currentStep]
+  });
+  
+  // Only render on mobile devices (screen < 768px)
   if (!isMobile) {
-    console.log('[Mobile Onboarding] Not rendering - not mobile device');
+    console.log('[Mobile Onboarding] ❌ Not rendering - not a mobile device (screen >= 768px)');
     return null;
   }
   
   if (!isActive) {
-    console.log('[Mobile Onboarding] Not rendering - not active');
+    console.log('[Mobile Onboarding] ❌ Not rendering - not active');
     return null;
   }
   
   if (!steps[currentStep]) {
-    console.log('[Mobile Onboarding] Not rendering - no current step');
+    console.log('[Mobile Onboarding] ❌ Not rendering - no current step');
     return null;
   }
   
+  console.log('[Mobile Onboarding] ✅ RENDERING - Mobile device with active onboarding');
+  
   if (!targetElement || !elementRect) {
     console.log('[Mobile Onboarding] No target element found, showing fallback onboarding');
+    
+    console.log('[Mobile Onboarding] 📱 Showing fallback mobile onboarding without element targeting');
     // Show fallback onboarding without element highlighting
     const step = steps[currentStep];
     
@@ -303,13 +315,14 @@ export default function MobileOnboarding({
         
         {/* Mobile tooltip */}
         <div
+          ref={tooltipRef}
           className="fixed z-[10000] bg-card border border-border rounded-xl shadow-2xl p-4 transition-all duration-300 overflow-hidden"
           style={{
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: `${Math.min(280, window.innerWidth - 32)}px`,
-            maxHeight: `${Math.min(300, window.innerHeight - 64)}px`
+            maxWidth: 'calc(100% - 32px)',
+            width: '280px'
           }}
         >
           {/* Header */}
@@ -330,51 +343,51 @@ export default function MobileOnboarding({
             </button>
           </div>
 
-                     {/* Content */}
-           <div className="space-y-3 overflow-y-auto max-h-32">
-             <div className="flex items-start gap-2">
-               <Lightbulb className="w-4 h-4 text-primary flex-shrink-0 mt-1" />
-               <div className="min-w-0 flex-1">
-                 <h3 className="font-semibold text-foreground text-xs mb-1 leading-tight">
-                   {t(`onboarding.${step.translationKey}.title`)}
-                 </h3>
-                 <p className="text-xs text-muted-foreground leading-relaxed break-words">
-                   {t(`onboarding.${step.translationKey}.description`)}
-                 </p>
-               </div>
-             </div>
-           </div>
-
-                  {/* Controls */}
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
-          <button
-            onClick={handlePrevious}
-            disabled={currentStep === 0}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <ArrowLeft className="w-3 h-3" />
-            {t('onboarding.previous')}
-          </button>
-
-          <div className="flex gap-1">
-            {steps.map((_, index) => (
-              <div
-                key={index}
-                className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                  index === currentStep ? 'bg-primary' : 'bg-muted'
-                }`}
-              />
-            ))}
+          {/* Content */}
+          <div className="space-y-3 overflow-y-auto max-h-32">
+            <div className="flex items-start gap-2">
+              <Lightbulb className="w-4 h-4 text-primary flex-shrink-0 mt-1" />
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-foreground text-xs mb-1 leading-tight">
+                  {t(`dashboard.onboarding.${step.translationKey}.title`)}
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed break-words">
+                  {t(`dashboard.onboarding.${step.translationKey}.description`)}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <button
-            onClick={handleNext}
-            className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 transition-colors"
-          >
-            {currentStep === steps.length - 1 ? t('onboarding.finish') : t('onboarding.next')}
-            <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
+          {/* Controls */}
+          <div className="flex items-center justify-between mt-3 pt-2 border-t border-border">
+            <button
+              onClick={handlePrevious}
+              disabled={currentStep === 0}
+              className="flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ArrowLeft className="w-3 h-3" />
+              {t('common.previous')}
+            </button>
+
+            <div className="flex gap-1">
+              {steps.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                    index === currentStep ? 'bg-primary' : 'bg-muted'
+                  }`}
+                />
+              ))}
+            </div>
+
+            <button
+              onClick={handleNext}
+              className="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 transition-colors"
+            >
+              {currentStep === steps.length - 1 ? t('common.finish') : t('common.next')}
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
         </div>
       </>
     );
@@ -417,10 +430,10 @@ export default function MobileOnboarding({
             <Lightbulb className="w-4 h-4 text-primary flex-shrink-0 mt-1" />
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold text-foreground text-xs mb-1 leading-tight">
-                {t(`onboarding.${step.translationKey}.title`)}
+                {t(`dashboard.onboarding.${step.translationKey}.title`)}
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed break-words">
-                {t(`onboarding.${step.translationKey}.description`)}
+                {t(`dashboard.onboarding.${step.translationKey}.description`)}
               </p>
             </div>
           </div>

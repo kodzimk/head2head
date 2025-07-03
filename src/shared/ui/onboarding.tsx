@@ -124,123 +124,8 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
     const step = steps[currentStep];
     console.log('[Onboarding] Step changed to:', step.id, step.target);
 
-    // Auto-switch tabs based on onboarding step content
-    const handleTabSwitching = () => {
-      if (step.id === 'battle-history-content' || step.id === 'battle-stats-content') {
-        console.log('[Onboarding] Switching to battles tab for content demonstration');
-        
-        // Look specifically for the battles tab within the TabsList
-        const tabsList = document.querySelector('[data-onboarding="dashboard-tabs"] [role="tablist"]') || 
-                        document.querySelector('[data-onboarding="dashboard-tabs"] div[class*="TabsList"]') ||
-                        document.querySelector('[data-onboarding="dashboard-tabs"] div:first-child');
-        
-        let battlesTab: HTMLElement | null = null;
-        
-        if (tabsList) {
-          console.log('[Onboarding] Found tabs container, searching within it...');
-          
-          // Look for battles tab within the tabs container only
-          const tabButtons = tabsList.querySelectorAll('button');
-          for (const button of tabButtons) {
-            const value = button.getAttribute('value');
-            const text = button.textContent?.toLowerCase() || '';
-            
-            if (value === 'battles' || text.includes('my battles')) {
-              battlesTab = button as HTMLElement;
-              console.log('[Onboarding] Found battles tab within tabs container:', text);
-              break;
-            }
-          }
-        } else {
-          console.warn('[Onboarding] Could not find tabs container!');
-          
-          // Fallback: try direct selectors but be more specific
-          const selectors = [
-            'button[value="battles"][role="tab"]',
-            '[role="tab"][value="battles"]',
-            'button[value="battles"]:not([class*="btn-neon"])'  // Exclude Quick Battle button
-          ];
-          
-          for (const selector of selectors) {
-            battlesTab = document.querySelector(selector) as HTMLElement;
-            if (battlesTab) {
-              console.log(`[Onboarding] Found battles tab with fallback selector: ${selector}`);
-              break;
-            }
-          }
-        }
-        
-        if (battlesTab) {
-          console.log('[Onboarding] Clicking battles tab...');
-          battlesTab.click();
-          
-          // Force trigger events if click doesn't work
-          battlesTab.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-          battlesTab.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-        } else {
-          console.warn('[Onboarding] Battles tab not found with any selector!');
-          console.log('[Onboarding] Available elements:', document.querySelectorAll('button'));
-        }
-        
-      } else if (step.id === 'friends-list-content') {
-        console.log('[Onboarding] Switching to friends tab for content demonstration');
-        
-        // Look specifically for the friends tab within the TabsList
-        const tabsList = document.querySelector('[data-onboarding="dashboard-tabs"] [role="tablist"]') || 
-                        document.querySelector('[data-onboarding="dashboard-tabs"] div[class*="TabsList"]') ||
-                        document.querySelector('[data-onboarding="dashboard-tabs"] div:first-child');
-        
-        let friendsTab: HTMLElement | null = null;
-        
-        if (tabsList) {
-          console.log('[Onboarding] Found tabs container, searching within it...');
-          
-          // Look for friends tab within the tabs container only
-          const tabButtons = tabsList.querySelectorAll('button');
-          for (const button of tabButtons) {
-            const value = button.getAttribute('value');
-            const text = button.textContent?.toLowerCase() || '';
-            
-            if (value === 'friends' || text.includes('friends') || text.includes('social')) {
-              friendsTab = button as HTMLElement;
-              console.log('[Onboarding] Found friends tab within tabs container:', text);
-              break;
-            }
-          }
-        } else {
-          console.warn('[Onboarding] Could not find tabs container!');
-          
-          // Fallback: try direct selectors but be more specific
-          const selectors = [
-            'button[value="friends"][role="tab"]',
-            '[role="tab"][value="friends"]'
-          ];
-          
-          for (const selector of selectors) {
-            friendsTab = document.querySelector(selector) as HTMLElement;
-            if (friendsTab) {
-              console.log(`[Onboarding] Found friends tab with fallback selector: ${selector}`);
-              break;
-            }
-          }
-        }
-        
-        if (friendsTab) {
-          console.log('[Onboarding] Clicking friends tab...');
-          friendsTab.click();
-          
-          // Force trigger events if click doesn't work
-          friendsTab.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-          friendsTab.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-        } else {
-          console.warn('[Onboarding] Friends tab not found with any selector!');
-          console.log('[Onboarding] Available elements:', document.querySelectorAll('button'));
-        }
-      }
-    };
-
-    // Handle tab switching first, then find element
-    handleTabSwitching();
+    // Automatic tab switching disabled - users must manually switch tabs
+    console.log('[Onboarding] Automatic tab switching disabled for step:', step.id);
 
     // Simple and reliable element finding with conditional instant scrolling
     const findElementAndHighlight = async () => {
@@ -268,12 +153,8 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
       
       if (!element) {
         console.warn('[Onboarding] Element not found after all retries:', step.target);
-        // Skip to next step if element not found
-        if (currentStep < steps.length - 1) {
-          setCurrentStep(currentStep + 1);
-        } else {
-          handleComplete();
-        }
+        console.log('[Onboarding] Automatic step skipping disabled - onboarding will wait for user action');
+        // Automatic step skipping disabled - onboarding will remain on current step
         return;
       }
 
@@ -333,13 +214,8 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
       setTargetElement(element);
     };
 
-    // For tab-switching steps, wait a moment for content to load
-    const needsTabSwitch = step.id === 'battle-history-content' || step.id === 'battle-stats-content' || step.id === 'friends-list-content';
-    const initialDelay = needsTabSwitch ? 200 : 0;
-
-    setTimeout(() => {
+    // Since automatic tab switching is disabled, no delay needed
       findElementAndHighlight();
-    }, initialDelay);
   }, [currentStep, isActive, steps]);
 
   

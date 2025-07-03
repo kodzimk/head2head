@@ -529,11 +529,12 @@ export default function NotificationsPage() {
                         </CardTitle>
                         <CardDescription>{t('notifications.sentYouRequest')}</CardDescription>
                       </div>
-                      <div className="flex items-center gap-2">
+                      {/* Friend Request Buttons */}
+                      <div className="flex items-center gap-2 flex-col sm:flex-row w-full sm:w-auto">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-24 transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                          className="w-full sm:w-24 transition-colors hover:bg-destructive hover:text-destructive-foreground"
                           onClick={() => handleRejectRequest(request.sender.username)}
                           disabled={request.status !== 'pending'}
                         >
@@ -542,7 +543,7 @@ export default function NotificationsPage() {
                         </Button>
                         <Button
                           size="sm"
-                          className="w-24"
+                          className="w-full sm:w-24"
                           onClick={() => handleAcceptRequest(request.sender.username)}
                           disabled={request.status !== 'pending'}
                         >
@@ -587,18 +588,20 @@ export default function NotificationsPage() {
                             {t('notifications.duration', { duration: invitation.duration })}
                           </CardDescription>
                         </div>
-                        <div className="flex items-center gap-2">
+                        {/* Battle Invitation Buttons */}
+                        <div className="flex items-center gap-2 flex-col sm:flex-row w-full sm:w-auto">
                           {response ? (
                             <>
                               <Badge
                                 variant={response === 'accepted' ? 'default' : 'destructive'}
-                                className="px-4 py-1.5"
+                                className="w-full sm:w-auto px-4 py-1.5 text-center"
                               >
                                 {response === 'accepted' ? t('common.accepted') : t('common.rejected')}
                               </Badge>
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="w-full sm:w-auto"
                                 onClick={() => handleUndoInvitationResponse(invitation.battle_id)}
                               >
                                 {t('common.undo')}
@@ -609,7 +612,7 @@ export default function NotificationsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-24 transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                                className="w-full sm:w-24 transition-colors hover:bg-destructive hover:text-destructive-foreground"
                                 onClick={() => handleRejectInvitation(invitation.battle_id)}
                                 disabled={isProcessing}
                               >
@@ -624,7 +627,7 @@ export default function NotificationsPage() {
                               </Button>
                               <Button
                                 size="sm"
-                                className="w-24"
+                                className="w-full sm:w-24"
                                 onClick={() => handleAcceptInvitation(invitation.battle_id)}
                                 disabled={isProcessing}
                               >

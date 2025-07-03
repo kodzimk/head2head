@@ -144,9 +144,9 @@
     "onboarding": {
       "welcome": {
         "title": "Welcome to Head2Head!",
-        "description": "This is your personal dashboard where you can track your progress, view stats, and find new battles.",
+        "description": "This is your personal dashboard where you can track your progress and view stats.",
         "mobile": {
-          "description": "Welcome to your mobile dashboard! Here you can track your progress and find new battles on the go."
+          "description": "Welcome to your mobile dashboard! Here you can track your progress and view stats on the go."
         }
       },
       "welcomeMobile": {
@@ -162,11 +162,11 @@
       },
       "userAvatarMobile": {
         "title": "Your Profile Hub 👤",
-        "description": "Tap your avatar for profile settings, notifications, and account preferences."
+        "description": "Tap your avatar to access profile settings, notifications, and quick actions."
       },
       "navigation": {
         "title": "Navigate Like a Pro 🧭",
-        "description": "Access all platform sections: Dashboard (home), Battles (compete), Leaderboard (rankings), Selection (find opponents), and Trainings (practice)."
+        "description": "Access all platform sections: Dashboard (home), Battles (compete), Leaderboard (rankings), Everyday Selections, and Trainings (practice)."
       },
       "quickActionsMobile": {
         "title": "Quick Battle Actions ⚡",
@@ -174,14 +174,14 @@
       },
       "statsGrid": {
         "title": "Your Stats Overview",
-        "description": "Here you can see your key performance metrics, including wins, losses, and win rate.",
+        "description": "Here you can see your key performance metrics, including wins, total battles, and win rate.",
         "mobile": {
           "description": "Track your performance with key stats like wins, losses, and win rate."
         }
       },
       "statsGridMobile": {
-        "title": "Performance Stats 🏆",
-        "description": "Track your gaming performance - wins, rank, battles played, and win rate at a glance."
+        "title": "Performance Overview 📊",
+        "description": "Your key stats at a glance - wins, rank, battles played, and win rate."
       },
       "battleStatsBreakdown": {
         "title": "Battle Statistics",
@@ -198,7 +198,8 @@
         "title": "Profile Overview",
         "description": "Your public profile shows your achievements and ranking to other players.",
         "mobile": {
-          "description": "Your public profile displays your achievements and ranking."
+          "title": "Your Profile 👤",
+          "description": "View and manage your public profile, achievements, and rankings."
         }
       },
       "overviewContentMobile": {
@@ -217,12 +218,68 @@
         "description": "See all your completed battles with opponents, sports played, match results, and scores. Each battle shows who you fought, what sport, and whether you won, lost, or drew."
       },
       "battleStatsContent": {
-        "title": "Detailed Battle Statistics 📊",
-        "description": "Track your competitive performance: total battles fought, wins achieved, win rate percentage, and current winning streak. Perfect for monitoring your improvement!"
+        "title": "Battle Performance 📊",
+        "description": "View detailed statistics about your battles, including win rates, streaks, and performance trends."
+      },
+      "battleStatsContentMobile": {
+        "title": "Battle Stats 📊",
+        "description": "Track your battle performance and stats on the go - see your wins, streaks, and trends."
       },
       "friendsListContent": {
         "title": "Your Friends List 👥",
         "description": "View all your friends with their avatars, usernames, and ranks. Click on any friend to visit their profile, challenge them to battles, or see their achievements."
+      },
+      "overviewProfileMobile": {
+        "title": "Profile Dashboard 🎯",
+        "description": "Your gaming identity - achievements, rankings, and progress visible to other players."
+      },
+      "battleHistoryContentMobile": {
+        "title": "Battle History 🎮",
+        "description": "Check your recent matches and performance on the go."
+      },
+      "friendsListContentMobile": {
+        "title": "Friends Hub 👥",
+        "description": "Manage your friends list and send battle challenges."
+      },
+      "explanationBlocks": {
+        "mobile": {
+          "welcome": {
+            "title": "Welcome to Head2Head! 🎮",
+            "description": "Let's take a quick tour of your mobile dashboard. We'll show you how to navigate, battle, and track your progress."
+          },
+          "profile": {
+            "title": "Your Profile Hub 👤",
+            "description": "Your avatar is your command center. Tap it to access all platform sections, settings, and notifications."
+          },
+          "stats": {
+            "title": "Performance Center 📊",
+            "description": "Track your gaming journey with key stats like wins, rank, and battle history - all optimized for mobile viewing."
+          },
+          "battles": {
+            "title": "Battle Zone ⚔️",
+            "description": "Start quick battles, view match history, and challenge friends - right from your mobile device."
+          },
+          "friends": {
+            "title": "Social Hub 🤝",
+            "description": "Connect with friends, send challenges, and build your competitive network on the go."
+          }
+        }
+      },
+      "profile": {
+        "title": "Your Profile 👤",
+        "description": "Get access to all platform sections, settings, and notifications"
+      },
+      "stats": {
+        "title": "Your Statistics 📊",
+        "description": "Track your performance metrics, including wins, total battles, and win rate"
+      },
+      "battles": {
+        "title": "Your Battles ⚔️",
+        "description": "View your battle history and track your match results"
+      },
+      "friends": {
+        "title": "Friends & Social 👥",
+        "description": "Connect with other players, send battle invites, and grow your gaming network"
       }
     },
     "favoriteSport": "Favorite Sport",
@@ -783,15 +840,15 @@
     },
     "userAvatarMobile": {
       "title": "Your Profile Hub 👤",
-      "description": "Tap your avatar for profile settings, notifications, and account preferences."
+      "description": "Tap your avatar to access profile settings, notifications, and quick actions."
     },
     "quickActionsMobile": {
       "title": "Quick Battle Actions ⚡",
       "description": "Start quick battles or practice mode instantly - your gateway to competitive action!"
     },
     "statsGridMobile": {
-      "title": "Performance Stats 🏆",
-      "description": "Track your gaming performance - wins, rank, battles played, and win rate at a glance."
+      "title": "Performance Overview 📊",
+      "description": "Your key stats at a glance - wins, rank, battles played, and win rate."
     },
     "dashboardTabsMobile": {
       "title": "Dashboard Navigation 📊",

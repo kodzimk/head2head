@@ -17,7 +17,6 @@ import Header from './header';
 import { Button } from '../../shared/ui/button';
 import { Badge } from '../../shared/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../shared/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
 import Overview from './tabs/overview';
 import Battles from './tabs/battles';
 import Friends from './tabs/friends';
@@ -28,13 +27,6 @@ import MobileOnboarding from '../../shared/ui/mobile-onboarding';
 import { useGlobalStore } from '../../shared/interface/gloabL_var';
 
 const getAllDashboardOnboardingSteps = () => [
-  {
-    id: "welcome",
-    target: "[data-onboarding='welcome-section']",
-    translationKey: "welcome",
-    position: "auto" as const,
-    offset: { x: 0, y: 20 }
-  },
   {
     id: "user-avatar",
     target: "[data-onboarding='user-avatar']",
@@ -53,13 +45,6 @@ const getAllDashboardOnboardingSteps = () => [
     id: "stats-grid",
     target: "[data-onboarding='stats-grid']",
     translationKey: "statsGrid",
-    position: "auto" as const,
-    offset: { x: 0, y: 20 }
-  },
-  {
-    id: "battle-stats-breakdown",
-    target: "[data-onboarding='battle-stats-breakdown']",
-    translationKey: "battleStatsBreakdown",
     position: "auto" as const,
     offset: { x: 0, y: 20 }
   },
@@ -103,46 +88,39 @@ const getAllDashboardOnboardingSteps = () => [
 // Mobile-specific onboarding steps
 const getMobileDashboardOnboardingSteps = () => [
   {
-    id: "welcome",
-    target: "[data-onboarding='welcome-section']",
-    translationKey: "welcomeMobile",
-    position: "bottom" as const,
-    offset: { x: 0, y: 10 }
-  },
-  {
     id: "user-avatar",
     target: "[data-onboarding='user-avatar']",
-    translationKey: "userAvatarMobile",
-    position: "bottom" as const,
-    offset: { x: 0, y: 10 }
-  },
-  {
-    id: "quick-actions",
-    target: "[data-onboarding='quick-actions']",
-    translationKey: "quickActionsMobile",
+    translationKey: "profile",
     position: "bottom" as const,
     offset: { x: 0, y: 10 }
   },
   {
     id: "stats-grid",
     target: "[data-onboarding='stats-grid']",
-    translationKey: "statsGridMobile",
+    translationKey: "stats",
     position: "bottom" as const,
     offset: { x: 0, y: 10 }
   },
   {
-    id: "dashboard-tabs",
-    target: "[data-onboarding='dashboard-tabs']",
-    translationKey: "dashboardTabsMobile",
-    position: "bottom" as const,
-    offset: { x: 0, y: 10 }
-  },
-  {
-    id: "overview-content",
+    id: "overview-profile",
     target: "[data-onboarding='overview-profile']",
-    translationKey: "overviewContentMobile",
+    translationKey: "welcome",
     position: "center" as const,
     offset: { x: 0, y: 0 }
+  },
+  {
+    id: "battle-history-content",
+    target: "[data-onboarding='battle-history-content']",
+    translationKey: "battles",
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
+  },
+  {
+    id: "friends-list-content",
+    target: "[data-onboarding='friends-list-content']",
+    translationKey: "friends",
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
   }
 ];
 
@@ -169,23 +147,9 @@ export function Dashboard() {
   const { user, setUser } = useGlobalStore();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  useEffect(() => {
-    // Check if this is a new user by looking for the isNewUser flag in localStorage
-    const isNewUser = localStorage.getItem('isNewUser') === 'true';
-    const hasCompletedOnboarding = localStorage.getItem('head2head-dashboard-onboarding') === 'completed';
-    
-    // Show onboarding if user is new OR hasn't completed onboarding yet
-    const shouldShow = isNewUser || !hasCompletedOnboarding;
-    setShowOnboarding(shouldShow);
-    
-    // Remove the flag after checking it
-    if (isNewUser) {
-      localStorage.removeItem('isNewUser');
-    }
-  }, []);
-
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
+    localStorage.setItem('head2head-dashboard-onboarding', 'completed');
   };
 
   // Handle responsive onboarding steps
@@ -196,6 +160,17 @@ export function Dashboard() {
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    // Only show onboarding for new users
+    const isNewUser = localStorage.getItem('isNewUser') === 'true';
+    setShowOnboarding(isNewUser);
+    
+    // Remove the new user flag after checking it
+    if (isNewUser) {
+      localStorage.removeItem('isNewUser');
+    }
   }, []);
 
   const fetchBattles = async () => {
@@ -310,21 +285,6 @@ export function Dashboard() {
     };
   }, [user]);
 
-  const calculateBattleStats = () => {
-    const totalBattles = battles.length;
-    const wins = battles.filter(battle => battle.result === 'win').length;
-    const draws = battles.filter(battle => battle.result === 'draw').length;
-    const losses = battles.filter(battle => battle.result === 'lose').length;
-    
-    const winPercentage = totalBattles > 0 ? Math.round((wins / totalBattles) * 100) : 0;
-    const drawPercentage = totalBattles > 0 ? Math.round((draws / totalBattles) * 100) : 0;
-    const lossPercentage = totalBattles > 0 ? Math.round((losses / totalBattles) * 100) : 0;
-    
-    return { wins, draws, losses, winPercentage, drawPercentage, lossPercentage };
-  };
-
-  const stats = calculateBattleStats();
-
 
   if (error || !user) {
     return (
@@ -337,10 +297,12 @@ export function Dashboard() {
     );
   }
 
+  const isMobile = window.innerWidth < 768;
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Desktop Onboarding */}
-      {showOnboarding && (
+      {/* Desktop Onboarding - Only on desktop devices */}
+      {showOnboarding && !isMobile && (
         <Onboarding
           steps={onboardingSteps}
           onComplete={handleOnboardingComplete}
@@ -349,8 +311,8 @@ export function Dashboard() {
         />
       )}
 
-      {/* Mobile Onboarding */}
-      {showOnboarding && (
+      {/* Mobile Onboarding - Only on mobile devices */}
+      {showOnboarding && isMobile && (
         <MobileOnboarding
           steps={mobileOnboardingSteps}
           onComplete={handleOnboardingComplete}
@@ -436,12 +398,13 @@ export function Dashboard() {
           <div className="stat-card animate-scale-in" style={{ animationDelay: '0.2s' }}>
             <div className="flex items-center justify-between mb-3">
               <Target className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
-              <Badge variant="secondary" className="bg-primary/15 text-primary border-primary/25">
-                {Math.round(user?.winRate || 0)}%
+              <Badge  className="bg-blue-400">
+                <Flame className="w-3 h-3 mr-1" />
+                {user?.streak || 0}
               </Badge>
             </div>
-            <div className="stat-value text-blue-400">{user?.totalBattles || 0}</div>
-            <div className="stat-label">{t('dashboard.battlesPlayed')}</div>
+            <div className="stat-value text-blue-400">{user?.streak || 0}</div>
+            <div className="stat-label">{t('dashboard.streak')}</div>
           </div>
 
           {/* Enhanced Draw Statistics Card */}
@@ -460,63 +423,6 @@ export function Dashboard() {
             <div className="stat-label">{t('dashboard.winRate')}</div>
           </div>
         </div>
-
-        {/* Battle Statistics Breakdown */}
-        <Card className="mb-6 sm:mb-8" data-onboarding="battle-stats-breakdown">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-lg lg:text-xl font-semibold">
-              <Trophy className="w-5 h-5 text-orange-500" />
-              {t('dashboard.battleStatsBreakdown')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Wins */}
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold text-green-600 mb-1">
-                  {stats.wins}
-                </div>
-                <div className="text-sm lg:text-base font-medium text-foreground mb-1">{t('dashboard.wins')}</div>
-                <div className="text-xs lg:text-sm text-green-600 font-medium">
-                  {stats.winPercentage}%
-                </div>
-              </div>
-              
-              {/* Draws */}
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold text-yellow-600 mb-1">
-                  {stats.draws}
-                </div>
-                <div className="text-sm lg:text-base font-medium text-foreground mb-1">{t('dashboard.draws')}</div>
-                <div className="text-xs lg:text-sm text-yellow-600 font-medium">
-                  {stats.drawPercentage}%
-                </div>
-              </div>
-              
-              {/* Losses */}
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold text-red-600 mb-1">
-                  {stats.losses}
-                </div>
-                <div className="text-sm lg:text-base font-medium text-foreground mb-1">{t('dashboard.losses')}</div>
-                <div className="text-xs lg:text-sm text-red-600 font-medium">
-                  {stats.lossPercentage}%
-                </div>
-              </div>
-              
-              {/* Streak */}
-              <div className="text-center">
-                <div className="text-2xl lg:text-3xl font-bold text-orange-600 mb-1">
-                  {user?.streak || 0}
-                </div>
-                <div className="text-sm lg:text-base font-medium text-foreground mb-1">{t('dashboard.streak')}</div>
-                <div className="text-xs lg:text-sm text-orange-600 font-medium">
-                  {(user?.streak || 0) > 0 ? t('dashboard.winStreak') : t('dashboard.noStreak')}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Dashboard Tabs */}
         <Tabs 

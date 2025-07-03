@@ -104,6 +104,10 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
                 <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.globalRank')}</span>
                 <span className="font-semibold text-xs lg:text-sm">#{user.rank}</span>
               </div>
+              <div className="sm:hidden flex justify-between">
+                <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.streak')}</span>
+                <span className="font-semibold text-xs lg:text-sm">{user.streak}</span>
+              </div>
               <div className=" flex justify-between">
                 <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.totalWins')}</span>
                 <span className="font-semibold text-xs lg:text-sm">{user.wins}</span>
@@ -112,10 +116,7 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
                 <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.winRate')}</span>
                 <span className="font-semibold text-xs lg:text-sm">{user.winRate}%</span>
               </div>
-              <div className="sm:hidden flex justify-between">
-                <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.streak')}</span>
-                <span className="font-semibold text-xs lg:text-sm">{user.streak}</span>
-              </div>
+      
               <div className="sm:hidden flex justify-between">
                 <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.battlesPlayed')}</span>
                 <span className="font-semibold text-xs lg:text-sm">{user.totalBattles}</span>
