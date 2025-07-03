@@ -317,18 +317,13 @@ class AvatarStorage {
       return user.avatar;
     }
 
-    // If it starts with /avatars, handle based on environment
+    // If it starts with /avatars, prepend API base URL
     if (user.avatar.startsWith('/avatars/')) {
-      // In development, use API_BASE_URL
-      if (import.meta.env.MODE === 'development') {
-        return `${API_BASE_URL}${user.avatar}`;
-      }
-      // In production, use relative path (handled by Vercel rewrites)
-      return user.avatar;
+      return `${API_BASE_URL}${user.avatar}`;
     }
 
     // Otherwise, assume it's a filename in the avatars directory
-    return `/avatars/${user.avatar}`;
+    return `${API_BASE_URL}/avatars/${user.avatar}`;
   }
 
   /**

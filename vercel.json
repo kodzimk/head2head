@@ -1,14 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://api.head2head.dev/:path*"
-    },
-    {
-      "source": "/avatars/:path*",
-      "destination": "https://api.head2head.dev/avatars/:path*"
-    },
-    {
       "source": "/(.*)",
       "destination": "/"
     }
