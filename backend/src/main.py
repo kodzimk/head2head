@@ -1,4 +1,3 @@
-
 from auth.router import auth_router
 from db.router import db_router
 from friends.router import router_friend
@@ -15,6 +14,8 @@ from init import engine, Base
 from sqlalchemy import text
 from datetime import datetime
 import redis
+from fastapi import FastAPI
+from .auth.init import api_key_middleware
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +107,9 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=86400,  # Cache preflight requests for 24 hours
 )
+
+# Add API key rotation middleware
+app.middleware("http")(api_key_middleware)
 
 @app.on_event("startup")
 async def startup_event():

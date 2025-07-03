@@ -92,16 +92,16 @@ const AvatarImage = React.forwardRef<
     if (avatarUrl) {
       // If it's already a full URL, use it
       if (avatarUrl.startsWith('http')) {
-        return avatarUrl
+        return avatarUrl;
       }
-      // If it's a relative path, prepend API base URL
-      if (avatarUrl.startsWith('/')) {
-        return `${API_BASE_URL}${avatarUrl}`
+      // If it's a relative path starting with /avatars, prepend API base URL
+      if (avatarUrl.startsWith('/avatars/')) {
+        return `${API_BASE_URL}${avatarUrl}`;
       }
-      // If it's just a filename, construct the full path
-      return `${API_BASE_URL}/avatars/${avatarUrl}`
+      // If it's just a filename, assume it's in the avatars directory
+      return `${API_BASE_URL}/avatars/${avatarUrl}`;
     }
-    return null
+    return null;
   }
 
   const finalAvatarUrl = getAvatarUrl()

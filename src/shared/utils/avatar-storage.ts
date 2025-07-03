@@ -308,29 +308,22 @@ class AvatarStorage {
    * Resolve avatar URL for a user (backward compatibility)
    */
   static resolveAvatarUrl(user: { username: string; avatar?: string | null }): string | null {
-    if (!user?.username) return null;
-    
-    // Check if user has a persistent avatar marker
-    if (user.avatar && user.avatar.startsWith('persistent_')) {
-      // For persistent avatars, we'll need to handle this asynchronously
-      // Return a placeholder for now, components should handle async loading
+    if (!user.avatar) {
       return null;
     }
-    
-    // Handle server avatars
-    if (user.avatar && !user.avatar.startsWith('data:') && !user.avatar.startsWith('blob:')) {
-      if (user.avatar.startsWith('http')) {
-        return user.avatar;
-      }
-      return `${API_BASE_URL}${user.avatar}`;
-    }
-    
-    // Handle blob URLs or data URLs
-    if (user.avatar && (user.avatar.startsWith('data:') || user.avatar.startsWith('blob:'))) {
+
+    // If it's already a full URL, return as is
+    if (user.avatar.startsWith('http')) {
       return user.avatar;
     }
-    
-    return null;
+
+    // If it starts with /avatars, prepend API base URL
+    if (user.avatar.startsWith('/avatars/')) {
+      return `${API_BASE_URL}${user.avatar}`;
+    }
+
+    // Otherwise, assume it's a filename in the avatars directory
+    return `${API_BASE_URL}/avatars/${user.avatar}`;
   }
 
   /**
@@ -338,39 +331,17 @@ class AvatarStorage {
    * This is the main function components should use for proper avatar display
    */
   static async resolveAvatarUrlAsync(user: { username: string; avatar?: string | null }): Promise<string | null> {
-    if (!user?.username) return null;
-    
     try {
-      // Priority 1: Try to get locally stored avatar first
+      // First check for local avatar
       const localAvatar = await this.getAvatar(user.username);
       if (localAvatar) {
-        console.log(`[AvatarStorage] Using local avatar for ${user.username}`);
         return localAvatar;
       }
-      
-      // Priority 2: Try server avatar if no local avatar
-      if (user.avatar && !user.avatar.startsWith('data:') && !user.avatar.startsWith('blob:')) {
-        let serverUrl = user.avatar;
-        
-        // Build full URL if needed
-        if (!serverUrl.startsWith('http')) {
-          serverUrl = serverUrl.startsWith('/') 
-            ? `${API_BASE_URL}${serverUrl}` 
-            : `${API_BASE_URL}/avatars/${serverUrl}`;
-        }
-        
-        console.log(`[AvatarStorage] Using server avatar for ${user.username}: ${serverUrl}`);
-        return serverUrl;
-      }
-      
-      // Priority 3: Handle blob/data URLs
-      if (user.avatar && (user.avatar.startsWith('data:') || user.avatar.startsWith('blob:'))) {
-        return user.avatar;
-      }
-      
-      return null;
+
+      // If no local avatar, resolve server URL
+      return this.resolveAvatarUrl(user);
     } catch (error) {
-      console.error(`[AvatarStorage] Failed to resolve avatar for ${user.username}:`, error);
+      console.error('[AvatarStorage] Error resolving avatar URL:', error);
       return null;
     }
   }
