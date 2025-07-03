@@ -6,11 +6,10 @@ import uuid
 from datetime import datetime
 import logging
 from typing import List, Dict, Any, Optional
-from ..ai_quiz_generator import AIQuizGenerator
-import asyncio
+from ai_quiz_generator import AIQuizGenerator
 
 logger = logging.getLogger(__name__)
-training_router = APIRouter(prefix="/training", tags=["training"])
+training_router = APIRouter()
 
 # Initialize AI Quiz Generator
 ai_generator = AIQuizGenerator()
@@ -328,24 +327,58 @@ async def get_recent_training_sessions(username: str, limit: int = Query(10, ge=
         logger.error(f"Error fetching recent training sessions for {username}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to fetch recent training sessions")
 
-@training_router.get("/generate-random-questions")
-async def generate_random_questions(sport: str, level: str, count: int = 5, language: str = "en"):
-    """Generate random questions for training using parallel API keys"""
+@training_router.post("/generate-random-questions")
+async def generate_random_training_questions(
+    sport: Optional[str] = Query(None),
+    level: str = Query("medium"),
+    count: int = Query(5, ge=1, le=10),
+    language: str = Query("en")
+):
+    """Generate random training questions using AI"""
     try:
-        # Generate questions using parallel API keys
-        questions = await ai_generator.generate_questions(
-            sport=sport,
-            level=level,
-            count=count,
-            battle_id=None,  # Training doesn't need battle ID
-            language=language
-        )
+        # Use "mixed" sport if none specified to get variety
+        if not sport:
+            sport = "mixed"
         
-        return questions
+        # Generate questions using AI with language support
+        questions = ai_generator.generate_questions(sport, level, count, f"training_{uuid.uuid4()}", language)
+        
+        # Convert to training format
+        training_questions = []
+        for i, question in enumerate(questions):
+            # Find the correct answer
+            correct_answer = None
+            for answer in question.get('answers', []):
+                if answer.get('correct', False):
+                    correct_answer = answer.get('text', '')
+                    break
+            
+            training_questions.append({
+                "id": str(uuid.uuid4()),
+                "question": question.get('question', ''),
+                "answers": [
+                    {"label": "A", "text": question.get('answers', [{}])[0].get('text', ''), "correct": question.get('answers', [{}])[0].get('correct', False)},
+                    {"label": "B", "text": question.get('answers', [{}])[1].get('text', ''), "correct": question.get('answers', [{}])[1].get('correct', False)},
+                    {"label": "C", "text": question.get('answers', [{}])[2].get('text', ''), "correct": question.get('answers', [{}])[2].get('correct', False)},
+                    {"label": "D", "text": question.get('answers', [{}])[3].get('text', ''), "correct": question.get('answers', [{}])[3].get('correct', False)}
+                ],
+                "correctAnswer": correct_answer or "",
+                "sport": sport,
+                "level": level,
+                "timeLimit": question.get('time_limit', 30),
+                "difficulty": question.get('difficulty', level)
+            })
+        
+        return {
+            "questions": training_questions,
+            "total": len(training_questions),
+            "sport": sport,
+            "level": level
+        }
         
     except Exception as e:
-        logger.error(f"Error generating training questions: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to generate training questions")
+        logger.error(f"Error generating random training questions: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate random questions")
 
 @training_router.post("/translate-flashcards")
 async def translate_flashcards(

@@ -22,7 +22,6 @@ import NotificationsPage from '../modules/notifications/notifications'
 import AllBattlesPage from '../modules/dashboard/all-battles-page'
 import { initialUser,type User } from '../shared/interface/user'
 import type { Battle } from '../shared/interface/user'
-import { Analytics } from "@vercel/analytics/next"
 
 import {sendMessage } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
@@ -448,50 +447,52 @@ export default function App() {
   }, []);
 
   return (
-    <GlobalStore.Provider value={{ user, setUser }}>
-      <ThemeStore.Provider value={{ theme, setTheme }}>
-        <CurrentQuestionStore.Provider value={{ currentQuestion, setCurrentQuestion }}>
-          <ScoreStore.Provider value={{ firstOpponentScore, secondOpponentScore, setFirstOpponentScore, setSecondOpponentScore }}>
-            <WinnerStore.Provider value={{ winner, setWinner }}>
-              <TextStore.Provider value={{ text, setText }}>
-                <LoserStore.Provider value={{ loser, setLoser }}>
-                  <ResultStore.Provider value={{ result, setResult }}>
-                    <BattleStore.Provider value={{ battle, setBattle }}>
-                      <OpponentStore.Provider value={{ opponentUsername, opponentAvatar, setOpponentUsername, setOpponentAvatar, setOpponent }}>
-                        <div className="relative">
-                          {isLanguageLoading && <LanguageLoadingIndicator />}
-                          <Analytics />
-                          <Routes>
-                            <Route path="/" element={<EntryPage />} />
-                            <Route path="/sign-up" element={<SignUpPage />} />
-                            <Route path="/sign-up/email" element={<EmailSignUpPage />} />
-                            <Route path="/sign-in" element={<SignInPage />} />
-                            <Route path="/:username" element={<DashboardPage />} />
-                            <Route path="/:username/profile" element={<ProfilePage />} />
-                            <Route path="/:username/friends" element={<FriendsPage user={user} />} />
-                            <Route path="/battles" element={<BattlesPage />} />
-                            <Route path="/waiting-room/:id" element={<WaitingPage />} />
-                            <Route path="/view-profile/:username" element={<ViewProfile user={user} />} />
-                            <Route path="/leaderboard" element={<LeaderboardPage />} />
-                            <Route path="/selection" element={<SelectionPage />} />
-                            <Route path="/:username/trainings" element={<TrainingsPage />} />
-                            <Route path="/:username/notifications" element={<NotificationsPage />} />
-                            <Route path="/:username/all-battles" element={<AllBattlesPage />} />
-                            <Route path="/:id/quiz" element={<QuizQuestionPage />} />
-                            <Route path="/:id/countdown" element={<BattleCountdown />} />
-                            <Route path="/:id/battle-result" element={<BattleResultPage user={user} />} />
-                            <Route path="*" element={<NotFoundPage />} />
-                          </Routes>
-                        </div>
-                      </OpponentStore.Provider>
-                    </BattleStore.Provider>
-                  </ResultStore.Provider>
-                </LoserStore.Provider>
-              </TextStore.Provider>
-            </WinnerStore.Provider>
-          </ScoreStore.Provider>
-        </CurrentQuestionStore.Provider>
-      </ThemeStore.Provider>
-    </GlobalStore.Provider>
+    <>
+      <GlobalStore.Provider value={{ user, setUser }}>
+        <ThemeStore.Provider value={{ theme, setTheme }}>
+          <CurrentQuestionStore.Provider value={{ currentQuestion, setCurrentQuestion }}>
+            <ScoreStore.Provider value={{ firstOpponentScore, setFirstOpponentScore, secondOpponentScore, setSecondOpponentScore }}>
+              <WinnerStore.Provider value={{ winner, setWinner }}>
+                <TextStore.Provider value={{ text, setText }}>
+                  <LoserStore.Provider value={{ loser, setLoser }}>
+                    <ResultStore.Provider value={{ result, setResult }}>
+                      <BattleStore.Provider value={{ battle, setBattle }}>
+                        <OpponentStore.Provider value={{ opponentUsername, opponentAvatar, setOpponent, setOpponentUsername, setOpponentAvatar }}>
+                          <div className={`min-h-screen ${theme ? 'dark' : ''}`}>
+                            {isLanguageLoading && <LanguageLoadingIndicator />}
+                            <Routes>
+                              <Route path="/" element={<EntryPage />} />
+                              <Route path="/sign-up" element={<SignUpPage />} />
+                              <Route path="/sign-up/email" element={<EmailSignUpPage />} />
+                              <Route path="/sign-in" element={<SignInPage />} />
+                              <Route path="/:username" element={<DashboardPage />} />
+                              <Route path="/:username/profile" element={<ProfilePage />} />
+                              <Route path="/:username/friends" element={<FriendsPage user={user} />} />
+                              <Route path="/battles" element={<BattlesPage />} />
+                              <Route path="/waiting-room/:id" element={<WaitingPage />} />
+                              <Route path="/view-profile/:username" element={<ViewProfile user={user} />} />
+                              <Route path="/leaderboard" element={<LeaderboardPage />} />
+                              <Route path="/selection" element={<SelectionPage />} />
+                              <Route path="/:username/trainings" element={<TrainingsPage />} />
+                              <Route path="/:username/notifications" element={<NotificationsPage />} />
+                              <Route path="/:username/all-battles" element={<AllBattlesPage />} />
+                              <Route path="/:id/quiz" element={<QuizQuestionPage />} />
+                              <Route path="/:id/countdown" element={<BattleCountdown />} />
+                              <Route path="/:id/battle-result" element={<BattleResultPage user={user} />} />
+                              <Route path="*" element={<NotFoundPage />} />
+                            </Routes>
+                          
+                          </div>
+                        </OpponentStore.Provider>
+                      </BattleStore.Provider>
+                    </ResultStore.Provider>
+                  </LoserStore.Provider>
+                </TextStore.Provider>
+              </WinnerStore.Provider>
+            </ScoreStore.Provider>
+          </CurrentQuestionStore.Provider>
+        </ThemeStore.Provider>
+      </GlobalStore.Provider>
+    </>
   )
 }

@@ -8,6 +8,16 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'next/navigation': '@vercel/analytics/dist/react',
+    },
+  },
+  optimizeDeps: {
+    include: ['@vercel/analytics'],
+    exclude: ['next'],
+  },
+  build: {
+    rollupOptions: {
+      external: ['next/navigation'],
     },
   },
   server: {

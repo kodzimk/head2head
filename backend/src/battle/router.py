@@ -1,6 +1,6 @@
 from battle.init import Battle,battle_router,battles
 from models import UserDataCreate,UserData
-from fastapi import  Query, APIRouter, WebSocket, WebSocketDisconnect, Request
+from fastapi import  Query
 from fastapi import HTTPException
 from init import SessionLocal
 from models import BattleModel
@@ -8,48 +8,81 @@ import uuid
 from init import redis_username,redis_email
 from tasks import queue_quiz_generation_task
 from db.router import update_user_data,get_user_by_username,repair_user_battles
-from ..ai_quiz_generator import AIQuizGenerator
 
 import json
 import math
 from sqlalchemy import select
 import logging
 import traceback
-import asyncio
 
 
 logger = logging.getLogger(__name__)
 
-battle_router = APIRouter(prefix="/battle", tags=["battle"])
-quiz_generator = AIQuizGenerator()
-
 @battle_router.post("/create")
-async def create_battle(first_opponent: str, sport: str, level: str):
-    """Create a new battle with AI-generated questions"""
+async def create_battle(first_opponent: str, sport: str = Query(...), level: str = Query(...)):
     try:
-        # Generate questions using parallel API keys
-        questions = await quiz_generator.generate_questions(
+        logger.info(f"Creating battle for {first_opponent} with sport={sport}, level={level}")
+        
+        battle_id = str(uuid.uuid4())
+        battles[battle_id] =  Battle(
+            id=battle_id,
+            first_opponent=first_opponent,
             sport=sport,
             level=level,
-            count=10,  # Generate 10 questions for the battle
-            battle_id=None,  # Will be set after battle creation
-            language="en"  # Default to English
         )
         
-        # Create battle record and return
-        battle = {
-            "questions": questions,
-            "first_opponent": first_opponent,
-            "sport": sport,
-            "level": level,
-            "status": "waiting"
-        }
+        logger.info(f"Battle {battle_id} created successfully")
         
-        return battle
+        # Trigger AI quiz generation as background task (non-blocking)
+        try:
+            task = queue_quiz_generation_task(battle_id, sport, level, 7)
+            logger.info(f"Started AI quiz generation task for battle {battle_id}")
+        except Exception as e:
+            logger.error(f"Failed to start AI quiz generation for battle {battle_id}: {str(e)}")
+            # Don't fail the battle creation if quiz generation fails
+            # The battle can still proceed with fallback questions
         
+        # Broadcast new battle to all connected users via WebSocket
+        try:
+            from websocket import manager
+            
+            # Get creator's user data to include avatar
+            creator_user = await get_user_by_username(first_opponent)
+            creator_avatar = creator_user.get('avatar', '') if creator_user else ''
+            
+            # Prepare battle data for broadcast
+            battle_data = {
+                "id": battle_id,
+                "first_opponent": first_opponent,
+                "sport": sport,
+                "level": level,
+                "creator_avatar": creator_avatar
+            }
+            
+            # Broadcast to all connected users
+            broadcast_message = {
+                "type": "battle_created",
+                "data": battle_data
+            }
+            
+            logger.info(f"Broadcasting battle creation to all connected users: {battle_data}")
+            
+            # Send to all connected users
+            for connected_user in manager.active_connections.keys():
+                try:
+                    await manager.send_message(json.dumps(broadcast_message), connected_user)
+                    logger.info(f"Sent battle creation notification to {connected_user}")
+                except Exception as e:
+                    logger.error(f"Failed to send battle creation notification to {connected_user}: {str(e)}")
+                    
+        except Exception as e:
+            logger.error(f"Failed to broadcast battle creation: {str(e)}")
+            # Don't fail the battle creation if broadcasting fails
+        
+        return battles[battle_id]
     except Exception as e:
         logger.error(f"Error creating battle: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to create battle")
+        raise HTTPException(status_code=500, detail=f"Failed to create battle: {str(e)}")
 
 @battle_router.delete("/delete")
 async def delete_battle(battle_id: str):
@@ -629,6 +662,7 @@ async def initialize_rankings():
         logger.error(f"Error initializing rankings: {str(e)}")
 
 # Initialize rankings on module import
+import asyncio
 try:
     loop = asyncio.get_event_loop()
     if loop.is_running():
