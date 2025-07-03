@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Trophy, Zap, Target, Play, ArrowRight, Award } from 'lucide-react'
+import { Trophy, Zap, Target, Play, ArrowRight, Award, TextSelect } from 'lucide-react'
 import { Button } from '../../shared/ui/button'
 import { Badge } from '../../shared/ui/badge'
 import { useTranslation } from 'react-i18next'
@@ -51,10 +51,10 @@ const getSports = (t: any) => [
 
 const getFeatures = (t: any) => [
   {
-    icon: Trophy,
-    title: t('hero.competitiveRanking'),
-    description: t('hero.competitiveRankingDesc'),
-    highlight: t('hero.globalRankings')
+    icon: TextSelect,
+    title: t('hero.selectionMode'),
+    description: t('hero.selectionModeDesc'),
+    highlight: t('hero.selectionMode')
   },
   {
     icon: Zap,
@@ -63,17 +63,17 @@ const getFeatures = (t: any) => [
     highlight: t('hero.liveMatches')
   },
   {
-    icon: Target,
-    title: t('hero.skillBasedMatching'),
-    description: t('hero.skillBasedMatchingDesc'),
-    highlight: t('hero.fairPlay')
+    icon: Award,
+    title: t('hero.teamBattles'),
+    description: t('hero.teamBattlesDesc'),
+    highlight: t('hero.teamBattles')
   },
   {
-    icon: Award,
-    title: t('hero.achievementSystem'),
-    description: t('hero.achievementSystemDesc'),
-    highlight: t('hero.unlockRewards')
-  },
+    icon: Target,
+    title: t('hero.trainingMode'),
+    description: t('hero.trainingModeDesc'),
+    highlight: t('hero.trainingMode')
+  }
 ];
 
 export default function Hero() {

@@ -71,7 +71,7 @@
     "startCompeting": "Start Competing",
     "dominateTitle": "Dominate in",
     "sportsBattles": "Sports Battles",
-    "challengePlayersWorldwide": "Challenge players worldwide in real-time sports trivia battles. Test your knowledge, climb the ranks, and become a champion!",
+    "challengePlayersWorldwide": "Challenge players worldwide in real-time sports trivia battles. Test your knowledge against others and play with your friends!",
     "chooseSport": "Choose Your Sport",
     "masterTrivia": "Master trivia in your favorite sports",
     "played": "matches played",
@@ -83,8 +83,8 @@
     "expert": "Expert",
     "elite": "Elite",
     "masters": "Masters",
-    "competitiveRanking": "Competitive Ranking",
-    "competitiveRankingDesc": "Climb the global leaderboards and prove your expertise",
+    "selectionMode": "Selection Mode",
+    "selectionModeDesc": "Everyday selections to determine daily options",
     "globalRankings": "Global Rankings",
     "realTimeBattles": "Real-Time Battles",
     "realTimeBattlesDesc": "Challenge friends and rivals to instant trivia matches",
@@ -100,7 +100,11 @@
     "joinCommunity": "Join the Elite Sport Community",
     "startJourney": "Start your journey to becoming a sports trivia champion. Battle the best, climb the rankings, and prove your expertise.",
     "createAccount": "Create Account",
-    "viewLeaderboard": "View Leaderboard"
+    "viewLeaderboard": "View Leaderboard",
+    "trainingMode": "Training Mode",
+    "trainingModeDesc": "Practice your skills in training mode and improve your knowledge",
+    "teamBattles": "Team Battles",
+    "teamBattlesDesc": "Play 2 vs 2 battles with your friends and other players"
   },
   "features": {
     "realTimeBattles": "Real-Time Battles",
@@ -307,6 +311,11 @@
       "settings": "Settings",
       "logout": "Logout",
       "restartTutorial": "Restart Tutorial"
+    },
+    "quick_actions": {
+      "start_battle": "Start Battle",
+      "start_training": "Start Training",
+      "add_friends": "Add Friends"
     }
   },
   "battles": {
