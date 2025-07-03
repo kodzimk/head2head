@@ -68,7 +68,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:latest
+    image: postgres:15
     container_name: postgres-db
     environment:
       - POSTGRES_USER=postgres
