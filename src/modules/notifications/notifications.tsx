@@ -522,33 +522,33 @@ export default function NotificationsPage() {
                           {request.sender.username[0].toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex-1">
+                      <div className="flex-1 flex flex-col justify-center">
                         <CardTitle className="text-lg hover:text-primary cursor-pointer"
                                   onClick={() => handleViewProfile(request.sender.username)}>
                           {request.sender.username}
                         </CardTitle>
-                        <CardDescription>{t('notifications.sentYouRequest')}</CardDescription>
+                        <CardDescription className="text-md">{t('notifications.sentYouRequest')}</CardDescription>
                       </div>
                       {/* Friend Request Buttons */}
-                      <div className="flex items-center gap-2 flex-col sm:flex-row w-full sm:w-auto">
+                      <div className="flex items-center gap-1 xs:gap-2 flex-col sm:flex-row w-full sm:w-auto">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full sm:w-24 transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                          className="min-w-[5.5rem] xs:w-20 sm:w-24 h-7 xs:h-8 sm:h-9 text-[10px] xs:text-xs px-1.5 xs:px-3 transition-colors hover:bg-destructive hover:text-destructive-foreground"
                           onClick={() => handleRejectRequest(request.sender.username)}
                           disabled={request.status !== 'pending'}
                         >
-                          <X className="h-4 w-4 mr-2" />
-                          {t('common.reject')}
+                          <X className="h-2.5 w-2.5 xs:h-3 xs:w-3 sm:h-4 sm:w-4 mr-0.5 xs:mr-1 sm:mr-2 flex-shrink-0" />
+                          <span className="truncate">{t('common.reject')}</span>
                         </Button>
                         <Button
                           size="sm"
-                          className="w-full sm:w-24"
+                          className="min-w-[5.5rem] xs:w-20 sm:w-24 h-7 xs:h-8 sm:h-9 text-[10px] xs:text-xs px-1.5 xs:px-3"
                           onClick={() => handleAcceptRequest(request.sender.username)}
                           disabled={request.status !== 'pending'}
                         >
-                          <Check className="h-4 w-4 mr-2" />
-                          {t('common.accept')}
+                          <Check className="h-2.5 w-2.5 xs:h-3 xs:w-3 sm:h-4 sm:w-4 mr-0.5 xs:mr-1 sm:mr-2 flex-shrink-0" />
+                          <span className="truncate">{t('common.accept')}</span>
                         </Button>
                       </div>
                     </div>
@@ -589,7 +589,7 @@ export default function NotificationsPage() {
                           </CardDescription>
                         </div>
                         {/* Battle Invitation Buttons */}
-                        <div className="flex items-center gap-2 flex-col sm:flex-row w-full sm:w-auto">
+                        <div className="flex items-center gap-1 xs:gap-2 flex-col sm:flex-row w-full sm:w-auto">
                           {response ? (
                             <>
                               <Badge
@@ -612,31 +612,31 @@ export default function NotificationsPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-full sm:w-24 transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                                className="min-w-[5.5rem] xs:w-20 sm:w-24 h-7 xs:h-8 sm:h-9 text-[10px] xs:text-xs px-1.5 xs:px-3 transition-colors hover:bg-destructive hover:text-destructive-foreground"
                                 onClick={() => handleRejectInvitation(invitation.battle_id)}
                                 disabled={isProcessing}
                               >
                                 {isProcessing ? (
-                                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                  <div className="h-2.5 w-2.5 xs:h-3 xs:w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin flex-shrink-0" />
                                 ) : (
                                   <>
-                                    <X className="h-4 w-4 mr-2" />
-                                    {t('common.reject')}
+                                    <X className="h-2.5 w-2.5 xs:h-3 xs:w-3 sm:h-4 sm:w-4 mr-0.5 xs:mr-1 sm:mr-2 flex-shrink-0" />
+                                    <span className="truncate">{t('common.reject')}</span>
                                   </>
                                 )}
                               </Button>
                               <Button
                                 size="sm"
-                                className="w-full sm:w-24"
+                                className="min-w-[5.5rem] xs:w-20 sm:w-24 h-7 xs:h-8 sm:h-9 text-[10px] xs:text-xs px-1.5 xs:px-3"
                                 onClick={() => handleAcceptInvitation(invitation.battle_id)}
                                 disabled={isProcessing}
                               >
                                 {isProcessing ? (
-                                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                  <div className="h-2.5 w-2.5 xs:h-3 xs:w-3 sm:h-4 sm:w-4 border-2 border-current border-t-transparent rounded-full animate-spin flex-shrink-0" />
                                 ) : (
                                   <>
-                                    <Check className="h-4 w-4 mr-2" />
-                                    {t('common.accept')}
+                                    <Check className="h-2.5 w-2.5 xs:h-3 xs:w-3 sm:h-4 sm:w-4 mr-0.5 xs:mr-1 sm:mr-2 flex-shrink-0" />
+                                    <span className="truncate">{t('common.accept')}</span>
                                   </>
                                 )}
                               </Button>
