@@ -1,55 +1,36 @@
 import os
 import json
 import google.generativeai as genai
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import logging
 import random
 import time
+import asyncio
+from .config import get_next_google_api_key
 
 logger = logging.getLogger(__name__)
 
-# Configure Google Generative AI
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-if not GOOGLE_API_KEY:
-    raise ValueError("GOOGLE_API_KEY environment variable is required")
-
-genai.configure(api_key=GOOGLE_API_KEY)
-
-# Use Gemini 2.0 Flash Exp for best performance
-model = genai.GenerativeModel('gemini-2.0-flash-exp')
-
 class AIQuizGenerator:
     def __init__(self):
-        self.model = model
         self.used_questions = set()  # Track used questions to ensure uniqueness
         
-    def generate_questions(self, sport: str, level: str, count: int = 5, battle_id: str = None, language: str = "en") -> List[Dict[str, Any]]:
-        """
-        Generate unique sports quiz questions using Gemini AI
-        
-        Args:
-            sport: The sport (football, basketball, tennis, etc.)
-            level: Difficulty level (easy, medium, hard)
-            count: Number of questions to generate
-            battle_id: Battle ID for uniqueness
-            language: Language code (en, ru) for question generation
-            
-        Returns:
-            List of question dictionaries with proper format
-        """
+    async def generate_questions_with_key(self, sport: str, level: str, count: int, battle_id: Optional[str], language: str, api_key: str) -> List[Dict[str, Any]]:
+        """Generate questions using a specific API key"""
         try:
-            logger.info(f"Generating {count} {level} {sport} questions for battle {battle_id} in {language}")
+            # Configure API for this instance
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel('gemini-2.0-flash-exp')
             
             # Create unique context for this battle
             battle_context = f"Battle ID: {battle_id}" if battle_id else f"Session: {int(time.time())}"
             
-            # First generate questions in English
+            # Generate questions in English
             english_prompt = self._build_question_prompt(sport, level, count, battle_context, "en")
-            english_response = self.model.generate_content(english_prompt)
+            english_response = model.generate_content(english_prompt)
             
             if not english_response.text:
-                logger.error("Empty response from Gemini API")
-                return self._get_fallback_questions(sport, level, count, language)
+                logger.error(f"Empty response from Gemini API with key ending in ...{api_key[-4:]}")
+                return []
             
             # Parse English questions
             english_questions = self._parse_ai_response(english_response.text, sport, level)
@@ -61,26 +42,67 @@ class AIQuizGenerator:
             
             # For other languages, translate the questions
             translation_prompt = self._build_translation_prompt(english_questions, language)
-            translation_response = self.model.generate_content(translation_prompt)
+            translation_response = model.generate_content(translation_prompt)
             
             if not translation_response.text:
-                logger.error("Empty translation response from Gemini API")
-                return self._get_fallback_questions(sport, level, count, language)
+                logger.error(f"Empty translation response from Gemini API with key ending in ...{api_key[-4:]}")
+                return []
             
             # Parse translated questions
             translated_questions = self._parse_ai_response(translation_response.text, sport, level)
             
             # Validate and format questions
             validated_questions = self._validate_questions(translated_questions, count)
-            
-            # Add labels and ensure uniqueness
             final_questions = self._finalize_questions(validated_questions, battle_id)
             
-            logger.info(f"Successfully generated and translated {len(final_questions)} questions for {sport} {level} in {language}")
+            logger.info(f"Successfully generated {len(final_questions)} questions with key ending in ...{api_key[-4:]}")
             return final_questions
             
         except Exception as e:
-            logger.error(f"Error generating AI questions: {str(e)}")
+            logger.error(f"Error generating AI questions with key ending in ...{api_key[-4:]}: {str(e)}")
+            return []
+
+    async def generate_questions(self, sport: str, level: str, count: int = 5, battle_id: str = None, language: str = "en") -> List[Dict[str, Any]]:
+        """
+        Generate unique sports quiz questions using multiple Gemini AI instances in parallel
+        """
+        try:
+            # Get multiple API keys
+            api_key1 = get_next_google_api_key()
+            api_key2 = get_next_google_api_key()
+            
+            # Split the question count between two API keys
+            count1 = count // 2
+            count2 = count - count1
+            
+            # Generate questions in parallel
+            tasks = [
+                self.generate_questions_with_key(sport, level, count1, battle_id, language, api_key1),
+                self.generate_questions_with_key(sport, level, count2, battle_id, language, api_key2)
+            ]
+            
+            # Wait for both tasks to complete
+            results = await asyncio.gather(*tasks)
+            
+            # Combine and validate results
+            all_questions = []
+            for questions in results:
+                all_questions.extend(questions)
+            
+            # If we don't have enough questions, use fallback
+            if len(all_questions) < count:
+                logger.warning(f"Not enough questions generated ({len(all_questions)}/{count}). Using fallback.")
+                return self._get_fallback_questions(sport, level, count, language)
+            
+            # Ensure we have exactly the requested number of questions
+            validated_questions = self._validate_questions(all_questions, count)
+            final_questions = self._finalize_questions(validated_questions, battle_id)
+            
+            logger.info(f"Successfully generated {len(final_questions)} questions using multiple API keys")
+            return final_questions
+            
+        except Exception as e:
+            logger.error(f"Error in parallel question generation: {str(e)}")
             return self._get_fallback_questions(sport, level, count, language)
     
     def _build_question_prompt(self, sport: str, level: str, count: int, battle_context: str, language: str = "en") -> str:

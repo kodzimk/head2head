@@ -174,7 +174,50 @@ export const useBattleStore = () => {
 
 // API Configuration
 export const API_BASE_URL = "https://api.head2head.dev";
-export const WS_BASE_URL = "wss://api.head2head.dev"
+export const WS_BASE_URL = "wss://api.head2head.dev";
+
+// API Key Management
+let currentKeyIndex = 0;
+const API_KEYS = [
+    "AIzaSyA3JnveYgQNYEi8T978o72O9_XcBZK4SYs",  // Replace with your actual API keys
+    "AIzaSyCpYEITMlV_m27_66CXTwHBWjQV1atJpzo",
+    "AIzaSyBTtYVDO4VwKhMBqTI1SwZH0SeKdI9AH_Q",
+    "AIzaSyCXgxp9zjCQFYK5XWDDBej6hrtbaF0Ne5Q",
+    "AIzaSyCVt8ILtxE81Fb2XLnHyu_nTjEWHm9qnyQ"
+];
+
+export const getNextApiKey = () => {
+    const key = API_KEYS[currentKeyIndex];
+    currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+    return key;
+};
+
+// Enhanced fetch function with API key rotation
+export const fetchWithApiKey = async (url: string, options: RequestInit = {}) => {
+    const apiKey = getNextApiKey();
+    const headers = {
+        ...options.headers,
+        'X-API-Key': apiKey,
+    };
+
+    const response = await fetch(url, {
+        ...options,
+        headers,
+    });
+
+    return response;
+};
+
+// Enhanced axios instance with API key rotation
+import axios from 'axios';
+
+export const axiosWithApiKey = axios.create();
+
+axiosWithApiKey.interceptors.request.use((config) => {
+    const apiKey = getNextApiKey();
+    config.headers['X-API-Key'] = apiKey;
+    return config;
+});
 
 // Battle-specific state management
 interface BattleState {

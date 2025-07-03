@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import {useGlobalStore, API_BASE_URL } from "../../shared/interface/gloabL_var";
+import {useGlobalStore, API_BASE_URL, fetchWithApiKey } from "../../shared/interface/gloabL_var";
 import Header from "../dashboard/header";
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card";
 import { Button } from "../../shared/ui/button";
@@ -151,83 +151,48 @@ export default function TrainingsPage() {
   }, [user, isLanguageLoading, t]);
 
   const fetchTrainingStats = async () => {
-    if (!user?.username || user.username.trim() === "") {
-      return;
-    }
-    
     try {
       const url = `${API_BASE_URL}/training/training-stats/${user.username}`;
-      const response = await fetch(url);
-      
-      if (response.ok) {
-        const stats = await response.json();
-        
-        // If all stats are zero, show a message about no data
-        if (stats.total_answers === 0 && stats.total_incorrect === 0 && stats.training_sessions === 0) {
-          setTrainingStats({
-            ...stats,
-            message: "No training data yet. Complete some battles or training sessions to see your stats!"
-          });
-        } else {
-          setTrainingStats(stats);
-        }
-        setError(null); // Clear any previous errors
-      } else {
-
-        setError(`Failed to load training statistics. Please try again.`);
-      }
+      const response = await fetchWithApiKey(url);
+      const data = await response.json();
+      setTrainingStats(data);
     } catch (error) {
-      setError(`Network error while loading training statistics. Please check your connection.`);
+      console.error("Error fetching training stats:", error);
     }
   };
 
   const fetchIncorrectAnswers = async () => {
-    if (!user?.username || user.username.trim() === "") {
-      return;
-    }
-    
     try {
-      const params = new URLSearchParams();
-      if (selectedSport && selectedSport !== "all") params.append('sport', selectedSport);
-      if (selectedLevel && selectedLevel !== "all") params.append('level', selectedLevel);
-      params.append('limit', '50');
-
+      const params = new URLSearchParams({
+        username: user.username,
+        sport: selectedSport,
+        level: selectedLevel
+      }).toString();
       const url = `${API_BASE_URL}/training/incorrect-answers/${user.username}?${params}`;
-      
-      const response = await fetch(url);
-      
-      if (response.ok) {
-        const data = await response.json();
-        setIncorrectAnswers(data.incorrect_answers || []);
-      } else {
-        console.error("Failed to fetch incorrect answers:", response.status, response.statusText);
-      }
+      const response = await fetchWithApiKey(url);
+      const data = await response.json();
+      setIncorrectAnswers(data);
     } catch (error) {
+      console.error("Error fetching incorrect answers:", error);
     }
   };
 
   const generateRandomQuestions = async () => {
     try {
-      const params = new URLSearchParams();
-      if (selectedSport && selectedSport !== "all") params.append('sport', selectedSport);
-      params.append('level', selectedLevel !== "all" ? selectedLevel : "medium");
-      params.append('count', '5');
-      params.append('language', i18n.language);
-
+      const params = new URLSearchParams({
+        sport: selectedSport,
+        level: selectedLevel,
+        count: "10"
+      }).toString();
       const url = `${API_BASE_URL}/training/generate-random-questions?${params}`;
-      
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        return data.questions || [];
-      } else {
-        return [];
-      }
+      const response = await fetchWithApiKey(url);
+      const data = await response.json();
+      const questions = Array.isArray(data) ? data : (data.questions || []);
+      setTrainingQuestions(questions);
+      return questions;
     } catch (error) {
+      console.error("Error generating random questions:", error);
+      setTrainingQuestions([]);
       return [];
     }
   };
