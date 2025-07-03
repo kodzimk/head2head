@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from './avatar';
-import { useAvatarManager } from '../hooks/use-avatar-manager';
-
+import AvatarStorage from '../utils/avatar-storage';
 interface UserAvatarProps {
   user: {
     username: string;
@@ -43,13 +42,63 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   onClick,
   isUploadAvatar = false
 }) => {
-  const { avatarUrl, isLoading } = useAvatarManager(user);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [, setError] = useState<Error | null>(null);
 
-  const hasValidAvatar = avatarUrl && avatarUrl.trim() !== '';
-  
-  const handleClick = onClick ? () => {
-    onClick();
-  } : undefined;
+  // Load avatar asynchronously with proper priority and caching
+  useEffect(() => {
+    const loadAvatar = async () => {
+      if (!user?.username) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // First try to get from local storage
+        const localAvatar = await AvatarStorage.getAvatar(user.username);
+        if (localAvatar) {
+          setAvatarUrl(localAvatar);
+          setIsLoading(false);
+          return;
+        }
+
+        // If no local avatar but we have a server avatar, try to cache it
+        if (user.avatar) {
+          const serverUrl = AvatarStorage.resolveAvatarUrl(user);
+          if (serverUrl) {
+            try {
+              // Try to cache the server avatar
+              await AvatarStorage.cacheServerAvatar(user.username, serverUrl);
+              const cachedAvatar = await AvatarStorage.getAvatar(user.username);
+              if (cachedAvatar) {
+                setAvatarUrl(cachedAvatar);
+              } else {
+                // If caching fails, use server URL directly
+                setAvatarUrl(serverUrl);
+              }
+            } catch (cacheError) {
+              console.warn('[UserAvatar] Failed to cache avatar:', cacheError);
+              // If caching fails, use server URL directly
+              setAvatarUrl(serverUrl);
+            }
+          }
+        }
+
+        setIsLoading(false);
+      } catch (error) {
+        console.error('[UserAvatar] Failed to load avatar:', error);
+        setError(error instanceof Error ? error : new Error('Failed to load avatar'));
+        setAvatarUrl(null);
+        setIsLoading(false);
+      }
+    };
+
+    loadAvatar();
+  }, [user?.username, user?.avatar]);
 
   const wrapperClasses = `
     ${isUploadAvatar ? 'w-full h-full' : sizeClasses[size]} 
@@ -60,31 +109,49 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   `.trim();
 
   return (
-    <Avatar 
-      className={wrapperClasses}
-      onClick={handleClick}
-      variant={variant}
-      status={status}
-      showBorder={showBorder}
-      showGlow={showGlow}
+    <div 
+      className={wrapperClasses} 
+      onClick={onClick}
+      style={{ 
+        clipPath: 'circle(50%)',
+        overflow: 'hidden',
+        ...(isUploadAvatar ? { width: '100%', height: '100%' } : {})
+      }}
     >
-      {isLoading ? (
-        <div className="animate-pulse bg-muted rounded-full w-full h-full" />
-      ) : (
-        <>
+      <Avatar 
+        className="w-full h-full flex items-center justify-center overflow-hidden"
+        variant={variant}
+        status={status}
+        showBorder={showBorder}
+        showGlow={showGlow}
+      >
+        {isLoading ? (
+          <div className="w-full h-full bg-muted animate-pulse" />
+        ) : avatarUrl ? (
           <AvatarImage
-            src={avatarUrl || undefined}
+            src={avatarUrl}
             alt={user.username}
-            className="object-cover"
+            username={user.username}
+            className="w-full h-full object-cover"
+            style={{
+              objectFit: 'cover',
+              objectPosition: 'center',
+              width: '100%',
+              height: '100%',
+              ...(isUploadAvatar ? { minWidth: '100%', minHeight: '100%' } : {})
+            }}
           />
-          {showFallback && !hasValidAvatar && (
-            <AvatarFallback>
-              {user.username?.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          )}
-        </>
-      )}
-    </Avatar>
+        ) : showFallback ? (
+          <AvatarFallback 
+            username={user.username} 
+            variant={variant} 
+            className="w-full h-full flex items-center justify-center"
+          >
+            {user.username?.slice(0, 2).toUpperCase()}
+          </AvatarFallback>
+        ) : null}
+      </Avatar>
+    </div>
   );
 };
 

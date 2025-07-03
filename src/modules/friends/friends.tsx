@@ -21,14 +21,37 @@ export default function FriendsPage({user}: {user: User}) {
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const navigate = useNavigate()
-  const {refreshView, setRefreshView} = useRefreshViewStore()
-
-  const fetchFriendData = async (friendUsername: string) => {
+  const {refreshView} = useRefreshViewStore()
+  const {setRefreshView} = useRefreshViewStore()
+  // Function to fetch friend data with enhanced avatar caching
+  const fetchFriendData = async (friendUsername: string): Promise<Friend> => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`);
-      let avatarUrl = null;
+      const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`)
       
+      // Enhanced avatar handling with caching
+      let avatarUrl = null;
       if (response.data.avatar) {
+        // Check for persistent avatar first
+        const persistentAvatar = await AvatarStorage.getAvatar(friendUsername);
+        if (persistentAvatar === null) {
+          // Cache server avatar locally for faster future access
+          try {
+            const fullAvatarUrl = response.data.avatar.startsWith('http') 
+              ? response.data.avatar 
+              : `${API_BASE_URL}${response.data.avatar}`;
+            
+            // Fetch and cache the server avatar
+            const avatarResponse = await fetch(fullAvatarUrl);
+            if (avatarResponse.ok) {
+              const blob = await avatarResponse.blob();
+              const file = new File([blob], 'avatar.jpg', { type: blob.type });
+              await AvatarStorage.saveAvatar(friendUsername, file);
+              console.log('[Friends Page] Cached server avatar for', friendUsername);
+            }
+          } catch (error) {
+            console.warn('[Friends Page] Failed to cache server avatar:', error);
+          }
+        }
         avatarUrl = response.data.avatar.startsWith('http') 
           ? response.data.avatar 
           : `${API_BASE_URL}${response.data.avatar}`;
@@ -39,42 +62,53 @@ export default function FriendsPage({user}: {user: User}) {
         status: "",
         avatar: avatarUrl,
         rank: response.data.ranking.toString()
-      };
+      }
     } catch (error) {
-      console.error("Error fetching friend data:", error);
+      console.error("Error fetching friend data:", error)
       return {
         username: friendUsername,
         status: "",
         avatar: null,
         rank: "0"
-      };
+      }
     }
-  };
+  }
 
-  const fetchFriends = async () => {
-    if (!user?.friends?.length) {
+  // Function to update friends list with deduplication
+  const updateFriendsList = async (friendUsernames: string[]) => {
+    if (friendUsernames.length === 0) {
       setFriends([]);
       return;
     }
 
-    const friendsData = await Promise.all(user.friends.map(fetchFriendData));
-    setFriends(friendsData);
-
-    // Batch cache avatars for all friends
-    await AvatarStorage.batchCacheAvatars(friendsData);
+    try {
+      console.log("Updating friends list with usernames:", friendUsernames)
+      const friendPromises = friendUsernames.map(username => fetchFriendData(username))
+      const friendsData = await Promise.all(friendPromises)
+      console.log("Updated friends list:", friendsData)
+      setFriends(friendsData)
+    } catch (error) {
+      console.error("Error updating friends list:", error)
+      setFriends([])
+    }
   };
 
+  // Initial load and update when user.friends changes
   useEffect(() => {
-    fetchFriends();
-  }, [user?.friends]);
+    console.log('Friends list changed:', user.friends);
+    updateFriendsList(user.friends || []);
+  }, [user.friends]);
 
   // Reset refreshView after it's used
   useEffect(() => {
     if (refreshView) {
-      fetchFriends();
-      setRefreshView(false);
+      console.log("refreshView triggered in friends page, resetting to false")
+      // Only reset refreshView after a short delay to ensure updates are processed
+      setTimeout(() => {
+        setRefreshView(false)
+      }, 100)
     }
-  }, [refreshView]);
+  }, [refreshView, setRefreshView])
 
   // Handle websocket messages for real-time updates
   useEffect(() => {
@@ -82,13 +116,23 @@ export default function FriendsPage({user}: {user: User}) {
       try {
         const data = JSON.parse(event.data);
         
-        if ((data.type === 'user_updated' || data.type === 'friend_request_updated') && data.data) {
+        if (data.type === 'user_updated' && data.data) {
           const updatedUserData = data.data;
           
           // Update friends list if the current user's data was updated (compare by email)
           if (updatedUserData.email === user.email) {
-            console.log(`Updating friends list from ${data.type}:`, updatedUserData.friends);
-            fetchFriends();
+            console.log('Updating friends list from websocket:', updatedUserData.friends);
+            updateFriendsList(updatedUserData.friends || []);
+          }
+        }
+        
+        if (data.type === 'friend_request_updated' && data.data) {
+          const updatedUserData = data.data;
+          
+          // Update friends list if the current user's data was updated (compare by email)
+          if (updatedUserData.email === user.email) {
+            console.log('Updating friends list from friend_request_updated:', updatedUserData.friends);
+            updateFriendsList(updatedUserData.friends || []);
           }
         }
       } catch (error) {
@@ -105,7 +149,7 @@ export default function FriendsPage({user}: {user: User}) {
         newSocket.removeEventListener('message', handleWebSocketMessage);
       }
     };
-  }, [user.username, user.email]);
+  }, [user.username])
 
   const handleRemoveFriend = async (username: string) => {
     removeFriend(user, username)

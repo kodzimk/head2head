@@ -68,18 +68,56 @@ export default function LeaderboardPage() {
 
   // Enhanced avatar caching for all leaderboard users
   useEffect(() => {
-    const cacheAvatars = async () => {
+    const fetchAndCacheAvatars = async () => {
       if (leaderboardData.length === 0) return;
 
-      await AvatarStorage.batchCacheAvatars(
-        leaderboardData.map(player => ({
-          username: player.username,
-          avatar: player.avatar
-        }))
-      );
+      console.log('[Leaderboard] Fetching and caching avatars for', leaderboardData.length, 'users');
+      
+      // Process avatars in smaller batches to avoid overwhelming the system
+      const batchSize = 3;
+      for (let i = 0; i < leaderboardData.length; i += batchSize) {
+        const batch = leaderboardData.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async (player) => {
+          if (!player.username || !player.avatar) return;
+          
+          try {
+            // Check if avatar is already cached
+            const persistentAvatar = await AvatarStorage.getAvatar(player.username);
+            if (persistentAvatar === null) {
+              // Get server URL
+              const serverUrl = AvatarStorage.resolveAvatarUrl({
+                username: player.username,
+                avatar: player.avatar
+              });
+              
+              if (serverUrl) {
+                try {
+                  // Try to cache the server avatar
+                  await AvatarStorage.cacheServerAvatar(player.username, serverUrl);
+                  console.log('[Leaderboard] Cached server avatar for', player.username);
+                } catch (error) {
+                  console.warn('[Leaderboard] Failed to cache server avatar for', player.username, ':', error);
+                }
+              }
+            } else {
+              console.log('[Leaderboard] Avatar already cached for', player.username);
+            }
+          } catch (error) {
+            console.warn('[Leaderboard] Failed to process avatar for', player.username, ':', error);
+          }
+        }));
+        
+        // Small delay between batches to be gentle on the system
+        if (i + batchSize < leaderboardData.length) {
+          await new Promise(resolve => setTimeout(resolve, 150));
+        }
+      }
+      
+      console.log('[Leaderboard] Avatar caching completed');
     };
 
-    cacheAvatars();
+    fetchAndCacheAvatars();
   }, [leaderboardData]);
 
   const currentUserRank = leaderboardData.find(u => u.username === user?.username)?.rank || 0;
@@ -206,48 +244,28 @@ export default function LeaderboardPage() {
                           {/* Player Info */}
                           <div className="leaderboard-info">
                             <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-foreground text-responsive-sm truncate">
+                              <h3 className="text-responsive-base font-medium truncate">
                                 {player.username}
                               </h3>
                               {isCurrentUser && (
-                                <Badge variant="secondary" className="text-xs bg-primary/15 text-primary border-primary/25">
-                                  You
-                                </Badge>
+                                <Badge variant="outline" className="text-xs">You</Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 text-responsive-xs text-muted-foreground">
-                              <span className="truncate capitalize">{player.favoriteSport}</span>
-                              <span className="text-muted-foreground/50">•</span>
-                              <span>{player.totalBattles} battles</span>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>{player.wins} wins</span>
+                              <span>•</span>
+                              <span>{player.winRate}% win rate</span>
+                              {player.streak > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <div className="flex items-center gap-1">
+                                    <TrendingUp className="w-3 h-3" />
+                                    <span>{player.streak} streak</span>
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </div>
-                        </div>
-                        
-                        {/* Stats */}
-                        <div className="leaderboard-stats">
-                          <div className="text-center sm:text-right">
-                            <div className="flex items-center justify-center sm:justify-end gap-1">
-                              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-success" />
-                              <span className="font-bold text-responsive-base text-success">{player.wins}</span>
-                            </div>
-                            <p className="text-responsive-xs text-muted-foreground">wins</p>
-                          </div>
-                          
-                          <div className="text-center sm:text-right">
-                            <p className="font-semibold text-responsive-sm text-foreground">
-                              {Math.round(player.winRate)}%
-                            </p>
-                            <p className="text-responsive-xs text-muted-foreground">rate</p>
-                          </div>
-                          
-                          {player.streak > 0 && (
-                            <div className="text-center sm:text-right">
-                              <p className="font-semibold text-responsive-sm text-primary">
-                                🔥 {player.streak}
-                              </p>
-                              <p className="text-responsive-xs text-muted-foreground">streak</p>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
