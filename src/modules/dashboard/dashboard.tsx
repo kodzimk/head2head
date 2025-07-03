@@ -11,7 +11,7 @@ import {
   Flame,
   ArrowRight, 
   Award,
-  Play
+  Play,
 } from 'lucide-react';
 import Header from './header';
 import { Button } from '../../shared/ui/button';
@@ -116,6 +116,13 @@ const getMobileDashboardOnboardingSteps = () => [
     offset: { x: 0, y: 10 }
   },
   {
+    id: "battle-stats-content",
+    target: "[data-onboarding='battle-stats-content']",
+    translationKey: "stats",
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
+  },
+  {
     id: "friends-list-content",
     target: "[data-onboarding='friends-list-content']",
     translationKey: "friends",
@@ -146,6 +153,46 @@ export function Dashboard() {
   const [mobileOnboardingSteps] = useState(getMobileDashboardOnboardingSteps());
   const { user, setUser } = useGlobalStore();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Effect to switch tabs based on onboarding step
+  useEffect(() => {
+    if (showOnboarding) {
+      const isMobile = window.innerWidth < 768;
+      const steps = isMobile ? mobileOnboardingSteps : onboardingSteps;
+      
+      // Function to update tab based on step target
+      const updateTabForStep = (stepIndex: number) => {
+        const step = steps[stepIndex];
+        if (step.target.includes('battle-history-content') || step.target.includes('battle-stats-content')) {
+          setActiveTab('battles');
+        } else if (step.target.includes('friends-list-content')) {
+          setActiveTab('friends');
+        } else {
+          setActiveTab('overview');
+        }
+      };
+
+      // Update tab for initial step
+      updateTabForStep(0);
+
+      // Listen for step changes in onboarding
+      const handleStepChange = (event: CustomEvent) => {
+        const { stepIndex } = event.detail;
+        updateTabForStep(stepIndex);
+      };
+
+      window.addEventListener('onboardingStepChange', handleStepChange as EventListener);
+      return () => {
+        window.removeEventListener('onboardingStepChange', handleStepChange as EventListener);
+      };
+    }
+  }, [showOnboarding, mobileOnboardingSteps, onboardingSteps]);
+
+  useEffect(() => {
+    const onboardingElements = [...document.querySelectorAll("[data-onboarding]")].map(e => e.getAttribute("data-onboarding"));
+    console.log('onboardingElements', onboardingElements[5]);
+  }, []);
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
@@ -426,7 +473,8 @@ export function Dashboard() {
 
         {/* Dashboard Tabs */}
         <Tabs 
-          defaultValue="overview" 
+          value={activeTab}
+          onValueChange={setActiveTab}
           className="space-y-4 sm:space-y-6"
           data-onboarding="dashboard-tabs"
         >

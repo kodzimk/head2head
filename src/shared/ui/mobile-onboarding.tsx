@@ -97,10 +97,8 @@ export default function MobileOnboarding({
 
     const findElementAndHighlight = async () => {
       console.log('[Mobile Onboarding] Finding element:', step.target);
-      console.log('[Mobile Onboarding] Available elements with data-onboarding:', 
-        Array.from(document.querySelectorAll('[data-onboarding]')).map(el => el.getAttribute('data-onboarding'))
-      );
       
+      // Try to find element with retries
       let element: HTMLElement | null = null;
       let retryCount = 0;
       const maxRetries = 15;
@@ -109,33 +107,52 @@ export default function MobileOnboarding({
         element = document.querySelector(step.target) as HTMLElement;
         
         if (element) {
-          console.log('[Mobile Onboarding] Found element:', step.target);
-          
-          // Scroll element into view with mobile-friendly options
-          element.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'center'
-          });
-          
-          // Wait for scroll to complete
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          setTargetElement(element);
-          const rect = element.getBoundingClientRect();
-          setElementRect(rect);
+          console.log('[Mobile Onboarding] Element found on attempt', retryCount + 1);
           break;
         }
         
         retryCount++;
-        console.log(`[Mobile Onboarding] Element not found, retry ${retryCount}/${maxRetries}`);
+        console.log(`[Mobile Onboarding] Retry ${retryCount}/${maxRetries} for element:`, step.target);
         
         // Wait before next retry
         await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       if (!element) {
-        console.error('[Mobile Onboarding] Element not found after all retries:', step.target);
+        console.warn('[Mobile Onboarding] Element not found after all retries:', step.target);
+        console.log('[Mobile Onboarding] Automatic step skipping disabled - onboarding will wait for user action');
+        return;
+      }
+
+      // Check if element is in viewport
+      const rect = element.getBoundingClientRect();
+      const isInViewport = (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+      );
+
+      // Calculate position first
+      setElementRect(rect);
+      setTargetElement(element);
+
+      // If element is not in viewport, instantly scroll to it
+      if (!isInViewport) {
+        console.log('[Mobile Onboarding] Element out of viewport, scrolling into view');
+        
+        // Instant scroll without smooth behavior
+        element.scrollIntoView({
+          behavior: 'instant',
+          block: 'center',
+          inline: 'center'
+        });
+
+        // Get updated rect after scrolling
+        const updatedRect = element.getBoundingClientRect();
+        if (updatedRect.top !== rect.top || updatedRect.left !== rect.left) {
+          setElementRect(updatedRect);
+        }
       }
     };
 
@@ -144,7 +161,15 @@ export default function MobileOnboarding({
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+      // Dispatch step change event before changing step
+      window.dispatchEvent(new CustomEvent('onboardingStepChange', {
+        detail: { stepIndex: currentStep + 1 }
+      }));
+      
+      // Wait for tab transition before changing step
+      setTimeout(() => {
+        setCurrentStep(currentStep + 1);
+      }, 100);
     } else {
       handleComplete();
     }
@@ -152,7 +177,15 @@ export default function MobileOnboarding({
 
   const handlePrevious = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+      // Dispatch step change event before changing step
+      window.dispatchEvent(new CustomEvent('onboardingStepChange', {
+        detail: { stepIndex: currentStep - 1 }
+      }));
+      
+      // Wait for tab transition before changing step
+      setTimeout(() => {
+        setCurrentStep(currentStep - 1);
+      }, 100);
     }
   };
 

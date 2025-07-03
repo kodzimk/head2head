@@ -124,13 +124,40 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
     const step = steps[currentStep];
     console.log('[Onboarding] Step changed to:', step.id, step.target);
 
-    // Automatic tab switching disabled - users must manually switch tabs
-    console.log('[Onboarding] Automatic tab switching disabled for step:', step.id);
+    // Handle tab switching before finding elements
+    const switchToTab = async () => {
+      // Map of tab targets to their active states
+      const tabMap = {
+        '#overview-content': 'overview',
+        '#battle-history-content': 'battles',
+        '#friends-content': 'friends'
+      };
+
+      // Check if current step requires tab switching
+      for (const [contentSelector, activeTab] of Object.entries(tabMap)) {
+        if (step.target.includes(contentSelector)) {
+          // Set active tab state
+          window.dispatchEvent(new CustomEvent('onboardingStepChange', {
+            detail: { 
+              stepIndex: currentStep,
+              activeTab: activeTab
+            }
+          }));
+
+          // Wait for tab state to update
+          await new Promise(resolve => setTimeout(resolve, 100));
+          console.log('[Onboarding] Tab switched to:', activeTab);
+          break;
+        }
+      }
+    };
 
     // Simple and reliable element finding with conditional instant scrolling
     const findElementAndHighlight = async () => {
-      console.log('[Onboarding] Finding element:', step.target);
+      // Switch tab if needed
+      await switchToTab();
       
+
       // Try to find element with retries
       let element: HTMLElement | null = null;
       let retryCount = 0;
@@ -154,7 +181,6 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
       if (!element) {
         console.warn('[Onboarding] Element not found after all retries:', step.target);
         console.log('[Onboarding] Automatic step skipping disabled - onboarding will wait for user action');
-        // Automatic step skipping disabled - onboarding will remain on current step
         return;
       }
 
@@ -214,8 +240,7 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
       setTargetElement(element);
     };
 
-    // Since automatic tab switching is disabled, no delay needed
-      findElementAndHighlight();
+    findElementAndHighlight();
   }, [currentStep, isActive, steps]);
 
   
@@ -452,6 +477,9 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
+      window.dispatchEvent(new CustomEvent('onboardingStepChange', {
+        detail: { stepIndex: currentStep + 1 }
+      }));
       setCurrentStep(currentStep + 1);
     } else {
       handleComplete();
@@ -460,6 +488,9 @@ export default function Onboarding({ steps, onComplete, storageKey, autoStart = 
 
   const handlePrevious = () => {
     if (currentStep > 0) {
+      window.dispatchEvent(new CustomEvent('onboardingStepChange', {
+        detail: { stepIndex: currentStep - 1 }
+      }));
       setCurrentStep(currentStep - 1);
     }
   };
