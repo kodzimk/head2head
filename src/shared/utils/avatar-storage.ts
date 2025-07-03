@@ -524,6 +524,52 @@ class AvatarStorage {
     
     return userObject;
   }
+
+  /**
+   * Batch cache avatars for multiple users with rate limiting
+   */
+  static async batchCacheAvatars(users: Array<{ username: string, avatar?: string | null }>, batchSize = 3) {
+    if (users.length === 0) return;
+
+    console.log('[AvatarStorage] Batch caching avatars for', users.length, 'users');
+    
+    for (let i = 0; i < users.length; i += batchSize) {
+      const batch = users.slice(i, i + batchSize);
+      
+      await Promise.all(batch.map(async (user) => {
+        if (!user.username || !user.avatar) return;
+        
+        try {
+          const persistentAvatar = await this.getAvatar(user.username);
+          if (persistentAvatar === null) {
+            const fullAvatarUrl = user.avatar.startsWith('http') 
+              ? user.avatar 
+              : `${API_BASE_URL}${user.avatar}`;
+            
+            const response = await Promise.race([
+              fetch(fullAvatarUrl),
+              new Promise<Response>((_, reject) => 
+                setTimeout(() => reject(new Error('Timeout')), 5000)
+              )
+            ]);
+            
+            if (response.ok) {
+              const blob = await response.blob();
+              const file = new File([blob], 'avatar.jpg', { type: blob.type });
+              await this.saveAvatar(user.username, file);
+              console.log('[AvatarStorage] Cached server avatar for', user.username);
+            }
+          }
+        } catch (error) {
+          console.warn('[AvatarStorage] Failed to cache server avatar for', user.username, ':', error);
+        }
+      }));
+      
+      if (i + batchSize < users.length) {
+        await new Promise(resolve => setTimeout(resolve, 150));
+      }
+    }
+  }
 }
 
 export default AvatarStorage; 

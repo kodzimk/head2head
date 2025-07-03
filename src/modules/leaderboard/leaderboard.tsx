@@ -68,60 +68,18 @@ export default function LeaderboardPage() {
 
   // Enhanced avatar caching for all leaderboard users
   useEffect(() => {
-    const fetchAndCacheAvatars = async () => {
+    const cacheAvatars = async () => {
       if (leaderboardData.length === 0) return;
 
-      console.log('[Leaderboard] Fetching and caching avatars for', leaderboardData.length, 'users');
-      
-      // Process avatars in smaller batches to avoid overwhelming the system
-      const batchSize = 3;
-      for (let i = 0; i < leaderboardData.length; i += batchSize) {
-        const batch = leaderboardData.slice(i, i + batchSize);
-        
-        await Promise.all(batch.map(async (player) => {
-          if (!player.username || !player.avatar) return;
-          
-          try {
-            // Check if avatar is already cached
-            const persistentAvatar = await AvatarStorage.getAvatar(player.username);
-            if (persistentAvatar === null) {
-              // Build full avatar URL
-              const fullAvatarUrl = player.avatar.startsWith('http') 
-                ? player.avatar 
-                : `${API_BASE_URL}${player.avatar}`;
-              
-              // Fetch and cache the server avatar with timeout
-              const response = await Promise.race([
-                fetch(fullAvatarUrl),
-                new Promise<Response>((_, reject) => 
-                  setTimeout(() => reject(new Error('Timeout')), 5000)
-                )
-              ]);
-              
-              if (response.ok) {
-                const blob = await response.blob();
-                const file = new File([blob], 'avatar.jpg', { type: blob.type });
-                await AvatarStorage.saveAvatar(player.username, file);
-                console.log('[Leaderboard] Cached server avatar for', player.username);
-              }
-            } else {
-              console.log('[Leaderboard] Avatar already cached for', player.username);
-            }
-          } catch (error) {
-            console.warn('[Leaderboard] Failed to cache server avatar for', player.username, ':', error);
-          }
-        }));
-        
-        // Small delay between batches to be gentle on the system
-        if (i + batchSize < leaderboardData.length) {
-          await new Promise(resolve => setTimeout(resolve, 150));
-        }
-      }
-      
-      console.log('[Leaderboard] Avatar caching completed');
+      await AvatarStorage.batchCacheAvatars(
+        leaderboardData.map(player => ({
+          username: player.username,
+          avatar: player.avatar
+        }))
+      );
     };
 
-    fetchAndCacheAvatars();
+    cacheAvatars();
   }, [leaderboardData]);
 
   const currentUserRank = leaderboardData.find(u => u.username === user?.username)?.rank || 0;

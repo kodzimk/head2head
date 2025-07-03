@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from './avatar';
-import AvatarStorage from '../utils/avatar-storage';
+import { useAvatarManager } from '../hooks/use-avatar-manager';
 
 interface UserAvatarProps {
   user: {
@@ -43,35 +43,10 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   onClick,
   isUploadAvatar = false
 }) => {
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Load avatar asynchronously with proper priority
-  useEffect(() => {
-    const loadAvatar = async () => {
-      if (!user?.username) {
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const resolvedUrl = await AvatarStorage.resolveAvatarUrlAsync(user);
-        setAvatarUrl(resolvedUrl);
-      } catch (error) {
-        console.error('[UserAvatar] Failed to load avatar:', error);
-        setAvatarUrl(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadAvatar();
-  }, [user?.username, user?.avatar]);
+  const { avatarUrl, isLoading } = useAvatarManager(user);
 
   const hasValidAvatar = avatarUrl && avatarUrl.trim() !== '';
-
-  // Enhanced click handling with hover effects
+  
   const handleClick = onClick ? () => {
     onClick();
   } : undefined;
@@ -85,42 +60,31 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   `.trim();
 
   return (
-    <div 
-      className={wrapperClasses} 
+    <Avatar 
+      className={wrapperClasses}
       onClick={handleClick}
-      style={{ 
-        clipPath: 'circle(50%)',
-        overflow: 'hidden',
-        ...(isUploadAvatar ? { width: '100%', height: '100%' } : {})
-      }}
+      variant={variant}
+      status={status}
+      showBorder={showBorder}
+      showGlow={showGlow}
     >
-      <Avatar 
-        className="w-full h-full flex items-center justify-center overflow-hidden"
-        variant={variant}
-        status={status}
-        showBorder={showBorder}
-        showGlow={showGlow}
-      >
-        {hasValidAvatar && !isLoading ? (
+      {isLoading ? (
+        <div className="animate-pulse bg-muted rounded-full w-full h-full" />
+      ) : (
+        <>
           <AvatarImage
-            src={avatarUrl}
+            src={avatarUrl || undefined}
             alt={user.username}
-            username={user.username}
-            className="w-full h-full object-cover"
-            style={{
-              objectFit: 'cover',
-              objectPosition: 'center',
-              width: '100%',
-              height: '100%',
-              ...(isUploadAvatar ? { minWidth: '100%', minHeight: '100%' } : {})
-            }}
+            className="object-cover"
           />
-        ) : null}
-        {showFallback && (
-          <AvatarFallback username={user.username} variant={variant} className="w-full h-full flex items-center justify-center" />
-        )}
-      </Avatar>
-    </div>
+          {showFallback && !hasValidAvatar && (
+            <AvatarFallback>
+              {user.username?.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          )}
+        </>
+      )}
+    </Avatar>
   );
 };
 
