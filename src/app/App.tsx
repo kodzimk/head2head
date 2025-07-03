@@ -22,6 +22,7 @@ import NotificationsPage from '../modules/notifications/notifications'
 import AllBattlesPage from '../modules/dashboard/all-battles-page'
 import { initialUser,type User } from '../shared/interface/user'
 import type { Battle } from '../shared/interface/user'
+import { Analytics } from "@vercel/analytics/next"
 
 import {sendMessage } from '../shared/websockets/websocket'
 import QuizQuestionPage from '../modules/battle/quiz-question'
@@ -459,6 +460,7 @@ export default function App() {
                       <OpponentStore.Provider value={{ opponentUsername, opponentAvatar, setOpponentUsername, setOpponentAvatar, setOpponent }}>
                         <div className="relative">
                           {isLanguageLoading && <LanguageLoadingIndicator />}
+                          <Analytics />
                           <Routes>
                             <Route path="/" element={<EntryPage />} />
                             <Route path="/sign-up" element={<SignUpPage />} />
