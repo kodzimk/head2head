@@ -12,7 +12,6 @@ import {
   ArrowRight, 
   Award,
   Play,
-  Lightbulb
 } from 'lucide-react';
 import Header from './header';
 import { Button } from '../../shared/ui/button';
@@ -93,42 +92,42 @@ const getMobileDashboardOnboardingSteps = () => [
     target: "[data-onboarding='user-avatar']",
     translationKey: "profile",
     position: "bottom" as const,
-    offset: { x: 0, y: 15 }
+    offset: { x: 0, y: 10 }
   },
   {
     id: "stats-grid",
     target: "[data-onboarding='stats-grid']",
     translationKey: "stats",
-    position: "top" as const,
-    offset: { x: 0, y: -80 }  // Position above the stats grid with more space
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
   },
   {
     id: "overview-profile",
     target: "[data-onboarding='overview-profile']",
     translationKey: "welcome",
     position: "center" as const,
-    offset: { x: 0, y: -60 }
+    offset: { x: 0, y: 0 }
   },
   {
     id: "battle-history-content",
     target: "[data-onboarding='battle-history-content']",
     translationKey: "battles",
-    position: "top" as const,
-    offset: { x: 0, y: -60 }
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
   },
   {
     id: "battle-stats-content",
     target: "[data-onboarding='battle-stats-content']",
     translationKey: "stats",
-    position: "top" as const,
-    offset: { x: 0, y: -60 }
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
   },
   {
     id: "friends-list-content",
     target: "[data-onboarding='friends-list-content']",
     translationKey: "friends",
-    position: "top" as const,
-    offset: { x: 0, y: -60 }
+    position: "bottom" as const,
+    offset: { x: 0, y: 10 }
   }
 ];
 
@@ -333,11 +332,6 @@ export function Dashboard() {
     };
   }, [user]);
 
-  const handleTestOnboarding = () => {
-    // Reset any previous onboarding state
-    localStorage.removeItem('head2head-dashboard-onboarding');
-    setShowOnboarding(true);
-  };
 
   if (error || !user) {
     return (
@@ -388,16 +382,6 @@ export function Dashboard() {
                 <h1 className="text-gaming-lg text-foreground font-rajdhani">
                   {t('dashboard.welcome')}, {user?.nickname || user?.username || 'Player'}
                 </h1>
-                {/* Test Onboarding Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                  onClick={handleTestOnboarding}
-                >
-                  <Lightbulb className="w-3 h-3 mr-1" />
-                  {isMobile ? '📱 Test Mobile Onboarding' : '🖥️ Test Desktop Onboarding'}
-                </Button>
               </div>
               <p className="text-responsive-sm text-muted-foreground font-rajdhani max-w-2xl">
                 {t('dashboard.readyForChallenge')}

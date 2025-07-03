@@ -225,19 +225,6 @@ export default function MobileOnboarding({
     let top = 0;
     let left = 0;
 
-    // Special handling for overview content
-    if (step.target.includes('overview-content')) {
-      // Place tooltip at the bottom of the viewport with padding
-      top = viewportHeight - tooltipHeight - 20;
-      left = Math.max(16, Math.min(viewportWidth - tooltipWidth - 16, viewportWidth / 2 - tooltipWidth / 2));
-      return { 
-        top: `${top}px`, 
-        left: `${left}px`,
-        width: `${tooltipWidth}px`,
-        maxHeight: `${Math.min(tooltipHeight, viewportHeight - 32)}px`
-      };
-    }
-
     switch (position) {
       case 'top':
         top = Math.max(16, elementRect.top - tooltipHeight - 20 + offset.y);
