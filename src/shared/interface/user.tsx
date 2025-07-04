@@ -17,6 +17,7 @@ export interface User {
     draws?: number;
     losses?: number;
     language?: string;
+    votingScore?: number;
 }
 
 export interface Battle {

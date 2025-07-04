@@ -117,7 +117,15 @@
     "friendSystemDesc": "Connect with friends and track your progress together"
   },
   "dashboard": {
-    "welcome": "Welcome back",
+    "welcome": "Welcome back!",
+    "subtitle": "Here's what's happening in your world",
+    "overview": "Overview",
+    "battles": "Battles",
+    "friends": "Friends",
+    "selections": "Selections",
+    "home": "Home",
+    "social": "Social",
+    "vote": "Vote",
     "readyForChallenge": "Ready for your next gaming challenge? Your opponents are waiting.",
     "quickBattle": "Quick Battle",
     "practiceMode": "Practice Mode",
@@ -132,12 +140,8 @@
     "streak": "Streak",
     "winStreak": "Win Streak",
     "noStreak": "No Streak",
-    "overview": "Overview",
     "stats": "Stats",
     "myBattles": "My Battles",
-    "battles": "Battles",
-    "friends": "Friends",
-    "social": "Social",
     "loading": "Loading your dashboard...",
     "error": {
       "failedToLoad": "Failed to load user data",
@@ -949,7 +953,7 @@
     },
     "contact": {
       "question": "How can I contact head2head?",
-      "answer": "You can contact us at support@head2head.com"
+      "answer": "You can contact us at admin@head2head.dev"
     }
   },
   "signIn": {
@@ -1018,6 +1022,20 @@
       "generic": "Sign up failed. Please try again",
       "noResponse": "No response from server. Please try again",
       "unknown": "An error occurred. Please try again"
+    }
+  },
+  "selection": {
+    "title": "Daily Selections",
+    "backToList": "Back to Selections",
+    "votes": "votes",
+    "totalVotes": "total votes",
+    "comments": "Comments",
+    "addComment": "Add your comment",
+    "categories": {
+      "all": "All",
+      "football": "Football",
+      "basketball": "Basketball",
+      "tennis": "Tennis"
     }
   },
   "signUpLanding": {
