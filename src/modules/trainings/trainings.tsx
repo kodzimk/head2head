@@ -182,16 +182,37 @@ export default function TrainingsPage() {
       const params = new URLSearchParams({
         sport: selectedSport,
         level: selectedLevel,
-        count: "10"
+        count: "10",
+        language: i18n.language
       }).toString();
+      
       const url = `${API_BASE_URL}/training/generate-random-questions?${params}`;
       const response = await fetchWithApiKey(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to generate questions: ${response.status}`);
+      }
+      
       const data = await response.json();
-      const questions = Array.isArray(data) ? data : (data.questions || []);
-      setTrainingQuestions(questions);
-      return questions;
+      const questions = (Array.isArray(data) ? data : (data.questions || [])) as TrainingQuestion[];
+      
+      // Validate questions
+      const validQuestions = questions.filter(q => 
+        q.question && 
+        Array.isArray(q.answers) && 
+        q.answers.length === 4 &&
+        q.correctAnswer
+      );
+      
+      if (validQuestions.length === 0) {
+        throw new Error('No valid questions generated');
+      }
+      
+      setTrainingQuestions(validQuestions);
+      return validQuestions;
     } catch (error) {
       console.error("Error generating random questions:", error);
+      setError(t('training.error.failedToGenerate'));
       setTrainingQuestions([]);
       return [];
     }
@@ -720,12 +741,23 @@ export default function TrainingsPage() {
   };
 
   const prepareRandomQuestions = async () => {
-    // Generate random AI questions
-    const randomQuestions = await generateRandomQuestions();
-    
-    if (randomQuestions.length > 0) {
-      setTrainingQuestions(randomQuestions);
-      } 
+    try {
+      setLoading(true);
+      // Generate random AI questions
+      const randomQuestions = await generateRandomQuestions();
+      
+      if (randomQuestions && randomQuestions.length > 0) {
+        setTrainingQuestions(randomQuestions);
+      } else {
+        // If no questions generated, try fallback to mixed questions
+        await prepareMixedQuestions();
+      }
+    } catch (error) {
+      console.error("Error preparing random questions:", error);
+      setError(t('training.error.failedToLoad'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAnswerSelect = (label: string) => {

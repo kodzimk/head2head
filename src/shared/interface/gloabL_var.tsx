@@ -173,8 +173,8 @@ export const useBattleStore = () => {
 }
 
 // API Configuration
-export const API_BASE_URL = "https://api.head2head.dev";
-export const WS_BASE_URL = "wss://api.head2head.dev";
+export const API_BASE_URL = "http://localhost:8000";
+export const WS_BASE_URL = "ws://localhost:8000";
 
 // API Key Management
 let currentKeyIndex = 0;
@@ -194,18 +194,35 @@ export const getNextApiKey = () => {
 
 // Enhanced fetch function with API key rotation
 export const fetchWithApiKey = async (url: string, options: RequestInit = {}) => {
-    const apiKey = getNextApiKey();
-    const headers = {
-        ...options.headers,
-        'X-API-Key': apiKey,
-    };
+  const apiKey = localStorage.getItem('apiKey');
+  
+  const defaultOptions: RequestInit = {
+    credentials: 'include', // Add credentials include
+    headers: {
+      'Content-Type': 'application/json',
+      ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}),
+    },
+  };
 
-    const response = await fetch(url, {
-        ...options,
-        headers,
-    });
+  const mergedOptions = {
+    ...defaultOptions,
+    ...options,
+    headers: {
+      ...defaultOptions.headers,
+      ...options.headers,
+    },
+  };
 
+  try {
+    const response = await fetch(url, mergedOptions);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     return response;
+  } catch (error) {
+    console.error('Fetch error:', error);
+    throw error;
+  }
 };
 
 // Enhanced axios instance with API key rotation

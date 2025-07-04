@@ -684,8 +684,9 @@
       "incorrect": "Incorrect",
       "accuracy": "Accuracy",
       "sessions": "Sessions",
-      "sportBreakdown": "Sport Breakdown",
-      "noStats": "No training statistics available yet. Start training to see your progress!"
+      "loading": "Loading training statistics...",
+      "error": "Error loading statistics",
+      "tryAgain": "Please try again"
     },
     "session": {
       "flashcardTitle": "Flashcard Training",
@@ -729,6 +730,11 @@
       "learningOpportunity": "Don't worry! This is a learning opportunity. Review the correct answer and try to understand why it's right.",
       "timerNote": "Try to answer faster next time! The timer is set to 15 seconds per question.",
       "greatJob": "Great job! You got this one right! 🎯"
+    },
+    "error": {
+      "failedToLoad": "Failed to load training data",
+      "failedToGenerate": "Failed to generate questions. Please try again.",
+      "pleaseSignIn": "Please sign in to access training"
     }
   },
   "notifications": {

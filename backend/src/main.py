@@ -78,8 +78,8 @@ origins = [
 # Add CORS middleware with comprehensive configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for debugging CORS issues
-    allow_credentials=False,  # Must be False when using wildcard origins
+    allow_origins=origins,  # Use specific origins instead of wildcard
+    allow_credentials=True,  # Enable credentials
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     allow_headers=[
         "Accept",
