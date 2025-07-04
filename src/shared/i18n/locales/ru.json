@@ -331,7 +331,9 @@
       "start_battle": "Начать битву",
       "start_training": "Начать тренировку",
       "add_friends": "Добавить друзей"
-    }
+    },
+    "unknownSport": "Неизвестный вид спорта",
+    "unknownLevel": "Неизвестный уровень"
   },
   "battles": {
     "createBattle": "Создать битву",

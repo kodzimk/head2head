@@ -15,6 +15,17 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var";
 
+const VALID_SPORTS = [
+  'football',
+  'basketball',
+  'tennis',
+  'soccer',
+  'baseball',
+  'volleyball',
+  'hockey',
+  'cricket',
+  'boxing'
+];
 
 const getSportIcon = (sport: string) => {
   const sportIcons: { [key: string]: React.ReactNode } = {
@@ -26,10 +37,17 @@ const getSportIcon = (sport: string) => {
     volleyball: <Zap className="w-6 h-6 text-purple-500" />,
     hockey: <Sword className="w-6 h-6 text-blue-500" />,
     cricket: <Target className="w-6 h-6 text-green-500" />,
+    boxing: <Sword className="w-6 h-6 text-red-500" />,
     default: <Trophy className="w-6 h-6 text-gray-500" />
   };
   
-  return sportIcons[sport.toLowerCase()] || sportIcons.default;
+  const normalizedSport = sport?.toLowerCase()?.trim() || 'default';
+  return sportIcons[normalizedSport] || sportIcons.default;
+};
+
+const normalizeSport = (sport: string): string => {
+  const normalizedSport = sport?.toLowerCase()?.trim() || '';
+  return VALID_SPORTS.includes(normalizedSport) ? normalizedSport : 'unknown';
 };
 
 export default function Battles({
@@ -49,7 +67,12 @@ export default function Battles({
     const fetchBattles = async () => {
       try {
         const response = await axios.get(`${API_BASE_URL}/db/get-user-battles?username=${user.username}`);
-        setBattles(response.data);  
+        // Normalize sports in the response data
+        const normalizedBattles = response.data.map((battle: any) => ({
+          ...battle,
+          sport: normalizeSport(battle.sport)
+        }));
+        setBattles(normalizedBattles);
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching battles:', error);
@@ -108,7 +131,7 @@ export default function Battles({
                             {battle.player1} vs {battle.player2}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {battle.sport}
+                            {battle.sport === 'unknown' ? t('dashboard.unknownSport') : battle.sport}
                           </p>
                         </div>
                       </div>

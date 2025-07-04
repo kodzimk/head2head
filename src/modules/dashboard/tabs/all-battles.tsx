@@ -34,6 +34,25 @@ interface Battle {
   score: string;
 }
 
+const VALID_SPORTS = [
+  'football',
+  'basketball',
+  'tennis',
+  'soccer',
+  'baseball',
+  'volleyball',
+  'hockey',
+  'cricket',
+  'boxing'
+];
+
+const VALID_LEVELS = [
+  'easy',
+  'medium',
+  'hard',
+  'expert'
+];
+
 const getSportIcon = (sport: string) => {
   const sportIcons: { [key: string]: React.ReactNode } = {
     football: <Trophy className="w-5 h-5 text-orange-500" />,
@@ -48,7 +67,18 @@ const getSportIcon = (sport: string) => {
     default: <Trophy className="w-5 h-5 text-gray-500" />
   };
   
-  return sportIcons[sport.toLowerCase()] || sportIcons.default;
+  const normalizedSport = sport?.toLowerCase()?.trim() || 'default';
+  return sportIcons[normalizedSport] || sportIcons.default;
+};
+
+const normalizeSport = (sport: string): string => {
+  const normalizedSport = sport?.toLowerCase()?.trim() || '';
+  return VALID_SPORTS.includes(normalizedSport) ? normalizedSport : 'unknown';
+};
+
+const normalizeLevel = (level: string): string => {
+  const normalizedLevel = level?.toLowerCase()?.trim() || '';
+  return VALID_LEVELS.includes(normalizedLevel) ? normalizedLevel : 'unknown';
 };
 
 export default function AllBattles() {
@@ -105,8 +135,8 @@ export default function AllBattles() {
           second_opponent: battle.second_opponent,
           first_opponent_score: firstScore,
           second_opponent_score: secondScore,
-          sport: battle.sport,
-          level: battle.level,
+          sport: normalizeSport(battle.sport),
+          level: normalizeLevel(battle.level),
           created_at: battle.created_at,
           result,
           score

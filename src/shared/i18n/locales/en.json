@@ -316,7 +316,9 @@
       "start_battle": "Start Battle",
       "start_training": "Start Training",
       "add_friends": "Add Friends"
-    }
+    },
+    "unknownSport": "Unknown Sport",
+    "unknownLevel": "Unknown Level"
   },
   "battles": {
     "createBattle": "Create Battle",
