@@ -308,23 +308,23 @@ class AvatarStorage {
    * Resolve avatar URL for a user (backward compatibility)
    */
   static resolveAvatarUrl(user: { username: string; avatar?: string | null }): string | null {
-    if (!user?.avatar) {
-      return null;
-    }
+    if (!user?.username) return null;
 
-    // If it's already a full URL, return as is
-    if (user.avatar.startsWith('http')) {
+    // If user has a full URL avatar, return it
+    if (user.avatar?.startsWith('http://') || user.avatar?.startsWith('https://')) {
       return user.avatar;
     }
 
-    // If it starts with /avatars or avatars/, prepend API base URL
-    if (user.avatar.startsWith('/avatars/') || user.avatar.startsWith('avatars/')) {
-      const cleanPath = user.avatar.startsWith('/') ? user.avatar : `/${user.avatar}`;
-      return `${API_BASE_URL}${cleanPath}`;
+    // If user has a relative path avatar, resolve it against API_BASE_URL
+    if (user.avatar) {
+      // Remove any leading slashes to avoid double slashes in URL
+      const cleanPath = user.avatar.replace(/^\/+/, '');
+      return `${API_BASE_URL}/${cleanPath}`;
     }
 
-    // Otherwise, assume it's a filename in the avatars directory
-    return `${API_BASE_URL}/avatars/${user.avatar}`;
+    // If no avatar specified, try the default avatar path
+    const defaultPath = this.createAvatarPath(user.username);
+    return `${API_BASE_URL}/${defaultPath}`;
   }
 
   /**
@@ -365,16 +365,39 @@ class AvatarStorage {
    */
   static async cacheServerAvatar(username: string, avatarUrl: string): Promise<void> {
     try {
+      // Check if we already have this avatar cached
+      const existingAvatar = await this.getAvatar(username);
+      if (existingAvatar) {
+        // Avatar already cached, no need to download again
+        return;
+      }
+
+      // Fetch the image
       const response = await fetch(avatarUrl);
-      if (!response.ok) return;
-      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch avatar: ${response.status}`);
+      }
+
+      // Get the content type and validate it's an image
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.startsWith('image/')) {
+        throw new Error('Invalid content type: not an image');
+      }
+
+      // Convert to blob
       const blob = await response.blob();
-      const file = new File([blob], 'avatar.jpg', { type: blob.type });
       
+      // Create a File object from the blob
+      const extension = contentType.split('/')[1] || 'jpg';
+      const file = new File([blob], `avatar.${extension}`, { type: contentType });
+      
+      // Save to IndexedDB
       await this.saveAvatar(username, file);
-      console.log(`[AvatarStorage] Cached server avatar for ${username} at path: ${this.createAvatarPath(username)}`);
+      
+      console.log(`[AvatarStorage] Successfully cached avatar for ${username}`);
     } catch (error) {
-      console.warn('[AvatarStorage] Failed to cache server avatar:', error);
+      console.error(`[AvatarStorage] Failed to cache avatar for ${username}:`, error);
+      throw error;
     }
   }
   
@@ -406,36 +429,45 @@ class AvatarStorage {
    */
   private static async aggressiveCleanup(newFileSize: number): Promise<void> {
     try {
-      const usage = await this.getStorageUsage();
+      const { totalBytes } = await this.getStorageUsage();
+      const projectedSize = totalBytes + newFileSize;
       
-      if (usage.totalBytes + newFileSize > this.SAFE_STORAGE_LIMIT) {
-        console.log('[AvatarStorage] Storage approaching limit, performing aggressive cleanup');
+      // If we're under the safe limit, no cleanup needed
+      if (projectedSize <= this.SAFE_STORAGE_LIMIT) {
+        return;
+      }
+      
+      // Get all avatars sorted by timestamp
+      const stored = await this.getAllAvatars();
+      const sortedAvatars = Object.values(stored).sort((a, b) => a.timestamp - b.timestamp);
+      
+      // Calculate how much space we need to free
+      const targetSize = this.SAFE_STORAGE_LIMIT - newFileSize;
+      let currentSize = totalBytes;
+      
+      // Remove oldest avatars until we're under target size
+      for (const avatar of sortedAvatars) {
+        if (currentSize <= targetSize) break;
         
-        const stored = await this.getAllAvatars();
-        const avatarEntries = Object.entries(stored);
-        
-        // Sort by timestamp (oldest first)
-        avatarEntries.sort(([, a], [, b]) => a.timestamp - b.timestamp);
-        
-        // Remove oldest avatars until we have enough space
-        let removedSize = 0;
-        for (const [username, data] of avatarEntries) {
-          await this.removeAvatar(username);
-          removedSize += data.file.size;
-          
-          console.log(`[AvatarStorage] Removed old avatar for ${username} (${this.formatBytes(data.file.size)}) to free space`);
-          
-          if (usage.totalBytes - removedSize + newFileSize <= this.SAFE_STORAGE_LIMIT) {
-            break;
-          }
+        try {
+          await this.removeAvatar(avatar.username);
+          currentSize -= avatar.file.size;
+          console.log(`[AvatarStorage] Cleaned up old avatar for ${avatar.username}`);
+        } catch (error) {
+          console.warn(`[AvatarStorage] Failed to remove avatar for ${avatar.username}:`, error);
         }
       }
+      
+      // Final check
+      const { totalBytes: finalSize } = await this.getStorageUsage();
+      if (finalSize + newFileSize > this.MAX_STORAGE_SIZE) {
+        throw new Error('Storage limit exceeded even after cleanup');
+      }
     } catch (error) {
-      console.error('[AvatarStorage] Failed to perform aggressive cleanup:', error);
+      console.error('[AvatarStorage] Failed to perform cleanup:', error);
+      throw error;
     }
   }
-  
-  
   
   /**
    * Get current storage usage in bytes
