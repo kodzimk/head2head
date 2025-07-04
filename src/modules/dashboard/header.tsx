@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {  Settings, Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home, Bell } from 'lucide-react';
+import { Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home, Bell, User } from 'lucide-react';
 import { Button } from '../../shared/ui/button';
 import { 
   DropdownMenu,
@@ -78,7 +78,7 @@ export default function Header() {
             <Link to="/selection" className="nav-gaming">
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <SlidersHorizontal className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
-                <span className="text-sm lg:text-base">{t('navigation.selection')}</span>
+                <span className="text-sm lg:text-base">{t('navigation.dailyPicks')}</span>
               </div>
             </Link>
             <Link to={`/${user?.username}/trainings`} className="nav-gaming"> 
@@ -147,20 +147,6 @@ export default function Header() {
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Mobile User Stats */}
-                    <div className="lg:hidden mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border/30">
-                      <div className="grid grid-cols-2 gap-2 sm:gap-3 text-center">
-                        <div className="stat-card bg-card/50 p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-lg">
-                          <div className="stat-value text-sm sm:text-base font-bold">{user.rank || 'N/A'}</div>
-                          <div className="stat-label text-xs">Global Rank</div>
-                        </div>
-                        <div className="stat-card bg-card/50 p-2 sm:p-3 rounded-lg sm:rounded-xl shadow-lg">
-                          <div className="stat-value text-sm sm:text-base font-bold">{user.wins || 0}</div>
-                          <div className="stat-label text-xs">Total Wins</div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Mobile Navigation Items */}
@@ -179,7 +165,7 @@ export default function Header() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/selection')} className="hover:bg-card/50 py-2 sm:py-3">
                       <SlidersHorizontal className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-sm sm:text-base">{t('navigation.selection')}</span>
+                      <span className="text-sm sm:text-base">{t('navigation.dailyPicks')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate(`/${user.username}/trainings`)} className="hover:bg-card/50 py-2 sm:py-3">
                       <Pickaxe className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
@@ -199,10 +185,10 @@ export default function Header() {
                       </div>
                     )}
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(`/${user.username}/profile`)} className="hover:bg-card/50 py-2 sm:py-3">
-                    <Settings className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                    <span className="text-sm sm:text-base">{t('profile.profileSettings')}</span>
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(`/${user.username}`)} className="hover:bg-card/50 py-2 sm:py-3">
+                      <User className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="text-sm sm:text-base">{t('navigation.profile')}</span>
+                    </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(`/${user.username}/friends`)} className="hover:bg-card/50 py-2 sm:py-3">
                     <Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-sm sm:text-base">{t('navigation.friends')}</span>

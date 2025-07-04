@@ -273,7 +273,7 @@ export function Dashboard() {
   
         return {
           id: battle.id,
-          opponent: opponent || "Unknown",
+          opponent: opponent || "Player",
           player1: battle.first_opponent,
           player2: battle.second_opponent,
           sport: battle.sport,
@@ -383,9 +383,6 @@ export function Dashboard() {
                   {t('dashboard.welcome')}, {user?.nickname || user?.username || 'Player'}
                 </h1>
               </div>
-              <p className="text-responsive-sm text-muted-foreground font-rajdhani max-w-2xl">
-                {t('dashboard.readyForChallenge')}
-              </p>
             </div>
 
             {/* Quick Actions */}

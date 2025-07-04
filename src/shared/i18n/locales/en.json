@@ -18,7 +18,9 @@
     "goToHomepage": "Go to Homepage",
     "goBack": "Go Back",
     "accept": "Accept",
-    "reject": "Reject"
+    "reject": "Reject",
+    "step": "Step",
+    "of": "of"
   },
   "navigation": {
     "home": "Home",
@@ -32,7 +34,10 @@
     "training": "Training",
     "selection": "Selection",
     "notifications": "Notifications",
-    "signout": "Sign Out"
+    "signout": "Sign Out",
+    "welcomeBack": "Welcome back",
+    "language": "Language",
+    "dailyPicks": "Daily Picks"
   },
   "auth": {
     "signIn": "Sign In",
@@ -62,18 +67,18 @@
     "signInToContinue": "Sign in to continue your sports battle journey"
   },
   "hero": {
-    "title": "Challenge Friends in Sports Knowledge",
-    "subtitle": "Test your sports expertise against friends in real-time battles. From football to basketball, prove you're the ultimate sports fan!",
+    "title": "Dominate in Sports Battles",
+    "subtitle": "Challenge players from all over the world in real-time sports quizzes. Test your knowledge against other players and play with friends!",
     "getStarted": "Get Started",
     "learnMore": "Learn More",
     "battleJourney": "Start Your Sports Battle Journey",
     "joinThousands": "Join thousands of sports fans competing worldwide",
     "startCompeting": "Start Competing",
-    "dominateTitle": "Dominate in",
-    "sportsBattles": "Sports Battles",
-    "challengePlayersWorldwide": "Challenge players worldwide in real-time sports trivia battles. Test your knowledge against others and play with your friends!",
+    "dominateTitle": "Sport community",
+    "sportsBattles": "for everyone",
+    "challengePlayersWorldwide": "Join a global community of passionate fans to talk sports, test your knowledge in friendly battles, and stay updated on latest sports news.",
     "chooseSport": "Choose Your Sport",
-    "masterTrivia": "Master trivia in your favorite sports",
+    "masterTrivia": "Master your favorite sports",
     "played": "matches played",
     "battlesPlayed": "Battles Played",
     "sportsCategories": "Sports Categories",
@@ -98,13 +103,21 @@
     "whyChoose": "Why Choose Head2Head?",
     "experience": "Experience the most competitive sports trivia platform with cutting-edge features",
     "joinCommunity": "Join the Elite Sport Community",
-    "startJourney": "Start your journey to becoming a sports trivia champion. Battle the best, climb the rankings, and prove your expertise.",
+    "startJourney": "Join the community and start your journey to becoming a sports champion. Battle the best, climb the rankings, and prove your expertise.",
     "createAccount": "Create Account",
     "viewLeaderboard": "View Leaderboard",
     "trainingMode": "Training Mode",
     "trainingModeDesc": "Practice your skills in training mode and improve your knowledge",
     "teamBattles": "Team Battles",
-    "teamBattlesDesc": "Play 2 vs 2 battles with your friends and other players"
+    "teamBattlesDesc": "Play 2 vs 2 battles with your friends and other players",
+    "dailyDiscussions": "Daily Discussions",
+    "dailyDiscussionsDesc": "Join daily sports discussions and share your opinions with the community.",
+    "friendly1v1": "Friendly 1v1",
+    "friendly1v1Desc": "Challenge friends or others to real-time quizzes in your favorite sports",
+    "teamUp": "Latest News",
+    "teamUpDesc": "Stay updated with the latest sports news, transfers, and breaking stories from around the world",
+    "sharpenSkills": "Expand Your Knowledge",
+    "sharpenSkillsDesc": "Training mode to expand your sports knowledge and reaction time"
   },
   "features": {
     "realTimeBattles": "Real-Time Battles",
@@ -114,10 +127,18 @@
     "leaderboards": "Global Leaderboards",
     "leaderboardsDesc": "Climb the ranks and become the ultimate champion",
     "friendSystem": "Friend System",
-    "friendSystemDesc": "Connect with friends and track your progress together"
+    "friendSystemDesc": "Connect with friends and track your progress together",
+    "dailyDiscussions": "Daily Discussions",
+    "dailyDiscussionsDesc": "Make your predictions on daily topics and see what the community thinks",
+    "friendlyBattles": "Friendly 1v1s",
+    "friendlyBattlesDesc": "Challenge another fan to a fun, real-time trivia match about your favorite sport",
+    "teamUp": "Team Up",
+    "teamUpDesc": "Grab a friend or a new acquaintance and play 2v2 trivia against other fan duos",
+    "practiceMode": "Sharpen Your Skills",
+    "practiceModeDesc": "Head into Practice Mode to brush up on your sports knowledge before joining the fun"
   },
   "dashboard": {
-    "welcome": "Welcome back!",
+    "welcome": "Welcome back",
     "subtitle": "Here's what's happening in your world",
     "overview": "Overview",
     "battles": "Battles",
@@ -320,9 +341,7 @@
       "start_battle": "Start Battle",
       "start_training": "Start Training",
       "add_friends": "Add Friends"
-    },
-    "unknownSport": "Unknown Sport",
-    "unknownLevel": "Unknown Level"
+    }
   },
   "battles": {
     "createBattle": "Create Battle",
@@ -449,7 +468,7 @@
   "profile": {
     "title": "Profile",
     "editProfile": "Edit Profile",
-    "profileSettings": "Profile Settings",
+    "profileSettings": "Settings",
     "accountSettings": "Account Settings",
     "changeAvatar": "Change Avatar",
     "uploadAvatar": "Upload Avatar",
@@ -897,7 +916,18 @@
     "battleActionsManagementDesc": "Join battles (green button) or Cancel your own battles (red button). You can have up to 3 active battles waiting. Choose wisely!",
     "stayUpdated": "Stay Updated",
     "stayUpdatedDesc": "Click refresh to manually update the battle list, though it updates automatically. Perfect for ensuring you see the latest available battles!",
-    "restartBattleTutorial": "Restart Battle Tutorial"
+    "restartBattleTutorial": "Restart Battle Tutorial",
+    "battles": {
+      "createTitle": "Create a Battle",
+      "createDesc": "Start by creating a new battle. Choose your preferences and challenge other players!",
+      "sportsTitle": "Select Your Sport",
+      "sportsDesc": "Pick your favorite sport. Each sport has its own unique set of questions and challenges.",
+      "difficultyTitle": "Choose Difficulty",
+      "difficultyDesc": "Select the difficulty level that matches your expertise. From easy to hard, test your knowledge!",
+      "waitingTitle": "Join or Host Battles",
+      "waitingDesc": "View available battles to join, or host your own and wait for opponents to challenge you."
+    },
+    "restartTutorial": "Restart Tutorial"
   },
   "ui": {
     "tutorial": "Tutorial",
@@ -1025,8 +1055,8 @@
     }
   },
   "selection": {
-    "title": "Daily Selections",
-    "backToList": "Back to Selections",
+    "title": "Daily picks",
+    "backToList": "Back to selections",
     "votes": "votes",
     "totalVotes": "total votes",
     "comments": "Comments",
@@ -1041,7 +1071,7 @@
   "signUpLanding": {
     "titleStart": "Start Your Sports",
     "titleEnd": "Battle Journey",
-    "description": "Join over 500,000 sports fans competing in real-time trivia battles. Test your knowledge and climb the leaderboards!",
+    "description": "Join over 500,000 sports fans competing in real-time trivia matches. Practice your knowledge and play with your friends!",
     "communityTitle": "Join the ultimate sports trivia community",
     "createAccount": "Create Your Account",
     "joinCommunity": "Join thousands of sports trivia fans",
@@ -1049,5 +1079,15 @@
     "orSignUpEmail": "Or sign up with email",
     "alreadyHaveAccount": "Already have an account?",
     "signIn": "Sign in"
+  },
+  "stats": {
+    "globalRank": "Global Rank",
+    "totalWins": "Total Wins",
+    "winStreak": "Win Streak",
+    "winRate": "Win Rate",
+    "games": "Games",
+    "victory": "Victory",
+    "loss": "Loss",
+    "draw": "Draw"
   }
 } 

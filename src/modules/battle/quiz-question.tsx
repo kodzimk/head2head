@@ -437,11 +437,11 @@ export default function QuizQuestionPage() {
         
         if (validatedUserScore > validatedOpponentScore) {
           winner = user.username;
-          loser = opponentUsername || 'Unknown';
+          loser = opponentUsername || 'Player';
           result = 'win';
           resultText = 'Congratulations! You won the battle!';
         } else if (validatedUserScore < validatedOpponentScore) {
-          winner = opponentUsername || 'Unknown';
+          winner = opponentUsername || 'Player';
           loser = user.username;
           result = 'lose';
           resultText = 'Good luck next time!';

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-
 import {
   Card,
   CardContent,
@@ -13,15 +12,10 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Filter,
-  Trophy, 
-  Target, 
-  Zap, 
-  Sword,
   Users,
 } from "lucide-react";
 import axios from "axios";
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var";
-
 interface Battle {
   id: string;
   first_opponent: string;
@@ -37,13 +31,13 @@ interface Battle {
 const VALID_SPORTS = [
   'football',
   'basketball',
-  'tennis',
-  'soccer',
   'baseball',
-  'volleyball',
   'hockey',
+  'tennis',
+  'golf',
   'cricket',
-  'boxing'
+  'rugby',
+  'volleyball'
 ];
 
 const VALID_LEVELS = [
@@ -53,32 +47,31 @@ const VALID_LEVELS = [
   'expert'
 ];
 
-const getSportIcon = (sport: string) => {
-  const sportIcons: { [key: string]: React.ReactNode } = {
-    football: <Trophy className="w-5 h-5 text-orange-500" />,
-    basketball: <Target className="w-5 h-5 text-orange-500" />,
-    tennis: <Zap className="w-5 h-5 text-orange-500" />,
-    soccer: <Trophy className="w-5 h-5 text-green-500" />,
-    baseball: <Target className="w-5 h-5 text-blue-500" />,
-    volleyball: <Zap className="w-5 h-5 text-purple-500" />,
-    hockey: <Sword className="w-5 h-5 text-blue-500" />,
-    cricket: <Target className="w-5 h-5 text-green-500" />,
-    boxing: <Sword className="w-5 h-5 text-red-500" />,
-    default: <Trophy className="w-5 h-5 text-gray-500" />
-  };
-  
-  const normalizedSport = sport?.toLowerCase()?.trim() || 'default';
-  return sportIcons[normalizedSport] || sportIcons.default;
-};
-
 const normalizeSport = (sport: string): string => {
   const normalizedSport = sport?.toLowerCase()?.trim() || '';
-  return VALID_SPORTS.includes(normalizedSport) ? normalizedSport : 'unknown';
+  return VALID_SPORTS.includes(normalizedSport) ? normalizedSport : 'football';
 };
 
 const normalizeLevel = (level: string): string => {
   const normalizedLevel = level?.toLowerCase()?.trim() || '';
-  return VALID_LEVELS.includes(normalizedLevel) ? normalizedLevel : 'unknown';
+  return VALID_LEVELS.includes(normalizedLevel) ? normalizedLevel : 'medium';
+};
+
+const getSportIcon = (sport: string) => {
+  const sportIcons: { [key: string]: string } = {
+    football: '⚽',
+    basketball: '🏀',
+    baseball: '⚾',
+    hockey: '🏒',
+    tennis: '🎾',
+    golf: '⛳',
+    cricket: '🏏',
+    rugby: '🏉',
+    volleyball: '🏐'
+  };
+  
+  const normalizedSport = sport?.toLowerCase()?.trim() || '';
+  return sportIcons[normalizedSport] || '🎮';
 };
 
 export default function AllBattles() {
@@ -206,7 +199,6 @@ export default function AllBattles() {
     setCurrentPage(1); 
   }, [allBattles, sportFilter, resultFilter]);
 
-  const uniqueSports = [...new Set(allBattles.map(battle => battle.sport))];
 
   const totalPages = Math.ceil(filteredBattles.length / battlesPerPage);
   const startIndex = (currentPage - 1) * battlesPerPage;
@@ -251,8 +243,8 @@ export default function AllBattles() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Sports</SelectItem>
-                {uniqueSports.map((sport) => (
-                  <SelectItem key={sport} value={sport.toLowerCase()}>
+                {VALID_SPORTS.map((sport) => (
+                  <SelectItem key={sport} value={sport}>
                     {sport}
                   </SelectItem>
                 ))}
@@ -308,7 +300,7 @@ export default function AllBattles() {
                 >
                   <div className="flex items-center gap-3 mb-3 sm:mb-0">
                     <div className="flex-shrink-0">
-                      {getSportIcon(battle.sport)}
+                      <span className="text-xl" title={battle.sport}>{getSportIcon(battle.sport)}</span>
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm lg:text-base">

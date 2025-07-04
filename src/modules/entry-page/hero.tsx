@@ -52,27 +52,27 @@ const getSports = (t: any) => [
 const getFeatures = (t: any) => [
   {
     icon: TextSelect,
-    title: t('hero.selectionMode'),
-    description: t('hero.selectionModeDesc'),
-    highlight: t('hero.selectionMode')
+    title: t('hero.dailyDiscussions'),
+    description: t('hero.dailyDiscussionsDesc'),
+    highlight: t('hero.dailyDiscussions')
   },
   {
     icon: Zap,
-    title: t('hero.realTimeBattles'),
-    description: t('hero.realTimeBattlesDesc'),
+    title: t('hero.friendly1v1'),
+    description: t('hero.friendly1v1Desc'),
     highlight: t('hero.liveMatches')
   },
   {
     icon: Award,
-    title: t('hero.teamBattles'),
-    description: t('hero.teamBattlesDesc'),
-    highlight: t('hero.teamBattles')
+    title: t('hero.teamUp'),
+    description: t('hero.teamUpDesc'),
+    highlight: t('hero.teamUp')
   },
   {
     icon: Target,
-    title: t('hero.trainingMode'),
-    description: t('hero.trainingModeDesc'),
-    highlight: t('hero.trainingMode')
+    title: t('hero.sharpenSkills'),
+    description: t('hero.sharpenSkillsDesc'),
+    highlight: t('hero.sharpenSkills')
   }
 ];
 
@@ -203,9 +203,6 @@ export default function Hero() {
               <h2 className="text-heading-1 text-white mb-4 font-rajdhani drop-shadow-lg">
                 {t('hero.whyChoose')}
               </h2>
-              <p className="text-body-large text-gray-200 max-w-2xl mx-auto drop-shadow-sm">
-                {t('hero.experience')}
-              </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">

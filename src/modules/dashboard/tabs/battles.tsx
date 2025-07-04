@@ -8,7 +8,7 @@ import { Badge } from "../../../shared/ui/badge";
 import { TabsContent } from "../../../shared/ui/tabs";
 import type { User, RecentBattle } from "../../../shared/interface/user";
 import { Button } from "../../../shared/ui/button";
-import { ChevronRight, Sword, Trophy, Target, Zap} from "lucide-react";
+import { ChevronRight, Sword} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from "react";
@@ -18,36 +18,35 @@ import { API_BASE_URL } from "../../../shared/interface/gloabL_var";
 const VALID_SPORTS = [
   'football',
   'basketball',
-  'tennis',
-  'soccer',
   'baseball',
-  'volleyball',
   'hockey',
+  'tennis',
+  'golf',
   'cricket',
-  'boxing'
+  'rugby',
+  'volleyball'
 ];
 
 const getSportIcon = (sport: string) => {
-  const sportIcons: { [key: string]: React.ReactNode } = {
-    football: <Trophy className="w-6 h-6 text-orange-500" />,
-    basketball: <Target className="w-6 h-6 text-orange-500" />,
-    tennis: <Zap className="w-6 h-6 text-orange-500" />,
-    soccer: <Trophy className="w-6 h-6 text-green-500" />,
-    baseball: <Target className="w-6 h-6 text-blue-500" />,
-    volleyball: <Zap className="w-6 h-6 text-purple-500" />,
-    hockey: <Sword className="w-6 h-6 text-blue-500" />,
-    cricket: <Target className="w-6 h-6 text-green-500" />,
-    boxing: <Sword className="w-6 h-6 text-red-500" />,
-    default: <Trophy className="w-6 h-6 text-gray-500" />
+  const sportIcons: { [key: string]: string } = {
+    football: '⚽',
+    basketball: '🏀',
+    baseball: '⚾',
+    hockey: '🏒',
+    tennis: '🎾',
+    golf: '⛳',
+    cricket: '🏏',
+    rugby: '🏉',
+    volleyball: '🏐'
   };
   
-  const normalizedSport = sport?.toLowerCase()?.trim() || 'default';
-  return sportIcons[normalizedSport] || sportIcons.default;
+  const normalizedSport = sport?.toLowerCase()?.trim() || '';
+  return sportIcons[normalizedSport] || '🎮';
 };
 
 const normalizeSport = (sport: string): string => {
   const normalizedSport = sport?.toLowerCase()?.trim() || '';
-  return VALID_SPORTS.includes(normalizedSport) ? normalizedSport : 'unknown';
+  return VALID_SPORTS.includes(normalizedSport) ? normalizedSport : 'football';
 };
 
 export default function Battles({
@@ -124,14 +123,14 @@ export default function Battles({
                     >
                       <div className="flex items-center gap-3 mb-3 sm:mb-0">
                         <div className="flex-shrink-0">
-                          {getSportIcon(battle.sport)}
+                          <span className="text-xl">{getSportIcon(battle.sport)}</span>
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm lg:text-base truncate">
                             {battle.player1} vs {battle.player2}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {battle.sport === 'unknown' ? t('dashboard.unknownSport') : battle.sport}
+                            {battle.sport}
                           </p>
                         </div>
                       </div>

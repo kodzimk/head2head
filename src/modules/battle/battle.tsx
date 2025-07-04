@@ -15,7 +15,7 @@ import axios from 'axios'
 import { Badge } from '../../shared/ui/badge'
 import AvatarStorage from '../../shared/utils/avatar-storage'
 import { UserAvatar } from '../../shared/ui/user-avatar'
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
@@ -32,7 +32,6 @@ export default function BattlePage() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const navigate = useNavigate()
   const [refreshMessage] = useState<string | null>(null)
-  
 
   // Fetch and cache avatars for all battle creators
   useEffect(() => {
@@ -332,9 +331,6 @@ export default function BattlePage() {
             <h1 className="text-heading-1 text-foreground">
               {t('battles.battleArena')}
             </h1>
-            <p className="text-responsive-sm text-muted-foreground max-w-2xl mx-auto">
-              {t('battles.description')}
-            </p>
           </div>
 
           {/* Error Display */}
@@ -395,16 +391,15 @@ export default function BattlePage() {
                       <SelectValue placeholder={t('battles.selectSport')} />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border">
-                      <SelectItem value="football">⚽ {t('sports.football')}</SelectItem>
-                      <SelectItem value="basketball">🏀 {t('sports.basketball')}</SelectItem>
-                      <SelectItem value="baseball">⚾ {t('sports.baseball')}</SelectItem>
-   
-                      <SelectItem value="hockey">🏒 {t('sports.hockey')}</SelectItem>
-                      <SelectItem value="tennis">🎾 {t('sports.tennis')}</SelectItem>
-                      <SelectItem value="golf">⛳ {t('sports.golf')}</SelectItem>
-                      <SelectItem value="cricket">🏏 {t('sports.cricket')}</SelectItem>
-                      <SelectItem value="rugby">🏉 {t('sports.rugby')}</SelectItem>
-                      <SelectItem value="volleyball">🏐 {t('sports.volleyball')}</SelectItem>
+                      <SelectItem value="football">⚽ Football</SelectItem>
+                      <SelectItem value="basketball">🏀 Basketball</SelectItem>
+                      <SelectItem value="baseball">⚾ Baseball</SelectItem>
+                      <SelectItem value="hockey">🏒 Hockey</SelectItem>
+                      <SelectItem value="tennis">🎾 Tennis</SelectItem>
+                      <SelectItem value="golf">⛳ Golf</SelectItem>
+                      <SelectItem value="cricket">🏏 Cricket</SelectItem>
+                      <SelectItem value="rugby">🏉 Rugby</SelectItem>
+                      <SelectItem value="volleyball">🏐 Volleyball</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -438,26 +433,26 @@ export default function BattlePage() {
                     </SelectContent>
                   </Select>
                 </div>
-                </div>
+              </div>
 
-                <Button 
-                  onClick={handleCreateBattle}
+              <Button 
+                onClick={handleCreateBattle}
                 disabled={isCreatingBattle || !selectedSport || !selectedLevel}
                 className="btn-neon w-full sm:w-auto"
                 size="lg"
-                >
-                  {isCreatingBattle ? (
-                    <div className="flex items-center gap-2">
+              >
+                {isCreatingBattle ? (
+                  <div className="flex items-center gap-2">
                     <div className="loading-gaming w-4 h-4 rounded"></div>
-                      {t('ui.creatingBattle')}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Play className="w-4 h-4" />
-                      {t('battles.createBattle')}
-                    </div>
-                  )}
-                </Button>
+                    {t('ui.creatingBattle')}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Play className="w-4 h-4" />
+                    {t('battles.createBattle')}
+                  </div>
+                )}
+              </Button>
             </CardContent>
           </Card>
 
@@ -532,7 +527,15 @@ export default function BattlePage() {
                             </div>
                             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-responsive-xs text-muted-foreground">
                               <div className="flex items-center gap-1">
-                                <Trophy className="w-3 h-3 sm:w-4 sm:h-4" />
+                                {battle_data.sport === 'football' && '⚽'}
+                                {battle_data.sport === 'basketball' && '🏀'}
+                                {battle_data.sport === 'baseball' && '⚾'}
+                                {battle_data.sport === 'hockey' && '🏒'}
+                                {battle_data.sport === 'tennis' && '🎾'}
+                                {battle_data.sport === 'golf' && '⛳'}
+                                {battle_data.sport === 'cricket' && '🏏'}
+                                {battle_data.sport === 'rugby' && '🏉'}
+                                {battle_data.sport === 'volleyball' && '🏐'}
                                 <span className="capitalize">{battle_data.sport}</span>
                               </div>
                               <div className="flex items-center gap-1">

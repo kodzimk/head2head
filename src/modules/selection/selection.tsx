@@ -16,7 +16,7 @@ export default function Selection() {
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [isCommenting, setIsCommenting] = useState(false);
-  const currentUser = 'You'; // In a real app, this would come from auth context
+  const currentUser = 'You';
 
   const handleVote = (selectionId: string, team: 'A' | 'B') => {
     if (votedSelections.includes(selectionId)) return;
@@ -476,7 +476,7 @@ export default function Selection() {
                 </Card>
               ))}
             </div>
-          </div>
+        </div>
         )}
       </main>
     </div>

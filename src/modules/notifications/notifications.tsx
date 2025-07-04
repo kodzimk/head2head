@@ -96,7 +96,7 @@ export default function NotificationsPage() {
               console.log(`Creating fallback invitation for missing battle ${battle_id}`)
               return {
                 battle_id,
-                sport: 'Unknown Sport',
+                sport: 'football',
                 duration: 0,
                 status: 'pending' as const
               }
@@ -191,7 +191,7 @@ export default function NotificationsPage() {
                   console.log(`Creating fallback invitation for missing battle ${battle_id}`)
                   return {
                     battle_id,
-                    sport: 'Unknown Sport',
+                    sport: 'football',
                     duration: 0,
                     status: 'pending' as const
                   }
@@ -270,7 +270,7 @@ export default function NotificationsPage() {
                   console.log(`Creating fallback invitation for missing battle ${battle_id}`)
                   return {
                     battle_id,
-                    sport: 'Unknown Sport',
+                    sport: 'football',
                     duration: 0,
                     status: 'pending' as const
                   }

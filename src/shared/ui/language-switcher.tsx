@@ -124,46 +124,44 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className={`flex items-center gap-2 ${className}`}
-          disabled={isLoading}
+          className="h-8 w-8 sm:h-9 sm:w-auto px-1 sm:px-3 bg-card/50 hover:bg-card/80 transition-colors duration-200 flex items-center gap-2"
         >
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <Languages className="w-4 h-4" />
           )}
-          <span className="hidden sm:inline">{currentLanguage.nativeName}</span>
+          <span className="hidden sm:inline">{t('navigation.language')}</span>
           <span className="sm:hidden">{currentLanguage.flag}</span>
           <ChevronDown className="w-3 h-3" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent 
+        className="w-56 sm:w-64 lg:w-72 bg-card/95 backdrop-blur-sm border-border/50 shadow-lg" 
+        align="end"
+      >
         <div className="p-2">
-          <p className="text-xs font-medium text-muted-foreground mb-2">
+          <div className="text-sm font-medium text-muted-foreground px-2 py-1.5">
             {t('language.selectLanguage')}
-          </p>
+          </div>
           {languages.map((language) => (
             <DropdownMenuItem
               key={language.code}
               onClick={() => handleLanguageChange(language.code)}
-              className="flex items-center justify-between cursor-pointer p-2 rounded-md hover:bg-muted"
-              disabled={isLoading}
+              className="flex items-center gap-3 px-2 py-1.5 hover:bg-card/80 rounded-md cursor-pointer"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{language.flag}</span>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">{language.nativeName}</span>
-                  <span className="text-xs text-muted-foreground">{language.name}</span>
-                </div>
+              <span className="text-lg">{language.flag}</span>
+              <div className="flex flex-col flex-1 min-w-0">
+                <span className="text-sm font-medium">{language.nativeName}</span>
+                <span className="text-xs text-muted-foreground">{language.name}</span>
               </div>
               {currentLanguage.code === language.code && (
-                isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="w-4 h-4 text-primary" />
-                )
+                <Check className="w-4 h-4 text-primary" />
+              )}
+              {isLoading && currentLanguage.code === language.code && (
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
               )}
             </DropdownMenuItem>
           ))}
@@ -174,7 +172,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
 };
 
 // Standalone compact flag button for mobile/header use
-export const LanguageFlag: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const LanguageFlag: React.FC<{ className?: string }> = () => {
   const { i18n, t } = useTranslation();
   const { user, setUser } = useGlobalStore();
   const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
@@ -201,8 +199,8 @@ export const LanguageFlag: React.FC<{ className?: string }> = ({ className = '' 
     <Button
       variant="ghost"
       size="sm"
+      className="h-8 w-8 sm:h-9 sm:w-auto px-1 sm:px-3 bg-card/50 hover:bg-card/80 transition-colors duration-200"
       onClick={handleToggle}
-      className={`h-8 w-8 p-0 text-lg hover:bg-muted rounded-full ${className}`}
       title={t('language.switchTo', { language: currentLanguage.code === 'en' ? 'Русский' : 'English' })}
       disabled={isLoading}
     >

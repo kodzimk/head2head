@@ -388,8 +388,8 @@ async def battle_websocket(websocket: WebSocket, battle_id: str, username: str):
                     # Get sport and level from battle info
                     from battle.init import battles
                     battle = battles.get(battle_id)
-                    sport = battle.sport if battle else "Unknown"
-                    level = battle.level if battle else "Unknown"
+                    sport = battle.sport if battle else "football"
+                    level = battle.level if battle else "medium"
                     
                     # Save the answer
                     await save_user_answer(
@@ -694,8 +694,8 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
             from models import BattleModel
             
             # Get sport and level from battle object or use defaults
-            sport = battle.sport if battle else "Unknown"
-            level = battle.level if battle else "Unknown"
+            sport = battle.sport if battle else "football"
+            level = battle.level if battle else "medium"
             
             async with SessionLocal() as session:
                 battle_db = BattleModel(
@@ -825,8 +825,8 @@ async def handle_battle_result(battle_id: str, final_scores: dict):
                 "updated_users": updated_users,
                 "battle": {
                     "id": battle_id,
-                    "sport": battle.sport if battle else "Unknown",
-                    "level": battle.level if battle else "Unknown",
+                    "sport": battle.sport if battle else "football",
+                    "level": battle.level if battle else "medium",
                     "first_opponent": user1,
                     "second_opponent": user2,
                     "first_opponent_score": score1,
