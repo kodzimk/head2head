@@ -1116,19 +1116,5 @@
     "victory": "Victory",
     "loss": "Loss",
     "draw": "Draw"
-  },
-  "battleOnboarding": {
-    "pageOverview": {
-      "title": "Welcome to Battle Arena! ⚔️",
-      "description": "This is where you can create new battles and join existing ones. Challenge other players to test your sports knowledge in real-time trivia matches across different sports and difficulty levels."
-    },
-    "createBattle": {
-      "title": "Create Your Battle 🎯",
-      "description": "Choose your sport and difficulty level to create a new battle. Other players can join your battle and compete against you. Select from various sports like football, basketball, tennis, and more!"
-    },
-    "joinBattle": {
-      "title": "Join Available Battles 🏆",
-      "description": "Browse through battles created by other players and join the ones that interest you. You can see the creator, sport, difficulty level, and join instantly to start competing!"
-    }
   }
 } 

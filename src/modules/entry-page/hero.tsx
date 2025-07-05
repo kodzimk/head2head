@@ -245,9 +245,6 @@ export default function Hero() {
                     {t('hero.joinCommunity')}
                   </h2>
                   
-                  <p className="text-body-large text-gray-200 max-w-2xl mx-auto drop-shadow-sm">
-                    {t('hero.startJourney')}
-                  </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">

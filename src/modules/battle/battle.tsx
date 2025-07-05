@@ -16,7 +16,6 @@ import { Badge } from '../../shared/ui/badge'
 import AvatarStorage from '../../shared/utils/avatar-storage'
 import { UserAvatar } from '../../shared/ui/user-avatar'
 import { useTranslation } from 'react-i18next'
-import BattleOnboarding from '../../shared/ui/battle-onboarding'
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
@@ -33,28 +32,6 @@ export default function BattlePage() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const navigate = useNavigate()
   const [refreshMessage] = useState<string | null>(null)
-
-  // Battle onboarding steps
-  const battleOnboardingSteps = [
-    {
-      id: 'battle-page-overview',
-      target: 'main',
-      translationKey: 'battleOnboarding.pageOverview',
-      position: 'auto' as const
-    },
-    {
-      id: 'create-battle-section',
-      target: '[data-onboarding="create-battle"]',
-      translationKey: 'battleOnboarding.createBattle',
-      position: 'auto' as const
-    },
-    {
-      id: 'join-battle-section',
-      target: '[data-onboarding="join-battle"]',
-      translationKey: 'battleOnboarding.joinBattle',
-      position: 'auto' as const
-    }
-  ];
 
   // Add debounced avatar fetching
   const debouncedFetchAndCacheAvatars = useCallback(async () => {
@@ -407,7 +384,7 @@ export default function BattlePage() {
           )}
 
           {/* Battle Creation Form */}
-          <Card className="card-surface" data-onboarding="create-battle">
+          <Card className="card-surface">
             <CardHeader className="responsive-padding">
               <CardTitle className="text-responsive-lg flex items-center gap-2">
                 <Play className="w-5 h-5 text-primary" />
@@ -490,7 +467,7 @@ export default function BattlePage() {
           </Card>
 
           {/* Waiting Battles Section */}
-          <Card className="card-surface" data-onboarding="join-battle">
+          <Card className="card-surface">
             <CardHeader className="responsive-padding">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="text-responsive-lg flex items-center gap-2">
@@ -617,14 +594,6 @@ export default function BattlePage() {
           </Card>
         </div>
       </main>
-
-      {/* Battle Onboarding */}
-      <BattleOnboarding
-        steps={battleOnboardingSteps}
-        onComplete={() => {}}
-        storageKey="battle-onboarding-completed"
-        autoStart={true}
-      />
     </div>
   )
 } 
