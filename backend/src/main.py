@@ -4,6 +4,7 @@ from friends.router import router_friend
 from battle.router import battle_router
 from battle_ws import router as battle_ws_router
 from training.router import training_router
+from selection.router import router as selection_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from websocket import app
@@ -62,14 +63,13 @@ app.include_router(router_friend)
 app.include_router(battle_router, prefix="/battle")
 app.include_router(battle_ws_router)
 app.include_router(training_router, prefix="/training", tags=["training"])
+app.include_router(selection_router)
 
 # Comprehensive CORS configuration for production and development
 origins = [
-    "https://head2head.dev",
-    "https://www.head2head.dev",
-    "https://api.head2head.dev",
     "http://localhost:5173",
     "http://localhost:3000",
+    "http://localhost:8000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",

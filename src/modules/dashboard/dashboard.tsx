@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
@@ -220,57 +220,33 @@ export function Dashboard() {
     }
   }, []);
 
-  const fetchBattles = async () => {
-    if (!localStorage.getItem("username")) return;
-    
+  const fetchBattles = useCallback(async () => {
     try {
-     
-      console.log('[Battles Tab] Fetching recent battles...');
+      const response = await axios.get(`${API_BASE_URL}/db/get-user-battles?username=${user?.username}`);
+      const data = response.data;
       
-      const response = await axios.get(
-        `${API_BASE_URL}/battle/get_recent_battles?username=${localStorage.getItem("username")}&limit=4`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-        }
-      );
-      const data = await response.data;
-  
       const mapped: RecentBattle[] = data.map((battle: any) => {
-        let opponent = battle.first_opponent === localStorage.getItem("username") ? battle.second_opponent : battle.first_opponent;
+        const opponent = battle.first_opponent === user?.username 
+          ? battle.second_opponent 
+          : battle.first_opponent;
         
-        let result = "draw";
-        const currentUser = localStorage.getItem("username");
+        let result = "pending";
+        let score = "0 - 0";
         
-        const firstScore = parseInt(battle.first_opponent_score) || 0;
-        const secondScore = parseInt(battle.second_opponent_score) || 0;
-        
-        // Enhanced draw detection and result calculation
-        if (battle.first_opponent === currentUser) {
-          if (firstScore > secondScore) {
-            result = "win";
-          } else if (firstScore < secondScore) {
-            result = "lose";
-          } else {
-            // Explicit draw case
-            result = "draw";
-            console.log(`[Dashboard] Draw detected for ${currentUser}: ${firstScore} vs ${secondScore}`);
+        if (battle.status === "finished") {
+          if (battle.winner === user?.username) {
+            result = "won";
+            score = battle.first_opponent === user?.username 
+              ? `${battle.first_score} - ${battle.second_score}`
+              : `${battle.second_score} - ${battle.first_score}`;
+          } else if (battle.winner === opponent) {
+            result = "lost";
+            score = battle.first_opponent === user?.username 
+              ? `${battle.first_score} - ${battle.second_score}`
+              : `${battle.second_score} - ${battle.first_score}`;
           }
-        } else if (battle.second_opponent === currentUser) {
-          if (secondScore > firstScore) {
-            result = "win";
-          } else if (secondScore < firstScore) {
-            result = "lose";
-          } else {
-            // Explicit draw case
-            result = "draw";
-            console.log(`[Dashboard] Draw detected for ${currentUser}: ${secondScore} vs ${firstScore}`);
-          }
-        } 
+        }
         
-        const score = `${firstScore} : ${secondScore}`;
-  
         return {
           id: battle.id,
           opponent: opponent || "Player",
@@ -283,26 +259,22 @@ export function Dashboard() {
       });
       
       setBattles(mapped);
-      console.log('[Battles Tab] Successfully fetched battles:', mapped.length);
     } catch (error) {
       console.error("[Battles Tab] Error fetching battles:", error);
-    } finally {
-     
     }
-  };
-  
-    useEffect(() => {
-    fetchBattles();
+  }, [user?.username]);
+
+  useEffect(() => {
+    // Initial fetch
+    if (user?.username) {
+      fetchBattles();
+    }
     
     // Listen for battle finished events to refresh data
     const handleBattleFinished = (event: any) => {
-      console.log('[Battles Tab] Battle finished event received:', event.detail);
-      console.log('[Battles Tab] Refreshing battle data...');
-      
       // Update user stats if provided in the event
       if (event.detail.updated_users && event.detail.updated_users[user?.username || '']) {
         const updatedStats = event.detail.updated_users[user?.username || ''];
-        console.log('[Battles Tab] Updating user stats:', updatedStats);
         
         // Update the user object with new stats using setUser
         const updatedUser = {
@@ -320,18 +292,20 @@ export function Dashboard() {
         localStorage.setItem('user', JSON.stringify(updatedUser));
       }
       
-      // Refresh battles list
-      fetchBattles();
+      // Debounce the battle refresh
+      const timeoutId = setTimeout(() => {
+        fetchBattles();
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
     };
 
     window.addEventListener('battleFinished', handleBattleFinished);
     
-    // Cleanup listener on component unmount
     return () => {
       window.removeEventListener('battleFinished', handleBattleFinished);
     };
-  }, [user]);
-
+  }, [user, fetchBattles, setUser]);
 
   if (error || !user) {
     return (

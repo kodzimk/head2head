@@ -473,6 +473,7 @@ export default function App() {
                               <Route path="/view-profile/:username" element={<ViewProfile user={user} />} />
                               <Route path="/leaderboard" element={<LeaderboardPage />} />
                               <Route path="/selection" element={<SelectionPage />} />
+                              <Route path="/selection/:id" element={<SelectionPage />} />
                               <Route path="/:username/trainings" element={<TrainingsPage />} />
                               <Route path="/:username/notifications" element={<NotificationsPage />} />
                               <Route path="/:username/all-battles" element={<AllBattlesPage />} />

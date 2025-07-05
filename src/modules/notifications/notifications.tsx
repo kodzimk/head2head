@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useGlobalStore } from "../../shared/interface/gloabL_var"
 import Header from "../dashboard/header"
 import { Button } from "../../shared/ui/button"
@@ -39,7 +39,7 @@ export default function NotificationsPage() {
   const navigate = useNavigate()
   const { setRefreshView } = useRefreshViewStore()
 
-  const fetchUserAvatar = async (username: string): Promise<string> => {
+  const fetchUserAvatar = useCallback(async (username: string): Promise<string> => {
     try {
       const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${username}`)
       return response.data.avatar ? `${API_BASE_URL}${response.data.avatar}` : ''
@@ -47,17 +47,26 @@ export default function NotificationsPage() {
       console.error(`Error fetching avatar for ${username}:`, error)
       return ''
     }
-  }
+  }, [])
 
-  const fetchFriendRequestAvatars = async (usernames: string[]) => {
+  const fetchFriendRequestAvatars = useCallback(async (usernames: string[]) => {
     const avatarMap = new Map<string, string>()
-    const avatarPromises = usernames.map(async (username) => {
-      const avatar = await fetchUserAvatar(username)
-      avatarMap.set(username, avatar)
-    })
-    await Promise.all(avatarPromises)
+    // Process in batches of 3 to avoid too many parallel requests
+    const batchSize = 3
+    for (let i = 0; i < usernames.length; i += batchSize) {
+      const batch = usernames.slice(i, i + batchSize)
+      const avatarPromises = batch.map(async (username) => {
+        const avatar = await fetchUserAvatar(username)
+        avatarMap.set(username, avatar)
+      })
+      await Promise.all(avatarPromises)
+      // Add small delay between batches
+      if (i + batchSize < usernames.length) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
     return avatarMap
-  }
+  }, [fetchUserAvatar])
 
   useEffect(() => {
     const loadFriendRequestsWithAvatars = async () => {
@@ -65,52 +74,55 @@ export default function NotificationsPage() {
         if (user.friendRequests.length > 0) {
           const avatarMap = await fetchFriendRequestAvatars(user.friendRequests)
           const friendRequestsWithAvatars = user.friendRequests.map((request: string) => ({
-      sender: {
-        username: request,
+            sender: {
+              username: request,
               avatar: avatarMap.get(request) || ''       
-      },
-      status: 'pending' as const
-    }))
-          console.log('Loaded friend requests with avatars:', friendRequestsWithAvatars)
+            },
+            status: 'pending' as const
+          }))
           setFriendRequests(friendRequestsWithAvatars)
         } else {
           setFriendRequests([])
         }
         
         if (user.invitations.length > 0) {
-          console.log('Loading invitations for user:', user.invitations)
-          const invitationPromises = user.invitations.map(async (battle_id: string) => {
-            try {
-              console.log('Fetching battle details for:', battle_id)
-              const response = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
-              console.log('Battle response for', battle_id, ':', response.data)
-              return {
-                battle_id,
-                sport: response.data.sport,
-                duration: response.data.duration,
-                status: 'pending' as const
+          // Process invitations in batches of 3
+          const batchSize = 3
+          const validInvitations: Invitation[] = []
+          
+          for (let i = 0; i < user.invitations.length; i += batchSize) {
+            const batch = user.invitations.slice(i, i + batchSize)
+            const batchPromises = batch.map(async (battle_id: string) => {
+              try {
+                const response = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
+                return {
+                  battle_id,
+                  sport: response.data.sport,
+                  duration: response.data.duration,
+                  status: 'pending' as const
+                }
+              } catch (error) {
+                console.error(`Error fetching battle ${battle_id}:`, error)
+                return {
+                  battle_id,
+                  sport: 'football',
+                  duration: 0,
+                  status: 'pending' as const
+                }
               }
-            } catch (error) {
-              console.error(`Error fetching battle ${battle_id}:`, error)
-              // Create a fallback invitation object for missing battles
-              console.log(`Creating fallback invitation for missing battle ${battle_id}`)
-              return {
-                battle_id,
-                sport: 'football',
-                duration: 0,
-                status: 'pending' as const
-              }
+            })
+            
+            const batchResults = await Promise.all(batchPromises)
+            validInvitations.push(...batchResults)
+            
+            // Add small delay between batches
+            if (i + batchSize < user.invitations.length) {
+              await new Promise(resolve => setTimeout(resolve, 100))
             }
-          })
+          }
           
-          const invitationResults = await Promise.all(invitationPromises)
-          const validInvitations = invitationResults as Invitation[]
-          console.log('Valid invitations loaded:', validInvitations)
-          
-          // All invitations are now valid (either real or fallback)
           setInvitations(validInvitations)
         } else {
-          console.log('No invitations to load')
           setInvitations([])
         }
         
@@ -122,234 +134,110 @@ export default function NotificationsPage() {
     }
 
     loadFriendRequestsWithAvatars()
-  }, [user.friendRequests, user.invitations])
+  }, [user.friendRequests, user.invitations, fetchFriendRequestAvatars])
 
+  // Optimize websocket handler to avoid duplicate code
+  const handleUserUpdate = useCallback(async (updatedUserData: any) => {
+    if (updatedUserData.email === user.email) {
+      const updatedUser = {
+        email: updatedUserData.email,
+        username: updatedUserData.username,
+        wins: updatedUserData.winBattle,
+        favoritesSport: updatedUserData.favourite,
+        rank: updatedUserData.ranking,
+        winRate: updatedUserData.winRate,
+        totalBattles: updatedUserData.totalBattle,
+        streak: updatedUserData.streak,
+        password: updatedUserData.password,
+        friends: updatedUserData.friends,
+        friendRequests: updatedUserData.friendRequests,
+        avatar: updatedUserData.avatar,
+        battles: updatedUserData.battles,
+        invitations: updatedUserData.invitations
+      }
+      setUser(updatedUser)
+      setRefreshView(true)
+
+      // Update friend requests
+      if (updatedUserData.friendRequests.length > 0) {
+        const avatarMap = await fetchFriendRequestAvatars(updatedUserData.friendRequests)
+        const friendRequestsWithAvatars = updatedUserData.friendRequests.map((request: string) => ({
+          sender: {
+            username: request,
+            avatar: avatarMap.get(request) || ''       
+          },
+          status: 'pending' as const
+        }))
+        setFriendRequests(friendRequestsWithAvatars)
+      } else {
+        setFriendRequests([])
+      }
+
+      // Update invitations
+      if (updatedUserData.invitations?.length > 0) {
+        const batchSize = 3
+        const validInvitations: Invitation[] = []
+        
+        for (let i = 0; i < updatedUserData.invitations.length; i += batchSize) {
+          const batch = updatedUserData.invitations.slice(i, i + batchSize)
+          const batchPromises = batch.map(async (battle_id: string) => {
+            try {
+              const response = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
+              return {
+                battle_id,
+                sport: response.data.sport,
+                duration: response.data.duration,
+                status: 'pending' as const
+              }
+            } catch (error) {
+              console.error(`Error fetching battle ${battle_id}:`, error)
+              return {
+                battle_id,
+                sport: 'football',
+                duration: 0,
+                status: 'pending' as const
+              }
+            }
+          })
+          
+          const batchResults = await Promise.all(batchPromises)
+          validInvitations.push(...batchResults)
+          
+          if (i + batchSize < updatedUserData.invitations.length) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+          }
+        }
+        
+        setInvitations(validInvitations)
+      } else {
+        setInvitations([])
+      }
+    }
+  }, [user.email, setUser, setRefreshView, fetchFriendRequestAvatars])
 
   // Handle websocket messages for real-time updates
   useEffect(() => {
     const handleWebSocketMessage = async (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data)
-        console.log('WebSocket message received in notifications:', data.type, data.data)
-        
-        if (data.type === 'user_updated' && data.data) {
-          const updatedUserData = data.data
-          
-          // Update the global user state if it's the current user (compare by email)
-          if (updatedUserData.email === user.email) {
-            console.log('Updating user state from websocket:', updatedUserData.friendRequests)
-            const updatedUser = {
-              email: updatedUserData.email,
-              username: updatedUserData.username,
-              wins: updatedUserData.winBattle,
-              favoritesSport: updatedUserData.favourite,
-              rank: updatedUserData.ranking,
-              winRate: updatedUserData.winRate,
-              totalBattles: updatedUserData.totalBattle,
-              streak: updatedUserData.streak,
-              password: updatedUserData.password,
-              friends: updatedUserData.friends,
-              friendRequests: updatedUserData.friendRequests,
-              avatar: updatedUserData.avatar,
-              battles: updatedUserData.battles,
-              invitations: updatedUserData.invitations
-            }
-            setUser(updatedUser)
-            setRefreshView(true)
-            // Update local friendRequests state to reflect the change
-            if (updatedUserData.friendRequests.length > 0) {
-              const avatarMap = await fetchFriendRequestAvatars(updatedUserData.friendRequests)
-              const friendRequestsWithAvatars = updatedUserData.friendRequests.map((request: string) => ({
-                sender: {
-                  username: request,
-                  avatar: avatarMap.get(request) || ''       
-                },
-                status: 'pending' as const
-              }))
-              console.log('Updating friend requests with avatars:', friendRequestsWithAvatars)
-              setFriendRequests(friendRequestsWithAvatars)
-            } else {
-              // Clear friend requests if none exist
-              setFriendRequests([])
-            }
-            
-            // Update invitations if they changed
-            if (updatedUserData.invitations && updatedUserData.invitations.length > 0) {
-              console.log('Updating invitations from websocket:', updatedUserData.invitations)
-              const invitationPromises = updatedUserData.invitations.map(async (battle_id: string) => {
-                try {
-                  const response = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
-                  return {
-                    battle_id,
-                    sport: response.data.sport,
-                    duration: response.data.duration,
-                    status: 'pending' as const
-                  }
-                } catch (error) {
-                  console.error(`Error fetching battle ${battle_id}:`, error)
-                  // Create a fallback invitation object for missing battles
-                  console.log(`Creating fallback invitation for missing battle ${battle_id}`)
-                  return {
-                    battle_id,
-                    sport: 'football',
-                    duration: 0,
-                    status: 'pending' as const
-                  }
-                }
-              })
-              
-              const invitationResults = await Promise.all(invitationPromises)
-              const validInvitations = invitationResults as Invitation[]
-              console.log('Updated invitations from websocket:', validInvitations)
-              
-              // All invitations are now valid (either real or fallback)
-              setInvitations(validInvitations)
-            } else {
-              console.log('Clearing invitations from websocket')
-              setInvitations([])
-            }
-          }
-        }
-        
-        if (data.type === 'friend_request_updated' && data.data) {
-          const updatedUserData = data.data
-          
-          // Update the global user state if it's the current user (compare by email)
-          if (updatedUserData.email === user.email) {
-            console.log('Updating user state from friend_request_updated:', updatedUserData.friendRequests)
-            const updatedUser = {
-              email: updatedUserData.email,
-              username: updatedUserData.username,
-              wins: updatedUserData.winBattle,
-              favoritesSport: updatedUserData.favourite,
-              rank: updatedUserData.ranking,
-              winRate: updatedUserData.winRate,
-              totalBattles: updatedUserData.totalBattle,
-              streak: updatedUserData.streak,
-              password: updatedUserData.password,
-              friends: updatedUserData.friends,
-              friendRequests: updatedUserData.friendRequests,
-              avatar: updatedUserData.avatar,
-              battles: updatedUserData.battles,
-              invitations: updatedUserData.invitations
-            }
-            setUser(updatedUser)
-            setRefreshView(true)
-            // Update local friendRequests state to reflect the change
-            if (updatedUserData.friendRequests.length > 0) {
-              const avatarMap = await fetchFriendRequestAvatars(updatedUserData.friendRequests)
-              const friendRequestsWithAvatars = updatedUserData.friendRequests.map((request: string) => ({
-                sender: {
-                  username: request,
-                  avatar: avatarMap.get(request) || ''       
-                },
-                status: 'pending' as const
-              }))
-              console.log('Updating friend requests with avatars:', friendRequestsWithAvatars)
-              setFriendRequests(friendRequestsWithAvatars)
-            } else {
-              // Clear friend requests if none exist
-              setFriendRequests([])
-            }
-            
-            // Update invitations if they changed
-            if (updatedUserData.invitations && updatedUserData.invitations.length > 0) {
-              console.log('Updating invitations from websocket:', updatedUserData.invitations)
-              const invitationPromises = updatedUserData.invitations.map(async (battle_id: string) => {
-                try {
-                  const response = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
-                  return {
-                    battle_id,
-                    sport: response.data.sport,
-                    duration: response.data.duration,
-                    status: 'pending' as const
-                  }
-                } catch (error) {
-                  console.error(`Error fetching battle ${battle_id}:`, error)
-                  // Create a fallback invitation object for missing battles
-                  console.log(`Creating fallback invitation for missing battle ${battle_id}`)
-                  return {
-                    battle_id,
-                    sport: 'football',
-                    duration: 0,
-                    status: 'pending' as const
-                  }
-                }
-              })
-              
-              const invitationResults = await Promise.all(invitationPromises)
-              const validInvitations = invitationResults as Invitation[]
-              console.log('Updated invitations from websocket:', validInvitations)
-              
-              // All invitations are now valid (either real or fallback)
-              setInvitations(validInvitations)
-            } else {
-              console.log('Clearing invitations from websocket')
-              setInvitations([])
-            }
-          }
-        }
-        
-        // Handle invitation rejection notifications
-        if (data.type === 'invitation_rejected' && data.data) {
-          console.log('Received invitation rejection notification:', data.data)
-          
-          // If the current user is the battle creator who was rejected
-          if (data.data.battle_creator === user.username) {
-            console.log('Your battle invitation was rejected by:', data.data.rejected_by)
-            
-            // Remove the invitation from the user's invitations list
-            const updatedInvitations = user.invitations.filter(invitation => invitation !== data.data.battle_id)
-            user.invitations = updatedInvitations
-            
-            // Update the local invitations state to remove the rejected invitation
-            setInvitations(prev => prev.filter(inv => inv.battle_id !== data.data.battle_id))
-            
-            // Update the global user state
-            const updatedUser = {
-              ...user,
-              invitations: updatedInvitations
-            }
-            setUser(updatedUser)
-            
-            console.log(`Battle invitation for ${data.data.sport} (${data.data.level}) was rejected by ${data.data.rejected_by}`)
-          }
-          // If the current user is the one who rejected the invitation
-          else if (data.data.rejected_by === user.username) {
-            console.log('You rejected the battle invitation for:', data.data.battle_id)
-            
-            // Remove the invitation from the user's invitations list
-            const updatedInvitations = user.invitations.filter(invitation => invitation !== data.data.battle_id)
-            user.invitations = updatedInvitations
-            
-            // Update the local invitations state to remove the rejected invitation
-            setInvitations(prev => prev.filter(inv => inv.battle_id !== data.data.battle_id))
-            
-            // Update the global user state
-            const updatedUser = {
-              ...user,
-              invitations: updatedInvitations
-            }
-            setUser(updatedUser)
-            
-            console.log(`You rejected the battle invitation for ${data.data.sport} (${data.data.level})`)
-          }
+        if ((data.type === 'user_updated' || data.type === 'friend_request_updated') && data.data) {
+          await handleUserUpdate(data.data)
         }
       } catch (error) {
-        console.error('Error parsing websocket message:', error)
+        console.error('Error handling websocket message:', error)
       }
     }
 
-    if (newSocket) {
-      newSocket.addEventListener('message', handleWebSocketMessage)
-    }
-
-    return () => {
-      if (newSocket) {
-        newSocket.removeEventListener('message', handleWebSocketMessage)
+    const socket = newSocket
+    if (socket) {
+      socket.addEventListener('message', handleWebSocketMessage)
+      
+      return () => {
+        socket.removeEventListener('message', handleWebSocketMessage)
       }
     }
-  }, [user.username, setUser, friendRequests])
+    return undefined
+  }, [handleUserUpdate])
 
   const handleAcceptRequest = async (username: string) => {
     try {

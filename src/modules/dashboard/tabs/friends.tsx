@@ -1,119 +1,82 @@
-import { TabsContent } from "../../../shared/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card"
-import { Button } from "../../../shared/ui/button"
-import { Plus, ChevronRight, AlertTriangle } from "lucide-react"
-import type { Friend, User } from "../../../shared/interface/user"
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from 'react-i18next'
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import axios from "axios"
-import { useRefreshViewStore } from "../../../shared/interface/gloabL_var"
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var"
 import { newSocket } from "../../../app/App"
+import type { User, Friend } from "../../../shared/interface/user"
+import { Button } from "../../../shared/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card"
+import { ChevronRight, Plus, AlertTriangle } from "lucide-react"
+import { TabsContent } from "../../../shared/ui/tabs"
 import { UserAvatar } from '../../../shared/ui/user-avatar'
-import AvatarStorage from '../../../shared/utils/avatar-storage'
 
 export default function Friends({user}: {user: User}) {
   const [friends, setFriends] = useState<Friend[]>([])
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const { refreshView, setRefreshView } = useRefreshViewStore()
 
-  // Function to fetch friend data with avatar caching
-  const fetchFriendData = async (friendUsername: string): Promise<Friend> => {
+  // Cache friends data
+  const friendsCache = useRef(new Map<string, any>());
+  
+  const updateFriendsList = useCallback(async (friendsList: string[]) => {
     try {
-      const friendData = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`);
+      const newFriends = [];
+      const batchSize = 3;
       
-      // Handle avatar caching
-      let avatarUrl = null;
-      if (friendData.data.avatar) {
-        // Check for persistent avatar first
-        const persistentAvatar = await AvatarStorage.getAvatar(friendUsername);
-        if (persistentAvatar === null && friendData.data.avatar) {
-          // Cache server avatar locally for faster future access
-          try {
-            const fullAvatarUrl = friendData.data.avatar.startsWith('http') 
-              ? friendData.data.avatar 
-              : `${API_BASE_URL}${friendData.data.avatar}`;
-            
-            // Fetch and cache the server avatar
-            const response = await fetch(fullAvatarUrl);
-            if (response.ok) {
-              const blob = await response.blob();
-              const file = new File([blob], 'avatar.jpg', { type: blob.type });
-              await AvatarStorage.saveAvatar(friendUsername, file);
-              console.log('[Dashboard Friends] Cached server avatar for', friendUsername);
-            }
-          } catch (error) {
-            console.warn('[Dashboard Friends] Failed to cache server avatar:', error);
+      for (let i = 0; i < friendsList.length; i += batchSize) {
+        const batch = friendsList.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (friendUsername) => {
+          // Check cache first
+          if (friendsCache.current.has(friendUsername)) {
+            return friendsCache.current.get(friendUsername);
           }
+          
+          try {
+            const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`);
+            const friendData = {
+              username: response.data.username,
+              avatar: response.data.avatar,
+              rank: response.data.ranking,
+              wins: response.data.winBattle,
+              totalBattles: response.data.totalBattle
+            };
+            // Update cache
+            friendsCache.current.set(friendUsername, friendData);
+            return friendData;
+          } catch (error) {
+            console.error(`Error fetching friend data for ${friendUsername}:`, error);
+            return null;
+          }
+        });
+        
+        const batchResults = await Promise.all(batchPromises);
+        newFriends.push(...batchResults.filter(Boolean));
+        
+        // Add delay between batches
+        if (i + batchSize < friendsList.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
-        avatarUrl = friendData.data.avatar.startsWith('http') 
-          ? friendData.data.avatar 
-          : `${API_BASE_URL}${friendData.data.avatar}`;
       }
       
-      return {
-        username: friendUsername,
-        avatar: avatarUrl,
-        rank: friendData.data.ranking.toString(),
-        status: ""
-      };
-    } catch (error) {
-      console.error(`Error fetching friend data for ${friendUsername}:`, error);
-      return {
-        username: friendUsername,
-        avatar: null,
-        rank: "0",
-        status: ""
-      };
-    }
-  };
-
-  // Function to update friends list with deduplication
-  const updateFriendsList = async (friendUsernames: string[]) => {
-    if (friendUsernames.length === 0) {
-      setFriends([]);
-      return;
-    }
-
-    try {
-      // Remove duplicates from friendUsernames
-      const uniqueFriends = [...new Set(friendUsernames)];
-      console.log('Dashboard - Fetching data for unique friends:', uniqueFriends);
-      
-      const friendPromises = uniqueFriends.map(fetchFriendData);
-      const friendResults = await Promise.all(friendPromises);
-      
-      // Filter out any null results and ensure no duplicates
-      const validFriends = friendResults.filter(friend => friend !== null);
-      const uniqueValidFriends = validFriends.filter((friend, index, self) => 
-        index === self.findIndex(f => f.username === friend.username)
-      );
-      
-      console.log('Dashboard - Setting friends list:', uniqueValidFriends);
-      setFriends(uniqueValidFriends);
+      setFriends(newFriends);
     } catch (error) {
       console.error('Error updating friends list:', error);
     }
-  };
+  }, []);
 
-  // Initial load and update when user.friends changes
   useEffect(() => {
-    console.log('Friends list changed:', user.friends);
-    updateFriendsList(user.friends);
-  }, [user.friends]);
-
-  // Reset refreshView after it's used
-  useEffect(() => {
-    if (refreshView) {
-      console.log("refreshView triggered in friends, resetting to false")
-      // Only reset refreshView after a short delay to ensure updates are processed
-      setTimeout(() => {
-        setRefreshView(false)
-      }, 100)
+    if (user.friends.length > 0) {
+      // Debounce the friends list update
+      const timeoutId = setTimeout(() => {
+        updateFriendsList(user.friends);
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    } else {
+      setFriends([]);
     }
-  }, [refreshView, setRefreshView])
+  }, [user.friends, updateFriendsList]);
 
   // Handle websocket messages for real-time updates
   useEffect(() => {
@@ -121,23 +84,17 @@ export default function Friends({user}: {user: User}) {
       try {
         const data = JSON.parse(event.data);
         
-        if (data.type === 'user_updated' && data.data) {
+        if ((data.type === 'user_updated' || data.type === 'friend_request_updated') && data.data) {
           const updatedUserData = data.data;
           
           // Update friends list if the current user's data was updated (compare by email)
           if (updatedUserData.email === user.email) {
-            console.log('Updating friends list from websocket:', updatedUserData.friends);
-            updateFriendsList(updatedUserData.friends || []);
-          }
-        }
-        
-        if (data.type === 'friend_request_updated' && data.data) {
-          const updatedUserData = data.data;
-          
-          // Update friends list if the current user's data was updated (compare by email)
-          if (updatedUserData.email === user.email) {
-            console.log('Updating friends list from friend_request_updated:', updatedUserData.friends);
-            updateFriendsList(updatedUserData.friends || []);
+            // Debounce the friends list update
+            const timeoutId = setTimeout(() => {
+              updateFriendsList(updatedUserData.friends || []);
+            }, 500);
+            
+            return () => clearTimeout(timeoutId);
           }
         }
       } catch (error) {
@@ -145,16 +102,16 @@ export default function Friends({user}: {user: User}) {
       }
     };
 
-    if (newSocket) {
-      newSocket.addEventListener('message', handleWebSocketMessage);
-    }
-
-    return () => {
-      if (newSocket) {
-        newSocket.removeEventListener('message', handleWebSocketMessage);
+    const socket = newSocket;
+    if (socket) {
+      socket.addEventListener('message', handleWebSocketMessage);
+      
+      return () => {
+        socket.removeEventListener('message', handleWebSocketMessage);
       }
-    };
-  }, [user.username]);
+    }
+    return undefined;
+  }, [user.email, updateFriendsList]);
 
   return (
     <div>

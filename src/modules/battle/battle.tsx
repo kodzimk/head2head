@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { useGlobalStore } from '../../shared/interface/gloabL_var'
@@ -16,6 +16,7 @@ import { Badge } from '../../shared/ui/badge'
 import AvatarStorage from '../../shared/utils/avatar-storage'
 import { UserAvatar } from '../../shared/ui/user-avatar'
 import { useTranslation } from 'react-i18next'
+import BattleOnboarding from '../../shared/ui/battle-onboarding'
 
 export default function BattlePage() {
   const { user } = useGlobalStore()
@@ -33,52 +34,84 @@ export default function BattlePage() {
   const navigate = useNavigate()
   const [refreshMessage] = useState<string | null>(null)
 
-  // Fetch and cache avatars for all battle creators
-  useEffect(() => {
-    const fetchAndCacheAvatars = async () => {
-      if (battle.length === 0) return;
+  // Battle onboarding steps
+  const battleOnboardingSteps = [
+    {
+      id: 'battle-page-overview',
+      target: 'main',
+      translationKey: 'battleOnboarding.pageOverview',
+      position: 'auto' as const
+    },
+    {
+      id: 'create-battle-section',
+      target: '[data-onboarding="create-battle"]',
+      translationKey: 'battleOnboarding.createBattle',
+      position: 'auto' as const
+    },
+    {
+      id: 'join-battle-section',
+      target: '[data-onboarding="join-battle"]',
+      translationKey: 'battleOnboarding.joinBattle',
+      position: 'auto' as const
+    }
+  ];
 
-      console.log('[Battle] Fetching and caching avatars for', battle.length, 'battle creators');
-      
-      // Process avatars in batches to avoid overwhelming the system
-      const batchSize = 3;
-      for (let i = 0; i < battle.length; i += batchSize) {
-        const batch = battle.slice(i, i + batchSize);
-        
-        await Promise.all(batch.map(async (battleData) => {
-          if (!battleData.first_opponent || !battleData.creator_avatar) return;
-          
-          const persistentAvatar = await AvatarStorage.getAvatar(battleData.first_opponent);
-          if (persistentAvatar === null) {
-            try {
-              // Build full avatar URL
-              const fullAvatarUrl = battleData.creator_avatar.startsWith('http') 
-                ? battleData.creator_avatar 
-                : `${API_BASE_URL}${battleData.creator_avatar}`;
-              
-              // Fetch and cache the server avatar
-              const response = await fetch(fullAvatarUrl);
-              if (response.ok) {
-                const blob = await response.blob();
-                const file = new File([blob], 'avatar.jpg', { type: blob.type });
-                await AvatarStorage.saveAvatar(battleData.first_opponent, file);
-                console.log('[Battle] Cached server avatar for', battleData.first_opponent);
-              }
-            } catch (error) {
-              console.warn('[Battle] Failed to cache server avatar for', battleData.first_opponent, ':', error);
-            }
-          }
-        }));
-        
-        // Small delay between batches to be gentle on the system
-        if (i + batchSize < battle.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
+  // Add debounced avatar fetching
+  const debouncedFetchAndCacheAvatars = useCallback(async () => {
+    if (battle.length === 0) return;
+
+    // Create a Set to track unique usernames and avoid duplicate fetches
+    const uniqueUsers = new Set<string>();
+    battle.forEach(battleData => {
+      if (battleData.first_opponent) {
+        uniqueUsers.add(battleData.first_opponent);
       }
-    };
+    });
 
-    fetchAndCacheAvatars();
+    // Process unique avatars in batches
+    const batchSize = 3;
+    const usernames = Array.from(uniqueUsers);
+    
+    for (let i = 0; i < usernames.length; i += batchSize) {
+      const batch = usernames.slice(i, i + batchSize);
+      
+      await Promise.all(batch.map(async (username) => {
+        const persistentAvatar = await AvatarStorage.getAvatar(username);
+        const battleData = battle.find(b => b.first_opponent === username);
+        
+        if (persistentAvatar === null && battleData?.creator_avatar) {
+          try {
+            const fullAvatarUrl = battleData.creator_avatar.startsWith('http') 
+              ? battleData.creator_avatar 
+              : `${API_BASE_URL}${battleData.creator_avatar}`;
+            
+            const response = await fetch(fullAvatarUrl);
+            if (response.ok) {
+              const blob = await response.blob();
+              const file = new File([blob], 'avatar.jpg', { type: blob.type });
+              await AvatarStorage.saveAvatar(username, file);
+            }
+          } catch (error) {
+            console.warn('[Battle] Failed to cache avatar for', username, ':', error);
+          }
+        }
+      }));
+      
+      // Add delay between batches
+      if (i + batchSize < usernames.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
   }, [battle]);
+
+  useEffect(() => {
+    // Debounce the avatar fetching to avoid too frequent updates
+    const timeoutId = setTimeout(() => {
+      debouncedFetchAndCacheAvatars();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [debouncedFetchAndCacheAvatars]);
 
   const refreshWaitingBattles = async (showNotification = false) => {
     if (user.username) {
@@ -374,7 +407,7 @@ export default function BattlePage() {
           )}
 
           {/* Battle Creation Form */}
-          <Card className="card-surface">
+          <Card className="card-surface" data-onboarding="create-battle">
             <CardHeader className="responsive-padding">
               <CardTitle className="text-responsive-lg flex items-center gap-2">
                 <Play className="w-5 h-5 text-primary" />
@@ -457,7 +490,7 @@ export default function BattlePage() {
           </Card>
 
           {/* Waiting Battles Section */}
-          <Card className="card-surface">
+          <Card className="card-surface" data-onboarding="join-battle">
             <CardHeader className="responsive-padding">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="text-responsive-lg flex items-center gap-2">
@@ -584,6 +617,14 @@ export default function BattlePage() {
           </Card>
         </div>
       </main>
+
+      {/* Battle Onboarding */}
+      <BattleOnboarding
+        steps={battleOnboardingSteps}
+        onComplete={() => {}}
+        storageKey="battle-onboarding-completed"
+        autoStart={true}
+      />
     </div>
   )
 } 

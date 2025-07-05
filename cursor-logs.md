@@ -194,6 +194,88 @@ const isMobile = window.innerWidth < 768;
 
 ---
 
+## Session 5: Sports Debates Integration
+**Date**: Current session
+**Major Feature**: Completely integrated sports debates functionality into the existing selection page
+
+### UI Transformation
+- Replaced old selection interface with modern sports debate cards
+- Added voting system with localStorage persistence
+- Implemented real-time progress bars with animated vote percentages
+- Created comprehensive comment system with likes and nested replies
+
+### Technical Implementation
+- Updated selection.tsx to use Pick and Comment types from existing types.ts
+- Integrated mock data for 6 sports debates (Messi vs Ronaldo, Jordan vs LeBron, etc.)
+- Added URL routing support for direct debate access (/selection/:id)
+- Implemented vote tracking and prevention of multiple votes per debate
+- Added category badges with sport emojis and color coding
+
+### Navigation Updates
+- Renamed "Daily Picks" to "Sports Debates" in header navigation
+- Removed separate /picks routes and components
+- Consolidated all debate functionality into single selection page
+
+### Features Added
+- Stats dashboard showing active debates, total votes, and comments
+- Responsive grid layout for debate cards
+- Animated hover effects and transitions
+- Success feedback after voting
+- Empty state handling for comments
+- Call-to-action section for user engagement
+
+### Files Modified
+- src/modules/selection/selection.tsx (complete rewrite)
+- src/app/App.tsx (updated routing)
+- src/modules/dashboard/header.tsx (navigation updates)
+
+### Files Removed
+- src/modules/picks/picks-list.tsx (functionality moved to selection)
+- src/modules/picks/pick-detail.tsx (functionality moved to selection)
+
+### Result
+Single cohesive page handling both debate listing and individual debate interactions with modern UI/UX
+
+## Session 6: Internationalization and UX Improvements
+**Date**: Current session
+**Features Added**: 
+- **Complete Translation System**: Added comprehensive English and Russian translations for the selection page
+- **Collapsible Replies**: Implemented collapsible replies system for better comment management
+
+### Translation Implementation
+- **English Translations Added**:
+  - Sports Debates, votes, comments, reply actions
+  - Show/Hide replies functionality
+  - Call-to-action sections and user feedback messages
+- **Russian Translations Added**:
+  - Complete Russian localization for all selection page elements
+  - Proper grammatical forms for counts and actions
+  - Cultural adaptation of interface text
+
+### UX Enhancement - Collapsible Replies
+- **Problem Solved**: Comments with many replies were taking up too much screen space
+- **Solution Implemented**:
+  - Comments with more than 1 reply now show a collapsible "Show/Hide replies" button
+  - Comments with only 1 reply remain always visible
+  - Smooth expand/collapse functionality with proper state management
+  - Translated button text for both English and Russian
+
+### Technical Implementation
+- **State Management**: Added `expandedReplies` state using Set for efficient tracking
+- **Toggle Function**: `toggleReplies()` function for expanding/collapsing reply sections
+- **Conditional Rendering**: Smart rendering based on reply count and expansion state
+- **Translation Keys**: Added `showReplies`, `hideReplies`, and `replies` translation keys
+
+### Files Modified
+- src/modules/selection/selection.tsx (added collapsible replies functionality)
+- src/shared/i18n/locales/en.json (comprehensive English translations)
+- src/shared/i18n/locales/ru.json (comprehensive Russian translations)
+
+### Result
+Enhanced user experience with better comment management and full internationalization support
+
+---
+
 ## Disabled Automatic Switching in Onboarding System
 
 ### Feature Modification
@@ -18392,6 +18474,199 @@ This resolves the core issue where users couldn't identify their opponents in ba
 The entire website now features a cohesive sports and gaming-themed visual identity that creates an immersive competitive atmosphere while maintaining all existing functionality. The design emphasizes energy, competition, and championship aesthetics throughout the user journey.
 
 # Head2Head Development Log
+
+## 2024-01-XX - Daily Debate Rotation System Implementation
+
+### Task: Create fresh debates daily with zero votes/comments and automatic 24-hour rotation
+
+**Context**: User requested to modify the seeding system to create debates without initial votes/comments and implement automatic daily rotation every 24 hours.
+
+### Implementation Details
+
+#### 1. Enhanced Seeding System (`backend/src/selection/router.py`)
+- **Modified**: Seed endpoint to create fresh debates with zero votes
+- **Added**: Daily rotation logic based on day of year
+- **Features**:
+  - Automatic deactivation of previous debates
+  - Zero vote initialization for fair competition
+  - Day-based rotation through debate pools
+  - Duplicate prevention for same-day seeding
+  - Comprehensive debate pools (3 debates per sport)
+
+**Daily Rotation Logic**:
+```python
+day_of_year = datetime.utcnow().timetuple().tm_yday
+debate_index = (day_of_year - 1) % len(debates)
+```
+
+#### 2. Automated Daily Task System (`backend/src/tasks.py`)
+- **Added**: Celery scheduled task for daily debate creation
+- **Schedule**: Runs at midnight UTC every day
+- **Features**:
+  - Automatic debate deactivation and creation
+  - Same rotation logic as manual seeding
+  - Comprehensive error handling and logging
+  - Celery Beat configuration for reliable scheduling
+
+**Celery Beat Schedule**:
+```python
+celery_app.conf.beat_schedule = {
+    'create-daily-debates': {
+        'task': 'tasks.create_daily_debates',
+        'schedule': crontab(hour=0, minute=0),  # Midnight UTC
+    },
+}
+```
+
+#### 3. Frontend Enhancements (`src/modules/selection/selection.tsx`)
+- **Added**: Fresh debate detection and labeling
+- **Enhanced**: UI to highlight new debates without votes
+- **Features**:
+  - "Fresh Debate" badges for zero-vote debates
+  - "Be the first to vote!" messaging
+  - Daily rotation information display
+  - Improved stats tracking for fresh content
+
+### Expanded Debate Pools
+
+Each sport now has 3 rotating debates instead of 1:
+
+#### Football (Soccer):
+1. **Messi vs Ronaldo** - GOAT debate
+2. **Pelé vs Maradona** - Legends comparison  
+3. **Mbappé vs Haaland** - Next generation stars
+
+#### Basketball:
+1. **Jordan vs LeBron** - GOAT debate
+2. **Kobe vs Curry** - Different eras comparison
+3. **Magic vs Bird** - Classic rivalry
+
+#### Tennis:
+1. **Serena vs Graf** - Women's GOAT debate
+2. **Federer vs Nadal** - Men's legends
+3. **Djokovic vs Murray** - Modern era
+
+#### Baseball:
+1. **Ruth vs Bonds** - Home run kings
+2. **Mantle vs Mays** - All-around legends
+3. **Jeter vs Griffey Jr.** - 90s superstars
+
+#### Hockey:
+1. **Gretzky vs Howe** - All-time greats
+2. **Lemieux vs Richard** - Scoring legends
+3. **McDavid vs Crosby** - Current superstars
+
+#### Golf:
+1. **Tiger vs Jack** - Major champions
+2. **Palmer vs Player** - Big Three era
+3. **McIlroy vs Spieth** - Modern stars
+
+#### Cricket:
+1. **Tendulkar vs Bradman** - Batting legends
+2. **Kohli vs de Villiers** - Modern masters
+3. **Dhoni vs Ponting** - Captain legends
+
+#### Volleyball:
+1. **Kiraly vs Giba** - Olympic champions
+2. **May-Treanor vs Walsh Jennings** - Beach legends
+3. **Zaytsev vs León** - Power players
+
+#### Rugby:
+1. **Lomu vs McCaw** - All Blacks legends
+2. **Carter vs Wilkinson** - Fly-half masters
+3. **O'Driscoll vs Parisse** - European legends
+
+#### Boxing:
+1. **Ali vs Tyson** - Heavyweight legends
+2. **Mayweather vs Pacquiao** - Modern champions
+3. **Robinson vs Marciano** - Classic era
+
+### Technical Architecture
+
+#### Daily Rotation System:
+- **365-day cycle** ensures debates rotate throughout the year
+- **Modulo operation** handles leap years automatically
+- **Consistent rotation** - same day of year always shows same debates
+- **Predictable pattern** for users who track favorites
+
+#### Database Management:
+- **Active/Inactive flags** for clean debate management
+- **Zero initialization** ensures fair starting point
+- **Automatic cleanup** of previous day's debates
+- **Efficient queries** with date-based filtering
+
+#### User Experience:
+- **Fresh content daily** keeps users engaged
+- **Fair competition** with zero-vote starts
+- **Clear indicators** for new vs ongoing debates
+- **Automatic refresh** when seeding new debates
+
+### Quality Assurance
+
+#### Content Quality:
+- **30 total debates** across 10 sports (3 each)
+- **Legendary matchups** featuring widely recognized athletes
+- **Balanced competition** with compelling arguments for both sides
+- **Diverse eras** from classic legends to modern superstars
+
+#### Technical Reliability:
+- **Automated scheduling** eliminates manual intervention
+- **Duplicate prevention** ensures one set per day
+- **Error handling** for failed tasks
+- **Logging** for monitoring and debugging
+
+### Monitoring and Maintenance
+
+#### Celery Beat Monitoring:
+- **UTC timezone** for consistent global timing
+- **Task logging** for successful executions
+- **Error tracking** for failed attempts
+- **Health checks** for Celery worker status
+
+#### Database Health:
+- **Regular cleanup** of inactive debates
+- **Vote count verification** starts at zero
+- **Index optimization** for date-based queries
+- **Backup considerations** for debate pools
+
+### User Benefits
+
+#### Daily Engagement:
+- **Fresh content** every 24 hours
+- **Equal opportunity** to be first voter
+- **Predictable schedule** builds user habits
+- **Variety** prevents debate fatigue
+
+#### Fair Competition:
+- **Zero-vote starts** eliminate bias
+- **Clean slate** for each debate cycle
+- **Fresh discussions** without historical baggage
+- **Equal visibility** for all debates
+
+### Future Enhancements
+
+#### Potential Improvements:
+- **Seasonal themes** for special events
+- **User-suggested debates** for community input
+- **Regional variations** for different timezones
+- **Special editions** for major sporting events
+
+#### Analytics Opportunities:
+- **Participation tracking** across debate cycles
+- **Popular debate identification** for future content
+- **User engagement patterns** for optimization
+- **Vote distribution analysis** for balance verification
+
+### Result
+
+Successfully implemented a comprehensive daily debate rotation system that:
+- **Creates fresh debates** automatically every 24 hours
+- **Ensures fair competition** with zero-vote initialization
+- **Provides diverse content** through 30 rotating debates
+- **Maintains user engagement** with predictable fresh content
+- **Operates autonomously** through Celery scheduled tasks
+
+The system now delivers a dynamic, fair, and engaging daily sports debate experience that keeps users coming back for fresh content while ensuring every debate starts on equal footing.
 
 ## Latest Update: Competitive Gaming UI Redesign - COMPLETE ✅
 

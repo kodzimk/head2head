@@ -20,7 +20,8 @@
     "accept": "Accept",
     "reject": "Reject",
     "step": "Step",
-    "of": "of"
+    "of": "of",
+    "finish": "Finish"
   },
   "navigation": {
     "home": "Home",
@@ -964,26 +965,30 @@
   },
   "faq": {
     "title": "Frequently Asked Questions",
-    "subtitle": "Everything you need to know about Head2Head",
+    "subtitle": "Find answers to common questions about Head2Head",
     "whatIsHead2Head": {
       "question": "What is Head2Head?",
-      "answer": "Head2Head is a real-time sports trivia platform where you can challenge friends and players worldwide to test your sports knowledge. Compete in various battle modes and climb the leaderboards!"
+      "answer": "Head2Head is a global sports community platform where fans can engage in daily sports discussions, participate in real-time trivia battles, and share their opinions on the biggest debates in sports. Our platform features daily rotating sports debates, live quiz battles, and a vibrant community of sports enthusiasts."
+    },
+    "howItWorks": {
+      "question": "How does Head2Head work?",
+      "answer": "Head2Head combines daily sports debates with trivia battles. Each day, you'll find new debates across different sports where you can vote, comment, and discuss with other fans. You can also challenge other users to real-time trivia battles to test your sports knowledge. All your activities contribute to your profile stats and global ranking."
     },
     "tournaments": {
-      "question": "When are tournaments held?",
-      "answer": "After 1000 users, we will start holding tournaments. We will announce the date and time of the tournaments on the website."
+      "question": "How do daily debates work?",
+      "answer": "Every 24 hours, we feature new sports debates across different categories like football, basketball, tennis, and more. You can vote on your picks, engage in discussions through comments, and see how the community votes. Each debate includes real-time vote tracking and nested discussion threads."
     },
     "isFree": {
-      "question": "Is it free to play?",
-      "answer": "Yes, Head2Head is completely free to play! We offer various features and battle modes at no cost. Premium features may be added in the future."
+      "question": "Is Head2Head free to use?",
+      "answer": "Yes, Head2Head is completely free! You can participate in daily debates, vote on picks, engage in discussions, and battle other players in sports trivia without any cost. We focus on building a passionate community of sports fans."
     },
     "mobileApp": {
-      "question": "Does platform have a mobile app?",
-      "answer": "No, we don't have a mobile app yet. But we are working on it and it will be available soon."
+      "question": "Can I use Head2Head on mobile devices?",
+      "answer": "Yes! Head2Head is fully responsive and works seamlessly on all devices. Whether you're using a phone, tablet, or desktop, you can enjoy all features including daily debates, real-time voting, and community discussions."
     },
     "contact": {
-      "question": "How can I contact head2head?",
-      "answer": "You can contact us at admin@head2head.dev"
+      "question": "How can I contact support?",
+      "answer": "For any questions, feedback, or support needs, you can reach our team through the contact form on the website or email us directly. We're always here to help improve your experience on Head2Head."
     }
   },
   "signIn": {
@@ -1055,17 +1060,39 @@
     }
   },
   "selection": {
-    "title": "Daily picks",
-    "backToList": "Back to selections",
+    "title": "Daily Sports Debates",
+    "backToList": "Back to Debates",
     "votes": "votes",
     "totalVotes": "total votes",
+    "yourVote": "your vote",
+    "thanksForVoting": "Thanks for voting!",
     "comments": "Comments",
-    "addComment": "Add your comment",
+    "addComment": "Add Comment",
+    "writeComment": "Share your thoughts...",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "reply": "Reply",
+    "writeReply": "Write a reply...",
+    "showReplies": "Show",
+    "hideReplies": "Hide",
+    "replies": "replies",
+    "you": "You",
+    "thanksForVoting": "Thanks for voting!",
+    "noCommentsYet": "No comments yet. Be the first to share your thoughts!",
+    "freshDebate": "Fresh Debate",
+    "dailyInfo": "Fresh debates daily at 12:00 UTC",
+    "noActiveDebates": "No Active Debates",
+    "noActiveDebatesDesc": "No debates are currently active. Create fresh daily debates to start the discussion!",
+    "createDebates": "Create Daily Debates",
+    "creatingDebates": "Creating Daily Debates...",
+    "welcomeMessage": "Vote on today's most relevant sports debates and join the discussion!",
     "categories": {
-      "all": "All",
       "football": "Football",
       "basketball": "Basketball",
-      "tennis": "Tennis"
+      "boxing": "Boxing",
+      "mma": "MMA",
+      "tennis": "Tennis",
+      "baseball": "Baseball"
     }
   },
   "signUpLanding": {
@@ -1089,5 +1116,19 @@
     "victory": "Victory",
     "loss": "Loss",
     "draw": "Draw"
+  },
+  "battleOnboarding": {
+    "pageOverview": {
+      "title": "Welcome to Battle Arena! ⚔️",
+      "description": "This is where you can create new battles and join existing ones. Challenge other players to test your sports knowledge in real-time trivia matches across different sports and difficulty levels."
+    },
+    "createBattle": {
+      "title": "Create Your Battle 🎯",
+      "description": "Choose your sport and difficulty level to create a new battle. Other players can join your battle and compete against you. Select from various sports like football, basketball, tennis, and more!"
+    },
+    "joinBattle": {
+      "title": "Join Available Battles 🏆",
+      "description": "Browse through battles created by other players and join the ones that interest you. You can see the creator, sport, difficulty level, and join instantly to start competing!"
+    }
   }
 } 

@@ -1,6 +1,5 @@
 import Header from "./header"
 import Hero from "./hero"
-import FAQ from "./faq"
 import Footer from "./footer"
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
@@ -19,7 +18,6 @@ export default function EntryPage() {
     <div className="flex flex-col min-h-screen bg-background">
      <Header />
      <Hero />
-     <FAQ />
      <Footer />
     </div>
   )

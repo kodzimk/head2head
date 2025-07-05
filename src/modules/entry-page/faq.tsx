@@ -13,12 +13,8 @@ export default function FAQ() {
       answer: t('faq.whatIsHead2Head.answer')
     },
     {
-      question: t('faq.tournaments.question'),
-      answer: t('faq.tournaments.answer')
-    },
-    {
-      question: t('faq.isFree.question'),
-      answer: t('faq.isFree.answer')
+      question: t('faq.howItWorks.question'),
+      answer: t('faq.howItWorks.answer')
     },
     {
       question: t('faq.mobileApp.question'),

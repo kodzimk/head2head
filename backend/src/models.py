@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, ARRAY, DateTime, Boolean, Text
+from sqlalchemy import Column, Integer, String, ARRAY, DateTime, Boolean, Text, ForeignKey, JSON
+from sqlalchemy.orm import relationship
 from pydantic import BaseModel, EmailStr
 from init import Base
 from datetime import datetime
+from typing import List, Optional
 
 class UserData(Base):
     __tablename__ = "user_data"
@@ -96,3 +98,118 @@ class TrainingAnswer(Base):
     level = Column(String, index=True, nullable=False)
     answered_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     original_answer_id = Column(String, index=True, nullable=True)  # Reference to original incorrect answer
+
+class DebatePick(Base):
+    __tablename__ = "debate_picks"
+    
+    id = Column(String, primary_key=True, index=True)
+    category = Column(String, index=True, nullable=False)
+    option1_name = Column(String, nullable=False)
+    option1_image = Column(String, nullable=True)
+    option1_description = Column(Text, nullable=True)
+    option1_votes = Column(Integer, default=0)
+    option2_name = Column(String, nullable=False)
+    option2_image = Column(String, nullable=True)
+    option2_description = Column(Text, nullable=True)
+    option2_votes = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+    
+    # Relationships
+    comments = relationship("DebateComment", back_populates="pick", cascade="all, delete-orphan")
+    votes = relationship("DebateVote", back_populates="pick", cascade="all, delete-orphan")
+
+class DebateComment(Base):
+    __tablename__ = "debate_comments"
+    
+    id = Column(String, primary_key=True, index=True)
+    pick_id = Column(String, ForeignKey("debate_picks.id"), nullable=False)
+    author_id = Column(String, nullable=False)  # username
+    author_name = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    parent_id = Column(String, ForeignKey("debate_comments.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    pick = relationship("DebatePick", back_populates="comments")
+    parent = relationship("DebateComment", remote_side="DebateComment.id", back_populates="replies")
+    replies = relationship("DebateComment", back_populates="parent", cascade="all, delete-orphan")
+    likes = relationship("CommentLike", back_populates="comment", cascade="all, delete-orphan")
+
+class DebateVote(Base):
+    __tablename__ = "debate_votes"
+    
+    id = Column(String, primary_key=True, index=True)
+    pick_id = Column(String, ForeignKey("debate_picks.id"), nullable=False)
+    user_id = Column(String, nullable=False)  # username
+    option = Column(String, nullable=False)  # 'option1' or 'option2'
+    voted_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    pick = relationship("DebatePick", back_populates="votes")
+
+class CommentLike(Base):
+    __tablename__ = "comment_likes"
+    
+    id = Column(String, primary_key=True, index=True)
+    comment_id = Column(String, ForeignKey("debate_comments.id"), nullable=False)
+    user_id = Column(String, nullable=False)  # username
+    liked_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    comment = relationship("DebateComment", back_populates="likes")
+
+# Pydantic models for API
+class DebatePickCreate(BaseModel):
+    category: str
+    option1_name: str
+    option1_image: Optional[str] = None
+    option1_description: Optional[str] = None
+    option2_name: str
+    option2_image: Optional[str] = None
+    option2_description: Optional[str] = None
+
+class DebatePickResponse(BaseModel):
+    id: str
+    category: str
+    option1_name: str
+    option1_image: Optional[str]
+    option1_description: Optional[str]
+    option1_votes: int
+    option2_name: str
+    option2_image: Optional[str]
+    option2_description: Optional[str]
+    option2_votes: int
+    created_at: datetime
+    is_active: bool
+    user_vote: Optional[str] = None  # 'option1' or 'option2' if user has voted
+
+class DebateCommentCreate(BaseModel):
+    pick_id: str
+    content: str
+    parent_id: Optional[str] = None
+
+class DebateCommentResponse(BaseModel):
+    id: str
+    pick_id: str
+    author_id: str
+    author_name: str
+    content: str
+    parent_id: Optional[str]
+    created_at: datetime
+    likes_count: int
+    user_liked: bool = False
+    replies: List['DebateCommentResponse'] = []
+
+class DebateVoteCreate(BaseModel):
+    pick_id: str
+    option: str  # 'option1' or 'option2'
+
+class VoteResultResponse(BaseModel):
+    option1_percentage: float
+    option2_percentage: float
+    total_votes: int
+    user_vote: Optional[str] = None
+
+# Update forward references
+DebateCommentResponse.model_rebuild()

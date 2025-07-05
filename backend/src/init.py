@@ -36,6 +36,11 @@ Base = declarative_base()
 redis_email = redis.Redis(host='redis', port=6379, db=0)
 redis_username = redis.Redis(host='redis', port=6379, db=1)
 
+# Database dependency
+async def get_db():
+    async with SessionLocal() as session:
+        yield session
+
 async def init_models():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
