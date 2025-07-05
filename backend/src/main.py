@@ -67,6 +67,9 @@ app.include_router(selection_router)
 
 # Comprehensive CORS configuration for production and development
 origins = [
+    "https://head2head.dev",
+    "https://www.head2head.dev",
+    "https://api.head2head.dev",
     "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost:8000",
