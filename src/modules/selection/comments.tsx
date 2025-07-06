@@ -61,46 +61,11 @@ export default function Comments({ comments, onAddComment, onLikeComment }: Comm
                     <Heart className="w-4 h-4 mr-1" />
                     {comment.likes} {t('selection.like')}
                   </Button>
-                  {comment.replies && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <MessageCircle className="w-4 h-4 mr-1" />
-                      {t('selection.reply')}
-                    </Button>
-                  )}
+
                 </div>
               </div>
             </div>
 
-            {/* Replies */}
-            {comment.replies && comment.replies.length > 0 && (
-              <div className="pl-11 space-y-4">
-                {comment.replies.map((reply) => (
-                  <div key={reply.id} className="flex items-start gap-3">
-                
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                
-                        <span className="text-sm text-muted-foreground">{reply.timestamp}</span>
-                      </div>
-                      <p className="text-sm">{reply.content}</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onLikeComment(reply.id)}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        <Heart className="w-4 h-4 mr-1" />
-                        {reply.likes} {t('selection.like')}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         ))}
       </div>

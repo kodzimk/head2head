@@ -282,30 +282,20 @@ async def get_pick_comments(
     current_user: dict = Depends(get_current_user)
 ):
     """Get comments for a specific pick"""
-    # Get top-level comments (no parent)
     comments_query = select(DebateComment).options(
-        selectinload(DebateComment.replies).selectinload(DebateComment.likes),
         selectinload(DebateComment.likes)
     ).where(
-        and_(
-            DebateComment.pick_id == pick_id,
-            DebateComment.parent_id.is_(None)
-        )
+        DebateComment.pick_id == pick_id
     ).order_by(DebateComment.created_at.desc())
     
     result = await db.execute(comments_query)
     comments = result.scalars().all()
     
     # Get user likes for all comments
-    all_comment_ids = []
-    for comment in comments:
-        all_comment_ids.append(comment.id)
-        all_comment_ids.extend([reply.id for reply in comment.replies])
-    
-    if all_comment_ids:
+    if comments:
         likes_query = select(CommentLike).where(
             and_(
-                CommentLike.comment_id.in_(all_comment_ids),
+                CommentLike.comment_id.in_([comment.id for comment in comments]),
                 CommentLike.user_id == current_user["username"]
             )
         )
@@ -322,11 +312,9 @@ async def get_pick_comments(
             author_id=comment.author_id,
             author_name=comment.author_name,
             content=comment.content,
-            parent_id=comment.parent_id,
             created_at=comment.created_at,
             likes_count=len(comment.likes),
-            user_liked=comment.id in user_likes,
-            replies=[convert_comment(reply) for reply in comment.replies]
+            user_liked=comment.id in user_likes
         )
     
     return [convert_comment(comment) for comment in comments]
@@ -347,22 +335,12 @@ async def create_comment(
     if not pick:
         raise HTTPException(status_code=404, detail="Pick not found")
     
-    # If parent_id is provided, verify parent comment exists
-    if comment_data.parent_id:
-        parent_query = select(DebateComment).where(DebateComment.id == comment_data.parent_id)
-        parent_result = await db.execute(parent_query)
-        parent_comment = parent_result.scalar_one_or_none()
-        
-        if not parent_comment:
-            raise HTTPException(status_code=404, detail="Parent comment not found")
-    
     new_comment = DebateComment(
         id=str(uuid.uuid4()),
         pick_id=pick_id,
         author_id=current_user["username"],
         author_name=current_user["display_name"],
-        content=comment_data.content,
-        parent_id=comment_data.parent_id
+        content=comment_data.content
     )
     
     db.add(new_comment)
@@ -375,11 +353,9 @@ async def create_comment(
         author_id=new_comment.author_id,
         author_name=new_comment.author_name,
         content=new_comment.content,
-        parent_id=new_comment.parent_id,
         created_at=new_comment.created_at,
         likes_count=0,
-        user_liked=False,
-        replies=[]
+        user_liked=False
     )
 
 @router.post("/comments/{comment_id}/like")

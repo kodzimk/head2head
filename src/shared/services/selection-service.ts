@@ -23,11 +23,9 @@ export interface DebateCommentResponse {
   author_id: string;
   author_name: string;
   content: string;
-  parent_id?: string;
   created_at: string;
   likes_count: number;
   user_liked: boolean;
-  replies: DebateCommentResponse[];
 }
 
 export interface VoteResultResponse {
@@ -39,11 +37,59 @@ export interface VoteResultResponse {
 
 class SelectionService {
   private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token')?.replace(/"/g, '');
     return {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : '',
     };
+  }
+
+  private async fetchWithRetry(url: string, options: RequestInit, retries = 3, delay = 1000): Promise<Response> {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, options);
+        
+        // If it's not a 500 error, return immediately
+        if (response.status !== 500) {
+          return response;
+        }
+        
+        // If it's the last retry, throw the error
+        if (i === retries - 1) {
+          throw new Error(`Server error after ${retries} retries`);
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+      } catch (error) {
+        // If it's the last retry, throw the error
+        if (i === retries - 1) {
+          throw error;
+        }
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+      }
+    }
+    
+    // This should never be reached due to the throws above
+    throw new Error('Failed to fetch after all retries');
+  }
+
+  private async handleResponse(response: Response) {
+    if (response.status === 401) {
+      throw new Error('401: Unauthorized');
+    }
+    
+    if (response.status === 500) {
+      throw new Error('500: Server error - please try again');
+    }
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch: ${response.statusText}`);
+    }
+
+    return response.json();
   }
 
   async getAllPicks(category?: string, limit = 20, offset = 0): Promise<DebatePickResponse[]> {
@@ -56,11 +102,7 @@ class SelectionService {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch picks: ${response.statusText}`);
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async getPick(pickId: string): Promise<DebatePickResponse> {
@@ -68,11 +110,7 @@ class SelectionService {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch pick: ${response.statusText}`);
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async createPick(pickData: {
@@ -90,11 +128,7 @@ class SelectionService {
       body: JSON.stringify(pickData),
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to create pick: ${response.statusText}`);
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async voteOnPick(pickId: string, option: 'option1' | 'option2'): Promise<VoteResultResponse> {
@@ -104,50 +138,76 @@ class SelectionService {
       body: JSON.stringify({ pick_id: pickId, option }),
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to vote: ${response.statusText}`);
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   async getPickComments(pickId: string): Promise<DebateCommentResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/selection/picks/${pickId}/comments`, {
-      headers: this.getAuthHeaders(),
-    });
+    try {
+      const response = await this.fetchWithRetry(
+        `${API_BASE_URL}/selection/picks/${pickId}/comments`,
+        {
+          headers: this.getAuthHeaders(),
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        }
+      );
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch comments: ${response.statusText}`);
+      return this.handleResponse(response);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out while fetching comments');
+        }
+        throw error;
+      }
+      throw new Error('An unknown error occurred while fetching comments');
     }
-
-    return response.json();
   }
 
   async createComment(pickId: string, content: string, parentId?: string): Promise<DebateCommentResponse> {
-    const response = await fetch(`${API_BASE_URL}/selection/picks/${pickId}/comments`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ pick_id: pickId, content, parent_id: parentId }),
-    });
+    try {
+      const response = await this.fetchWithRetry(
+        `${API_BASE_URL}/selection/picks/${pickId}/comments`,
+        {
+          method: 'POST',
+          headers: this.getAuthHeaders(),
+          body: JSON.stringify({ pick_id: pickId, content, parent_id: parentId }),
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        }
+      );
 
-    if (!response.ok) {
-      throw new Error(`Failed to create comment: ${response.statusText}`);
+      return this.handleResponse(response);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out while creating comment');
+        }
+        throw error;
+      }
+      throw new Error('An unknown error occurred while creating comment');
     }
-
-    return response.json();
   }
 
   async toggleCommentLike(commentId: string): Promise<{ liked: boolean; likes_count: number }> {
-    const response = await fetch(`${API_BASE_URL}/selection/comments/${commentId}/like`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-    });
+    try {
+      const response = await this.fetchWithRetry(
+        `${API_BASE_URL}/selection/comments/${commentId}/like`,
+        {
+          method: 'POST',
+          headers: this.getAuthHeaders(),
+          signal: AbortSignal.timeout(10000), // 10 second timeout
+        }
+      );
 
-    if (!response.ok) {
-      throw new Error(`Failed to toggle like: ${response.statusText}`);
+      return this.handleResponse(response);
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out while toggling like');
+        }
+        throw error;
+      }
+      throw new Error('An unknown error occurred while toggling like');
     }
-
-    return response.json();
   }
 
   async getCategories(): Promise<{ categories: string[] }> {
@@ -155,11 +215,7 @@ class SelectionService {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch categories: ${response.statusText}`);
-    }
-
-    return response.json();
+    return this.handleResponse(response);
   }
 
   // Helper method to convert API response to frontend Pick format
@@ -190,8 +246,6 @@ class SelectionService {
       likes: Array(apiComment.likes_count).fill('').map((_, i) => `user${i}`), // Mock likes array
       timestamp: apiComment.created_at,
       createdAt: new Date(apiComment.created_at),
-      parentId: apiComment.parent_id || null,
-      replies: apiComment.replies.map(reply => this.convertToCommentFormat(reply)),
       likedBy: apiComment.user_liked ? ['current_user'] : [],
     };
   }

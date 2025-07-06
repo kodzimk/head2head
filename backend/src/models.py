@@ -127,13 +127,10 @@ class DebateComment(Base):
     author_id = Column(String, nullable=False)  # username
     author_name = Column(String, nullable=False)
     content = Column(Text, nullable=False)
-    parent_id = Column(String, ForeignKey("debate_comments.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
     pick = relationship("DebatePick", back_populates="comments")
-    parent = relationship("DebateComment", remote_side="DebateComment.id", back_populates="replies")
-    replies = relationship("DebateComment", back_populates="parent", cascade="all, delete-orphan")
     likes = relationship("CommentLike", back_populates="comment", cascade="all, delete-orphan")
 
 class DebateVote(Base):
@@ -187,7 +184,6 @@ class DebatePickResponse(BaseModel):
 class DebateCommentCreate(BaseModel):
     pick_id: str
     content: str
-    parent_id: Optional[str] = None
 
 class DebateCommentResponse(BaseModel):
     id: str
@@ -195,11 +191,9 @@ class DebateCommentResponse(BaseModel):
     author_id: str
     author_name: str
     content: str
-    parent_id: Optional[str]
     created_at: datetime
     likes_count: int
     user_liked: bool = False
-    replies: List['DebateCommentResponse'] = []
 
 class DebateVoteCreate(BaseModel):
     pick_id: str

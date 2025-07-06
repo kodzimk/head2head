@@ -16,9 +16,9 @@ export interface Comment {
   likes: string[];
   timestamp?: string;
   createdAt?: Date;
-  parentId: string | null; // null for top-level comments
-  replies: Comment[];
   likedBy?: string[];
+  liked?: boolean;
+  likes_count?: number;
 }
 
 export interface Selection {

@@ -47,13 +47,6 @@ export default function SelectionDetail({
               <div className="flex justify-between items-center gap-4">
                 {/* Team A */}
                 <div className="flex-1 text-center">
-                  <div className="relative w-32 h-32 mx-auto mb-2">
-                    <img
-                      src={selection.teamA.image}
-                      alt={selection.teamA.name}
-                      className="rounded-full object-cover"
-                    />
-                  </div>
                   <h3 className="font-semibold mb-2">{selection.teamA.name}</h3>
                   <Button
                     onClick={() => onVote('A')}
@@ -71,13 +64,7 @@ export default function SelectionDetail({
 
                 {/* Team B */}
                 <div className="flex-1 text-center">
-                  <div className="relative w-32 h-32 mx-auto mb-2">
-                    <img
-                      src={selection.teamB.image}
-                      alt={selection.teamB.name}
-                      className="rounded-full object-cover"
-                    />
-                  </div>
+                  
                   <h3 className="font-semibold mb-2">{selection.teamB.name}</h3>
                   <Button
                     onClick={() => onVote('B')}

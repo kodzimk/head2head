@@ -22,21 +22,8 @@ export const mockSelections: Selection[] = [
         content: 'Messi\'s dribbling skills are unmatched!',
         author: 'FootballFan',
         likes: [],
-        parentId: null,
+       
         timestamp: '2024-03-20T10:00:00Z',
-        replies: [
-          {
-            id: '2',
-            content: 'Agreed! His low center of gravity gives him incredible control.',
-            author: 'TacticsExpert',
-            likes: [],
-            parentId: '1',
-            timestamp: '2024-03-20T10:30:00Z',
-            replies: [],
-            likedBy: ['SportsAnalyst', 'FootballFan', 'You'],
-           
-          }
-        ],
         likedBy: ['TacticsExpert', 'SportsAnalyst', 'FootballFan', 'You', 'Coach']
       }
     ]
@@ -62,20 +49,9 @@ export const mockSelections: Selection[] = [
         content: 'Jordan\'s competitiveness was on another level!',
         author: 'BasketballLegend',
         likes: [],
-        parentId: null,
+       
         timestamp: '2024-03-19T15:00:00Z',
-        replies: [
-          {
-            id: '4',
-            content: 'The Last Dance documentary really showed his winning mentality.',
-            author: 'SportsHistorian',
-            likes: [],
-            parentId: '3',
-            timestamp: '2024-03-19T15:45:00Z',
-            replies: [],
-            likedBy: ['BasketballLegend', 'NBAFan', 'You', 'Coach'],
-          }
-        ],
+       
         likedBy: ['SportsHistorian', 'NBAFan', 'Coach', 'You', 'BasketballLegend', 'TacticsExpert', 'SportsAnalyst', 'FootballFan']
       }
     ]
@@ -102,19 +78,7 @@ export const mockSelections: Selection[] = [
         author: 'TennisExpert',
         likes: [],
         timestamp: '2024-03-18T09:00:00Z',
-        parentId: null,
-        replies: [
-          {
-            id: '6',
-            content: 'Almost 5 hours of incredible tennis. A true classic!',
-            author: 'GrandSlamFan',
-            likes: [],
-            timestamp: '2024-03-18T09:30:00Z',
-            replies: [],
-            likedBy: ['TennisExpert', 'You', 'SportsHistorian', 'Coach', 'SportsAnalyst', 'TacticsExpert'],
-            parentId: null,
-          }
-        ],
+       
         likedBy: ['GrandSlamFan', 'SportsHistorian', 'Coach', 'You', 'TennisExpert', 'TacticsExpert', 'SportsAnalyst', 'FootballFan', 'BasketballLegend', 'NBAFan', 'SportsAnalyst', 'FootballFan']
       }
     ]
@@ -202,22 +166,8 @@ export const mockComments: Comment[] = [
     text: 'Messi has more Ballon d\'Or awards, that settles it for me!',
     author: 'SoccerFan2024',
     likes: ['user2', 'user3', 'user4'],
-    parentId: null,
-    replies: [
-      {
-        id: 'c1-r1',
-        pickId: '1',
-        authorId: 'user2',
-        authorName: 'CR7Forever',
-        content: 'But Ronaldo has more Champions League titles!',
-        text: 'But Ronaldo has more Champions League titles!',
-        author: 'CR7Forever',
-        likes: ['user1', 'user5'],
-        parentId: 'c1',
-        replies: [],
-        createdAt: new Date('2024-01-15T10:30:00')
-      }
-    ],
+   
+
     createdAt: new Date('2024-01-15T10:00:00')
   },
   {
@@ -229,8 +179,8 @@ export const mockComments: Comment[] = [
     text: 'Both are legends, but Messi\'s dribbling is just otherworldly.',
     author: 'FootballAnalyst',
     likes: ['user1', 'user4', 'user6'],
-    parentId: null,
-    replies: [],
+   
+
     createdAt: new Date('2024-01-15T11:00:00')
   },
   {
@@ -242,8 +192,8 @@ export const mockComments: Comment[] = [
     text: 'Jordan never lost a Finals. 6-0 is unbeatable.',
     author: 'BasketballGOAT',
     likes: ['user2', 'user5'],
-    parentId: null,
-    replies: [],
+   
+  
     createdAt: new Date('2024-01-14T15:00:00')
   },
   {
@@ -255,8 +205,8 @@ export const mockComments: Comment[] = [
     text: 'LeBron has more longevity and played in a tougher era.',
     author: 'LBJFan',
     likes: ['user3', 'user6'],
-    parentId: null,
-    replies: [],
+  
+  
     createdAt: new Date('2024-01-14T16:00:00')
   }
 ];

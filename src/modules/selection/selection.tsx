@@ -1,17 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../../shared/ui/card';
 import { Button } from '../../shared/ui/button';
-import { Textarea } from '../../shared/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar';
 import { 
   ChevronLeft, 
   ChevronUp, 
-  MessageCircle, 
   Heart, 
-  Reply, 
-  X,  
   Users,
   RefreshCw,
   Database,
@@ -22,10 +18,12 @@ import type { Pick, Comment, VoteResult } from './types';
 import { getDailyPicks } from './daily-picks';
 import { selectionService } from '../../shared/services/selection-service';
 import { Badge } from '../../shared/ui/badge';
+import DebateComments from './debate-comments';
 
 export default function Selection() {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   
   const [picks, setPicks] = useState<Pick[]>([]);
   const [selectedPick, setSelectedPick] = useState<Pick | null>(null);
@@ -33,12 +31,9 @@ export default function Selection() {
   const [hasVoted, setHasVoted] = useState(false);
   const [userVote, setUserVote] = useState<'option1' | 'option2' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCommenting, setIsCommenting] = useState(false);
-  const [commentText, setCommentText] = useState('');
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState('');
-  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const [isSeeding, setIsSeeding] = useState(false);
+  const [commentsError, setCommentsError] = useState<string | undefined>();
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
   
   // Simulate current user
   const currentUser = {
@@ -125,17 +120,53 @@ export default function Selection() {
     };
   };
 
-  const handlePickSelect = async (pick: Pick) => {
-    setSelectedPick(pick);
+  // Handle unauthorized errors
+  const handleUnauthorized = useCallback(() => {
+    // Clear invalid token
+    localStorage.removeItem('access_token');
+    
+    // Save current location
+    localStorage.setItem('redirectAfterLogin', window.location.pathname);
+    
+    // Redirect to login
+    navigate('/signin');
+  }, [navigate]);
+
+  // Fetch comments for a pick
+  const fetchComments = useCallback(async (pickId: string) => {
+    setIsLoadingComments(true);
+    setCommentsError(undefined);
     
     try {
-      // Load comments for this pick from API
-      const apiComments = await selectionService.getPickComments(pick.id);
+      const apiComments = await selectionService.getPickComments(pickId);
       const convertedComments = apiComments.map(comment => selectionService.convertToCommentFormat(comment));
       setComments(convertedComments);
+    } catch (error) {
+      console.error('Failed to fetch comments:', error);
       
-      // Load pick details to check if user has voted
-      const apiPick = await selectionService.getPick(pick.id);
+      // Handle unauthorized error
+      if (error instanceof Error && error.message.includes('401')) {
+        handleUnauthorized();
+        return;
+      }
+      
+      setCommentsError(t('selection.errorLoadingComments'));
+      // Fallback to localStorage
+      const storedComments = localStorage.getItem(`comments_${pickId}`);
+      if (storedComments) {
+        setComments(JSON.parse(storedComments));
+      } else {
+        setComments([]);
+      }
+    } finally {
+      setIsLoadingComments(false);
+    }
+  }, [t, handleUnauthorized]);
+
+  // Fetch pick details
+  const fetchPickDetails = useCallback(async (pickId: string) => {
+    try {
+      const apiPick = await selectionService.getPick(pickId);
       if (apiPick.user_vote) {
         setHasVoted(true);
         setUserVote(apiPick.user_vote);
@@ -144,28 +175,58 @@ export default function Selection() {
         setUserVote(null);
       }
     } catch (error) {
-      console.error('Failed to load pick data:', error);
+      console.error('Failed to fetch pick details:', error);
+      
+      // Handle unauthorized error
+      if (error instanceof Error && error.message.includes('401')) {
+        handleUnauthorized();
+        return;
+      }
+      
       // Fallback to localStorage
-    const storedComments = localStorage.getItem(`comments_${pick.id}`);
-    if (storedComments) {
-      setComments(JSON.parse(storedComments));
-    } else {
-      setComments([]);
-    }
-    
-    const votedKey = `voted_${pick.id}`;
-    const existingVote = localStorage.getItem(votedKey);
-    if (existingVote) {
-      setHasVoted(true);
-      setUserVote(existingVote as 'option1' | 'option2');
-    } else {
-      setHasVoted(false);
-      setUserVote(null);
+      const votedKey = `voted_${pickId}`;
+      const existingVote = localStorage.getItem(votedKey);
+      if (existingVote) {
+        setHasVoted(true);
+        setUserVote(existingVote as 'option1' | 'option2');
+      } else {
+        setHasVoted(false);
+        setUserVote(null);
       }
     }
-    
-    // Update URL without page reload
-    window.history.pushState({}, '', `/selection/${pick.id}`);
+  }, [handleUnauthorized]);
+
+  // Effect to fetch comments when pick changes
+  useEffect(() => {
+    if (selectedPick?.id) {
+      const controller = new AbortController();
+      
+      const loadData = async () => {
+        try {
+          await Promise.all([
+            fetchComments(selectedPick.id),
+            fetchPickDetails(selectedPick.id)
+          ]);
+        } catch (error) {
+          if (!controller.signal.aborted) {
+            console.error('Failed to load data:', error);
+          }
+        }
+      };
+
+      loadData();
+
+      // Update URL without page reload
+      window.history.pushState({}, '', `/selection/${selectedPick.id}`);
+
+      return () => {
+        controller.abort();
+      };
+    }
+  }, [selectedPick?.id, fetchComments, fetchPickDetails]);
+
+  const handlePickSelect = async (pick: Pick) => {
+    setSelectedPick(pick);
   };
 
   const handleVote = async (option: 'option1' | 'option2') => {
@@ -209,194 +270,127 @@ export default function Selection() {
     }
   };
 
-  const handleAddComment = async () => {
-    if (!commentText.trim() || !selectedPick) return;
+  const handleAddComment = async (content: string, parentId?: string) => {
+    if (!content.trim() || !selectedPick) return;
 
     try {
       // Send comment to API
-      const apiComment = await selectionService.createComment(selectedPick.id, commentText);
-      const newComment = selectionService.convertToCommentFormat(apiComment);
+       await selectionService.createComment(selectedPick.id, content, parentId);
 
-      const updatedComments = [newComment, ...comments];
-      setComments(updatedComments);
-      setCommentText('');
-      setIsCommenting(false);
+      // Add small delay before refetching to allow server to process
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Also save to localStorage as fallback
-      localStorage.setItem(`comments_${selectedPick.id}`, JSON.stringify(updatedComments));
+      // Refetch all comments to ensure we have the latest state
+      await fetchComments(selectedPick.id);
     } catch (error) {
       console.error('Failed to add comment:', error);
-      // Fallback to local storage method
-    const newComment: Comment = {
-      id: Date.now().toString(),
-      pickId: selectedPick.id,
-      authorId: currentUser.id,
-      authorName: currentUser.name,
-      content: commentText,
-      text: commentText,
-      author: currentUser.name,
-      likes: [],
-      parentId: null,
-      replies: [],
-      createdAt: new Date()
-    };
-
-    const updatedComments = [newComment, ...comments];
-    setComments(updatedComments);
-    setCommentText('');
-    setIsCommenting(false);
-    localStorage.setItem(`comments_${selectedPick.id}`, JSON.stringify(updatedComments));
+      
+      // Handle unauthorized error
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
+          handleUnauthorized();
+          return;
+        }
+        
+        // Show specific error message
+        if (error.message.includes('500')) {
+          setCommentsError(t('selection.errorServerError'));
+        } else {
+          setCommentsError(t('selection.errorAddingComment'));
+        }
+      } else {
+        setCommentsError(t('selection.errorAddingComment'));
+      }
     }
   };
 
-  const handleAddReply = async (parentId: string) => {
-    if (!replyText.trim() || !selectedPick) return;
-
-    try {
-      // Send reply to API
-      const apiReply = await selectionService.createComment(selectedPick.id, replyText, parentId);
-      const newReply = selectionService.convertToCommentFormat(apiReply);
-
-      const updatedComments = comments.map(comment => {
-        if (comment.id === parentId) {
+  const handleLikeComment = async (commentId: string) => {
+    if (!selectedPick) return;
+    
+    // Optimistically update the UI
+    setComments(prevComments => {
+      return prevComments.map(comment => {
+        if (comment.id === commentId) {
+          // Toggle like status and update count
+          const wasLiked = comment.liked;
+          const currentLikes = comment.likes || [];
+          const newLikes = wasLiked 
+            ? currentLikes.filter(id => id !== currentUser.id)
+            : [...currentLikes, currentUser.id];
+          
           return {
             ...comment,
-            replies: [...comment.replies, newReply]
+            liked: !wasLiked,
+            likes: newLikes,
+            likes_count: newLikes.length
           };
         }
         return comment;
       });
-
-      setComments(updatedComments);
-      setReplyText('');
-      setReplyingTo(null);
-
-      // Save comments to localStorage
-      localStorage.setItem(`comments_${selectedPick.id}`, JSON.stringify(updatedComments));
-    } catch (error) {
-      console.error('Failed to add reply:', error);
-      // Fallback to local storage method
-    const newReply: Comment = {
-      id: Date.now().toString(),
-      pickId: selectedPick.id,
-      authorId: currentUser.id,
-      authorName: currentUser.name,
-      content: replyText,
-      text: replyText,
-      author: currentUser.name,
-      likes: [],
-      parentId,
-      replies: [],
-      createdAt: new Date()
-    };
-
-    const updatedComments = comments.map(comment => {
-      if (comment.id === parentId) {
-        return {
-          ...comment,
-          replies: [...comment.replies, newReply]
-        };
-      }
-      return comment;
     });
-
-    setComments(updatedComments);
-    setReplyText('');
-    setReplyingTo(null);
-    localStorage.setItem(`comments_${selectedPick.id}`, JSON.stringify(updatedComments));
-    }
-  };
-
-  const handleLikeComment = async (commentId: string, isReply = false, parentId?: string) => {
-    const userId = currentUser.id;
     
     try {
       // Send like toggle to API
       const result = await selectionService.toggleCommentLike(commentId);
       
-      const updatedComments = comments.map(comment => {
-        if (isReply && comment.id === parentId) {
-          return {
-            ...comment,
-            replies: comment.replies.map(reply => {
-              if (reply.id === commentId) {
-                return {
-                  ...reply,
-                  likes: result.liked 
-                    ? [...reply.likes, userId]
-                    : reply.likes.filter(id => id !== userId)
-                };
-              }
-              return reply;
-            })
-          };
-        } else if (!isReply && comment.id === commentId) {
-          return {
-            ...comment,
-            likes: result.liked 
-              ? [...comment.likes, userId]
-              : comment.likes.filter(id => id !== userId)
-          };
-        }
-        return comment;
+      // Update the UI with the actual server state
+      setComments(prevComments => {
+        return prevComments.map(comment => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              liked: result.liked,
+              likes: result.liked 
+                ? [...(comment.likes || []), currentUser.id]
+                : (comment.likes || []).filter(id => id !== currentUser.id),
+              likes_count: result.likes_count
+            };
+          }
+          return comment;
+        });
       });
-
-      setComments(updatedComments);
-
-      // Save comments to localStorage
-      if (selectedPick) {
-        localStorage.setItem(`comments_${selectedPick.id}`, JSON.stringify(updatedComments));
-      }
     } catch (error) {
       console.error('Failed to toggle like:', error);
-      // Fallback to local method
-    const updatedComments = comments.map(comment => {
-      if (isReply && comment.id === parentId) {
-        return {
-          ...comment,
-          replies: comment.replies.map(reply => {
-            if (reply.id === commentId) {
-              const hasLiked = reply.likes.includes(userId);
-              return {
-                ...reply,
-                likes: hasLiked 
-                  ? reply.likes.filter(id => id !== userId)
-                  : [...reply.likes, userId]
-              };
-            }
-            return reply;
-          })
-        };
-      } else if (!isReply && comment.id === commentId) {
-        const hasLiked = comment.likes.includes(userId);
-        return {
-          ...comment,
-          likes: hasLiked 
-            ? comment.likes.filter(id => id !== userId)
-            : [...comment.likes, userId]
-        };
-      }
-      return comment;
-    });
-
-    setComments(updatedComments);
-
-    if (selectedPick) {
-      localStorage.setItem(`comments_${selectedPick.id}`, JSON.stringify(updatedComments));
+      
+      // Revert the optimistic update on error
+      setComments(prevComments => {
+        return prevComments.map(comment => {
+          if (comment.id === commentId) {
+            // Toggle back to original state
+            const currentLiked = comment.liked;
+            const currentLikes = comment.likes || [];
+            const newLikes = currentLiked
+              ? currentLikes.filter(id => id !== currentUser.id)
+              : [...currentLikes, currentUser.id];
+              
+            return {
+              ...comment,
+              liked: !currentLiked,
+              likes: newLikes,
+              likes_count: newLikes.length
+            };
+          }
+          return comment;
+        });
+      });
+      
+      // Handle unauthorized error
+      if (error instanceof Error) {
+        if (error.message.includes('401')) {
+          handleUnauthorized();
+          return;
+        }
+        
+        // Show specific error message
+        if (error.message.includes('500')) {
+          setCommentsError(t('selection.errorServerError'));
+        } else {
+          setCommentsError(t('selection.errorLikingComment'));
+        }
+      } else {
+        setCommentsError(t('selection.errorLikingComment'));
       }
     }
-  };
-
-  const toggleReplies = (commentId: string) => {
-    setExpandedReplies(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(commentId)) {
-        newSet.delete(commentId);
-      } else {
-        newSet.add(commentId);
-      }
-      return newSet;
-    });
   };
 
   const handleSeedDebates = async () => {
@@ -423,117 +417,6 @@ export default function Selection() {
     }
   };
 
-  const renderComment = (comment: Comment, isReply = false) => (
-    <Card key={comment.id} className={`bg-muted/50 ${isReply ? 'ml-8' : ''} mb-4`}>
-      <div className="p-4">
-        <div className="flex items-start space-x-3">
-          <Avatar className="w-8 h-8">
-            <AvatarImage src={`https://placehold.co/32x32/6366f1/ffffff?text=${comment.author?.charAt(0) || 'U'}`} />
-            <AvatarFallback>{comment.author?.charAt(0) || 'U'}</AvatarFallback>
-          </Avatar>
-          <div className="flex-1">
-            <div className="flex items-center space-x-2 mb-2">
-              <span className="font-medium text-primary">{comment.author}</span>
-              {comment.author === currentUser.name && (
-                <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                  {t('selection.you')}
-                </span>
-              )}
-            </div>
-            <p className="text-foreground mb-3">{comment.content || comment.text}</p>
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`gap-2 ${
-                  comment.likes.includes(currentUser.id) ? 'text-red-500' : ''
-                }`}
-                onClick={() => handleLikeComment(comment.id, isReply, comment.parentId || undefined)}
-              >
-                <Heart className="w-4 h-4" />
-                {comment.likes.length}
-              </Button>
-              {!isReply && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                >
-                  <Reply className="w-4 h-4" />
-                  {t('selection.reply')}
-                </Button>
-              )}
-            </div>
-
-            {/* Reply Input */}
-            {replyingTo === comment.id && (
-              <div className="mt-4 space-y-2">
-                <Textarea
-                  placeholder={t('selection.writeReply')}
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  className="min-h-[80px] bg-background/50"
-                  autoFocus
-                />
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setReplyingTo(null);
-                      setReplyText('');
-                    }}
-                  >
-                    {t('selection.cancel')}
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    onClick={() => handleAddReply(comment.id)}
-                    disabled={!replyText.trim()}
-                  >
-                    {t('selection.reply')}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Replies */}
-            {comment.replies.length > 0 && (
-              <div className="mt-4">
-                {comment.replies.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleReplies(comment.id)}
-                    className="mb-3 text-muted-foreground hover:text-foreground"
-                  >
-                    {expandedReplies.has(comment.id) ? (
-                      <>
-                        <ChevronUp className="w-4 h-4 mr-1" />
-                        {t('selection.hideReplies')} {comment.replies.length} {t('selection.replies')}
-                      </>
-                    ) : (
-                      <>
-                        <ChevronUp className="w-4 h-4 mr-1 rotate-180" />
-                        {t('selection.showReplies')} {comment.replies.length} {t('selection.replies')}
-                      </>
-                    )}
-                  </Button>
-                )}
-                {(comment.replies.length === 1 || expandedReplies.has(comment.id)) && (
-                  <div className="space-y-4 border-l-2 border-border pl-4">
-                    {comment.replies.map(reply => renderComment(reply, true))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
 
   if (isLoading) {
     return (
@@ -643,10 +526,7 @@ export default function Selection() {
                       {/* Options */}
                       <div className="space-y-4">
                         <div className="flex items-center gap-3">
-                          <Avatar className="w-12 h-12 border-2 border-primary/20">
-                            <AvatarImage src={pick.option1_image} alt={pick.option1_name} />
-                            <AvatarFallback>{pick.option1_name.charAt(0)}</AvatarFallback>
-                          </Avatar>
+
                           <div className="flex-1">
                             <div className="font-semibold text-white">{pick.option1_name}</div>
                             <div className="text-sm text-muted-foreground">
@@ -658,10 +538,6 @@ export default function Selection() {
                         <div className="text-center text-muted-foreground font-medium">VS</div>
                         
                         <div className="flex items-center gap-3">
-                          <Avatar className="w-12 h-12 border-2 border-primary/20">
-                            <AvatarImage src={pick.option2_image} alt={pick.option2_name} />
-                            <AvatarFallback>{pick.option2_name.charAt(0)}</AvatarFallback>
-                          </Avatar>
                           <div className="flex-1">
                             <div className="font-semibold text-white">{pick.option2_name}</div>
                             <div className="text-sm text-muted-foreground">
@@ -708,11 +584,6 @@ export default function Selection() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Option 1 */}
                   <div className="text-center space-y-4">
-                    <img
-                      src={selectedPick.option1_image}
-                      alt={selectedPick.option1_name}
-                      className="w-32 h-32 rounded-full mx-auto object-cover border-4 border-border"
-                    />
                     <h3 className="text-xl font-bold">{selectedPick.option1_name}</h3>
                     <Button
                       size="lg"
@@ -732,11 +603,6 @@ export default function Selection() {
 
                   {/* Option 2 */}
                   <div className="text-center space-y-4">
-                    <img
-                      src={selectedPick.option2_image}
-                      alt={selectedPick.option2_name}
-                      className="w-32 h-32 rounded-full mx-auto object-cover border-4 border-border"
-                    />
                     <h3 className="text-xl font-bold">{selectedPick.option2_name}</h3>
                     <Button
                       size="lg"
@@ -795,73 +661,16 @@ export default function Selection() {
             </Card>
 
             {/* Comments Section */}
-            <Card className="overflow-hidden bg-card/50 backdrop-blur-sm">
-              <div className="p-6 space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5" />
-                    <h3 className="text-lg font-semibold">{t('selection.comments')}</h3>
-                    <span className="text-sm text-muted-foreground">
-                      ({comments.reduce((total, comment) => total + 1 + comment.replies.length, 0)})
-                    </span>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsCommenting(!isCommenting)}
-                    className="gap-2"
-                  >
-                    {isCommenting ? (
-                      <>
-                        <X className="w-4 h-4" />
-                        {t('selection.cancel')}
-                      </>
-                    ) : (
-                      <>
-                        <MessageCircle className="w-4 h-4" />
-                        {t('selection.addComment')}
-                      </>
-                    )}
-                  </Button>
-                </div>
-
-                {/* Add Comment */}
-                {isCommenting && (
-                  <Card className="bg-muted/30">
-                    <div className="p-4 space-y-2">
-                      <Textarea
-                        placeholder={t('selection.writeComment')}
-                        value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        className="min-h-[100px] bg-background/50"
-                        autoFocus
-                      />
-                      <div className="flex justify-end">
-                        <Button
-                          onClick={handleAddComment}
-                          variant="default"
-                          disabled={!commentText.trim()}
-                        >
-                          {t('selection.submit')}
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                )}
-
-                {/* Comments List */}
-                <div className="space-y-4 mt-6">
-                  {comments.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <MessageCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>{t('selection.noCommentsYet')}</p>
-                    </div>
-                  ) : (
-                    comments.map(comment => renderComment(comment))
-                  )}
-                </div>
-              </div>
-            </Card>
+            <div className="mt-6 pt-6 border-t border-border">
+              <DebateComments
+                comments={comments}
+                onAddComment={handleAddComment}
+                onLikeComment={handleLikeComment}
+                isLoading={isLoadingComments}
+                error={commentsError}
+                currentUser={currentUser}
+              />
+            </div>
           </div>
         )}
       </main>
