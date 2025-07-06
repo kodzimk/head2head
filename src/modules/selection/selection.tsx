@@ -3,11 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../../shared/ui/card';
 import { Button } from '../../shared/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '../../shared/ui/avatar';
 import { 
   ChevronLeft, 
   ChevronUp, 
-  Heart, 
   Users,
   RefreshCw,
   Database,
