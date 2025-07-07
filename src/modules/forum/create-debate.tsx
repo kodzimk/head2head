@@ -11,7 +11,6 @@ interface CreateDebateForm {
   title: string;
   description: string;
   sport: string;
-  category: string;
 }
 
 export default function CreateDebate() {
@@ -20,8 +19,7 @@ export default function CreateDebate() {
   const [form, setForm] = useState<CreateDebateForm>({
     title: '',
     description: '',
-    sport: '',
-    category: ''
+    sport: ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,13 +33,6 @@ export default function CreateDebate() {
     'Soccer',
     'Hockey',
     'Volleyball'
-  ];
-
-  const categories = [
-    'Player Performance',
-    'Team Strategy',
-    'Transfers & Trades',
-    'League Management'
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,14 +65,6 @@ export default function CreateDebate() {
         setValidationErrors(prev => ({
           ...prev,
           sport: 'Please select a sport'
-        }));
-        return;
-      }
-
-      if (!form.category) {
-        setValidationErrors(prev => ({
-          ...prev,
-          category: 'Please select a category'
         }));
         return;
       }
@@ -207,29 +190,6 @@ export default function CreateDebate() {
                   </select>
                   {validationErrors.sport && (
                     <p className="text-sm text-destructive">{validationErrors.sport}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
-                  <select
-                    id="category"
-                    name="category"
-                    value={form.category}
-                    onChange={handleChange}
-                    className={`flex h-11 w-full rounded-md border ${
-                      validationErrors.category ? 'border-destructive' : 'border-input'
-                    } bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                  >
-                    <option value="">Select a category</option>
-                    {categories.map(category => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                  {validationErrors.category && (
-                    <p className="text-sm text-destructive">{validationErrors.category}</p>
                   )}
                 </div>
               </div>

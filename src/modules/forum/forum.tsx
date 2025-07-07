@@ -32,7 +32,6 @@ interface ForumPost {
   author: string;
   authorAvatar: string;
   timestamp: Date;
-  category: string;
   sport: string;
   likes: number;
   comments: number;
@@ -168,9 +167,6 @@ export default function Forum() {
         console.error('Error fetching transfer news:', error);
       }
 
-      // Add posts to allPosts array
-      allPosts.push(...newsPosts, ...transferPosts);
-
       // Add some mock debate posts since NewsAPI doesn't have debate content
       const mockDebates: ForumPost[] = [
         {
@@ -180,11 +176,10 @@ export default function Forum() {
           author: 'SportsDebater',
           authorAvatar: '/images/placeholder-user.jpg',
           timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          category: 'GOAT Debate',
           sport: 'Basketball',
           likes: 234,
           comments: 89,
-          isLiked: false,
+          isLiked: latestLikedArticles.has('debate-1'),
           tags: ['GOAT', 'Jordan', 'LeBron'],
           type: 'debate',
           debateDetails: {
@@ -201,11 +196,10 @@ export default function Forum() {
           author: 'NFLFanatic',
           authorAvatar: '/images/placeholder-user.jpg',
           timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-          category: 'NFL Rules',
           sport: 'Football',
           likes: 156,
           comments: 43,
-          isLiked: true,
+          isLiked: latestLikedArticles.has('debate-2'),
           tags: ['NFL', 'Playoffs', 'Format'],
           type: 'debate',
           debateDetails: {
@@ -222,11 +216,10 @@ export default function Forum() {
           author: 'CollegeFan',
           authorAvatar: '/images/placeholder-user.jpg',
           timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
-          category: 'College Sports',
           sport: 'Football',
           likes: 98,
           comments: 67,
-          isLiked: false,
+          isLiked: latestLikedArticles.has('debate-3'),
           tags: ['College', 'Transfer', 'Portal'],
           type: 'debate',
           debateDetails: {
@@ -237,8 +230,8 @@ export default function Forum() {
           }
         } as DebatePost
       ];
-
       allPosts.push(...mockDebates);
+      allPosts.push(...newsPosts, ...transferPosts);
       setPosts(allPosts);
       
     } catch (error) {
@@ -254,7 +247,6 @@ export default function Forum() {
           author: 'System',
           authorAvatar: '/images/placeholder-user.jpg',
           timestamp: new Date(),
-          category: 'System Message',
           sport: 'General Sports',
           likes: 0,
           comments: 0,
@@ -289,9 +281,75 @@ export default function Forum() {
       return matchesTab && matchesSport;
     });
 
+    // If debates tab is active and no debates, show mockDebates
+    if (activeTab === 'debates' && filtered.length === 0) {
+      const mockDebates: ForumPost[] = [
+        {
+          id: 'debate-1',
+          title: 'Who is the Greatest Basketball Player of All Time?',
+          content: 'The eternal debate continues! Is it Michael Jordan with his 6 championships, or LeBron James with his longevity and all-around dominance?',
+          author: 'SportsDebater',
+          authorAvatar: '/images/placeholder-user.jpg',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          sport: 'Basketball',
+          likes: 234,
+          comments: 89,
+          isLiked: likedArticles.has('debate-1'),
+          tags: ['GOAT', 'Jordan', 'LeBron'],
+          type: 'debate',
+          debateDetails: {
+            option1: 'Michael Jordan',
+            option2: 'LeBron James',
+            votes: 1567,
+            trending: true
+          }
+        } as DebatePost,
+        {
+          id: 'debate-2',
+          title: 'Should the NFL Expand the Playoff Format?',
+          content: 'With the current 14-team playoff format, is it time to expand further or keep it as is?',
+          author: 'NFLFanatic',
+          authorAvatar: '/images/placeholder-user.jpg',
+          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
+          sport: 'Football',
+          likes: 156,
+          comments: 43,
+          isLiked: likedArticles.has('debate-2'),
+          tags: ['NFL', 'Playoffs', 'Format'],
+          type: 'debate',
+          debateDetails: {
+            option1: 'Expand Playoffs',
+            option2: 'Keep Current Format',
+            votes: 743,
+            trending: false
+          }
+        } as DebatePost,
+        {
+          id: 'debate-3',
+          title: 'Is the Transfer Portal Ruining College Sports?',
+          content: 'With players constantly switching teams, are we losing the traditional college sports experience?',
+          author: 'CollegeFan',
+          authorAvatar: '/images/placeholder-user.jpg',
+          timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
+          sport: 'Football',
+          likes: 98,
+          comments: 67,
+          isLiked: likedArticles.has('debate-3'),
+          tags: ['College', 'Transfer', 'Portal'],
+          type: 'debate',
+          debateDetails: {
+            option1: 'Yes, it\'s ruining tradition',
+            option2: 'No, it gives players freedom',
+            votes: 432,
+            trending: true
+          }
+        } as DebatePost
+      ];
+      filtered = mockDebates;
+    }
 
     setFilteredPosts(filtered);
-  }, [posts, activeTab, selectedSport]);
+  }, [posts, activeTab, selectedSport, likedArticles]);
 
   const formatTimeAgo = (timestamp: Date) => {
     const now = new Date();
@@ -412,18 +470,7 @@ export default function Forum() {
               <span className="hidden sm:inline">{post.sport}</span>
               <span className="sm:hidden">{post.sport.length > 8 ? post.sport.substring(0, 8) + '...' : post.sport}</span>
             </Badge>
-            {post.type === 'news' && (post as NewsPost).newsDetails.breaking && (
-              <Badge variant="destructive" className="text-xs animate-pulse">
-                <span className="hidden sm:inline">BREAKING</span>
-                <span className="sm:hidden">BREAK</span>
-              </Badge>
-            )}
-            {post.type === 'debate' && (post as DebatePost).debateDetails.trending && (
-              <Badge variant="default" className="text-xs bg-orange-500">
-                <span className="hidden sm:inline">TRENDING</span>
-                <span className="sm:hidden">TREND</span>
-              </Badge>
-            )}
+
             {post.type === 'transfer' && (
               <Badge 
                 variant={
@@ -468,10 +515,38 @@ export default function Forum() {
 
         {post.type === 'debate' && (
           <div className="bg-muted/50 rounded-lg p-2 sm:p-3 text-xs sm:text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Vote count:</span>
-              <span className="font-semibold">{(post as DebatePost).debateDetails.votes} votes</span>
-            </div>
+            {/* Vote bar visualization */}
+            {(() => {
+              const details = (post as DebatePost).debateDetails;
+              const totalVotes = details.votes || 0;
+              // For mock debates, split votes 60/40 or 50/50 for demo
+              const votes1 = totalVotes ? Math.round(totalVotes * 0.6) : 0;
+              const votes2 = totalVotes - votes1;
+              const percent1 = totalVotes ? Math.round((votes1 / totalVotes) * 100) : 0;
+              const percent2 = totalVotes ? 100 - percent1 : 0;
+              return (
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="font-medium">{details.option1} ({percent1}%)</span>
+                    <span className="font-medium">{details.option2} ({percent2}%)</span>
+                  </div>
+                  <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden flex">
+                    <div
+                      className="bg-primary h-full"
+                      style={{ width: `${percent1}%`, transition: 'width 0.3s' }}
+                    />
+                    <div
+                      className="bg-secondary h-full"
+                      style={{ width: `${percent2}%`, transition: 'width 0.3s' }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>{votes1} votes</span>
+                    <span>{votes2} votes</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -517,6 +592,16 @@ export default function Forum() {
             <span className="text-sm">{post.likes}</span>
           </Button>
         </div>
+
+        {post.type === 'news' && (post as NewsPost).newsDetails && (post as NewsPost).newsDetails.url && (
+          <Button variant="outline" size="sm" asChild>
+            <a href={(post as NewsPost).newsDetails.url} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Read Original</span>
+              <span className="sm:hidden">Original</span>
+            </a>
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -553,6 +638,15 @@ export default function Forum() {
               </div>
             )}
           </div>
+          {/* Add Create Debate button only for Debates tab */}
+          {activeTab === 'debates' && (
+            <Button
+              className="self-end w-full sm:w-auto"
+              onClick={handleCreateDebate}
+            >
+              + Create Debate
+            </Button>
+          )}
         </div>
 
         {/* Tabs Navigation */}
@@ -631,7 +725,7 @@ export default function Forum() {
                       <h2 className="text-lg font-bold">{post.title}</h2>
                     </div>
                     <div className="p-4 space-y-4">
-                      {(post as NewsPost).newsDetails.imageUrl && (
+                      {post.type === 'news' && (post as NewsPost).newsDetails && (post as NewsPost).newsDetails.imageUrl && (
                         <img
                           src={(post as NewsPost).newsDetails.imageUrl}
                           alt={post.title}
@@ -641,7 +735,6 @@ export default function Forum() {
                       )}
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <Badge variant="secondary" className="text-xs sm:text-sm">{post.sport}</Badge>
-                        <Badge variant="outline" className="text-xs sm:text-sm">{post.category}</Badge>
                       </div>
                       <div className="text-muted-foreground text-xs mb-2">
                         <span>By {post.author}</span>
@@ -669,7 +762,7 @@ export default function Forum() {
                           <Heart className={`w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 ${post.isLiked ? 'fill-current' : ''}`} />
                           <span className="text-sm">{post.likes}</span>
                         </Button>
-                        {(post as NewsPost).newsDetails.url && (
+                        {post.type === 'news' && (post as NewsPost).newsDetails && (post as NewsPost).newsDetails.url && (
                           <Button variant="outline" size="sm" asChild>
                             <a href={(post as NewsPost).newsDetails.url} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />

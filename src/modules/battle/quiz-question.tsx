@@ -41,6 +41,10 @@ export default function QuizQuestionPage() {
   const questionsRef = useRef<any[]>([]); // Use ref to avoid stale closure
   const currentIndexRef = useRef<number>(0); // Track current index in ref
 
+  // Audio refs for countdown sounds
+  const tickAudioRef = useRef<HTMLAudioElement | null>(null);
+  const goAudioRef = useRef<HTMLAudioElement | null>(null);
+
   // Motivational messages array
   const motivationalMessages = {
     winning: [
@@ -268,12 +272,20 @@ export default function QuizQuestionPage() {
     const countdownTimer = setInterval(() => {
       setNextQuestionCountdown((prev) => {
         if (prev <= 1) {
+          // Play "go" sound when countdown reaches 0
+          if (goAudioRef.current) {
+            goAudioRef.current.play().catch(console.error);
+          }
           setShowNextQuestion(false);
           setMotivationalMessage('');
           setAnswerSubmitted(false);
           // Automatically advance to next question
           advanceToNextQuestion();
           return 0;
+        }
+        // Play tick sound for each countdown number (except 0)
+        if (tickAudioRef.current) {
+          tickAudioRef.current.play().catch(console.error);
         }
         // Change motivational message every second
         setMotivationalMessage(getRandomMotivationalMessage());
@@ -639,6 +651,18 @@ export default function QuizQuestionPage() {
       {/* Enhanced background pattern */}
       <div className="absolute inset-0 bg-gaming-pattern opacity-20"></div>
       <div className="absolute inset-0 bg-gradient-to-br from-background/80 via-transparent to-surface-2/60"></div>
+      
+      {/* Audio elements for countdown sounds */}
+      <audio 
+        ref={tickAudioRef}
+        preload="auto"
+        src="/sounds/countdown-tick.mp3"
+      />
+      <audio 
+        ref={goAudioRef}
+        preload="auto"
+        src="/sounds/countdown-go.mp3"
+      />
       
       <div className="relative z-10 w-full max-w-lg px-4">
         

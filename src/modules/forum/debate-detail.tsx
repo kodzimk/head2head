@@ -595,7 +595,6 @@ What's your stance on this debate?`,
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-3">
                   <Badge variant="secondary">{debateDetail.sport}</Badge>
-                  <Badge variant="outline">{debateDetail.category}</Badge>
                 </div>
                 
                 <h1 className="text-3xl font-bold mb-4 leading-tight">

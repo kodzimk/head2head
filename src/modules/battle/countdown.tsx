@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startBattle } from '../../shared/websockets/websocket';
 import { useCurrentQuestionStore } from '../../shared/interface/gloabL_var';
@@ -13,6 +13,10 @@ export default function BattleCountdown() {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
   const { currentQuestion } = useCurrentQuestionStore();
   const [countdownFinished, setCountdownFinished] = useState(false);
+  
+  // Audio refs for countdown sounds
+  const tickAudioRef = useRef<HTMLAudioElement | null>(null);
+  const goAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const checkConnection = () => {
@@ -31,11 +35,21 @@ export default function BattleCountdown() {
   useEffect(() => {
     if (count === 0) {
       setCountdownFinished(true);
+      // Play "go" sound when countdown reaches 0
+      if (goAudioRef.current) {
+        goAudioRef.current.play().catch(console.error);
+      }
       if (newSocket && newSocket.readyState === WebSocket.OPEN) {
         startBattle(id);
       }
       return;
     }
+    
+    // Play tick sound for each countdown number (except 0)
+    if (count < 10 && tickAudioRef.current) {
+      tickAudioRef.current.play().catch(console.error);
+    }
+    
     const timer = setTimeout(() => setCount(count - 1), 1000);
     return () => clearTimeout(timer);
   }, [count, id]);
@@ -58,6 +72,18 @@ export default function BattleCountdown() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-background via-surface-1 to-surface-2">
+      {/* Audio elements for countdown sounds */}
+      <audio 
+        ref={tickAudioRef}
+        preload="auto"
+        src="/sounds/countdown-tick.mp3"
+      />
+      <audio 
+        ref={goAudioRef}
+        preload="auto"
+        src="/sounds/countdown-go.mp3"
+      />
+      
       <div className="text-6xl font-bold text-primary mb-4 animate-pulse">
         {count === 0 ? t('battles.countdown.go') : count}
       </div>

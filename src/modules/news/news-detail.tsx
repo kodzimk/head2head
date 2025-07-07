@@ -431,7 +431,6 @@ export default function NewsDetail() {
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                   <Badge variant="secondary" className="text-xs sm:text-sm">{newsDetail.sport}</Badge>
-                  <Badge variant="outline" className="text-xs sm:text-sm">{newsDetail.category}</Badge>
                   {newsDetail.breaking && (
                     <Badge variant="destructive" className="animate-pulse text-xs sm:text-sm">
                       BREAKING
