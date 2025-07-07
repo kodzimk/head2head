@@ -16,7 +16,11 @@ import { useTranslation } from 'react-i18next'
 import { BattleStore, CurrentQuestionStore, GlobalStore, LoserStore, ResultStore, ScoreStore, TextStore, ThemeStore, WinnerStore, useRefreshViewStore, OpponentStore } from '../shared/interface/gloabL_var'
 import { ViewProfile } from '../modules/profile/view-profile'
 import LeaderboardPage from '../modules/leaderboard/leaderboard'
-import SelectionPage from '../modules/selection/selection'
+
+import ForumPage from '../modules/forum/forum'
+import NewsDetailPage from '../modules/news/news-detail'
+import DebateDetailPage from '../modules/forum/debate-detail'
+import CreateDebatePage from '../modules/forum/create-debate'
 import TrainingsPage from '../modules/trainings/trainings'
 import NotificationsPage from '../modules/notifications/notifications'
 import AllBattlesPage from '../modules/dashboard/all-battles-page'
@@ -80,9 +84,7 @@ export const reconnectWebSocket = () => {
       newSocket.onerror = (error) => {
         console.error("WebSocket reconnection error:", error);
       };
-      newSocket.onclose = (event) => {
-        console.log("WebSocket closed:", event.code, event.reason);
-      };
+
     }
   }
   return newSocket;
@@ -90,16 +92,13 @@ export const reconnectWebSocket = () => {
 
 // Function to initialize websocket for new user (sign up/sign in)
 export const initializeWebSocketForNewUser = (username: string) => {
-  console.log("Initializing WebSocket for new user:", username);
   if (newSocket) {
-    console.log("Closing existing WebSocket connection");
     newSocket.close();
   }
   newSocket = createWebSocket(username);
   
   // Don't send get_email immediately - the user data is already updated
   // The WebSocket will connect and be ready for other messages
-  console.log("WebSocket initialized for username:", username);
   return newSocket;
 };
 
@@ -157,7 +156,6 @@ export default function App() {
       if (isManualReload) {
         const username = localStorage.getItem('username')?.replace(/"/g, '');
         if (username && !newSocket) {
-          console.log("Manual page reload detected, creating new websocket connection");
           isInitialConnection = true; // Reset flag for manual reload
           newSocket = createWebSocket(username);
         }
@@ -178,7 +176,6 @@ export default function App() {
   useEffect(() => {
     const username = localStorage.getItem('username')?.replace(/"/g, '');
     if (username && !newSocket) {
-      console.log("Initial websocket connection for existing user");
       isInitialConnection = true; // Set flag for initial connection
       newSocket = createWebSocket(username);
     }
@@ -188,18 +185,14 @@ export default function App() {
     if (!newSocket) return;
 
     newSocket.onopen = () => {  
-      console.log("WebSocket connected successfully");
       // Only send get_email on initial connection, not on reconnections
       if (isInitialConnection) {
-        console.log("Sending initial get_email message");
         sendMessage(user, "get_email");
         isInitialConnection = false;
       }
     };
 
     newSocket.onclose = (event) => {
-      console.log("WebSocket disconnected:", event.code, event.reason);
-      
       // Handle invalid username error
       if (event.code === 4000 && event.reason === "Invalid username") {
         console.error("WebSocket connection failed due to invalid username");
@@ -471,8 +464,10 @@ export default function App() {
                               <Route path="/waiting-room/:id" element={<WaitingPage />} />
                               <Route path="/view-profile/:username" element={<ViewProfile user={user} />} />
                               <Route path="/leaderboard" element={<LeaderboardPage />} />
-                              <Route path="/selection" element={<SelectionPage />} />
-                              <Route path="/selection/:id" element={<SelectionPage />} />
+                              <Route path="/forum" element={<ForumPage />} />
+                              <Route path="/forum/debates/create" element={<CreateDebatePage />} />
+                              <Route path="/forum/debates/:id" element={<DebateDetailPage />} />
+                              <Route path="/news/:id" element={<NewsDetailPage />} />                              
                               <Route path="/:username/trainings" element={<TrainingsPage />} />
                               <Route path="/:username/notifications" element={<NotificationsPage />} />
                               <Route path="/:username/all-battles" element={<AllBattlesPage />} />
