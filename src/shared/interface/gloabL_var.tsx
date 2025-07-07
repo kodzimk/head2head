@@ -173,8 +173,8 @@ export const useBattleStore = () => {
 }
 
 // API Configuration
-export const API_BASE_URL = "https://api.head2head.dev";
-export const WS_BASE_URL = "wss://api.head2head.dev";
+export const API_BASE_URL = 'https://api.head2head.dev';
+export const WS_BASE_URL = 'wss://api.head2head.dev';
 
 // API Key Management
 let currentKeyIndex = 0;

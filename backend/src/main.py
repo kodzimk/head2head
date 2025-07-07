@@ -5,6 +5,7 @@ from battle.router import battle_router
 from battle_ws import router as battle_ws_router
 from training.router import training_router
 from selection.router import router as selection_router
+from news_router import router as news_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from websocket import app
@@ -16,6 +17,7 @@ from sqlalchemy import text
 from datetime import datetime
 import redis
 from fastapi import FastAPI
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +66,7 @@ app.include_router(battle_router, prefix="/battle")
 app.include_router(battle_ws_router)
 app.include_router(training_router, prefix="/training", tags=["training"])
 app.include_router(selection_router)
+app.include_router(news_router)
 
 # Comprehensive CORS configuration for production and development
 origins = [
@@ -113,13 +116,21 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize rankings on server startup"""
+    """Initialize rankings and news service on server startup"""
     try:
         from battle.router import initialize_rankings
         await initialize_rankings()
         logger.info("User rankings initialized on startup")
     except Exception as e:
         logger.error(f"Error initializing rankings on startup: {e}")
+    
+    try:
+        from news_service import news_service
+        # Start background news refresh task
+        asyncio.create_task(news_service.start_background_refresh())
+        logger.info("News service background refresh started")
+    except Exception as e:
+        logger.error(f"Error starting news service: {e}")
 
 @app.on_event("startup")
 async def create_tables():

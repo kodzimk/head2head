@@ -1,42 +1,45 @@
-// News Service for NewsAPI.org integration
-// API Documentation: https://newsapi.org
+// News Service for MediaStack API integration
+// API Documentation: http://api.mediastack.com/
 
-const NEWS_API_BASE_URL = 'https://newsapi.org/v2';
-const NEWS_API_KEY = import.meta.env.REACT_APP_NEWS_API_KEY || 'd3b4e2f589a64f398becf1e1d7a775f2';
+const MEDIASTACK_API_KEY = 'a47eccf6946b22529c1df36e45fb984b';
 
-export interface NewsApiArticle {
-  source: {
-    id: string | null;
-    name: string;
-  };
+export interface MediaStackArticle {
   author: string | null;
   title: string;
   description: string;
   url: string;
-  urlToImage: string | null;
-  publishedAt: string;
-  content: string;
+  image: string | null;
+  published_at: string;
+  source: string;
+  category: string;
+  language: string;
+  country: string;
 }
 
-export interface NewsApiResponse {
-  status: string;
-  totalResults: number;
-  articles: NewsApiArticle[];
+export interface MediaStackResponse {
+  data: MediaStackArticle[];
+  pagination: {
+    limit: number;
+    offset: number;
+    count: number;
+    total: number;
+  };
 }
 
-export interface NewsApiError {
-  status: string;
-  code: string;
-  message: string;
+export interface MediaStackError {
+  error: {
+    code: string;
+    message: string;
+  };
 }
 
 export class NewsService {
   private apiKey: string;
-  private baseUrl: string;
+  private backendUrl: string;
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || NEWS_API_KEY;
-    this.baseUrl = NEWS_API_BASE_URL;
+    this.apiKey = apiKey || MEDIASTACK_API_KEY;
+    this.backendUrl = 'https://api.head2head.dev';
   }
 
   /**
@@ -54,7 +57,7 @@ export class NewsService {
       return {
         isValid: false,
         key: 'undefined',
-        message: 'API key is not set. Please add VITE_NEWS_API_KEY to your .env file.'
+        message: 'API key is not set. Please configure MediaStack API key.'
       };
     }
     
@@ -62,198 +65,161 @@ export class NewsService {
       return {
         isValid: false,
         key: 'placeholder',
-        message: 'Using placeholder API key. Please get your real API key from https://newsapi.org'
+        message: 'Using placeholder API key. Please get your real API key from http://api.mediastack.com/'
       };
     }
 
     return {
       isValid: true,
       key: this.apiKey.substring(0, 8) + '...',
-      message: 'API key appears to be configured correctly.'
+      message: 'MediaStack API key appears to be configured correctly.'
     };
   }
 
   /**
-   * Fetch top sports headlines
+   * Fetch top sports headlines from backend only
    * @param options - Configuration options for the request
    */
-  async getTopSportsHeadlines(options: {
-    country?: string;
-    category?: string;
-    sources?: string;
-    q?: string;
-    pageSize?: number;
-    page?: number;
-  } = {}): Promise<NewsApiResponse> {
-    const {
-      country = 'us',
-      category = 'sports',
-      sources,
-      q,
-      pageSize = 20,
-      page = 1
-    } = options;
-
-    const params = new URLSearchParams({
-      apiKey: this.apiKey,
-      pageSize: pageSize.toString(),
-      page: page.toString()
-    });
-
-    if (country && !sources) params.append('country', country);
-    if (category && !sources) params.append('category', category);
-    if (sources) params.append('sources', sources);
-    if (q) params.append('q', q);
-
-    const url = `${this.baseUrl}/top-headlines?${params.toString()}`;
-
+  async getTopSportsHeadlines() {
     try {
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch news');
+      const response = await fetch(`${this.backendUrl}/news/sports`);
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      } else {
+        throw new Error(`Backend responded with status: ${response.status}`);
       }
-
-      return data;
     } catch (error) {
-      console.error('Error fetching sports headlines:', error);
-      throw error;
+      console.error('Failed to fetch news from backend:', error);
+      throw new Error('News service unavailable. Please try again later.');
     }
   }
 
   /**
-   * Search for everything related to sports
-   * @param query - Search query
-   * @param options - Additional search options
+   * Like an article via backend
    */
-  async searchSportsNews(query: string, options: {
-    domains?: string;
-    excludeDomains?: string;
-    from?: string;
-    to?: string;
-    language?: string;
-    sortBy?: 'relevancy' | 'popularity' | 'publishedAt';
-    pageSize?: number;
-    page?: number;
-  } = {}): Promise<NewsApiResponse> {
-    const {
-      domains,
-      excludeDomains,
-      from,
-      to,
-      language = 'en',
-      sortBy = 'publishedAt',
-      pageSize = 20,
-      page = 1
-    } = options;
-
-    const params = new URLSearchParams({
-      q: query,
-      apiKey: this.apiKey,
-      language,
-      sortBy,
-      pageSize: pageSize.toString(),
-      page: page.toString()
-    });
-
-    if (domains) params.append('domains', domains);
-    if (excludeDomains) params.append('excludeDomains', excludeDomains);
-    if (from) params.append('from', from);
-    if (to) params.append('to', to);
-
-    const url = `${this.baseUrl}/everything?${params.toString()}`;
-
+  async likeArticle(articleId: string): Promise<{ success: boolean; likes: number }> {
     try {
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to search news');
+      const response = await fetch(`${this.backendUrl}/news/like/${articleId}`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data;
       }
-
-      return data;
     } catch (error) {
-      console.error('Error searching sports news:', error);
-      throw error;
+      console.error('Failed to like article:', error);
+    }
+    return { success: false, likes: 0 };
+  }
+
+  /**
+   * Unlike an article via backend
+   */
+  async unlikeArticle(articleId: string): Promise<{ success: boolean; likes: number }> {
+    try {
+      const response = await fetch(`${this.backendUrl}/news/unlike/${articleId}`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+    } catch (error) {
+      console.error('Failed to unlike article:', error);
+    }
+    return { success: false, likes: 0 };
+  }
+
+  /**
+   * Get article likes from backend
+   */
+  async getArticleLikes(articleId: string): Promise<number> {
+    try {
+      const response = await fetch(`${this.backendUrl}/news/likes/${articleId}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.likes || 0;
+      }
+    } catch (error) {
+      console.error('Failed to get article likes:', error);
+    }
+    return 0;
+  }
+
+  /**
+   * Get transfer news from backend
+   */
+  async getTransferNews(sports: string[] = ['football', 'basketball', 'volleyball']): Promise<any> {
+    try {
+      const response = await fetch(`${this.backendUrl}/news/sports`);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter for transfer-related news
+        const transferNews = data.data.filter((article: any) => {
+          const title = article.title?.toLowerCase() || '';
+          const description = article.description?.toLowerCase() || '';
+          const content = `${title} ${description}`;
+          return sports.some(sport => content.includes(sport) && (content.includes('transfer') || content.includes('trade') || content.includes('signing')));
+        });
+        return { data: transferNews };
+      } else {
+        throw new Error(`Backend responded with status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to fetch transfer news from backend:', error);
+      throw new Error('Transfer news service unavailable. Please try again later.');
     }
   }
 
-  /**
-   * Get breaking news (recent articles from the last hour)
-   */
-  async getBreakingNews(sport?: string): Promise<NewsApiResponse> {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const query = sport ? `${sport} AND sports` : 'sports';
-    
-    return this.searchSportsNews(query, {
-      from: oneHourAgo,
-      sortBy: 'publishedAt',
-      pageSize: 10
-    });
+  // Helper to decode HTML entities
+  private decodeHtmlEntities(text: string): string {
+    if (!text) return '';
+    const txt = document.createElement('textarea');
+    txt.innerHTML = text;
+    return txt.value;
   }
 
   /**
-   * Get transfer news for specific sports
+   * Convert MediaStack article to Forum post format
    */
-  async getTransferNews(sports: string[] = ['football', 'basketball', 'volleyball']): Promise<NewsApiResponse> {
-    const query = sports.map(sport => `("${sport}" AND (transfer OR trade OR signing OR deal))`).join(' OR ');
-    
-    return this.searchSportsNews(query, {
-      sortBy: 'publishedAt',
-      pageSize: 15
-    });
-  }
-
-  /**
-   * Get sport-specific news
-   */
-  async getSportNews(sport: string, options: {
-    type?: 'headlines' | 'everything';
-    pageSize?: number;
-  } = {}): Promise<NewsApiResponse> {
-    const { type = 'everything', pageSize = 20 } = options;
-    
-    if (type === 'headlines') {
-      return this.getTopSportsHeadlines({
-        q: sport,
-        pageSize
-      });
-    } else {
-      return this.searchSportsNews(sport, {
-        sortBy: 'publishedAt',
-        pageSize
-      });
-    }
-  }
-
-  /**
-   * Convert NewsAPI article to Forum post format
-   */
-  convertToForumPost(article: NewsApiArticle, type: 'news' | 'transfer' = 'news'): any {
-    const isBreaking = this.isBreakingNews(article.publishedAt);
+  convertToForumPost(article: any, type: 'news' | 'transfer' = 'news'): any {
+    const isBreaking = this.isBreakingNews(article.published_at);
     const importance = this.getNewsImportance(article.title, article.description);
     
-    return {
-      id: `news-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    // Debug: Log the article data to see what fields are available
+    console.log('Article data for conversion:', {
+      id: article.id,
       title: article.title,
-      content: article.description || article.content?.substring(0, 200) + '...' || '',
-      author: article.author || article.source.name,
+      image: article.image,
+      url: article.url,
+      source: article.source
+    });
+    
+    // Decode HTML entities in title and description
+    const decodedTitle = this.decodeHtmlEntities(article.title);
+    const decodedDescription = this.decodeHtmlEntities(article.description);
+    
+    return {
+      id: article.id || `news-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: decodedTitle,
+      content: decodedDescription || 'No content available',
+      author: article.author || article.source,
       authorAvatar: '/images/placeholder-user.jpg',
-      timestamp: new Date(article.publishedAt),
-      category: this.extractCategory(article.title),
-      sport: this.extractSport(article.title, article.description),
-      likes: Math.floor(Math.random() * 100) + 10, // Simulated engagement
+      timestamp: new Date(article.published_at),
+      category: this.extractCategory(decodedTitle),
+      sport: this.extractSport(decodedTitle, decodedDescription),
+      likes: typeof article.likes === 'number' ? article.likes : 0,
       comments: Math.floor(Math.random() * 50) + 5,
       isLiked: false,
-      tags: this.extractTags(article.title, article.description),
+      tags: this.extractTags(decodedTitle, decodedDescription),
       type: type,
       newsDetails: {
-        source: article.source.name,
+        source: article.source,
         importance,
         breaking: isBreaking,
         url: article.url,
-        imageUrl: article.urlToImage
+        imageUrl: article.image || '/images/sports-arena.jpg' // Fallback image
       }
     };
   }
