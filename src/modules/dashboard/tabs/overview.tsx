@@ -246,7 +246,7 @@ export default function Overview({
                   </Button>
                 </div>
               ) : (
-                battles.map((battle) => (
+                battles.slice(0, 3).map((battle) => (
                   <div
                     key={battle.id}
                     className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 border rounded-lg hover:shadow-sm transition-shadow bg-card"
