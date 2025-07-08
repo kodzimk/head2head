@@ -51,16 +51,23 @@ const normalizeSport = (sport: string): string => {
 
 export default function Battles({
   user,  
-  setBattles,
+  battles: initialBattles,
 }: {
   user: User;
   battles: RecentBattle[];
-  setBattles: (battles: RecentBattle[]) => void;
 }) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
-  const [allBattles, setAllBattles] = useState<RecentBattle[]>([]);
+  const [allBattles, setAllBattles] = useState<RecentBattle[]>(initialBattles);
+
+  useEffect(() => {
+    // Update battles if initial battles change
+    if (initialBattles.length > 0) {
+      setAllBattles(initialBattles);
+      setIsLoading(false);
+    }
+  }, [initialBattles]);
 
   useEffect(() => {
     const fetchAllBattles = async () => {
@@ -107,9 +114,10 @@ export default function Battles({
           };
         });
         
-        // Set both all battles and limit to last 3 for display
-        setAllBattles(mapped);
-        setBattles(mapped.slice(0, 3));
+        // Update battles if fetched data is different
+        if (mapped.length !== allBattles.length) {
+          setAllBattles(mapped);
+        }
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching all battles:', error);
@@ -117,8 +125,11 @@ export default function Battles({
       }
     };  
     
-    fetchAllBattles();
-  }, [user.username, setBattles]);
+    // Only fetch if we don't have battles or want to refresh
+    if (initialBattles.length === 0) {
+      fetchAllBattles();
+    }
+  }, [user.username, initialBattles]);
   
   return (
     <div>

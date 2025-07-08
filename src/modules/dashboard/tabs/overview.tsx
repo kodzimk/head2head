@@ -8,9 +8,9 @@ import { useNavigate } from "react-router-dom"
 import { useTranslation } from 'react-i18next'
 import { API_BASE_URL } from "../../../shared/interface/gloabL_var"
 import AvatarStorage from "../../../shared/utils/avatar-storage"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { UserAvatar } from "../../../shared/ui/user-avatar"
-
+import axios from "axios"
 
 const getSportIcon = (sport: string) => {
   const sportIcons: { [key: string]: React.ReactNode } = {
@@ -35,11 +35,27 @@ const getSportIcon = (sport: string) => {
   return sportIcons[sport.toLowerCase()] || sportIcons.default;
 };
 
-
+const normalizeSport = (sport: string): string => {
+  const validSports = [
+    'football', 'basketball', 'baseball', 'hockey', 
+    'tennis', 'golf', 'cricket', 'rugby', 'volleyball'
+  ];
   
-export default function Overview({user, battles}: {user: User, battles: RecentBattle[]}) {
+  const normalizedSport = sport?.toLowerCase()?.trim() || '';
+  return validSports.includes(normalizedSport) ? normalizedSport : 'football';
+};
+  
+export default function Overview({
+  user, 
+  battles: initialBattles
+}: {
+  user: User, 
+  battles: RecentBattle[]
+}) {
   const navigate = useNavigate()  
   const { t } = useTranslation()
+  const [battles, setBattles] = useState<RecentBattle[]>(initialBattles);
+  const [isLoading, setIsLoading] = useState(initialBattles.length === 0);
  
   // Fetch and cache user avatar if needed
   useEffect(() => {
@@ -70,9 +86,77 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
 
     fetchAndCacheAvatar();
   }, [user?.username, user?.avatar]);
- 
 
+  // Update battles if initial battles change
+  useEffect(() => {
+    if (initialBattles.length > 0) {
+      setBattles(initialBattles);
+      setIsLoading(false);
+    }
+  }, [initialBattles]);
 
+  // Fetch battles if not already loaded
+  useEffect(() => {
+    const fetchAllBattles = async () => {
+      try {
+        setIsLoading(true);
+        const response = await axios.get(
+          `${API_BASE_URL}/battle/get_all_battles?username=${user.username}`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+            },
+          }
+        );
+        
+        const mapped: RecentBattle[] = response.data.map((battle: any) => {
+          const currentUser = user.username;
+          const firstScore = parseInt(battle.first_opponent_score) || 0;
+          const secondScore = parseInt(battle.second_opponent_score) || 0;
+          
+          let result = "draw";
+          if (battle.first_opponent === currentUser) {
+            if (firstScore > secondScore) {
+              result = "win";
+            } else if (firstScore < secondScore) {
+              result = "lose";
+            }
+          } else if (battle.second_opponent === currentUser) {
+            if (secondScore > firstScore) {
+              result = "win";
+            } else if (secondScore < firstScore) {
+              result = "lose";
+            }
+          }
+          
+          const score = `${firstScore} : ${secondScore}`;
+
+          return {
+            id: battle.id,
+            player1: battle.first_opponent,
+            player2: battle.second_opponent,
+            sport: normalizeSport(battle.sport),
+            result,
+            score
+          };
+        });
+        
+        // Update battles if fetched data is different
+        if (mapped.length !== battles.length) {
+          setBattles(mapped);
+        }
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching all battles:', error);
+        setIsLoading(false);
+      }
+    };  
+    
+    // Only fetch if we don't have battles or want to refresh
+    if (initialBattles.length === 0) {
+      fetchAllBattles();
+    }
+  }, [user.username, initialBattles]);
 
   return (
       <TabsContent value="overview" className="space-y-6">
@@ -97,8 +181,6 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 lg:space-y-4">
-    
-
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.globalRank')}</span>
@@ -146,7 +228,11 @@ export default function Overview({user, battles}: {user: User, battles: RecentBa
           </CardHeader>
           <CardContent>
             <div className="space-y-3 lg:space-y-4">
-              {battles.length === 0 ? (
+              {isLoading ? (
+                <div className="text-center py-6 lg:py-8">
+                  <p className="text-gray-500 text-base lg:text-lg mb-4">{t('dashboard.loadingBattles')}</p>
+                </div>
+              ) : battles.length === 0 ? (
                 <div className="text-center py-6 lg:py-8">
                   <p className="text-gray-500 text-base lg:text-lg mb-4">{t('dashboard.noBattlesYet')}</p>
                   <Button 

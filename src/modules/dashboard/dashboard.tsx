@@ -481,7 +481,7 @@ export function Dashboard() {
           </TabsContent>
 
           <TabsContent value="battles" className="space-y-4 sm:space-y-6 animate-fade-in">
-            <Battles user={user} battles={battles} setBattles={setBattles} />
+            <Battles user={user} battles={battles} />
           </TabsContent>
 
           <TabsContent value="friends" className="space-y-4 sm:space-y-6 animate-fade-in">
