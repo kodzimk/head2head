@@ -92,10 +92,26 @@ class DebateService {
     try {
       const response = await fetch(url, finalOptions);
       
+      console.log('Fetch Request:', {
+        url,
+        method: finalOptions.method || 'GET',
+        headers: finalOptions.headers,
+        body: finalOptions.body
+      });
+      
       if (!response.ok) {
+        const errorText = await response.text();
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.detail || errorData.message || `HTTP error! status: ${response.status}`;
-        console.error('Debate service error details:', errorData);
+        
+        console.error('Fetch Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          errorText,
+          errorData
+        });
+        
         throw new Error(errorMessage);
       }
 

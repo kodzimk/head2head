@@ -29,12 +29,16 @@ origins = [
     "https://head2head.dev",
     "https://www.head2head.dev",
     "https://api.head2head.dev",
-    "http://localhost:5173",
+    "http://localhost:5173",  # Vite default dev server
     "http://localhost:3000",
     "http://localhost:8000",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:8000",
+    "https://www.head2head.dev:443",
+    "https://head2head.dev:443",
+    "https://www.head2head.dev:80",
+    "https://head2head.dev:80"
 ]
 
 # Add CORS middleware with comprehensive configuration

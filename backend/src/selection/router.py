@@ -7,6 +7,7 @@ import uuid
 from datetime import datetime
 import json
 import jwt
+import logging
 
 from init import get_db, redis_email
 from models import (
@@ -27,6 +28,8 @@ mQIhAJRdRFQHCzyjl0zB+4WZFo7u/novWD3WJbUFze20tnh1AiEAnqjW5PfRGYN/
 q+F4hryf4z6Jr9r4Z8TjKnOeR5fBZkECH2tlOpeGdcfA8qouEtD2njNo4P63Ibmu
 mffGKz34haM="""
 ALGORITHM = "HS256"
+
+logger = logging.getLogger(__name__)
 
 def decode_access_token(token: str):
     try:
@@ -171,8 +174,6 @@ async def create_pick(
         is_active=new_pick.is_active
     )
 
-
-
 @router.get("/picks/{pick_id}/comments", response_model=List[DebateCommentResponse])
 async def get_pick_comments(
     pick_id: str,
@@ -180,53 +181,77 @@ async def get_pick_comments(
     current_user: dict = Depends(get_current_user)
 ):
     """Get comments for a specific pick"""
-    # Get top-level comments (no parent_id)
-    comments_query = select(DebateComment).where(
-        and_(DebateComment.pick_id == pick_id, DebateComment.parent_id.is_(None))
-    ).order_by(DebateComment.created_at.desc())
-    
-    result = await db.execute(comments_query)
-    comments = result.scalars().all()
-    
-    # Convert to response format with likes and replies
-    async def convert_comment(comment):
-        # Get likes count
-        likes_query = select(func.count(CommentLike.id)).where(CommentLike.comment_id == comment.id)
-        likes_result = await db.execute(likes_query)
-        likes_count = likes_result.scalar()
+    try:
+        # Verify pick exists first
+        pick_query = select(DebatePick).where(DebatePick.id == pick_id)
+        pick_result = await db.execute(pick_query)
+        pick = pick_result.scalar_one_or_none()
         
-        # Check if current user liked this comment
-        user_like_query = select(CommentLike).where(
-            and_(CommentLike.comment_id == comment.id, CommentLike.user_id == current_user["username"])
-        )
-        user_like_result = await db.execute(user_like_query)
-        user_liked = user_like_result.scalar_one_or_none() is not None
+        if not pick:
+            raise HTTPException(status_code=404, detail=f"Pick with ID {pick_id} not found")
         
-        # Get replies count
-        replies_query = select(func.count(DebateComment.id)).where(DebateComment.parent_id == comment.id)
-        replies_result = await db.execute(replies_query)
-        replies_count = replies_result.scalar()
+        # Get top-level comments (no parent_id)
+        comments_query = select(DebateComment).where(
+            and_(DebateComment.pick_id == pick_id, DebateComment.parent_id.is_(None))
+        ).order_by(DebateComment.created_at.desc())
         
-        return DebateCommentResponse(
-            id=comment.id,
-            pick_id=comment.pick_id,
-            parent_id=comment.parent_id,
-            author_id=comment.author_id,
-            author_name=comment.author_name,
-            content=comment.content,
-            created_at=comment.created_at,
-            likes_count=likes_count,
-            user_liked=user_liked,
-            replies_count=replies_count,
-            replies=[]
-        )
+        result = await db.execute(comments_query)
+        comments = result.scalars().all()
+        
+        # Detailed logging
+        logger.info(f"Retrieving comments for pick {pick_id}. Total comments: {len(comments)}")
+        
+        # Convert to response format with likes and replies
+        async def convert_comment(comment):
+            try:
+                # Get likes count
+                likes_query = select(func.count(CommentLike.id)).where(CommentLike.comment_id == comment.id)
+                likes_result = await db.execute(likes_query)
+                likes_count = likes_result.scalar()
+                
+                # Check if current user liked this comment
+                user_like_query = select(CommentLike).where(
+                    and_(CommentLike.comment_id == comment.id, CommentLike.user_id == current_user["username"])
+                )
+                user_like_result = await db.execute(user_like_query)
+                user_liked = user_like_result.scalar_one_or_none() is not None
+                
+                # Get replies count
+                replies_query = select(func.count(DebateComment.id)).where(DebateComment.parent_id == comment.id)
+                replies_result = await db.execute(replies_query)
+                replies_count = replies_result.scalar()
+                
+                return DebateCommentResponse(
+                    id=comment.id,
+                    pick_id=comment.pick_id,
+                    parent_id=comment.parent_id,
+                    author_id=comment.author_id,
+                    author_name=comment.author_name,
+                    content=comment.content,
+                    created_at=comment.created_at,
+                    likes_count=likes_count,
+                    user_liked=user_liked,
+                    replies_count=replies_count,
+                    replies=[]
+                )
+            except Exception as convert_error:
+                logger.error(f"Error converting comment {comment.id}: {str(convert_error)}")
+                raise
+        
+        # Convert all comments
+        response_comments = []
+        for comment in comments:
+            response_comments.append(await convert_comment(comment))
+        
+        return response_comments
     
-    # Convert all comments
-    response_comments = []
-    for comment in comments:
-        response_comments.append(await convert_comment(comment))
-    
-    return response_comments
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Log unexpected errors
+        logger.error(f"Unexpected error retrieving comments for pick {pick_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @router.post("/picks/{pick_id}/comments", response_model=DebateCommentResponse)
 async def create_comment(
@@ -404,8 +429,6 @@ async def get_comment_replies(
         response_replies.append(await convert_reply(reply))
     
     return response_replies
-
-
 
 @router.get("/categories")
 async def get_categories(db: AsyncSession = Depends(get_db)):
