@@ -198,8 +198,11 @@ export default function App() {
         console.error("WebSocket connection failed due to invalid username");
         // Clear the invalid username from localStorage
         localStorage.removeItem('username');
-        // Redirect to sign-in page
-        navigate('/sign-in');
+        
+        // Only redirect to sign-in if there's no username in localStorage
+        if (!localStorage.getItem('username') && !localStorage.getItem('access_token')) {
+          navigate('/sign-in');
+        }
         return;
       }
       

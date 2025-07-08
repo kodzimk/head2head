@@ -26112,3 +26112,52 @@ console.log('[Dashboard] Rendering with showOnboarding:', showOnboarding, 'Mobil
 
 ### Status
 ✅ **FIXED** - Mobile onboarding troubleshooting complete with enhanced debugging, simplified activation logic, and comprehensive logging system for reliable mobile onboarding experience.
+
+## 2024-01-XX - API URLs Updated to Production
+
+### Task: Change all API URLs from localhost:8000 back to api.head2head.dev
+
+**Context**: User requested to update all API URLs to use the production endpoint api.head2head.dev instead of localhost:8000.
+
+### Changes Made:
+- **API_BASE_URL**: Changed from `"http://localhost:8000"` to `"https://api.head2head.dev"`
+- **WS_BASE_URL**: Changed from `"ws://localhost:8000"` to `"wss://api.head2head.dev"`
+- **NewsService**: Updated backendUrl in `src/shared/services/news-service.ts`
+
+### Files Modified:
+1. `src/shared/interface/gloabL_var.tsx` - Updated API and WebSocket base URLs
+2. `src/shared/services/news-service.ts` - Updated backendUrl
+
+### Impact:
+- All API requests now go to the production server at api.head2head.dev
+- WebSocket connections now use secure wss:// protocol to api.head2head.dev
+- Avatar URLs now resolve to the production server
+- No code changes needed for debate-service.ts or avatar-storage.ts as they use the API_BASE_URL variable
+
+### Status
+✅ **COMPLETE** - All API URLs updated to use production endpoints at api.head2head.dev
+
+## 2024-01-XX - Improved Authentication Flow
+
+### Task: Prevent unnecessary redirects to sign-in page when user is already authenticated
+
+**Context**: When users are already authorized with username and access token in localStorage, they were sometimes being redirected to the sign-in page unnecessarily.
+
+### Changes Made:
+- **Smarter Authentication Checks**: Now check for both username and access token in localStorage before redirecting
+- **Reduced Redirects**: Only redirect to sign-in when both username and token are missing
+- **Improved Error Handling**: Better handling of 401 errors when token exists but might be invalid
+- **WebSocket Connection**: Updated WebSocket onclose handler to only redirect when truly necessary
+
+### Files Modified:
+1. `src/modules/forum/debate-detail.tsx` - Updated authentication checks in loadDebateDetail function and error handling
+2. `src/modules/forum/create-debate.tsx` - Updated authentication checks in useEffect and handleSubmit function
+3. `src/app/App.tsx` - Updated WebSocket onclose handler to check localStorage before redirecting
+
+### Impact:
+- Users with valid credentials in localStorage will no longer be unnecessarily redirected to sign-in
+- Better error messages when authentication issues occur but credentials exist
+- More consistent user experience when navigating between pages
+
+### Status
+✅ **COMPLETE** - Authentication flow now properly respects existing credentials in localStorage

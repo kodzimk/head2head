@@ -9,7 +9,6 @@ import { ArrowLeft } from 'lucide-react';
 import Header from '../dashboard/header';
 import { debateService } from '../../shared/services/debate-service';
 import type { CreateDebateData } from '../../shared/services/debate-service';
-import { useGlobalStore } from '../../shared/interface/gloabL_var';
 
 interface CreateDebateForm {
   option1_name: string;
@@ -21,7 +20,6 @@ interface CreateDebateForm {
 
 export default function CreateDebate() {
   const navigate = useNavigate();
-  const { user } = useGlobalStore();
 
   const [form, setForm] = useState<CreateDebateForm>({
     option1_name: '',
@@ -37,10 +35,13 @@ export default function CreateDebate() {
 
   // Check authentication on component mount
   useEffect(() => {
-    if (!user || !user.username || !localStorage.getItem('access_token')) {
+    const hasToken = !!localStorage.getItem('access_token');
+    const hasUsername = !!localStorage.getItem('username');
+    
+    if (!hasToken || !hasUsername) {
       navigate('/sign-in');
     }
-  }, [user, navigate]);
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +49,10 @@ export default function CreateDebate() {
     if (isSubmitting) return;
     
     // Check if user is authenticated
-    if (!user || !user.username || !localStorage.getItem('access_token')) {
+    const hasToken = !!localStorage.getItem('access_token');
+    const hasUsername = !!localStorage.getItem('username');
+    
+    if (!hasToken || !hasUsername) {
       navigate('/sign-in');
       return;
     }
@@ -115,7 +119,19 @@ export default function CreateDebate() {
     } catch (error: any) {
       console.error('Error creating debate:', error);
       if (error.message?.includes('Authorization header missing') || error.message?.includes('401')) {
-        navigate('/sign-in');
+        // Only redirect if not authenticated
+        const hasToken = !!localStorage.getItem('access_token');
+        const hasUsername = !!localStorage.getItem('username');
+        
+        if (!hasToken || !hasUsername) {
+          navigate('/sign-in');
+        } else {
+          console.error('Authentication error but user has token/username:', error);
+          setValidationErrors(prev => ({
+            ...prev,
+            submit: 'Authentication error. Please refresh the page and try again.'
+          }));
+        }
       } else {
         setValidationErrors(prev => ({
           ...prev,

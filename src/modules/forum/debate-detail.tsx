@@ -71,7 +71,10 @@ export default function DebateDetail() {
       if (!id) return;
       
       // Check if user is authenticated
-      if (!user || !user.username || !localStorage.getItem('access_token')) {
+      const hasToken = !!localStorage.getItem('access_token');
+      const hasUsername = !!localStorage.getItem('username');
+      
+      if (!hasToken || !hasUsername) {
         navigate('/sign-in');
         return;
       }
@@ -149,7 +152,15 @@ export default function DebateDetail() {
         setDebateDetail(debateDetail);
       } catch (error: any) {
         if (error.message?.includes('Authorization header missing') || error.message?.includes('401')) {
-          navigate('/sign-in');
+          // Only redirect if not authenticated
+          const hasToken = !!localStorage.getItem('access_token');
+          const hasUsername = !!localStorage.getItem('username');
+          
+          if (!hasToken || !hasUsername) {
+            navigate('/sign-in');
+          } else {
+            console.error('Authentication error but user has token/username:', error);
+          }
         }
       } finally {
         setIsLoading(false);
