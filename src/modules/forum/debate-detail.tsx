@@ -721,6 +721,24 @@ export default function DebateDetail() {
                     <span>{formatTimeAgo(debateDetail.timestamp)}</span>
                   </div>
                 </div>
+                <div className="mt-6 grid md:grid-cols-2 gap-6">
+                <div className="p-4 bg-muted/20 rounded-lg border border-border">
+                  <h3 className="text-lg font-semibold mb-3 text-primary">
+                    {debateDetail.title.split(' vs ')[0]} 
+                  </h3>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {debateDetail.description.split('\n\n')[0]}
+                  </p>
+                </div>
+                <div className="p-4 bg-muted/20 rounded-lg border border-border">
+                  <h3 className="text-lg font-semibold mb-3 text-primary">
+                    {debateDetail.title.split(' vs ')[1]} 
+                  </h3>
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {debateDetail.description.split('\n\n')[1]}
+                  </p>
+                </div>
+              </div>
               </div>
             </div>
           </CardHeader>
