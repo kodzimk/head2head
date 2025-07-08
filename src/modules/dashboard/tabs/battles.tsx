@@ -168,41 +168,37 @@ export default function Battles({
                 ) : (
                   <>
                     {/* Last 3 Battles Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      {allBattles.slice(0, 3).map((battle) => (
-                        <Card 
-                          key={battle.id} 
-                          className={`
-                            ${battle.result === 'win' ? 'border-green-500/50 bg-green-500/10' : 
-                              battle.result === 'lose' ? 'border-red-500/50 bg-red-500/10' : 
-                              'border-yellow-500/50 bg-yellow-500/10'}
-                          `}
-                        >
-                          <CardContent className="p-4 space-y-2">
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xl">{getSportIcon(battle.sport)}</span>
-                                <span className="text-sm font-medium">{battle.sport}</span>
-                              </div>
-                              <Badge
-                                variant={
-                                  battle.result === "win" ? "default" : 
-                                  battle.result === "lose" ? "destructive" : "secondary"
-                                }
-                                className="text-xs"
-                              >
-                                {battle.result === "win" ? t('dashboard.victory') : 
-                                 battle.result === "lose" ? t('dashboard.defeat') : t('dashboard.draw')}
-                              </Badge>
-                            </div>
-                            <div className="text-center">
-                              <p className="font-semibold text-sm">{battle.player1} vs {battle.player2}</p>
-                              <p className="text-lg font-bold mt-1">{battle.score}</p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                    {allBattles.slice(0, 3).map((battle) => (
+                      <div
+                        key={battle.id}
+                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 border rounded-lg hover:shadow-sm transition-shadow bg-card"
+                      >
+                        <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                          <div className="flex-shrink-0">
+                            {getSportIcon(battle.sport)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm lg:text-base truncate">{battle.player1} vs {battle.player2}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {battle.sport}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                          <Badge
+                            variant={
+                              battle.result === "win" ? "default" : 
+                              battle.result === "lose" ? "destructive" : "secondary"
+                            }
+                            className="w-fit text-xs lg:text-sm"
+                          >
+                            {battle.result === "win" ? t('dashboard.victory') : 
+                             battle.result === "lose" ? t('dashboard.defeat') : t('dashboard.draw')}
+                          </Badge>
+                          <p className="text-sm lg:text-lg font-bold text-right">{battle.score}</p>
+                        </div>
+                      </div>
+                    ))}
                   </>
                 )}
               </div>
