@@ -26161,3 +26161,78 @@ console.log('[Dashboard] Rendering with showOnboarding:', showOnboarding, 'Mobil
 
 ### Status
 ✅ **COMPLETE** - Authentication flow now properly respects existing credentials in localStorage
+
+## 2024-01-XX - Improved Authentication Flow
+
+### Task: Prevent unnecessary redirects to sign-in page when user is already authenticated
+
+**Context**: When users are already authorized with username and access token in localStorage, they were sometimes being redirected to the sign-in page unnecessarily.
+
+### Changes Made:
+- **Smarter Authentication Checks**: Now check for both username and access token in localStorage before redirecting
+- **Reduced Redirects**: Only redirect to sign-in when both username and token are missing
+- **Improved Error Handling**: Better handling of 401 errors when token exists but might be invalid
+- **WebSocket Connection**: Updated WebSocket onclose handler to only redirect when truly necessary
+
+### Files Modified:
+1. `src/modules/forum/debate-detail.tsx` - Updated authentication checks in loadDebateDetail function and error handling
+2. `src/modules/forum/create-debate.tsx` - Updated authentication checks in useEffect and handleSubmit function
+3. `src/app/App.tsx` - Updated WebSocket onclose handler to check localStorage before redirecting
+
+### Impact:
+- Users with valid credentials in localStorage will no longer be unnecessarily redirected to sign-in
+- Better error messages when authentication issues occur but credentials exist
+- More consistent user experience when navigating between pages
+
+### Status
+✅ **COMPLETE** - Authentication flow now properly respects existing credentials in localStorage
+
+## 2024-01-XX - Improved Authentication Flow
+
+### Task: Prevent unnecessary redirects to sign-in page when user is already authenticated
+
+**Context**: When users are already authorized with username and access token in localStorage, they were sometimes being redirected to the sign-in page unnecessarily.
+
+### Changes Made:
+- **Smarter Authentication Checks**: Now check for both username and access token in localStorage before redirecting
+- **Reduced Redirects**: Only redirect to sign-in when both username and token are missing
+- **Improved Error Handling**: Better handling of 401 errors when token exists but might be invalid
+- **WebSocket Connection**: Updated WebSocket onclose handler to only redirect when truly necessary
+
+### Files Modified:
+1. `src/modules/forum/debate-detail.tsx` - Updated authentication checks in loadDebateDetail function and error handling
+2. `src/modules/forum/create-debate.tsx` - Updated authentication checks in useEffect and handleSubmit function
+3. `src/app/App.tsx` - Updated WebSocket onclose handler to check localStorage before redirecting
+
+### Impact:
+- Users with valid credentials in localStorage will no longer be unnecessarily redirected to sign-in
+- Better error messages when authentication issues occur but credentials exist
+- More consistent user experience when navigating between pages
+
+### Status
+✅ **COMPLETE** - Authentication flow now properly respects existing credentials in localStorage
+
+## 2024-01-XX - Improved Authentication Flow
+
+### Task: Prevent unnecessary redirects to sign-in page when user is already authenticated
+
+**Context**: When users are already authorized with username and access token in localStorage, they were sometimes being redirected to the sign-in page unnecessarily.
+
+### Changes Made:
+- **Smarter Authentication Checks**: Now check for both username and access token in localStorage before redirecting
+- **Reduced Redirects**: Only redirect to sign-in when both username and token are missing
+- **Improved Error Handling**: Better handling of 401 errors when token exists but might be invalid
+- **WebSocket Connection**: Updated WebSocket onclose handler to only redirect when truly necessary
+
+### Files Modified:
+1. `src/modules/forum/debate-detail.tsx` - Updated authentication checks in loadDebateDetail function and error handling
+2. `src/modules/forum/create-debate.tsx` - Updated authentication checks in useEffect and handleSubmit function
+3. `src/app/App.tsx` - Updated WebSocket onclose handler to check localStorage before redirecting
+
+### Impact:
+- Users with valid credentials in localStorage will no longer be unnecessarily redirected to sign-in
+- Better error messages when authentication issues occur but credentials exist
+- More consistent user experience when navigating between pages
+
+### Status
+✅ **COMPLETE** - Authentication flow now properly respects existing credentials in localStorage

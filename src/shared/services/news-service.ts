@@ -44,7 +44,7 @@ export class NewsService {
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || MEDIASTACK_API_KEY;
-    this.backendUrl = 'http://localhost:8000';
+    this.backendUrl = 'https://api.head2head.dev';
   }
 
   /**
