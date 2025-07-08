@@ -15,7 +15,7 @@ import asyncio
 import uuid
 from datetime import datetime
 from sqlalchemy import select, func, and_, update, delete
-from models import DebatePick, DebateVote, CommentLike, DebateComment
+from models import DebatePick, DebateComment
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -126,12 +126,6 @@ async def create_daily_debates_async():
         # Reset all engagement data for fresh start
         from sqlalchemy import delete
         
-        # Delete all votes
-        await db.execute(delete(DebateVote))
-        
-        # Delete all comment likes  
-        await db.execute(delete(CommentLike))
-        
         # Delete all comments
         await db.execute(delete(DebateComment))
         
@@ -139,8 +133,8 @@ async def create_daily_debates_async():
         await db.execute(
             update(DebatePick).values(
                 is_active=False,
-                option1_votes=0,
-                option2_votes=0
+                total_votes=0,
+                total_comments=0
             )
         )
         
@@ -359,15 +353,14 @@ async def create_daily_debates_async():
             
             pick_data = {
                 "id": str(uuid.uuid4()),
-                "category": sport,
-                "option1_name": selected_debate["option1_name"],
-                "option1_image": f"https://placehold.co/400x400/000000/FFFFFF?text={selected_debate['option1_name'].replace(' ', '+')}",
-                "option1_description": selected_debate["option1_description"],
-                "option1_votes": 0,  # Start with zero votes
-                "option2_name": selected_debate["option2_name"],
-                "option2_image": f"https://placehold.co/400x400/333333/FFFFFF?text={selected_debate['option2_name'].replace(' ', '+')}",
-                "option2_description": selected_debate["option2_description"],
-                "option2_votes": 0,  # Start with zero votes
+                "title": f"{selected_debate['option1_name']} vs {selected_debate['option2_name']}",
+                "description": f"Who is the greater athlete? {selected_debate['option1_name']}: {selected_debate['option1_description']} OR {selected_debate['option2_name']}: {selected_debate['option2_description']}",
+                "category": "Player Comparison",
+                "sport": sport,
+                "author_username": "system",
+                "author_display_name": "Head2Head System",
+                "total_votes": 0,
+                "total_comments": 0,
                 "created_at": datetime.utcnow(),
                 "is_active": True
             }

@@ -24,50 +24,6 @@ logger = logging.getLogger(__name__)
 os.makedirs("avatars", exist_ok=True)
 app.mount("/avatars", StaticFiles(directory="avatars"), name="avatars")
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    try:
-        # Check database connection
-        async with engine.begin() as conn:
-            await conn.execute(text("SELECT 1"))
-        
-        # Check Redis connection
-        redis_client = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
-        redis_client.ping()
-        
-        # Check Google API key
-        google_api_key = os.getenv("GOOGLE_API_KEY")
-        ai_status = "enabled" if google_api_key else "disabled"
-        
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "redis": "connected",
-            "ai_quiz_generation": ai_status,
-            "timestamp": datetime.now().isoformat()
-        }
-    except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }
-
-@app.get("/cors-test")
-async def cors_test():
-    """Simple CORS test endpoint"""
-    return {"message": "CORS is working", "timestamp": datetime.now().isoformat()}
-
-app.include_router(auth_router,prefix="/auth",tags=["auth"])
-app.include_router(db_router)
-app.include_router(router_friend)
-app.include_router(battle_router, prefix="/battle")
-app.include_router(battle_ws_router)
-app.include_router(training_router, prefix="/training", tags=["training"])
-app.include_router(selection_router)
-app.include_router(news_router)
-
 # Comprehensive CORS configuration for production and development
 origins = [
     "https://head2head.dev",
@@ -112,6 +68,50 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=86400,  # Cache preflight requests for 24 hours
 )
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    try:
+        # Check database connection
+        async with engine.begin() as conn:
+            await conn.execute(text("SELECT 1"))
+        
+        # Check Redis connection
+        redis_client = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+        redis_client.ping()
+        
+        # Check Google API key
+        google_api_key = os.getenv("GOOGLE_API_KEY")
+        ai_status = "enabled" if google_api_key else "disabled"
+        
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "redis": "connected",
+            "ai_quiz_generation": ai_status,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.get("/cors-test")
+async def cors_test():
+    """Simple CORS test endpoint"""
+    return {"message": "CORS is working", "timestamp": datetime.now().isoformat()}
+
+app.include_router(auth_router,prefix="/auth",tags=["auth"])
+app.include_router(db_router)
+app.include_router(router_friend)
+app.include_router(battle_router, prefix="/battle")
+app.include_router(battle_ws_router)
+app.include_router(training_router, prefix="/training", tags=["training"])
+app.include_router(selection_router)
+app.include_router(news_router)
 
 
 @app.on_event("startup")

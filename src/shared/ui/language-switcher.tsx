@@ -62,6 +62,9 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
         }
       }
       
+      // Dispatch custom event to notify other components about language change
+      window.dispatchEvent(new CustomEvent('languageChange', { detail: languageCode }));
+      
       // Show success notification (optional)
       console.log(t('language.languageChanged'));
     } catch (error) {
@@ -193,6 +196,9 @@ export const LanguageFlag: React.FC<{ className?: string }> = () => {
         console.log(`Language preference saved to user profile: ${newLanguage}`);
       }
     }
+    
+    // Dispatch custom event to notify other components about language change
+    window.dispatchEvent(new CustomEvent('languageChange', { detail: newLanguage }));
   };
 
   return (

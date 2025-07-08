@@ -467,6 +467,7 @@ export default function App() {
                               <Route path="/forum" element={<ForumPage />} />
                               <Route path="/forum/debates/create" element={<CreateDebatePage />} />
                               <Route path="/forum/debates/:id" element={<DebateDetailPage />} />
+                              <Route path="/selection/:id" element={<DebateDetailPage />} />
                               <Route path="/news/:id" element={<NewsDetailPage />} />                              
                               <Route path="/:username/trainings" element={<TrainingsPage />} />
                               <Route path="/:username/notifications" element={<NotificationsPage />} />

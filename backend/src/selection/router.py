@@ -12,7 +12,8 @@ from init import get_db, redis_email
 from models import (
     DebatePick, DebateComment, DebateVote, CommentLike,
     DebatePickCreate, DebatePickResponse, DebateCommentCreate, 
-    DebateCommentResponse, DebateVoteCreate, VoteResultResponse
+    DebateCommentResponse, DebateVoteCreate, DebateVoteResponse,
+    DebatePickWithVoteResponse, CommentLikeCreate, CommentLikeResponse
 )
 
 router = APIRouter(prefix="/selection", tags=["selection"])
@@ -86,20 +87,6 @@ async def get_all_picks(
     result = await db.execute(query)
     picks = result.scalars().all()
     
-    # Get user votes for these picks
-    pick_ids = [pick.id for pick in picks]
-    if pick_ids:
-        votes_query = select(DebateVote).where(
-            and_(
-                DebateVote.pick_id.in_(pick_ids),
-                DebateVote.user_id == current_user["username"]
-            )
-        )
-        votes_result = await db.execute(votes_query)
-        user_votes = {vote.pick_id: vote.option for vote in votes_result.scalars().all()}
-    else:
-        user_votes = {}
-    
     # Convert to response format
     response_picks = []
     for pick in picks:
@@ -115,8 +102,7 @@ async def get_all_picks(
             option2_description=pick.option2_description,
             option2_votes=pick.option2_votes,
             created_at=pick.created_at,
-            is_active=pick.is_active,
-            user_vote=user_votes.get(pick.id)
+            is_active=pick.is_active
         ))
     
     return response_picks
@@ -135,16 +121,6 @@ async def get_pick(
     if not pick:
         raise HTTPException(status_code=404, detail="Pick not found")
     
-    # Get user vote for this pick
-    vote_query = select(DebateVote).where(
-        and_(
-            DebateVote.pick_id == pick_id,
-            DebateVote.user_id == current_user["username"]
-        )
-    )
-    vote_result = await db.execute(vote_query)
-    user_vote = vote_result.scalar_one_or_none()
-    
     return DebatePickResponse(
         id=pick.id,
         category=pick.category,
@@ -157,8 +133,7 @@ async def get_pick(
         option2_description=pick.option2_description,
         option2_votes=pick.option2_votes,
         created_at=pick.created_at,
-        is_active=pick.is_active,
-        user_vote=user_vote.option if user_vote else None
+        is_active=pick.is_active
     )
 
 @router.post("/picks", response_model=DebatePickResponse)
@@ -170,13 +145,11 @@ async def create_pick(
     """Create a new debate pick"""
     new_pick = DebatePick(
         id=str(uuid.uuid4()),
-        category=pick_data.category,
         option1_name=pick_data.option1_name,
-        option1_image=pick_data.option1_image,
         option1_description=pick_data.option1_description,
         option2_name=pick_data.option2_name,
-        option2_image=pick_data.option2_image,
         option2_description=pick_data.option2_description,
+        category=pick_data.category,
     )
     
     db.add(new_pick)
@@ -195,85 +168,10 @@ async def create_pick(
         option2_description=new_pick.option2_description,
         option2_votes=new_pick.option2_votes,
         created_at=new_pick.created_at,
-        is_active=new_pick.is_active,
-        user_vote=None
+        is_active=new_pick.is_active
     )
 
-@router.post("/picks/{pick_id}/vote", response_model=VoteResultResponse)
-async def vote_on_pick(
-    pick_id: str,
-    vote_data: DebateVoteCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """Vote on a debate pick"""
-    # Check if pick exists
-    pick_query = select(DebatePick).where(DebatePick.id == pick_id)
-    pick_result = await db.execute(pick_query)
-    pick = pick_result.scalar_one_or_none()
-    
-    if not pick:
-        raise HTTPException(status_code=404, detail="Pick not found")
-    
-    # Check if user has already voted
-    existing_vote_query = select(DebateVote).where(
-        and_(
-            DebateVote.pick_id == pick_id,
-            DebateVote.user_id == current_user["username"]
-        )
-    )
-    existing_vote_result = await db.execute(existing_vote_query)
-    existing_vote = existing_vote_result.scalar_one_or_none()
-    
-    if existing_vote:
-        # Update existing vote
-        if existing_vote.option != vote_data.option:
-            # Decrease old option count and increase new option count
-            if existing_vote.option == "option1":
-                pick.option1_votes = max(0, pick.option1_votes - 1)
-            else:
-                pick.option2_votes = max(0, pick.option2_votes - 1)
-            
-            if vote_data.option == "option1":
-                pick.option1_votes += 1
-            else:
-                pick.option2_votes += 1
-            
-            existing_vote.option = vote_data.option
-            existing_vote.voted_at = datetime.utcnow()
-    else:
-        # Create new vote
-        new_vote = DebateVote(
-            id=str(uuid.uuid4()),
-            pick_id=pick_id,
-            user_id=current_user["username"],
-            option=vote_data.option
-        )
-        
-        # Increase vote count
-        if vote_data.option == "option1":
-            pick.option1_votes += 1
-        else:
-            pick.option2_votes += 1
-        
-        db.add(new_vote)
-    
-    await db.commit()
-    
-    # Calculate percentages
-    total_votes = pick.option1_votes + pick.option2_votes
-    if total_votes > 0:
-        option1_percentage = (pick.option1_votes / total_votes) * 100
-        option2_percentage = (pick.option2_votes / total_votes) * 100
-    else:
-        option1_percentage = option2_percentage = 50.0
-    
-    return VoteResultResponse(
-        option1_percentage=round(option1_percentage, 1),
-        option2_percentage=round(option2_percentage, 1),
-        total_votes=total_votes,
-        user_vote=vote_data.option
-    )
+
 
 @router.get("/picks/{pick_id}/comments", response_model=List[DebateCommentResponse])
 async def get_pick_comments(
@@ -282,42 +180,53 @@ async def get_pick_comments(
     current_user: dict = Depends(get_current_user)
 ):
     """Get comments for a specific pick"""
-    comments_query = select(DebateComment).options(
-        selectinload(DebateComment.likes)
-    ).where(
-        DebateComment.pick_id == pick_id
+    # Get top-level comments (no parent_id)
+    comments_query = select(DebateComment).where(
+        and_(DebateComment.pick_id == pick_id, DebateComment.parent_id.is_(None))
     ).order_by(DebateComment.created_at.desc())
     
     result = await db.execute(comments_query)
     comments = result.scalars().all()
     
-    # Get user likes for all comments
-    if comments:
-        likes_query = select(CommentLike).where(
-            and_(
-                CommentLike.comment_id.in_([comment.id for comment in comments]),
-                CommentLike.user_id == current_user["username"]
-            )
-        )
+    # Convert to response format with likes and replies
+    async def convert_comment(comment):
+        # Get likes count
+        likes_query = select(func.count(CommentLike.id)).where(CommentLike.comment_id == comment.id)
         likes_result = await db.execute(likes_query)
-        user_likes = {like.comment_id for like in likes_result.scalars().all()}
-    else:
-        user_likes = set()
-    
-    # Convert to response format
-    def convert_comment(comment):
+        likes_count = likes_result.scalar()
+        
+        # Check if current user liked this comment
+        user_like_query = select(CommentLike).where(
+            and_(CommentLike.comment_id == comment.id, CommentLike.user_id == current_user["username"])
+        )
+        user_like_result = await db.execute(user_like_query)
+        user_liked = user_like_result.scalar_one_or_none() is not None
+        
+        # Get replies count
+        replies_query = select(func.count(DebateComment.id)).where(DebateComment.parent_id == comment.id)
+        replies_result = await db.execute(replies_query)
+        replies_count = replies_result.scalar()
+        
         return DebateCommentResponse(
             id=comment.id,
             pick_id=comment.pick_id,
+            parent_id=comment.parent_id,
             author_id=comment.author_id,
             author_name=comment.author_name,
             content=comment.content,
             created_at=comment.created_at,
-            likes_count=len(comment.likes),
-            user_liked=comment.id in user_likes
+            likes_count=likes_count,
+            user_liked=user_liked,
+            replies_count=replies_count,
+            replies=[]
         )
     
-    return [convert_comment(comment) for comment in comments]
+    # Convert all comments
+    response_comments = []
+    for comment in comments:
+        response_comments.append(await convert_comment(comment))
+    
+    return response_comments
 
 @router.post("/picks/{pick_id}/comments", response_model=DebateCommentResponse)
 async def create_comment(
@@ -335,76 +244,168 @@ async def create_comment(
     if not pick:
         raise HTTPException(status_code=404, detail="Pick not found")
     
+    # If this is a reply, verify parent comment exists
+    if comment_data.parent_id:
+        parent_query = select(DebateComment).where(DebateComment.id == comment_data.parent_id)
+        parent_result = await db.execute(parent_query)
+        parent_comment = parent_result.scalar_one_or_none()
+        
+        if not parent_comment:
+            raise HTTPException(status_code=404, detail="Parent comment not found")
+    
     new_comment = DebateComment(
         id=str(uuid.uuid4()),
         pick_id=pick_id,
+        parent_id=comment_data.parent_id,
         author_id=current_user["username"],
         author_name=current_user["display_name"],
         content=comment_data.content
     )
     
     db.add(new_comment)
+    
     await db.commit()
     await db.refresh(new_comment)
     
     return DebateCommentResponse(
         id=new_comment.id,
         pick_id=new_comment.pick_id,
+        parent_id=new_comment.parent_id,
         author_id=new_comment.author_id,
         author_name=new_comment.author_name,
         content=new_comment.content,
         created_at=new_comment.created_at,
         likes_count=0,
-        user_liked=False
+        user_liked=False,
+        replies_count=0,
+        replies=[]
     )
 
-@router.post("/comments/{comment_id}/like")
-async def toggle_comment_like(
+@router.post("/comments/{comment_id}/like", response_model=CommentLikeResponse)
+async def like_comment(
     comment_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """Toggle like on a comment"""
+    """Like a comment"""
     # Check if comment exists
     comment_query = select(DebateComment).where(DebateComment.id == comment_id)
-    comment_result = await db.execute(comment_query)
-    comment = comment_result.scalar_one_or_none()
+    result = await db.execute(comment_query)
+    comment = result.scalar_one_or_none()
     
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
     
-    # Check if user has already liked this comment
+    # Check if user already liked this comment
     existing_like_query = select(CommentLike).where(
-        and_(
-            CommentLike.comment_id == comment_id,
-            CommentLike.user_id == current_user["username"]
-        )
+        and_(CommentLike.comment_id == comment_id, CommentLike.user_id == current_user["username"])
     )
-    existing_like_result = await db.execute(existing_like_query)
-    existing_like = existing_like_result.scalar_one_or_none()
+    result = await db.execute(existing_like_query)
+    existing_like = result.scalar_one_or_none()
     
     if existing_like:
-        # Remove like
-        await db.delete(existing_like)
-        liked = False
-    else:
-        # Add like
+        raise HTTPException(status_code=400, detail="You have already liked this comment")
+    
+    # Create new like
         new_like = CommentLike(
             id=str(uuid.uuid4()),
             comment_id=comment_id,
             user_id=current_user["username"]
         )
-        db.add(new_like)
-        liked = True
     
+        db.add(new_like)
+    await db.commit()
+    await db.refresh(new_like)
+    
+    return CommentLikeResponse(
+        id=new_like.id,
+        comment_id=new_like.comment_id,
+        user_id=new_like.user_id,
+        created_at=new_like.created_at
+    )
+
+@router.delete("/comments/{comment_id}/like")
+async def unlike_comment(
+    comment_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Unlike a comment"""
+    # Find user's like
+    like_query = select(CommentLike).where(
+        and_(CommentLike.comment_id == comment_id, CommentLike.user_id == current_user["username"])
+    )
+    result = await db.execute(like_query)
+    like = result.scalar_one_or_none()
+    
+    if not like:
+        raise HTTPException(status_code=404, detail="Like not found")
+    
+    # Delete like
+    await db.delete(like)
     await db.commit()
     
-    # Get updated likes count
-    likes_count_query = select(func.count(CommentLike.id)).where(CommentLike.comment_id == comment_id)
-    likes_count_result = await db.execute(likes_count_query)
-    likes_count = likes_count_result.scalar()
+    return {"message": "Like removed successfully"}
+
+@router.get("/comments/{comment_id}/replies", response_model=List[DebateCommentResponse])
+async def get_comment_replies(
+    comment_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get replies for a specific comment"""
+    # Check if parent comment exists
+    parent_query = select(DebateComment).where(DebateComment.id == comment_id)
+    result = await db.execute(parent_query)
+    parent_comment = result.scalar_one_or_none()
     
-    return {"liked": liked, "likes_count": likes_count}
+    if not parent_comment:
+        raise HTTPException(status_code=404, detail="Parent comment not found")
+    
+    # Get replies
+    replies_query = select(DebateComment).where(
+        DebateComment.parent_id == comment_id
+    ).order_by(DebateComment.created_at.asc())
+    
+    result = await db.execute(replies_query)
+    replies = result.scalars().all()
+    
+    # Convert to response format
+    async def convert_reply(reply):
+        # Get likes count
+        likes_query = select(func.count(CommentLike.id)).where(CommentLike.comment_id == reply.id)
+        likes_result = await db.execute(likes_query)
+        likes_count = likes_result.scalar()
+        
+        # Check if current user liked this reply
+        user_like_query = select(CommentLike).where(
+            and_(CommentLike.comment_id == reply.id, CommentLike.user_id == current_user["username"])
+        )
+        user_like_result = await db.execute(user_like_query)
+        user_liked = user_like_result.scalar_one_or_none() is not None
+        
+        return DebateCommentResponse(
+            id=reply.id,
+            pick_id=reply.pick_id,
+            parent_id=reply.parent_id,
+            author_id=reply.author_id,
+            author_name=reply.author_name,
+            content=reply.content,
+            created_at=reply.created_at,
+            likes_count=likes_count,
+            user_liked=user_liked,
+            replies_count=0,
+            replies=[]
+        )
+    
+    # Convert all replies
+    response_replies = []
+    for reply in replies:
+        response_replies.append(await convert_reply(reply))
+    
+    return response_replies
+
+
 
 @router.get("/categories")
 async def get_categories(db: AsyncSession = Depends(get_db)):
@@ -439,12 +440,6 @@ async def seed_debates(db: AsyncSession = Depends(get_db)):
         }
     
     # Reset all engagement data for fresh start
-    # Delete all votes
-    await db.execute(delete(DebateVote))
-    
-    # Delete all comment likes  
-    await db.execute(delete(CommentLike))
-    
     # Delete all comments
     await db.execute(delete(DebateComment))
     
@@ -452,8 +447,8 @@ async def seed_debates(db: AsyncSession = Depends(get_db)):
     await db.execute(
         update(DebatePick).values(
             is_active=False,
-            option1_votes=0,
-            option2_votes=0
+            total_votes=0,
+            total_comments=0
         )
     )
     
@@ -674,15 +669,14 @@ async def seed_debates(db: AsyncSession = Depends(get_db)):
         
         pick_data = {
             "id": str(uuid.uuid4()),
-            "category": sport,
-            "option1_name": selected_debate["option1_name"],
-            "option1_image": f"https://placehold.co/400x400/000000/FFFFFF?text={selected_debate['option1_name'].replace(' ', '+')}",
-            "option1_description": selected_debate["option1_description"],
-            "option1_votes": 0,  # Start with zero votes
-            "option2_name": selected_debate["option2_name"],
-            "option2_image": f"https://placehold.co/400x400/333333/FFFFFF?text={selected_debate['option2_name'].replace(' ', '+')}",
-            "option2_description": selected_debate["option2_description"],
-            "option2_votes": 0,  # Start with zero votes
+            "title": f"{selected_debate['option1_name']} vs {selected_debate['option2_name']}",
+            "description": f"Who is the greater athlete? {selected_debate['option1_name']}: {selected_debate['option1_description']} OR {selected_debate['option2_name']}: {selected_debate['option2_description']}",
+            "category": "Player Comparison",
+            "sport": sport,
+            "author_username": "system",
+            "author_display_name": "Head2Head System",
+            "total_votes": 0,
+            "total_comments": 0,
             "created_at": datetime.utcnow(),
             "is_active": True
         }
@@ -711,3 +705,174 @@ async def seed_debates(db: AsyncSession = Depends(get_db)):
         "rotation_info": f"Day {day_of_year} of the year - debates will rotate daily",
         "reset_info": "All previous votes, comments, and likes have been reset to 0"
     } 
+
+@router.post("/picks/{pick_id}/vote", response_model=DebateVoteResponse)
+async def vote_on_pick(
+    pick_id: str,
+    vote_data: DebateVoteCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Vote on a debate pick"""
+    # Validate vote option
+    if vote_data.vote_option not in ["option1", "option2"]:
+        raise HTTPException(status_code=400, detail="Invalid vote option. Must be 'option1' or 'option2'")
+    
+    # Check if pick exists
+    pick_query = select(DebatePick).where(DebatePick.id == pick_id)
+    result = await db.execute(pick_query)
+    pick = result.scalar_one_or_none()
+    
+    if not pick:
+        raise HTTPException(status_code=404, detail="Pick not found")
+    
+    # Check if user already voted
+    existing_vote_query = select(DebateVote).where(
+        and_(DebateVote.pick_id == pick_id, DebateVote.user_id == current_user["username"])
+    )
+    result = await db.execute(existing_vote_query)
+    existing_vote = result.scalar_one_or_none()
+    
+    if existing_vote:
+        # Update existing vote
+        if existing_vote.vote_option == vote_data.vote_option:
+            raise HTTPException(status_code=400, detail="You have already voted for this option")
+        
+        # Remove previous vote
+        if existing_vote.vote_option == "option1":
+            pick.option1_votes -= 1
+        else:
+            pick.option2_votes -= 1
+        
+        # Update vote
+        existing_vote.vote_option = vote_data.vote_option
+    else:
+        # Create new vote
+        new_vote = DebateVote(
+            id=str(uuid.uuid4()),
+            pick_id=pick_id,
+            user_id=current_user["username"],
+            vote_option=vote_data.vote_option
+        )
+        db.add(new_vote)
+    
+    # Update vote count
+    if vote_data.vote_option == "option1":
+        pick.option1_votes += 1
+    else:
+        pick.option2_votes += 1
+    
+    await db.commit()
+    
+    # Return the vote
+    if existing_vote:
+        return DebateVoteResponse(
+            id=existing_vote.id,
+            pick_id=existing_vote.pick_id,
+            user_id=existing_vote.user_id,
+            vote_option=existing_vote.vote_option,
+            created_at=existing_vote.created_at
+        )
+    else:
+        return DebateVoteResponse(
+            id=new_vote.id,
+            pick_id=new_vote.pick_id,
+            user_id=new_vote.user_id,
+            vote_option=new_vote.vote_option,
+            created_at=new_vote.created_at
+        )
+
+@router.delete("/picks/{pick_id}/vote")
+async def remove_vote(
+    pick_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Remove user's vote from a debate pick"""
+    # Check if pick exists
+    pick_query = select(DebatePick).where(DebatePick.id == pick_id)
+    result = await db.execute(pick_query)
+    pick = result.scalar_one_or_none()
+    
+    if not pick:
+        raise HTTPException(status_code=404, detail="Pick not found")
+    
+    # Find user's vote
+    vote_query = select(DebateVote).where(
+        and_(DebateVote.pick_id == pick_id, DebateVote.user_id == current_user["username"])
+    )
+    result = await db.execute(vote_query)
+    vote = result.scalar_one_or_none()
+    
+    if not vote:
+        raise HTTPException(status_code=404, detail="No vote found for this user")
+    
+    # Remove vote count
+    if vote.vote_option == "option1":
+        pick.option1_votes -= 1
+    else:
+        pick.option2_votes -= 1
+    
+    # Delete vote
+    await db.delete(vote)
+    await db.commit()
+    
+    return {"message": "Vote removed successfully"}
+
+@router.get("/picks/{pick_id}/vote")
+async def get_user_vote(
+    pick_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get user's vote for a specific pick"""
+    vote_query = select(DebateVote).where(
+        and_(DebateVote.pick_id == pick_id, DebateVote.user_id == current_user["username"])
+    )
+    result = await db.execute(vote_query)
+    vote = result.scalar_one_or_none()
+    
+    if not vote:
+        return {"user_vote": None}
+    
+    return {"user_vote": vote.vote_option}
+
+@router.get("/picks/{pick_id}/with-vote", response_model=DebatePickWithVoteResponse)
+async def get_pick_with_user_vote(
+    pick_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific debate pick with user's vote information"""
+    # Get pick
+    pick_query = select(DebatePick).where(DebatePick.id == pick_id)
+    result = await db.execute(pick_query)
+    pick = result.scalar_one_or_none()
+    
+    if not pick:
+        raise HTTPException(status_code=404, detail="Pick not found")
+    
+    # Get user's vote
+    vote_query = select(DebateVote).where(
+        and_(DebateVote.pick_id == pick_id, DebateVote.user_id == current_user["username"])
+    )
+    result = await db.execute(vote_query)
+    vote = result.scalar_one_or_none()
+    
+    user_vote = vote.vote_option if vote else None
+    
+    return DebatePickWithVoteResponse(
+        id=pick.id,
+        category=pick.category,
+        option1_name=pick.option1_name,
+        option1_image=pick.option1_image,
+        option1_description=pick.option1_description,
+        option1_votes=pick.option1_votes,
+        option2_name=pick.option2_name,
+        option2_image=pick.option2_image,
+        option2_description=pick.option2_description,
+        option2_votes=pick.option2_votes,
+        created_at=pick.created_at,
+        is_active=pick.is_active,
+        user_vote=user_vote
+    ) 

@@ -49,8 +49,7 @@ export default function NewsDetail() {
   const [newsDetail, setNewsDetail] = useState<NewsDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [likedArticles, setLikedArticles] = useState<Set<string>>(new Set());
-
-  // Load liked articles from localStorage
+      
   useEffect(() => {
     try {
       const stored = localStorage.getItem('likedArticles');
@@ -63,7 +62,6 @@ export default function NewsDetail() {
     }
   }, []);
 
-  // Save liked articles to localStorage
   const saveLikedArticles = (likedIds: Set<string>) => {
     try {
       localStorage.setItem('likedArticles', JSON.stringify(Array.from(likedIds)));
@@ -72,7 +70,6 @@ export default function NewsDetail() {
     }
   };
 
-  // Helper functions for content processing
   const extractSport = (text: string): string => {
     const sports = ['Football', 'Basketball', 'Tennis', 'Baseball', 'Soccer', 'Hockey', 'Volleyball', 'Cricket', 'Rugby', 'Golf'];
     const lowerText = text.toLowerCase();
@@ -157,13 +154,11 @@ export default function NewsDetail() {
       try {
         setIsLoading(true);
         
-        // First, try to get the specific news data that was clicked on
         const currentNewsData = localStorage.getItem('currentNewsData');
         
         if (currentNewsData) {
           const parsedCurrentNews = JSON.parse(currentNewsData);
           
-          // Convert ForumPost to NewsDetail format
           const newsDetail: NewsDetail = {
             id: parsedCurrentNews.id,
             title: parsedCurrentNews.title,
@@ -184,7 +179,6 @@ export default function NewsDetail() {
             sourceUrl: parsedCurrentNews.sourceUrl || undefined
           };
           
-          // Debug: Log the news detail data
           console.log('News detail data:', {
             id: newsDetail.id,
             title: newsDetail.title,
@@ -197,33 +191,40 @@ export default function NewsDetail() {
           return;
         }
         
-        // Fallback: try to get news data from localStorage (from forum page)
         const storedNewsData = localStorage.getItem('forumNewsData');
         let newsArticle = null;
         
-                  if (storedNewsData) {
-            const parsedData = JSON.parse(storedNewsData);
-            newsArticle = parsedData.data?.find((article: any) => 
-              article.url?.includes(id) || 
-              article.title?.toLowerCase().includes(id.toLowerCase()) ||
-              article.url?.split('/').pop() === id
-            );
+        if (storedNewsData) {
+          const parsedData = JSON.parse(storedNewsData);
+          
+          let newsData;
+          if (parsedData.en && parsedData.ru) {
+            const currentLanguage = localStorage.getItem('language') || 'en';
+            newsData = parsedData[currentLanguage as keyof typeof parsedData] || parsedData.en;
+          } else {
+            newsData = parsedData;
           }
+          
+          newsArticle = newsData.data?.find((article: any) => 
+            article.url?.includes(id) || 
+            article.title?.toLowerCase().includes(id.toLowerCase()) ||
+            article.url?.split('/').pop() === id
+          );
+        }
         
-        // If not found in localStorage, fetch fresh data
+        // If not found in localStorage, fetch fresh data from server
         if (!newsArticle) {
           const newsResponse = await newsService.getTopSportsHeadlines();
           
-                      newsArticle = newsResponse.data.find((article: any) => 
-              article.url?.includes(id) || 
-              article.title?.toLowerCase().includes(id.toLowerCase()) ||
-              article.url?.split('/').pop() === id
-            );
-            
-            if (!newsArticle) {
-              // If still not found, use the first article as fallback
-              newsArticle = newsResponse.data[0];
-            }
+          newsArticle = newsResponse.data.find((article: any) => 
+            article.url?.includes(id) || 
+            article.title?.toLowerCase().includes(id.toLowerCase()) ||
+            article.url?.split('/').pop() === id
+          );
+          
+          if (!newsArticle) {
+            newsArticle = newsResponse.data[0];
+          }
         }
         
         if (!newsArticle) {

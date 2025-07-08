@@ -57,14 +57,14 @@ export default function LeaderboardPage() {
         setLeaderboardData(response.data);
       } catch (err) {
         console.error("Error fetching leaderboard:", err);
-        setError("Failed to load leaderboard data");
+        setError(t('forum.failedToLoadLeaderboard'));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchLeaderboard();
-  }, []);
+  }, [t]);
 
   // Enhanced avatar caching for all leaderboard users
   useEffect(() => {

@@ -33,6 +33,11 @@ export interface MediaStackError {
   };
 }
 
+export interface MultiLanguageNewsResponse {
+  en: MediaStackResponse;
+  ru?: MediaStackResponse;
+}
+
 export class NewsService {
   private apiKey: string;
   private backendUrl: string;
@@ -77,12 +82,51 @@ export class NewsService {
   }
 
   /**
-   * Fetch top sports headlines from backend only
+   * Get current user language
+   */
+  private getCurrentLanguage(): string {
+    return localStorage.getItem('language') || 'en';
+  }
+
+  /**
+   * Fetch top sports headlines in both English and Russian from backend
+   * @param options - Configuration options for the request
+   */
+  async getTopSportsHeadlinesMultiLanguage(): Promise<MultiLanguageNewsResponse> {
+    try {
+      // Fetch both English and Russian versions from server
+      const [enResponse, ruResponse] = await Promise.all([
+        fetch(`${this.backendUrl}/news/sports?language=en`),
+        fetch(`${this.backendUrl}/news/sports?language=ru`)
+      ]);
+
+      if (enResponse.ok && ruResponse.ok) {
+        const [enData, ruData] = await Promise.all([
+          enResponse.json(),
+          ruResponse.json()
+        ]);
+        
+        return {
+          en: enData,
+          ru: ruData
+        };
+      } else {
+        throw new Error(`Backend responded with status: EN=${enResponse.status}, RU=${ruResponse.status}`);
+      }
+    } catch (error) {
+      console.error('Failed to fetch multi-language news from backend:', error);
+      throw new Error('News service unavailable. Please try again later.');
+    }
+  }
+
+  /**
+   * Fetch top sports headlines in user's preferred language
    * @param options - Configuration options for the request
    */
   async getTopSportsHeadlines() {
     try {
-      const response = await fetch(`${this.backendUrl}/news/sports`);
+      const language = this.getCurrentLanguage();
+      const response = await fetch(`${this.backendUrl}/news/sports?language=${language}`);
       if (response.ok) {
         const data = await response.json();
         return data;
@@ -148,11 +192,12 @@ export class NewsService {
   }
 
   /**
-   * Get transfer news from backend
+   * Get transfer news in user's preferred language from backend
    */
   async getTransferNews(sports: string[] = ['football', 'basketball', 'volleyball']): Promise<any> {
     try {
-      const response = await fetch(`${this.backendUrl}/news/sports`);
+      const language = this.getCurrentLanguage();
+      const response = await fetch(`${this.backendUrl}/news/sports?language=${language}`);
       if (response.ok) {
         const data = await response.json();
         // Filter for transfer-related news
@@ -170,6 +215,21 @@ export class NewsService {
       console.error('Failed to fetch transfer news from backend:', error);
       throw new Error('Transfer news service unavailable. Please try again later.');
     }
+  }
+
+  /**
+   * Get news in specific language from multi-language response
+   */
+  getNewsInLanguage(multiLanguageResponse: MultiLanguageNewsResponse, language: string = 'en'): MediaStackResponse {
+    return multiLanguageResponse[language as keyof MultiLanguageNewsResponse] || multiLanguageResponse.en;
+  }
+
+  /**
+   * Get news in current user's language from multi-language response
+   */
+  getNewsInCurrentLanguage(multiLanguageResponse: MultiLanguageNewsResponse): MediaStackResponse {
+    const currentLanguage = this.getCurrentLanguage();
+    return this.getNewsInLanguage(multiLanguageResponse, currentLanguage);
   }
 
   // Helper to decode HTML entities

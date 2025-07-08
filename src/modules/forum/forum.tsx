@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../shared/ui/tabs';
 import { 
   MessageSquare, 
   Heart, 
-  Clock, 
   TrendingUp,
   Newspaper,
   RefreshCw,
@@ -23,6 +22,9 @@ import {
   DropdownMenuTrigger 
 } from '../../shared/ui/dropdown-menu';
 import { newsService } from '../../shared/services/news-service';
+import { debateService, type DebatePick } from '../../shared/services/debate-service';
+import { useGlobalStore } from '../../shared/interface/gloabL_var';
+import { useTranslation } from 'react-i18next';
 
 // Types for Forum content
 interface ForumPost {
@@ -72,27 +74,30 @@ interface DebatePost extends ForumPost {
   };
 }
 
-const SPORTS = [
-  'All Sports',
-  'Football',
-  'Basketball', 
-  'Volleyball',
-  'Tennis',
-  'Baseball',
-  'Soccer',
-  'Hockey'
-];
-
-
 export default function Forum() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { user } = useGlobalStore();
+  
+  const SPORTS = [
+    t('forum.allSports'),
+    t('forum.football'),
+    t('forum.basketball'), 
+    t('forum.volleyball'),
+    t('forum.tennis'),
+    t('forum.baseball'),
+    t('forum.soccer'),
+    t('forum.hockey')
+  ];
   
   const [activeTab, setActiveTab] = useState<'debates' | 'news' | 'transfers'>('debates');
-  const [selectedSport, setSelectedSport] = useState<string>('All Sports');
+  const [selectedSport, setSelectedSport] = useState<string>(t('forum.allSports'));
   const [posts, setPosts] = useState<ForumPost[]>([]);
+  const [debates, setDebates] = useState<DebatePick[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filteredPosts, setFilteredPosts] = useState<ForumPost[]>([]);
   const [newsError, setNewsError] = useState<string | null>(null);
+  const [debateError, setDebateError] = useState<string | null>(null);
   const [likedArticles, setLikedArticles] = useState<Set<string>>(new Set());
 
   // Helper to load liked articles from localStorage
@@ -117,11 +122,12 @@ export default function Forum() {
     }
   };
 
-  // Load news data function (backend only)
-  const loadNewsData = async () => {
+  // Load data function (backend only)
+  const loadData = async () => {
     try {
       setIsLoading(true);
       setNewsError(null);
+      setDebateError(null);
       
       // Always get the latest liked articles from localStorage
       const latestLikedArticles = getLikedArticlesFromStorage();
@@ -132,12 +138,36 @@ export default function Forum() {
       let newsPosts: ForumPost[] = [];
       let transferPosts: ForumPost[] = [];
 
-      // Fetch news data from backend
+      // Fetch debates from backend only if user is authenticated
+      if (user && user.username && localStorage.getItem('access_token')) {
+        try {
+          const debateData = await debateService.getDebates({ 
+            limit: 50,
+            sortBy: 'latest'
+          });
+          setDebates(debateData);
+        } catch (error: any) {
+          console.error('Error fetching debates:', error);
+          if (error.message?.includes('Authorization header missing') || error.message?.includes('401')) {
+            setDebateError('Please log in to view debates');
+          } else {
+            setDebateError('Failed to load debates');
+          }
+        }
+      } else {
+        setDebateError('Please log in to view debates');
+      }
+
+      // Fetch multi-language news data from server
       try {
-        const newsResponse = await newsService.getTopSportsHeadlines();
+        const multiLanguageNewsResponse = await newsService.getTopSportsHeadlinesMultiLanguage();
         
-        // Store news data in localStorage for news detail page (legacy format)
-        localStorage.setItem('forumNewsData', JSON.stringify(newsResponse));
+        // Get news in current user's language
+        const currentLanguage = localStorage.getItem('language') || 'en';
+        const newsResponse = newsService.getNewsInLanguage(multiLanguageNewsResponse, currentLanguage);
+        
+        // Store multi-language news data in localStorage for news detail page
+        localStorage.setItem('forumNewsData', JSON.stringify(multiLanguageNewsResponse));
         
         newsPosts = newsResponse.data.map((article: any) => {
           const post = newsService.convertToForumPost(article, 'news');
@@ -148,7 +178,7 @@ export default function Forum() {
         console.error('Error fetching sports headlines:', error);
       }
 
-      // Fetch transfer data from backend
+      // Fetch transfer data from server (also in user's language)
       try {
         const transferResponse = await newsService.getTransferNews(['football', 'basketball', 'volleyball']);
         
@@ -167,209 +197,111 @@ export default function Forum() {
         console.error('Error fetching transfer news:', error);
       }
 
-      // Add some mock debate posts since NewsAPI doesn't have debate content
-      const mockDebates: ForumPost[] = [
-        {
-          id: 'debate-1',
-          title: 'Who is the Greatest Basketball Player of All Time?',
-          content: 'The eternal debate continues! Is it Michael Jordan with his 6 championships, or LeBron James with his longevity and all-around dominance?',
-          author: 'SportsDebater',
-          authorAvatar: '/images/placeholder-user.jpg',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          sport: 'Basketball',
-          likes: 234,
-          comments: 89,
-          isLiked: latestLikedArticles.has('debate-1'),
-          tags: ['GOAT', 'Jordan', 'LeBron'],
-          type: 'debate',
-          debateDetails: {
-            option1: 'Michael Jordan',
-            option2: 'LeBron James',
-            votes: 1567,
-            trending: true
-          }
-        } as DebatePost,
-        {
-          id: 'debate-2',
-          title: 'Should the NFL Expand the Playoff Format?',
-          content: 'With the current 14-team playoff format, is it time to expand further or keep it as is?',
-          author: 'NFLFanatic',
-          authorAvatar: '/images/placeholder-user.jpg',
-          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-          sport: 'Football',
-          likes: 156,
-          comments: 43,
-          isLiked: latestLikedArticles.has('debate-2'),
-          tags: ['NFL', 'Playoffs', 'Format'],
-          type: 'debate',
-          debateDetails: {
-            option1: 'Expand Playoffs',
-            option2: 'Keep Current Format',
-            votes: 743,
-            trending: false
-          }
-        } as DebatePost,
-        {
-          id: 'debate-3',
-          title: 'Is the Transfer Portal Ruining College Sports?',
-          content: 'With players constantly switching teams, are we losing the traditional college sports experience?',
-          author: 'CollegeFan',
-          authorAvatar: '/images/placeholder-user.jpg',
-          timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
-          sport: 'Football',
-          likes: 98,
-          comments: 67,
-          isLiked: latestLikedArticles.has('debate-3'),
-          tags: ['College', 'Transfer', 'Portal'],
-          type: 'debate',
-          debateDetails: {
-            option1: 'Yes, it\'s ruining tradition',
-            option2: 'No, it gives players freedom',
-            votes: 432,
-            trending: true
-          }
-        } as DebatePost
-      ];
-      allPosts.push(...mockDebates);
+      // Combine all posts
       allPosts.push(...newsPosts, ...transferPosts);
       setPosts(allPosts);
       
     } catch (error) {
       console.error('Error loading forum data:', error);
-      setNewsError('Failed to load latest news. Please try again later.');
-      
-      // Fallback to mock data if API fails
-      const fallbackPosts: ForumPost[] = [
-        {
-          id: 'fallback-1',
-          title: 'Unable to Load Latest News',
-          content: 'We\'re experiencing issues connecting to our news service. Please check your internet connection and try again.',
-          author: 'System',
-          authorAvatar: '/images/placeholder-user.jpg',
-          timestamp: new Date(),
-          sport: 'General Sports',
-          likes: 0,
-          comments: 0,
-          isLiked: false,
-          tags: ['System'],
-          type: 'news',
-          newsDetails: {
-            source: 'System',
-            importance: 'medium',
-            breaking: false
-          }
-        } as NewsPost
-      ];
-      setPosts(fallbackPosts);
+      setNewsError(t('forum.failedToLoadNews'));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Load real news data with caching
+  // Load data with caching
   useEffect(() => {
-    loadNewsData().catch(error => {
-      console.error('Error in loadNewsData:', error);
+    loadData().catch((error: any) => {
+      console.error('Error in loadData:', error);
     });
-  }, []);
+  }, [user]); // Re-run when user changes
+
+  // Load debates separately to ensure they're always fetched when user is authenticated
+  useEffect(() => {
+    const loadDebates = async () => {
+      if (user && user.username && localStorage.getItem('access_token')) {
+        try {
+          console.log('Loading debates for user:', user.username);
+          const debateData = await debateService.getDebates({ 
+            limit: 50,
+            sortBy: 'latest'
+          });
+          console.log('Loaded debates:', debateData);
+          setDebates(debateData);
+          setDebateError(null);
+        } catch (error: any) {
+          console.error('Error fetching debates:', error);
+          if (error.message?.includes('Authorization header missing') || error.message?.includes('401')) {
+            setDebateError('Please log in to view debates');
+          } else {
+            setDebateError('Failed to load debates');
+          }
+        }
+      } else {
+        setDebateError('Please log in to view debates');
+        setDebates([]);
+      }
+    };
+
+    loadDebates();
+  }, [user, user?.username]); // Re-run when user or username changes
 
   // Filter and sort posts
   useEffect(() => {
-    let filtered = posts.filter(post => {
-      const matchesTab = post.type === activeTab;
-      const matchesSport = selectedSport === 'All Sports' || post.sport === selectedSport;
-      return matchesTab && matchesSport;
-    });
+    if (activeTab === 'debates') {
+      let filteredDebates = debates.filter(debate => {
+        const matchesSport = selectedSport === t('forum.allSports') || debate.category === selectedSport;
+        return matchesSport;
+      });
+      if (selectedSport === t('forum.allSports')) {
+        filteredDebates = filteredDebates.sort((a, b) => {
+          const idxA = SPORTS.indexOf(a.category);
+          const idxB = SPORTS.indexOf(b.category);
+          return idxA - idxB;
+        });
+      } else {
+        filteredDebates = filteredDebates.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      }
 
-    // If debates tab is active and no debates, show mockDebates
-    if (activeTab === 'debates' && filtered.length === 0) {
-      const mockDebates: ForumPost[] = [
-        {
-          id: 'debate-1',
-          title: 'Who is the Greatest Basketball Player of All Time?',
-          content: 'The eternal debate continues! Is it Michael Jordan with his 6 championships, or LeBron James with his longevity and all-around dominance?',
-          author: 'SportsDebater',
-          authorAvatar: '/images/placeholder-user.jpg',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          sport: 'Basketball',
-          likes: 234,
-          comments: 89,
-          isLiked: likedArticles.has('debate-1'),
-          tags: ['GOAT', 'Jordan', 'LeBron'],
-          type: 'debate',
-          debateDetails: {
-            option1: 'Michael Jordan',
-            option2: 'LeBron James',
-            votes: 1567,
-            trending: true
-          }
-        } as DebatePost,
-        {
-          id: 'debate-2',
-          title: 'Should the NFL Expand the Playoff Format?',
-          content: 'With the current 14-team playoff format, is it time to expand further or keep it as is?',
-          author: 'NFLFanatic',
-          authorAvatar: '/images/placeholder-user.jpg',
-          timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-          sport: 'Football',
-          likes: 156,
-          comments: 43,
-          isLiked: likedArticles.has('debate-2'),
-          tags: ['NFL', 'Playoffs', 'Format'],
-          type: 'debate',
-          debateDetails: {
-            option1: 'Expand Playoffs',
-            option2: 'Keep Current Format',
-            votes: 743,
-            trending: false
-          }
-        } as DebatePost,
-        {
-          id: 'debate-3',
-          title: 'Is the Transfer Portal Ruining College Sports?',
-          content: 'With players constantly switching teams, are we losing the traditional college sports experience?',
-          author: 'CollegeFan',
-          authorAvatar: '/images/placeholder-user.jpg',
-          timestamp: new Date(Date.now() - 8 * 60 * 60 * 1000),
-          sport: 'Football',
-          likes: 98,
-          comments: 67,
-          isLiked: likedArticles.has('debate-3'),
-          tags: ['College', 'Transfer', 'Portal'],
-          type: 'debate',
-          debateDetails: {
-            option1: 'Yes, it\'s ruining tradition',
-            option2: 'No, it gives players freedom',
-            votes: 432,
-            trending: true
-          }
-        } as DebatePost
-      ];
-      filtered = mockDebates;
-    }
+      // Convert debates to ForumPost format for display
+      const debatePosts: ForumPost[] = filteredDebates.map(debate => ({
+        id: debate.id,
+        title: `${debate.option1_name} vs ${debate.option2_name}`,
+        content: `${debate.option1_description || ''}\n\n${debate.option2_description || ''}`,
+        author: 'System',
+        authorAvatar: '/images/placeholder-user.jpg',
+        timestamp: new Date(debate.created_at),
+        sport: debate.category,
+        likes: debate.option1_votes + debate.option2_votes,
+        comments: 0, // We'll add comment count later
+        isLiked: false, // Will be handled separately
+        tags: [debate.category],
+        type: 'debate' as const,
+        debateDetails: {
+          option1: debate.option1_name,
+          option2: debate.option2_name,
+          votes: debate.option1_votes + debate.option2_votes,
+          trending: debateService.isTrending(debate)
+        }
+      }));
 
-    setFilteredPosts(filtered);
-  }, [posts, activeTab, selectedSport, likedArticles]);
-
-  const formatTimeAgo = (timestamp: Date) => {
-    const now = new Date();
-    const diffInMs = now.getTime() - timestamp.getTime();
-    const diffInMins = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-    if (diffInMins < 60) {
-      return `${diffInMins}m ago`;
-    } else if (diffInHours < 24) {
-      return `${diffInHours}h ago`;
+      setFilteredPosts(debatePosts);
     } else {
-      return `${diffInDays}d ago`;
+      // Handle news and transfer posts
+      let filtered = posts.filter(post => {
+        const matchesTab = post.type === activeTab;
+        const matchesSport = selectedSport === t('forum.allSports') || post.sport === selectedSport;
+        return matchesTab && matchesSport;
+      });
+
+      setFilteredPosts(filtered);
     }
-  };
+  }, [posts, debates, activeTab, selectedSport, likedArticles]);
+
 
   const handlePostClick = (post: ForumPost) => {
     if (post.type === 'debate') {
-      navigate(`/forum/debates/${post.id}`);
+      navigate(`/selection/${post.id}`);
     } else if (post.type === 'news' || post.type === 'transfer') {
       // No need to set selectedNews here, as we'll render the detail view directly in the list
     }
@@ -435,36 +367,68 @@ export default function Forum() {
     try {
       setIsLoading(true);
       setNewsError(null);
+      setDebateError(null);
       
-      // Clear existing posts and reload from backend
-      setPosts([]);
-      await loadNewsData();
+      // Refresh all data
+      await loadData();
+      
     } catch (error) {
-      console.error('Error refreshing news:', error);
-      setNewsError('Failed to refresh news. Please try again.');
+      console.error('Error refreshing data:', error);
+      setNewsError(t('forum.failedToRefreshNews'));
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleRefreshDebates = async () => {
+    try {
+      setIsLoading(true);
+      setDebateError(null);
+      
+      if (user && user.username && localStorage.getItem('access_token')) {
+        console.log('Refreshing debates for user:', user.username);
+        const debateData = await debateService.getDebates({ 
+          limit: 50,
+          sortBy: 'latest'
+        });
+        console.log('Refreshed debates:', debateData);
+        setDebates(debateData);
+      } else {
+        setDebateError('Please log in to view debates');
+        setDebates([]);
+      }
+    } catch (error: any) {
+      console.error('Error refreshing debates:', error);
+      if (error.message?.includes('Authorization header missing') || error.message?.includes('401')) {
+        setDebateError('Please log in to view debates');
+      } else {
+        setDebateError('Failed to refresh debates');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Refresh news when language changes
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      if (activeTab === 'news' || activeTab === 'transfers') {
+        handleRefreshNews();
+      }
+    };
+
+    // Listen for language changes
+    window.addEventListener('languageChange', handleLanguageChange);
+    
+    return () => {
+      window.removeEventListener('languageChange', handleLanguageChange);
+    };
+  }, [activeTab]);
+
   const PostCard = ({ post }: { post: ForumPost }) => (
     <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer group">
-      <CardHeader className="pb-3 p-4 sm:p-6">
+      <CardHeader className="pb-0">
         <div className="flex items-start justify-between gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <img 
-              src={post.authorAvatar} 
-              alt={post.author}
-              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-primary/20"
-            />
-            <div>
-              <p className="font-semibold text-xs sm:text-sm">{post.author}</p>
-              <div className="flex items-center gap-1 sm:gap-2 text-xs text-muted-foreground">
-                <Clock className="w-3 h-3" />
-                {formatTimeAgo(post.timestamp)}
-              </div>
-            </div>
-          </div>
           <div className="flex flex-col items-end gap-1">
             <Badge variant="secondary" className="text-xs">
               <span className="hidden sm:inline">{post.sport}</span>
@@ -487,9 +451,9 @@ export default function Forum() {
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-3 p-4 sm:p-6" onClick={() => handlePostClick(post)}>
+      <CardContent className="space-y-2 p-4 sm:p-5" onClick={() => handlePostClick(post)}>
         <div>
-          <h3 className="font-bold text-base sm:text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">
+          <h3 className="font-bold text-base sm:text-lg mb-1 group-hover:text-primary transition-colors line-clamp-2">
             {post.title}
           </h3>
           <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed line-clamp-3">
@@ -519,11 +483,46 @@ export default function Forum() {
             {(() => {
               const details = (post as DebatePost).debateDetails;
               const totalVotes = details.votes || 0;
-              // For mock debates, split votes 60/40 or 50/50 for demo
+              
+              // For real debates, we need to get the actual vote counts from the debate data
+              const debate = debates.find(d => d.id === post.id);
+              if (debate) {
+                const votes1 = debate.option1_votes;
+                const votes2 = debate.option2_votes;
+                const total = votes1 + votes2;
+                const percent1 = total > 0 ? Math.round((votes1 / total) * 100) : 50;
+                const percent2 = total > 0 ? 100 - percent1 : 50;
+                
+                return (
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="font-medium">{details.option1} ({percent1}%)</span>
+                      <span className="font-medium">{details.option2} ({percent2}%)</span>
+                    </div>
+                    <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden flex">
+                      <div
+                        className="bg-primary h-full"
+                        style={{ width: `${percent1}%`, transition: 'width 0.3s' }}
+                      />
+                      <div
+                        className="bg-secondary h-full"
+                        style={{ width: `${percent2}%`, transition: 'width 0.3s' }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>{votes1} {t('forum.votes')}</span>
+                      <span>{votes2} {t('forum.votes')}</span>
+                    </div>
+                  </div>
+                );
+              }
+              
+              // Fallback for when debate data is not available
               const votes1 = totalVotes ? Math.round(totalVotes * 0.6) : 0;
               const votes2 = totalVotes - votes1;
               const percent1 = totalVotes ? Math.round((votes1 / totalVotes) * 100) : 0;
               const percent2 = totalVotes ? 100 - percent1 : 0;
+              
               return (
                 <div>
                   <div className="flex justify-between mb-1">
@@ -541,8 +540,8 @@ export default function Forum() {
                     />
                   </div>
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>{votes1} votes</span>
-                    <span>{votes2} votes</span>
+                    <span>{votes1} {t('forum.votes')}</span>
+                    <span>{votes2} {t('forum.votes')}</span>
                   </div>
                 </div>
               );
@@ -597,8 +596,8 @@ export default function Forum() {
           <Button variant="outline" size="sm" asChild>
             <a href={(post as NewsPost).newsDetails.url} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Read Original</span>
-              <span className="sm:hidden">Original</span>
+              <span className="hidden sm:inline">{t('forum.readOriginal')}</span>
+              <span className="sm:hidden">{t('forum.original')}</span>
             </a>
           </Button>
         )}
@@ -613,7 +612,7 @@ export default function Forum() {
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-center items-center h-64">
             <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-            <span className="ml-2 text-lg">Loading Forum...</span>
+            <span className="ml-2 text-lg">{t('forum.loadingForum')}</span>
           </div>
         </div>
       </div>
@@ -628,24 +627,30 @@ export default function Forum() {
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Sports Forum</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">{t('forum.sportsForum')}</h1>
             <p className="text-sm sm:text-base text-muted-foreground">
-              Join the discussion on debates, latest news, and transfer updates
+              {t('forum.joinDiscussion')}
             </p>
             {newsError && (
               <div className="mt-2 p-2 bg-destructive/10 text-destructive text-xs sm:text-sm rounded-md">
                 {newsError}
               </div>
             )}
+            {debateError && (
+              <div className="mt-2 p-2 bg-destructive/10 text-destructive text-xs sm:text-sm rounded-md">
+                {debateError}
+              </div>
+            )}
           </div>
           {/* Add Create Debate button only for Debates tab */}
           {activeTab === 'debates' && (
-            <Button
-              className="self-end w-full sm:w-auto"
-              onClick={handleCreateDebate}
-            >
-              + Create Debate
-            </Button>
+            <div className="flex gap-2 self-end w-full sm:w-auto">
+              <Button
+                onClick={handleCreateDebate}
+              >
+                {t('forum.createDebateButton')}
+              </Button>
+            </div>
           )}
         </div>
 
@@ -654,15 +659,15 @@ export default function Forum() {
           <TabsList className="grid w-full grid-cols-3 lg:w-fit">
             <TabsTrigger value="debates" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Debates</span>
+              {t('forum.debates')}
             </TabsTrigger>
             <TabsTrigger value="news" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <Newspaper className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">News</span>
+              {t('forum.news')}
             </TabsTrigger>
             <TabsTrigger value="transfers" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">Transfers</span>
+              {t('forum.transfers')}
             </TabsTrigger>
           </TabsList>
 
@@ -689,9 +694,8 @@ export default function Forum() {
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
-              </DropdownMenu> 
+              </DropdownMenu>
             </div>
-
           </div>
 
           {/* Tab Content */}
@@ -704,13 +708,18 @@ export default function Forum() {
               ) : (
                 <Card className="p-12 text-center">
                   <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No debates found</h3>
+                  <h3 className="text-lg font-semibold mb-2">{t('forum.noDebatesFound')}</h3>
                   <p className="text-muted-foreground mb-4">
-                    Be the first to start a debate in {selectedSport === 'All Sports' ? 'any sport' : selectedSport}!
+                    {t('forum.beFirstToStartDebate', { sport: selectedSport === t('forum.allSports') ? t('forum.anySport') : selectedSport })}
                   </p>
-                  <Button onClick={handleCreateDebate}>
-                    Start a Debate
-                  </Button>
+                  <div className="flex gap-2 justify-center">
+                    <Button variant="outline" onClick={handleRefreshDebates} disabled={isLoading}>
+                      {isLoading ? 'Refreshing...' : 'Refresh Debates'}
+                    </Button>
+                    <Button onClick={handleCreateDebate}>
+                      {t('forum.startDebate')}
+                    </Button>
+                  </div>
                 </Card>
               )}
             </div>
@@ -737,7 +746,7 @@ export default function Forum() {
                         <Badge variant="secondary" className="text-xs sm:text-sm">{post.sport}</Badge>
                       </div>
                       <div className="text-muted-foreground text-xs mb-2">
-                        <span>By {post.author}</span>
+                        <span>{t('forum.by')} {post.author}</span>
                       </div>
                       <div className="prose prose-gray max-w-none mb-4">
                         <div className="space-y-3 sm:space-y-4 text-foreground leading-relaxed text-sm sm:text-base">
@@ -766,8 +775,8 @@ export default function Forum() {
                           <Button variant="outline" size="sm" asChild>
                             <a href={(post as NewsPost).newsDetails.url} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                              <span className="hidden sm:inline">Read Original</span>
-                              <span className="sm:hidden">Original</span>
+                              <span className="hidden sm:inline">{t('forum.readOriginal')}</span>
+                              <span className="sm:hidden">{t('forum.original')}</span>
                             </a>
                           </Button>
                         )}
@@ -778,12 +787,12 @@ export default function Forum() {
               ) : (
                 <Card className="p-12 text-center">
                   <Newspaper className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No news found</h3>
+                  <h3 className="text-lg font-semibold mb-2">{t('forum.noNewsFound')}</h3>
                   <p className="text-muted-foreground mb-4">
-                    No recent news for {selectedSport === 'All Sports' ? 'any sport' : selectedSport}.
+                    {t('forum.noRecentNews', { sport: selectedSport === t('forum.allSports') ? t('forum.anySport') : selectedSport })}
                   </p>
                   <Button onClick={handleRefreshNews}>
-                    Refresh News
+                    {t('forum.refreshNews')}
                   </Button>
                 </Card>
               )}
@@ -799,12 +808,12 @@ export default function Forum() {
               ) : (
                 <Card className="p-12 text-center">
                   <TrendingUp className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No transfers found</h3>
+                  <h3 className="text-lg font-semibold mb-2">{t('forum.noTransfersFound')}</h3>
                   <p className="text-muted-foreground mb-4">
-                    No recent transfer updates for {selectedSport === 'All Sports' ? 'any sport' : selectedSport}.
+                    {t('forum.noRecentTransfers', { sport: selectedSport === t('forum.allSports') ? t('forum.anySport') : selectedSport })}
                   </p>
                   <Button onClick={handleRefreshNews}>
-                    Refresh Transfers
+                    {t('forum.refreshTransfers')}
                   </Button>
                 </Card>
               )}

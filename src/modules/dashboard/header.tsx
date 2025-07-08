@@ -78,7 +78,7 @@ export default function Header() {
             <Link to="/forum" className="nav-gaming">
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <SlidersHorizontal className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
-                <span className="text-sm lg:text-base">Forum</span>
+                <span className="text-sm lg:text-base">{t('forum.forum')}</span>
               </div>
             </Link>
             <Link to={`/${user?.username}/trainings`} className="nav-gaming"> 

@@ -278,7 +278,7 @@ export default function BattlePage() {
         // The battle will be removed from the list when the backend processes the cancellation
       } catch (error) {
         console.error("Error canceling battle:", error);
-        alert("Failed to cancel battle. Please try again.");
+        alert(t('forum.failedToCancelBattle'));
       }
     }
   }

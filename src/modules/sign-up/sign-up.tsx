@@ -161,12 +161,12 @@ export default function SignUpPage() {
           }
         } catch (signInError: any) {
           setValidationErrors({
-            submit: 'Google sign-in failed. Please try again or use email sign-up.'
+            submit: t('forum.googleSignInFailed')
           });
         }
       } else {
         setValidationErrors({
-          submit: 'Google sign-up failed. Please try again or use email sign-up.'
+          submit: t('forum.googleSignUpFailed')
         });
       }
     } finally {
@@ -177,7 +177,7 @@ export default function SignUpPage() {
   const handleGoogleError = () => {
     console.log('Google sign-up failed');
     setValidationErrors({
-      submit: 'Google sign-up failed. Please try again or use email sign-up.'
+      submit: t('forum.googleSignUpFailed')
     });
   };
 

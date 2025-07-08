@@ -1,62 +1,91 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '../../shared/ui/card';
 import { Button } from '../../shared/ui/button';
 import { Textarea } from '../../shared/ui/textarea';
 import { Label } from '../../shared/ui/label';
+import { Input } from '../../shared/ui/input';
 import { ArrowLeft } from 'lucide-react';
 import Header from '../dashboard/header';
+import { debateService } from '../../shared/services/debate-service';
+import type { CreateDebateData } from '../../shared/services/debate-service';
+import { useGlobalStore } from '../../shared/interface/gloabL_var';
 
 interface CreateDebateForm {
-  title: string;
-  description: string;
+  option1_name: string;
+  option1_description: string;
+  option2_name: string;
+  option2_description: string;
   sport: string;
 }
 
 export default function CreateDebate() {
   const navigate = useNavigate();
+  const { user } = useGlobalStore();
 
   const [form, setForm] = useState<CreateDebateForm>({
-    title: '',
-    description: '',
-    sport: ''
+    option1_name: '',
+    option1_description: '',
+    option2_name: '',
+    option2_description: '',
+    sport: 'Football'
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  const sports = [
-    'Football',
-    'Basketball',
-    'Tennis',
-    'Baseball',
-    'Soccer',
-    'Hockey',
-    'Volleyball'
-  ];
+
+  // Check authentication on component mount
+  useEffect(() => {
+    if (!user || !user.username || !localStorage.getItem('access_token')) {
+      navigate('/sign-in');
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (isSubmitting) return;
     
+    // Check if user is authenticated
+    if (!user || !user.username || !localStorage.getItem('access_token')) {
+      navigate('/sign-in');
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
       setValidationErrors({});
 
       // Validate form
-      if (!form.title.trim()) {
+      if (!form.option1_name.trim()) {
         setValidationErrors(prev => ({
           ...prev,
-          title: 'Title is required'
+          option1_name: 'First option name is required'
         }));
         return;
       }
 
-      if (!form.description.trim()) {
+      if (!form.option1_description.trim()) {
         setValidationErrors(prev => ({
           ...prev,
-          description: 'Description is required'
+          option1_description: 'First option description is required'
+        }));
+        return;
+      }
+
+      if (!form.option2_name.trim()) {
+        setValidationErrors(prev => ({
+          ...prev,
+          option2_name: 'Second option name is required'
+        }));
+        return;
+      }
+
+      if (!form.option2_description.trim()) {
+        setValidationErrors(prev => ({
+          ...prev,
+          option2_description: 'Second option description is required'
         }));
         return;
       }
@@ -69,20 +98,30 @@ export default function CreateDebate() {
         return;
       }
 
-      // Mock API call - in real app, this would send to backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Create debate data
+      const debateData: CreateDebateData = {
+        option1_name: form.option1_name.trim(),
+        option1_description: form.option1_description.trim(),
+        option2_name: form.option2_name.trim(),
+        option2_description: form.option2_description.trim(),
+        category: form.sport // Use sport as category for backend compatibility
+      };
 
-      // Generate mock ID - in real app, this would come from backend
-      const debateId = `debate-${Date.now()}`;
+      // Create debate via API
+      const newDebate = await debateService.createDebate(debateData);
 
       // Navigate to the new debate
-      navigate(`/forum/debates/${debateId}`);
-    } catch (error) {
+      navigate(`/selection/${newDebate.id}`);
+    } catch (error: any) {
       console.error('Error creating debate:', error);
-      setValidationErrors(prev => ({
-        ...prev,
-        submit: 'Failed to create debate. Please try again.'
-      }));
+      if (error.message?.includes('Authorization header missing') || error.message?.includes('401')) {
+        navigate('/sign-in');
+      } else {
+        setValidationErrors(prev => ({
+          ...prev,
+          submit: 'Failed to create debate. Please try again.'
+        }));
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -106,6 +145,8 @@ export default function CreateDebate() {
       });
     }
   };
+
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -131,68 +172,126 @@ export default function CreateDebate() {
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="title">Debate Title</Label>
-                <Textarea
-                  id="title"
-                  name="title"
-                  value={form.title}
-                  onChange={handleChange}
-                  placeholder="e.g., Should VAR be removed from football?"
-                  maxLength={100}
-                  className={`resize-none min-h-[100px] ${validationErrors.title ? 'border-destructive focus-visible:ring-destructive' : ''}`}
-                />
-                {validationErrors.title && (
-                  <p className="text-sm text-destructive">{validationErrors.title}</p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {form.title.length}/100 characters
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="option1_name" className="text-lg font-semibold text-primary">First Option Name</Label>
+              <Input
+                id="option1_name"
+                name="option1_name"
+                value={form.option1_name}
+                onChange={handleChange}
+                placeholder="e.g., Lionel Messi"
+                maxLength={50}
+                className={`h-12 text-lg font-medium border-2 transition-all duration-200 ${
+                  validationErrors.option1_name 
+                     ? 'border-destructive focus-visible:ring-destructive' 
+                    : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
+                }`}
+              />
+              {validationErrors.option1_name && (
+                <p className="text-sm text-red-500 font-medium">{validationErrors.option1_name}</p>
+              )}
+              <p className="text-xs text-muted-foreground font-medium">
+                {form.option1_name.length}/50 characters
+              </p>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  placeholder="Explain your debate topic. What are the key points for and against?"
-                  maxLength={2000}
-                  className={`min-h-[200px] resize-none ${validationErrors.description ? 'border-destructive focus-visible:ring-destructive' : ''}`}
-                />
-                {validationErrors.description && (
-                  <p className="text-sm text-destructive">{validationErrors.description}</p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  {form.description.length}/2000 characters
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="option1_description" className="text-lg font-semibold text-primary">First Option Description</Label>
+              <Textarea
+                id="option1_description"
+                name="option1_description"
+                value={form.option1_description}
+                onChange={handleChange}
+                placeholder="Describe the first option..."
+                maxLength={500}
+                className={`min-h-[120px] resize-none text-base border-2 transition-all duration-200 ${
+                  validationErrors.option1_description 
+                    ? 'border-destructive focus-visible:ring-destructive' 
+                    : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
+                }`}
+              />
+              {validationErrors.option1_description && (
+                <p className="text-sm text-destructive font-medium">{validationErrors.option1_description}</p>
+              )}
+              <p className="text-xs text-muted-foreground font-medium">
+                {form.option1_description.length}/500 characters
+              </p>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sport">Sport</Label>
-                  <select
-                    id="sport"
-                    name="sport"
-                    value={form.sport}
-                    onChange={handleChange}
-                    className={`flex h-11 w-full rounded-md border ${
-                      validationErrors.sport ? 'border-destructive' : 'border-input'
-                    } bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
-                  >
-                    <option value="">Select a sport</option>
-                    {sports.map(sport => (
-                      <option key={sport} value={sport}>
-                        {sport}
-                      </option>
-                    ))}
-                  </select>
-                  {validationErrors.sport && (
-                    <p className="text-sm text-destructive">{validationErrors.sport}</p>
-                  )}
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="option2_name" className="text-lg font-semibold text-primary">Second Option Name</Label>
+              <Input
+                id="option2_name"
+                name="option2_name"
+                value={form.option2_name}
+                onChange={handleChange}
+                placeholder="e.g., Cristiano Ronaldo"
+                maxLength={50}
+                className={`h-12 text-lg font-medium border-2 transition-all duration-200 ${
+                  validationErrors.option2_name 
+                    ? 'border-destructive focus-visible:ring-destructive' 
+                    : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
+                }`}
+              />
+              {validationErrors.option2_name && (
+                <p className="text-sm text-destructive font-medium">{validationErrors.option2_name}</p>
+              )}
+              <p className="text-xs text-muted-foreground font-medium">
+                {form.option2_name.length}/50 characters
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="option2_description" className="text-lg font-semibold text-primary">Second Option Description</Label>
+              <Textarea
+                id="option2_description"
+                name="option2_description"
+                value={form.option2_description}
+                onChange={handleChange}
+                placeholder="Describe the second option..."
+                maxLength={500}
+                className={`min-h-[120px] resize-none text-base border-2 transition-all duration-200 ${
+                  validationErrors.option2_description 
+                    ? 'border-destructive focus-visible:ring-destructive' 
+                    : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
+                }`}
+              />
+              {validationErrors.option2_description && (
+                <p className="text-sm text-destructive font-medium">{validationErrors.option2_description}</p>
+              )}
+              <p className="text-xs text-muted-foreground font-medium">
+                {form.option2_description.length}/500 characters
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sport" className="text-lg font-semibold text-primary">Sport</Label>
+              <select
+                id="sport"
+                name="sport"
+                value={form.sport}
+                onChange={handleChange}
+                className={`flex h-12 w-full rounded-md border-2 text-lg font-medium transition-all duration-200 ${
+                  validationErrors.sport 
+                    ? 'border-destructive focus-visible:ring-destructive' 
+                    : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
+                } bg-background px-3 py-2 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
+              >
+                <option value="">Select a sport</option>
+                <option value="Football">Football</option>
+                <option value="Basketball">Basketball</option>
+                <option value="Tennis">Tennis</option>
+                <option value="Baseball">Baseball</option>
+                <option value="Soccer">Soccer</option>
+                <option value="Hockey">Hockey</option>
+                <option value="Volleyball">Volleyball</option>
+              </select>
+              {validationErrors.sport && (
+                <p className="text-sm text-destructive font-medium">{validationErrors.sport}</p>
+              )}
+            </div>
+
+
 
               {validationErrors.submit && (
                 <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
