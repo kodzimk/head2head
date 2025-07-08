@@ -267,7 +267,7 @@ export default function Forum() {
       const debatePosts: ForumPost[] = filteredDebates.map(debate => ({
         id: debate.id,
         title: `${debate.option1_name} vs ${debate.option2_name}`,
-        content: `${debate.option1_description || ''}\n\n${debate.option2_description || ''}`,
+        content: ``,
         author: 'System',
         authorAvatar: '/images/placeholder-user.jpg',
         timestamp: new Date(debate.created_at),

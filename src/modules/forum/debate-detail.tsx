@@ -721,7 +721,7 @@ export default function DebateDetail() {
                     <span>{formatTimeAgo(debateDetail.timestamp)}</span>
                   </div>
                 </div>
-                <div className="mt-6 grid md:grid-cols-2 gap-6">
+                <div className="mt-6 flex flex-col gap-6">
                 <div className="p-4 bg-muted/20 rounded-lg border border-border">
                   <h3 className="text-lg font-semibold mb-3 text-primary">
                     {debateDetail.title.split(' vs ')[0]} 
@@ -738,7 +738,7 @@ export default function DebateDetail() {
                     {debateDetail.description.split('\n\n')[1]}
                   </p>
                 </div>
-              </div>
+                </div>
               </div>
             </div>
           </CardHeader>
