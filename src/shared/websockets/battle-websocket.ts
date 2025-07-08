@@ -10,6 +10,7 @@ export class BattleWebSocket {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 3;
   private reconnectDelay = 1000; // 1 second
+  private battleEndHandler: (() => void) | null = null;
 
   constructor(battleId: string, username: string) {
     this.battleId = battleId;
@@ -60,8 +61,28 @@ export class BattleWebSocket {
     }
   }
 
+  onBattleEnd(handler: () => void) {
+    this.battleEndHandler = handler;
+  }
+
+  private handleBattleEnd() {
+    console.log('[BATTLE_WS] Battle ended, triggering end handler');
+    if (this.battleEndHandler) {
+      this.battleEndHandler();
+    }
+  }
+
   onMessage(handler: BattleMessageHandler) {
-    this.handlers.push(handler);
+    const wrappedHandler = (data: any) => {
+      // Check for battle end message
+      if (data.type === 'battle_end') {
+        this.handleBattleEnd();
+      }
+      
+      // Call original handler
+      handler(data);
+    };
+    this.handlers.push(wrappedHandler);
   }
 
   close() {

@@ -332,6 +332,24 @@ export default function BattlePage() {
     }
   }, [navigate])
 
+  const handleBattleEnd = useCallback(() => {
+    console.log('[Battle] Battle ended, navigating to result page');
+    // Ensure we have a way to get the battle ID
+    const battleId = battle?.[0]?.id || localStorage.getItem('current_battle_id');
+    
+    if (battleId) {
+      // Clear the stored battle ID
+      localStorage.removeItem('current_battle_id');
+      
+      // Navigate to result page
+      navigate(`/result/${battleId}`);
+    } else {
+      console.error('[Battle] No battle ID found for result navigation');
+      // Fallback navigation
+      navigate('/dashboard');
+    }
+  }, [battle, navigate]);
+
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
       <Header />
