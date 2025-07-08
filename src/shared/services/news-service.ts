@@ -317,7 +317,7 @@ export class NewsService {
     const text = (title + ' ' + (description || '')).toLowerCase();
     
     const sports = [
-      { name: 'Football', keywords: ['nfl', 'football', 'quarterback', 'touchdown'] },
+      { name: 'Football', keywords: ['football', 'fifa', 'world cup', 'premier league'] },
       { name: 'Basketball', keywords: ['nba', 'basketball', 'playoff', 'finals'] },
       { name: 'Baseball', keywords: ['mlb', 'baseball', 'world series', 'pitcher'] },
       { name: 'Soccer', keywords: ['soccer', 'fifa', 'world cup', 'premier league'] },

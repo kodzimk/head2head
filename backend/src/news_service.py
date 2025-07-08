@@ -12,7 +12,7 @@ LIKES_FILE = os.path.join(os.path.dirname(__file__), 'likes.json')
 
 class NewsService:
     def __init__(self):
-        self.api_key = 'a47eccf6946b22529c1df36e45fb984b'
+        self.api_key = 'c487c596ee9f8d141ff912c6705f6fd7'
         self.base_url = "http://api.mediastack.com/v1"
         self.news_cache: List[Dict] = []
         self.likes_data: Dict[str, int] = self.load_likes()  # article_id -> likes_count

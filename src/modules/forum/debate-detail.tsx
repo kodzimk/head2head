@@ -367,77 +367,60 @@ export default function DebateDetail() {
   };
 
   const handleSubmitReply = async (commentId: string) => {
-    if (!replyTexts[commentId] || !replyTexts[commentId].trim() || !debateDetail || replyTexts[commentId].length > 500) return;
-    
+    if (!replyTexts[commentId] || !replyTexts[commentId].trim() || !debateDetail || replyTexts[commentId].length > 500) {
+      // Show error or prevent submission
+      return;
+    }
+
     try {
       const newReply = await debateService.addComment({
         pick_id: debateDetail.id,
-        content: replyTexts[commentId],
-        parent_id: commentId
+        parent_id: commentId,
+        content: replyTexts[commentId]
       });
 
-      // Refresh the replies for this comment to ensure we have the latest data
-      try {
-        const updatedReplies = await debateService.getCommentReplies(commentId);
-        
-        const uiReplies: DebateComment[] = updatedReplies.map(reply => ({
-          id: reply.id,
-          author: reply.author_name,
-          authorAvatar: '/images/placeholder-user.jpg',
-          content: reply.content,
-          timestamp: new Date(reply.created_at),
-          likes: reply.likes_count,
-          isLiked: reply.user_liked
-        }));
+      // Create UI reply object
+      const uiReply: DebateComment = {
+        id: newReply.id,
+        author: newReply.author_name,
+        authorAvatar: user?.avatar || '/images/placeholder-user.jpg',
+        content: newReply.content,
+        timestamp: new Date(newReply.created_at),
+        likes: 0,
+        isLiked: false
+      };
 
-        setDebateDetail(prev => {
-          if (!prev) return null;
-          
-          return {
-            ...prev,
-            comments: prev.comments.map(comment => 
-              comment.id === commentId
-                ? {
-                    ...comment,
-                    replies: uiReplies
-                  }
-                : comment
-            )
-          };
+      // Update state to add the new reply
+      setDebateDetail(prev => {
+        if (!prev) return null;
+
+        const updatedComments = prev.comments.map(comment => {
+          if (comment.id === commentId) {
+            return {
+              ...comment,
+              replies: [...(comment.replies || []), uiReply]
+            };
+          }
+          return comment;
         });
-      } catch (refreshError) {
-        // Fallback to adding the new reply locally
-        const uiReply: DebateComment = {
-          id: newReply.id,
-          author: newReply.author_name,
-          authorAvatar: '/images/placeholder-user.jpg',
-          content: newReply.content,
-          timestamp: new Date(newReply.created_at),
-          likes: newReply.likes_count,
-          isLiked: newReply.user_liked
+
+        return {
+          ...prev,
+          comments: updatedComments
         };
+      });
 
-        setDebateDetail(prev => {
-          if (!prev) return null;
-          
-          return {
-            ...prev,
-            comments: prev.comments.map(comment => 
-              comment.id === commentId
-                ? {
-                    ...comment,
-                    replies: [...(comment.replies || []), uiReply]
-                  }
-                : comment
-            )
-          };
-        });
-      }
-      
-      setReplyTexts((prev) => ({ ...prev, [commentId]: '' }));
+      // Clear reply text for this comment
+      setReplyTexts(prev => ({
+        ...prev,
+        [commentId]: ''
+      }));
+
+      // Close reply input
       setReplyToComment(null);
     } catch (error) {
-      alert(`Failed to submit reply: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Failed to submit reply:', error);
+      alert('Failed to submit reply. Please try again.');
     }
   };
 
@@ -469,9 +452,6 @@ export default function DebateDetail() {
             <div className="bg-muted/30 rounded-lg p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-semibold text-sm">{comment.author}</span>
-                <span className="text-xs text-muted-foreground">
-                  {formatTimeAgo(comment.timestamp)}
-                </span>
               </div>
               <p className="text-sm text-foreground">{comment.content}</p>
             </div>
@@ -494,6 +474,11 @@ export default function DebateDetail() {
                     setReplyToComment(null);
                   } else {
                     setReplyToComment(comment.id);
+                    // Ensure reply text is initialized
+                    setReplyTexts(prev => ({
+                      ...prev,
+                      [comment.id]: prev[comment.id] || ''
+                    }));
                   }
                 }}
                 className="text-xs text-muted-foreground hover:text-primary"
@@ -514,12 +499,28 @@ export default function DebateDetail() {
                   />
                   <div className="flex-1 space-y-2">
                     <Textarea
+                      ref={(input) => {
+                        // Automatically focus the input when it appears
+                        if (input && replyToComment === comment.id) {
+                          input.focus();
+                          // Set cursor to the end of the text
+                          input.setSelectionRange(input.value.length, input.value.length);
+                        }
+                      }}
                       value={replyTexts[comment.id] || ''}
-                      onChange={(e) => setReplyTexts((prev) => ({ ...prev, [comment.id]: e.target.value }))}
+                      onChange={(e) => {
+                        // Ensure correct text input
+                        const newValue = e.target.value;
+                        setReplyTexts((prev) => ({ 
+                          ...prev, 
+                          [comment.id]: newValue 
+                        }));
+                      }}
                       onKeyDown={(e) => handleReplyKeyDown(e, comment.id)}
                       placeholder={t('forum.writeReply')}
                       className="min-h-[80px] resize-none text-sm"
                       maxLength={500}
+                      autoFocus={replyToComment === comment.id}
                     />
                     <div className="flex items-center justify-between">
                       <div className="flex gap-2">

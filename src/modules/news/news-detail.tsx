@@ -71,7 +71,7 @@ export default function NewsDetail() {
   };
 
   const extractSport = (text: string): string => {
-    const sports = ['Football', 'Basketball', 'Tennis', 'Baseball', 'Soccer', 'Hockey', 'Volleyball', 'Cricket', 'Rugby', 'Golf'];
+    const sports = ['Football', 'Basketball', 'Tennis', 'Baseball', 'Hockey', 'Volleyball', 'Cricket', 'Rugby', 'Golf'];
     const lowerText = text.toLowerCase();
     
     for (const sport of sports) {

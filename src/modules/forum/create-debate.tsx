@@ -188,7 +188,7 @@ export default function CreateDebate() {
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col">
               <Label htmlFor="option1_name" className="text-lg font-semibold text-primary">First Option Name</Label>
               <Input
                 id="option1_name"
@@ -197,7 +197,7 @@ export default function CreateDebate() {
                 onChange={handleChange}
                 placeholder="e.g., Lionel Messi"
                 maxLength={50}
-                className={`h-12 text-lg font-medium border-2 transition-all duration-200 ${
+                className={`h-12 text-lg font-medium bg-background border-2 transition-all duration-200 ${
                   validationErrors.option1_name 
                      ? 'border-destructive focus-visible:ring-destructive' 
                     : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
@@ -220,7 +220,7 @@ export default function CreateDebate() {
                 onChange={handleChange}
                 placeholder="Describe the first option..."
                 maxLength={500}
-                className={`min-h-[120px] resize-none text-base border-2 transition-all duration-200 ${
+                className={`min-h-[120px] resize-none text-base bg-background border-2 transition-all duration-200 ${
                   validationErrors.option1_description 
                     ? 'border-destructive focus-visible:ring-destructive' 
                     : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
@@ -234,7 +234,7 @@ export default function CreateDebate() {
               </p>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 flex flex-col">
               <Label htmlFor="option2_name" className="text-lg font-semibold text-primary">Second Option Name</Label>
               <Input
                 id="option2_name"
@@ -243,14 +243,14 @@ export default function CreateDebate() {
                 onChange={handleChange}
                 placeholder="e.g., Cristiano Ronaldo"
                 maxLength={50}
-                className={`h-12 text-lg font-medium border-2 transition-all duration-200 ${
+                className={`h-12 text-lg font-medium bg-background border-2 transition-all duration-200 ${
                   validationErrors.option2_name 
                     ? 'border-destructive focus-visible:ring-destructive' 
                     : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
                 }`}
               />
               {validationErrors.option2_name && (
-                <p className="text-sm text-destructive font-medium">{validationErrors.option2_name}</p>
+                <p className="text-sm text-red-500 font-medium">{validationErrors.option2_name}</p>
               )}
               <p className="text-xs text-muted-foreground font-medium">
                 {form.option2_name.length}/50 characters
@@ -266,7 +266,7 @@ export default function CreateDebate() {
                 onChange={handleChange}
                 placeholder="Describe the second option..."
                 maxLength={500}
-                className={`min-h-[120px] resize-none text-base border-2 transition-all duration-200 ${
+                className={`min-h-[120px] resize-none text-base bg-background border-2 transition-all duration-200 ${
                   validationErrors.option2_description 
                     ? 'border-destructive focus-visible:ring-destructive' 
                     : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
@@ -287,20 +287,16 @@ export default function CreateDebate() {
                 name="sport"
                 value={form.sport}
                 onChange={handleChange}
-                className={`flex h-12 w-full rounded-md border-2 text-lg font-medium transition-all duration-200 ${
-                  validationErrors.sport 
+                className={`w-full h-12 text-lg font-medium bg-background border-2 rounded-md px-3 transition-all duration-200 ${
+                  validationErrors.sport
                     ? 'border-destructive focus-visible:ring-destructive' 
                     : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
-                } bg-background px-3 py-2 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
+                }`}
               >
-                <option value="">Select a sport</option>
                 <option value="Football">Football</option>
                 <option value="Basketball">Basketball</option>
                 <option value="Tennis">Tennis</option>
-                <option value="Baseball">Baseball</option>
-                <option value="Soccer">Soccer</option>
-                <option value="Hockey">Hockey</option>
-                <option value="Volleyball">Volleyball</option>
+                {/* Add more sports as needed */}
               </select>
               {validationErrors.sport && (
                 <p className="text-sm text-destructive font-medium">{validationErrors.sport}</p>
@@ -326,9 +322,17 @@ export default function CreateDebate() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
+                  className={`w-full h-12 text-lg font-medium border-2 transition-all duration-200 ${
+                    validationErrors.submit
+                      ? 'border-destructive text-destructive focus-visible:ring-destructive' 
+                      : 'border-primary/20 hover:border-primary/40 bg-primary text-primary-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
+                  }`}
                 >
-                  {isSubmitting ? 'Creating...' : 'Create Debate'}
+                  {isSubmitting ? 'Creating Debate...' : 'Create Debate'}
                 </Button>
+                {validationErrors.submit && (
+                  <p className="text-sm text-red-500 font-medium">{validationErrors.submit}</p>
+                )}
               </div>
             </form>
           </CardContent>

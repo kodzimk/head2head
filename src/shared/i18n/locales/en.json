@@ -802,7 +802,7 @@
     "football": "Football",
     "basketball": "Basketball",
     "tennis": "Tennis",
-    "soccer": "Soccer",
+    "soccer": null,
     "baseball": "Baseball",
     "hockey": "Hockey",
     "golf": "Golf",
