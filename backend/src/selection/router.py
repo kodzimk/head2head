@@ -332,13 +332,13 @@ async def like_comment(
         raise HTTPException(status_code=400, detail="You have already liked this comment")
     
     # Create new like
-        new_like = CommentLike(
-            id=str(uuid.uuid4()),
-            comment_id=comment_id,
-            user_id=current_user["username"]
-        )
+    new_like = CommentLike(
+        id=str(uuid.uuid4()),
+        comment_id=comment_id,
+        user_id=current_user["username"]
+    )
     
-        db.add(new_like)
+    db.add(new_like)
     await db.commit()
     await db.refresh(new_like)
     

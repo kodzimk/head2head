@@ -90,14 +90,15 @@ class DebateService {
     };
 
     try {
-      const response = await fetch(url, finalOptions);
-      
-      console.log('Fetch Request:', {
+      console.log('Fetch Request Details:', {
         url,
         method: finalOptions.method || 'GET',
         headers: finalOptions.headers,
-        body: finalOptions.body
+        body: finalOptions.body,
+        token: token ? 'Token present' : 'No token'
       });
+      
+      const response = await fetch(url, finalOptions);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -161,7 +162,9 @@ class DebateService {
 
   // Get comments for a debate
   async getDebateComments(pickId: string): Promise<DebateComment[]> {
-    return this.makeRequest<DebateComment[]>(`/picks/${pickId}/comments`);
+    // Remove any potential ':' or other invalid characters
+    const cleanPickId = pickId.split(':')[0];
+    return this.makeRequest<DebateComment[]>(`/picks/${cleanPickId}/comments`);
   }
 
   // Add a comment to a debate
@@ -177,9 +180,28 @@ class DebateService {
 
   // Like a comment
   async likeComment(commentId: string): Promise<{ id: string; comment_id: string; user_id: string; created_at: string }> {
-    return this.makeRequest<{ id: string; comment_id: string; user_id: string; created_at: string }>(`/comments/${commentId}/like`, {
-      method: 'POST',
+    console.log('Attempting to like comment:', {
+      commentId,
+      token: localStorage.getItem('access_token') ? 'Token present' : 'No token'
     });
+    
+    try {
+      const result = await this.makeRequest<{ id: string; comment_id: string; user_id: string; created_at: string }>(
+        `/comments/${commentId}/like`, 
+        {
+          method: 'POST',
+        }
+      );
+      
+      console.log('Comment like successful:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to like comment:', {
+        commentId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   // Unlike a comment

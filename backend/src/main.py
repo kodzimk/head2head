@@ -29,7 +29,7 @@ origins = [
     "https://head2head.dev",
     "https://www.head2head.dev",
     "https://api.head2head.dev",
-    "http://localhost:5173",  # Vite default dev server
+    "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost:8000",
     "http://127.0.0.1:5173",
