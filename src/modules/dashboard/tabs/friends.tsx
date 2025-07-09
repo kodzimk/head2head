@@ -166,7 +166,7 @@ export default function Friends({user}: {user: User}) {
                           className="sm:flex-shrink-0 w-full sm:w-auto min-w-[120px]"
                           onClick={e => {
                             e.stopPropagation();
-                            navigate(`/profile/${friend.username}`);
+                            navigate(`/view-profile/${friend.username}`);
                           }}
                         >
                           {t('dashboard.viewProfile')}
