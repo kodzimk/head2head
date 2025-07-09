@@ -5,7 +5,7 @@ import { useCurrentQuestionStore, useLoserStore, useResultStore, useScoreStore, 
 import { useNavigate } from 'react-router-dom';
 import type { User } from '../../shared/interface/user';
 import { API_BASE_URL, useGlobalStore } from '../../shared/interface/gloabL_var';
-import { Trophy, Target, TrendingUp, Home } from 'lucide-react';
+import { Trophy, Target, Home, Handshake } from 'lucide-react';
 import { FaceitAvatar } from '../../shared/ui/user-avatar';
 import { useTranslation } from 'react-i18next';
 
@@ -146,6 +146,9 @@ export default function BattleResultPage({user}: {user: User}) {
     setCurrentQuestion(null);
     setShowResult(false);
     
+    // Dispatch event to refresh waiting battles when leaving result page
+    window.dispatchEvent(new CustomEvent('refreshWaitingBattles'));
+    
     // Navigate back to dashboard
     const username = localStorage.getItem('username');
     if (username) {
@@ -210,7 +213,7 @@ export default function BattleResultPage({user}: {user: User}) {
             }`}>
               {isWin && <Trophy className="w-10 h-10 text-green-500" />}
               {isLose && <Target className="w-10 h-10 text-red-500" />}
-              {isDraw && <TrendingUp className="w-10 h-10 text-yellow-500" />}
+              {isDraw && <Handshake className="w-10 h-10 text-yellow-500" />}
             </div>
             
             {/* Result Title */}

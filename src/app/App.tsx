@@ -416,6 +416,27 @@ export default function App() {
            // Dispatch custom event to refresh waiting battles
            window.dispatchEvent(new CustomEvent('refreshWaitingBattles'));
          }
+         else if(data.type === 'battle_finished'){
+           // Battle was finished, refresh the waiting battles list
+           console.log("Battle finished, refreshing waiting battles list");
+           // Dispatch custom event to refresh waiting battles
+           window.dispatchEvent(new CustomEvent('refreshWaitingBattles'));
+           
+           // Also dispatch the battleFinished event for other components
+           const battleFinishedEvent = new CustomEvent('battleFinished', {
+             detail: {
+               battleId: data.battle_id,
+               finalScores: data.final_scores,
+               winner: data.winner,
+               loser: data.loser,
+               result: data.result,
+               updatedUsers: data.updated_users,
+               timestamp: data.timestamp,
+               processingStatus: data.processing_status
+             }
+           });
+           window.dispatchEvent(battleFinishedEvent);
+         }
          // Remove all battle/quiz/battle creation message handling here
        } catch (error) {
          console.error("Error processing websocket message:", error);

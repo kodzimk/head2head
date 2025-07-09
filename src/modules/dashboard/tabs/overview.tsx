@@ -199,7 +199,7 @@ export default function Overview({
                 <span className="font-semibold text-xs lg:text-sm">{user.winRate}%</span>
               </div>
       
-              <div className="sm:hidden flex justify-between">
+              <div className="flex justify-between">
                 <span className="text-gray-600 text-xs lg:text-sm">{t('dashboard.battlesPlayed')}</span>
                 <span className="font-semibold text-xs lg:text-sm">{user.totalBattles}</span>
               </div>

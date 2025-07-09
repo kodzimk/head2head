@@ -147,6 +147,24 @@ export default function BattlePage() {
     };
   }, [user.username]);
 
+  // Listen for battle finished events to refresh the list
+  useEffect(() => {
+    const handleBattleFinished = (event: any) => {
+      console.log('Received battleFinished event, refreshing waiting battles list');
+      console.log('Battle finished event details:', event.detail);
+      
+      // Refresh waiting battles list after a short delay to ensure backend has processed
+      setTimeout(() => {
+        refreshWaitingBattles();
+      }, 1000);
+    };
+
+    window.addEventListener('battleFinished', handleBattleFinished);
+    return () => {
+      window.removeEventListener('battleFinished', handleBattleFinished);
+    };
+  }, [user.username]);
+
   // Refresh battles when user returns from a completed battle
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -174,6 +192,32 @@ export default function BattlePage() {
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
+    };
+  }, [user.username]);
+
+  // Refresh battles when returning from battle result page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Store a flag that we're leaving the battles page
+      sessionStorage.setItem('returningFromBattle', 'true');
+    };
+
+    const handleLoad = () => {
+      // Check if we're returning from a battle
+      const returningFromBattle = sessionStorage.getItem('returningFromBattle');
+      if (returningFromBattle === 'true' && window.location.pathname === '/battles') {
+        console.log('Returning from battle, refreshing waiting battles list');
+        refreshWaitingBattles();
+        sessionStorage.removeItem('returningFromBattle');
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('load', handleLoad);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('load', handleLoad);
     };
   }, [user.username]);
   
