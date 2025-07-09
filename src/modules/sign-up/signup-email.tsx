@@ -4,7 +4,6 @@ import { Button } from "../../shared/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../../shared/ui/card"
 import { Input } from "../../shared/ui/input"
 import { Label } from "../../shared/ui/label"
-import { Checkbox } from "../../shared/ui/checkbox"
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, AlertCircle } from "lucide-react"
 import {  useNavigate } from "react-router-dom"
 import axios from "axios"
@@ -30,7 +29,6 @@ export default function EmailSignUpPage() {
     username:"",
     email: "",
     password: "",
-    agreeToTerms: false,
   })
 
   const { setUser } = useGlobalStore()
@@ -200,9 +198,8 @@ export default function EmailSignUpPage() {
     const hasValidPassword = validatePassword(formData.password);
     const hasValidUsername = isValidUsername(formData.username).valid;
     const hasAllFields = formData.username && formData.email && formData.password;
-    const hasAgreedToTerms = formData.agreeToTerms;
 
-    return hasValidEmail && hasValidPassword && hasValidUsername && hasAllFields && hasAgreedToTerms;
+    return hasValidEmail && hasValidPassword && hasValidUsername && hasAllFields;
   }
 
   return (
@@ -341,23 +338,6 @@ export default function EmailSignUpPage() {
                 )}
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="terms"
-                  name="agreeToTerms"
-                  checked={formData.agreeToTerms}
-                  onCheckedChange={(checked) => 
-                    setFormData(prev => ({ ...prev, agreeToTerms: checked as boolean }))
-                  }
-                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                />
-                <label
-                  htmlFor="terms"
-                  className="text-sm font-medium leading-none text-muted-foreground hover:text-foreground cursor-pointer select-none"
-                >
-                  {t('auth.agreeToTerms')}
-                </label>
-              </div>
 
               {validationErrors.submit && (
                 <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-lg flex items-center gap-2 border border-destructive/20">
