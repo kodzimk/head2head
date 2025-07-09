@@ -371,7 +371,7 @@ export default function DebateDetail() {
       // Show error or prevent submission
       return;
     }
-
+    
     try {
       const newReply = await debateService.addComment({
         pick_id: debateDetail.id,
@@ -380,25 +380,25 @@ export default function DebateDetail() {
       });
 
       // Create UI reply object
-      const uiReply: DebateComment = {
-        id: newReply.id,
-        author: newReply.author_name,
+        const uiReply: DebateComment = {
+          id: newReply.id,
+          author: newReply.author_name,
         authorAvatar: user?.avatar || '/images/placeholder-user.jpg',
-        content: newReply.content,
-        timestamp: new Date(newReply.created_at),
+          content: newReply.content,
+          timestamp: new Date(newReply.created_at),
         likes: 0,
         isLiked: false
-      };
+        };
 
       // Update state to add the new reply
-      setDebateDetail(prev => {
-        if (!prev) return null;
-
+        setDebateDetail(prev => {
+          if (!prev) return null;
+          
         const updatedComments = prev.comments.map(comment => {
           if (comment.id === commentId) {
-            return {
-              ...comment,
-              replies: [...(comment.replies || []), uiReply]
+          return {
+                    ...comment,
+                    replies: [...(comment.replies || []), uiReply]
             };
           }
           return comment;
@@ -407,8 +407,8 @@ export default function DebateDetail() {
         return {
           ...prev,
           comments: updatedComments
-        };
-      });
+          };
+        });
 
       // Clear reply text for this comment
       setReplyTexts(prev => ({
@@ -675,8 +675,8 @@ export default function DebateDetail() {
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Debate Not Found</h1>
-            <p className="text-muted-foreground mb-4">The debate you're looking for doesn't exist.</p>
+            <h1 className="text-2xl font-bold mb-4">{t('forum.debate.notFound.title')}</h1>
+            <p className="text-muted-foreground mb-4">{t('forum.debate.notFound.description')}</p>
             <Button onClick={() => navigate('/forum')}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               {t('forum.backToForum')}
@@ -737,7 +737,7 @@ export default function DebateDetail() {
                   <p className="text-sm text-foreground whitespace-pre-wrap">
                     {debateDetail.description.split('\n\n')[1]}
                   </p>
-                </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '../../shared/ui/card';
 import { Button } from '../../shared/ui/button';
@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../shared/ui/tabs';
 import { 
   MessageSquare, 
   Heart, 
-  TrendingUp,
   Newspaper,
   RefreshCw,
   Filter,
@@ -40,6 +39,26 @@ interface ForumPost {
   isLiked: boolean;
   tags: string[];
   type: 'debate' | 'news' | 'transfer';
+  debateDetails?: {
+    option1: string;
+    option2: string;
+    votes: number;
+    trending: boolean;
+  };
+  transferDetails?: {
+    player: string;
+    fromTeam: string;
+    toTeam: string;
+    fee?: string;
+    status: 'rumor' | 'confirmed' | 'completed';
+  };
+  newsDetails?: {
+    source: string;
+    importance: 'low' | 'medium' | 'high';
+    breaking: boolean;
+    imageUrl?: string;
+    url?: string;
+  };
 }
 
 interface TransferPost extends ForumPost {
@@ -79,7 +98,23 @@ export default function Forum() {
   const { t } = useTranslation();
   const { user } = useGlobalStore();
   
-  const SPORTS = [
+  // Normalize sport name for comparison
+  const normalizeSportName = (sport: string) => {
+    // Convert to lowercase and handle common variations
+    const normalizedSport = sport.toLowerCase().trim();
+    const sportMappings: {[key: string]: string} = {
+      'soccer': 'football',
+      'football': 'football',
+      'basketball': 'basketball',
+      'volleyball': 'volleyball',
+      'tennis': 'tennis',
+      'baseball': 'baseball',
+      'hockey': 'hockey'
+    };
+    return sportMappings[normalizedSport] || normalizedSport;
+  };
+
+  const SPORTS = useMemo(() => [
     t('forum.allSports'),
     t('forum.football'),
     t('forum.basketball'), 
@@ -88,7 +123,7 @@ export default function Forum() {
     t('forum.baseball'),
     t('forum.soccer'),
     t('forum.hockey')
-  ];
+  ], [t]);
   
   const [activeTab, setActiveTab] = useState<'debates' | 'news' | 'transfers'>('debates');
   const [selectedSport, setSelectedSport] = useState<string>(t('forum.allSports'));
@@ -231,11 +266,17 @@ export default function Forum() {
           setDebateError(null);
         } catch (error: any) {
           console.error('Error fetching debates:', error);
-          if (error.message?.includes('Authorization header missing') || error.message?.includes('401')) {
+          const errorMessage = error.message || 'Failed to load debates';
+          
+          if (errorMessage.includes('Authorization') || errorMessage.includes('401')) {
             setDebateError('Please log in to view debates');
+          } else if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+            setDebateError('Network error. Please check your connection.');
           } else {
-            setDebateError('Failed to load debates');
+            setDebateError(errorMessage);
           }
+          
+          setDebates([]);
         }
       } else {
         setDebateError('Please log in to view debates');
@@ -243,17 +284,36 @@ export default function Forum() {
       }
     };
 
+    // Immediate load
     loadDebates();
-  }, [user, user?.username]); // Re-run when user or username changes
+
+    // Periodic refresh every 5 minutes
+    const intervalId = setInterval(loadDebates, 5 * 60 * 1000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
+  }, [user, user?.username]);
 
   // Filter and sort posts
   useEffect(() => {
     if (activeTab === 'debates') {
+      console.log('Current debates:', debates);
+      console.log('Selected sport:', selectedSport);
+      
+      // Normalize the selected sport
+      const normalizedSelectedSport = normalizeSportName(selectedSport);
+      const isAllSports = normalizedSelectedSport === normalizeSportName(t('forum.allSports'));
+      
       let filteredDebates = debates.filter(debate => {
-        const matchesSport = selectedSport === t('forum.allSports') || debate.category === selectedSport;
+        // Normalize the debate's category
+        const normalizedDebateSport = normalizeSportName(debate.category);
+        
+        const matchesSport = isAllSports || normalizedDebateSport === normalizedSelectedSport;
+        console.log(`Debate ${debate.id} - Category: ${debate.category}, Normalized: ${normalizedDebateSport}, Matches Sport: ${matchesSport}`);
         return matchesSport;
       });
-      if (selectedSport === t('forum.allSports')) {
+      
+      if (isAllSports) {
         filteredDebates = filteredDebates.sort((a, b) => {
           const idxA = SPORTS.indexOf(a.category);
           const idxB = SPORTS.indexOf(b.category);
@@ -264,27 +324,33 @@ export default function Forum() {
       }
 
       // Convert debates to ForumPost format for display
-      const debatePosts: ForumPost[] = filteredDebates.map(debate => ({
-        id: debate.id,
-        title: `${debate.option1_name} vs ${debate.option2_name}`,
-        content: ``,
-        author: 'System',
-        authorAvatar: '/images/placeholder-user.jpg',
-        timestamp: new Date(debate.created_at),
-        sport: debate.category,
-        likes: debate.option1_votes + debate.option2_votes,
-        comments: 0, // We'll add comment count later
-        isLiked: false, // Will be handled separately
-        tags: [debate.category],
-        type: 'debate' as const,
-        debateDetails: {
-          option1: debate.option1_name,
-          option2: debate.option2_name,
-          votes: debate.option1_votes + debate.option2_votes,
-          trending: debateService.isTrending(debate)
-        }
-      }));
+      const debatePosts: ForumPost[] = filteredDebates.map(debate => {
+        console.log('Converting debate:', debate);
+        const forumPost: ForumPost = {
+          id: debate.id,
+          title: `${debate.option1_name} vs ${debate.option2_name}`,
+          content: debate.option1_description || debate.option2_description || '',
+          author: 'System',
+          authorAvatar: '/images/placeholder-user.jpg',
+          timestamp: new Date(debate.created_at),
+          sport: debate.category,
+          likes: debate.option1_votes + debate.option2_votes,
+          comments: 0, // We'll add comment count later
+          isLiked: false, // Will be handled separately
+          tags: [debate.category],
+          type: 'debate' as const,
+          debateDetails: {
+            option1: debate.option1_name,
+            option2: debate.option2_name,
+            votes: debate.option1_votes + debate.option2_votes,
+            trending: debateService.isTrending(debate)
+          }
+        };
+        console.log('Converted ForumPost:', forumPost);
+        return forumPost;
+      });
 
+      console.log('Filtered Debate Posts:', debatePosts);
       setFilteredPosts(debatePosts);
     } else {
       // Handle news and transfer posts
@@ -296,7 +362,7 @@ export default function Forum() {
 
       setFilteredPosts(filtered);
     }
-  }, [posts, debates, activeTab, selectedSport, likedArticles]);
+  }, [posts, debates, activeTab, selectedSport, likedArticles, t]);
 
 
   const handlePostClick = (post: ForumPost) => {
@@ -392,28 +458,75 @@ export default function Forum() {
           sortBy: 'latest'
         });
         console.log('Refreshed debates:', debateData);
+        
+        // Ensure we always update, even if data is empty
         setDebates(debateData);
+        
+        // If no debates found, set an informative message
+        if (debateData.length === 0) {
+          setDebateError(t('forum.noDebatesFound'));
+        }
       } else {
         setDebateError('Please log in to view debates');
         setDebates([]);
       }
     } catch (error: any) {
       console.error('Error refreshing debates:', error);
-      if (error.message?.includes('Authorization header missing') || error.message?.includes('401')) {
+      const errorMessage = error.message || 'Failed to refresh debates';
+      
+      if (errorMessage.includes('Authorization') || errorMessage.includes('401')) {
         setDebateError('Please log in to view debates');
+      } else if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
+        setDebateError('Network error. Please check your connection.');
       } else {
-        setDebateError('Failed to refresh debates');
+        setDebateError(errorMessage);
       }
+      
+      setDebates([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Refresh news when language changes
+  // Refresh content when language changes
   useEffect(() => {
-    const handleLanguageChange = () => {
-      if (activeTab === 'news' || activeTab === 'transfers') {
-        handleRefreshNews();
+    const handleLanguageChange = async () => {
+      try {
+        setIsLoading(true);
+        setNewsError(null);
+        setDebateError(null);
+        
+        // Always refresh news and transfers
+        const multiLanguageNewsResponse = await newsService.getTopSportsHeadlinesMultiLanguage();
+        
+        // Get news in current user's language
+        const currentLanguage = localStorage.getItem('language') || 'en';
+        const newsResponse = newsService.getNewsInLanguage(multiLanguageNewsResponse, currentLanguage);
+        
+        // Convert news to forum posts
+        const newPosts = newsResponse.data.map((article: any) => {
+          const post = newsService.convertToForumPost(article, 'news');
+          post.isLiked = likedArticles.has(post.id);
+          return post;
+        });
+        
+        // Update posts
+        setPosts(newPosts);
+        
+        // Refresh debates if user is authenticated
+        if (user && user.username && localStorage.getItem('access_token')) {
+          const debateData = await debateService.getDebates({ 
+            limit: 50,
+            sortBy: 'latest'
+          });
+          setDebates(debateData);
+        }
+      } catch (error) {
+        console.error('Error during language change refresh:', error);
+        setNewsError(t('forum.failedToRefreshNews'));
+        setDebateError(t('forum.failedToLoadNews'));
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -423,7 +536,7 @@ export default function Forum() {
     return () => {
       window.removeEventListener('languageChange', handleLanguageChange);
     };
-  }, [activeTab]);
+  }, [user, likedArticles, t]);
 
   const PostCard = ({ post }: { post: ForumPost }) => (
     <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer group">
@@ -564,33 +677,6 @@ export default function Forum() {
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
-          {post.type === 'debate' ? (
-            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">{post.comments}</span>
-                <span className="sm:hidden">{post.comments}</span>
-              </div>
-            </div>
-          ) : <span />}
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleLike(post.id);
-            }}
-            className={`hover:scale-105 transition-all ${
-              post.isLiked ? 'text-red-500 hover:text-red-600' : 'hover:text-red-500'
-            }`}
-            disabled={post.isLiked}
-          >
-            <Heart className={`w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2 ${post.isLiked ? 'fill-current' : ''}`} />
-            <span className="text-sm">{post.likes}</span>
-          </Button>
-        </div>
 
         {post.type === 'news' && (post as NewsPost).newsDetails && (post as NewsPost).newsDetails.url && (
           <Button variant="outline" size="sm" asChild>
@@ -656,7 +742,7 @@ export default function Forum() {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-fit">
+          <TabsList className="grid w-full grid-cols-2 lg:w-fit">
             <TabsTrigger value="debates" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
               {t('forum.debates')}
@@ -664,10 +750,6 @@ export default function Forum() {
             <TabsTrigger value="news" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <Newspaper className="w-3 h-3 sm:w-4 sm:h-4" />
               {t('forum.news')}
-            </TabsTrigger>
-            <TabsTrigger value="transfers" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
-              {t('forum.transfers')}
             </TabsTrigger>
           </TabsList>
 
@@ -687,7 +769,13 @@ export default function Forum() {
                   {SPORTS.map(sport => (
                     <DropdownMenuItem 
                       key={sport}
-                      onClick={() => setSelectedSport(sport)}
+                      onClick={() => {
+                        // Normalize the sport name when setting
+                        const normalizedSport = sport === t('forum.allSports') 
+                          ? t('forum.allSports') 
+                          : normalizeSportName(sport);
+                        setSelectedSport(normalizedSport);
+                      }}
                       className={selectedSport === sport ? 'bg-accent' : ''}
                     >
                       {sport}
@@ -701,27 +789,30 @@ export default function Forum() {
           {/* Tab Content */}
           <TabsContent value="debates" className="space-y-4">
             <div className="grid gap-6">
-              {filteredPosts.length > 0 ? (
-                filteredPosts.map(post => (
-                  <PostCard key={post.id} post={post} />
-                ))
-              ) : (
-                <Card className="p-12 text-center">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">{t('forum.noDebatesFound')}</h3>
-                  <p className="text-muted-foreground mb-4">
-                    {t('forum.beFirstToStartDebate', { sport: selectedSport === t('forum.allSports') ? t('forum.anySport') : selectedSport })}
-                  </p>
-                  <div className="flex gap-2 justify-center">
-                    <Button variant="outline" onClick={handleRefreshDebates} disabled={isLoading}>
-                      {isLoading ? 'Refreshing...' : 'Refresh Debates'}
-                    </Button>
-                    <Button onClick={handleCreateDebate}>
-                      {t('forum.startDebate')}
-                    </Button>
-                  </div>
-                </Card>
-              )}
+              {(() => {
+                console.log('Rendering debates - Filtered Posts:', filteredPosts);
+                return filteredPosts.length > 0 ? (
+                  filteredPosts.map(post => (
+                    <PostCard key={post.id} post={post} />
+                  ))
+                ) : (
+                  <Card className="p-12 text-center">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold mb-2">{t('forum.noDebatesFound')}</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {t('forum.beFirstToStartDebate', { sport: selectedSport === t('forum.allSports') ? t('forum.anySport') : selectedSport })}
+                    </p>
+                    <div className="flex gap-2 justify-center">
+                      <Button variant="outline" onClick={handleRefreshDebates} disabled={isLoading}>
+                        {isLoading ? t('forum.loadingForum') : t('forum.refreshDebates')}
+                      </Button>
+                      <Button onClick={handleCreateDebate}>
+                        {t('forum.createDebateButton')}
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })()}
             </div>
           </TabsContent>
 
@@ -799,26 +890,6 @@ export default function Forum() {
             </div>
           </TabsContent>
 
-          <TabsContent value="transfers" className="space-y-4">
-            <div className="grid gap-6">
-              {filteredPosts.length > 0 ? (
-                filteredPosts.map(post => (
-                  <PostCard key={post.id} post={post} />
-                ))
-              ) : (
-                <Card className="p-12 text-center">
-                  <TrendingUp className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">{t('forum.noTransfersFound')}</h3>
-                  <p className="text-muted-foreground mb-4">
-                    {t('forum.noRecentTransfers', { sport: selectedSport === t('forum.allSports') ? t('forum.anySport') : selectedSport })}
-                  </p>
-                  <Button onClick={handleRefreshNews}>
-                    {t('forum.refreshTransfers')}
-                  </Button>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
     </div>

@@ -1110,7 +1110,7 @@
     "latest": "Последние",
     "mostLiked": "Самые понравившиеся",
     "mostCommented": "Самые комментируемые",
-    "backToForum": "Назад к форуму",
+    "backToForum": "Вернуться в Форум",
     "comments": "Комментарии",
     "reply": "Ответить",
     "submit": "Отправить",
@@ -1154,7 +1154,7 @@
     "refreshTransfers": "Обновить трансферы",
     "sortBySport": "Сортировать по спорту",
     "by": "От",
-    "backToForum": "Назад к форуму",
+    "backToForum": "Вернуться в Форум",
     "writeReply": "Написать ответ...",
     "cancel": "Отмена",
     "characters": "символов",
@@ -1184,6 +1184,83 @@
     "toPost": "для отправки",
     "clear": "Очистить",
     "postComment": "Опубликовать комментарий",
-    "noCommentsYet": "Пока нет комментариев. Будьте первым, кто поделится своими мыслями!"
+    "noCommentsYet": "Пока нет комментариев. Будьте первым, кто поделится своими мыслями!",
+    "allSports": "Все виды спорта",
+    "football": "Футбол",
+    "basketball": "Баскетбол", 
+    "volleyball": "Волейбол",
+    "tennis": "Теннис",
+    "baseball": "Бейсбол",
+    "soccer": "Футбол",
+    "hockey": "Хоккей",
+    "debates": "Дискуссии",
+    "news": "Новости",
+    "transfers": "Трансферы",
+    "sportsForum": "Спортивный Форум",
+    "joinDiscussion": "Присоединяйтесь к обсуждению и делитесь своим мнением",
+    "createDebateButton": "Создать Дискуссию",
+    "noDebatesFound": "Дискуссии не найдены",
+    "beFirstToStartDebate": "Станьте первым, кто начнет дискуссию в {{sport}}!",
+    "startDebate": "Начать Дискуссию",
+    "votes": "Голоса",
+    "by": "От",
+    "readOriginal": "Читать Оригинал",
+    "original": "Оригинал",
+    "loadingForum": "Загрузка Форума...",
+    "failedToLoadNews": "Не удалось загрузить новости",
+    "failedToRefreshNews": "Не удалось обновить новости",
+    "noNewsFound": "Новости не найдены",
+    "noRecentNews": "Нет последних новостей в {{sport}}",
+    "noTransfersFound": "Трансферы не найдены",
+    "noRecentTransfers": "Нет последних трансферов в {{sport}}",
+    "refreshNews": "Обновить Новости",
+    "refreshTransfers": "Обновить Трансферы",
+    "refreshDebates": "Обновить Дискуссии",
+    "debate": {
+      "notFound": {
+        "title": "Дискуссия не найдена",
+        "description": "Дискуссия, которую вы ищете, не существует."
+      }
+    },
+    "createDebate": {
+      "title": "Создать Новую Дискуссию",
+      "subtitle": "Начните обсуждение спорной темы в спорте",
+      "option1": {
+        "name": {
+          "label": "Название Первого Варианта",
+          "characterCount": "{{count}}/50 символов"
+        },
+        "description": {
+          "label": "Описание Первого Варианта",
+          "characterCount": "{{count}}/500 символов"
+        }
+      },
+      "option2": {
+        "name": {
+          "label": "Название Второго Варианта",
+          "characterCount": "{{count}}/50 символов"
+        },
+        "description": {
+          "label": "Описание Второго Варианта",
+          "characterCount": "{{count}}/500 символов"
+        }
+      },
+      "category": {
+        "label": "Выберите Категорию Спорта",
+        "options": {
+          "football": "Футбол",
+          "basketball": "Баскетбол",
+          "tennis": "Теннис",
+          "soccer": "Футбол",
+          "volleyball": "Волейбол",
+          "baseball": "Бейсбол",
+          "hockey": "Хоккей"
+        }
+      },
+      "buttons": {
+        "cancel": "Отмена",
+        "create": "Создать Дискуссию"
+      }
+    }
   }
 } 

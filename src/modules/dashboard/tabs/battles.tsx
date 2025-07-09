@@ -169,35 +169,35 @@ export default function Battles({
                   <>
                     {/* Last 3 Battles Section */}
                     {allBattles.slice(0, 3).map((battle) => (
-                      <div
-                        key={battle.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 border rounded-lg hover:shadow-sm transition-shadow bg-card"
-                      >
-                        <div className="flex items-center gap-3 mb-3 sm:mb-0">
-                          <div className="flex-shrink-0">
+                    <div
+                      key={battle.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between p-3 lg:p-4 border rounded-lg hover:shadow-sm transition-shadow bg-card"
+                    >
+                      <div className="flex items-center gap-3 mb-3 sm:mb-0">
+                        <div className="flex-shrink-0">
                             {getSportIcon(battle.sport)}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm lg:text-base truncate">{battle.player1} vs {battle.player2}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {battle.sport}
-                            </p>
-                          </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                          <Badge
-                            variant={
-                              battle.result === "win" ? "default" : 
-                              battle.result === "lose" ? "destructive" : "secondary"
-                            }
-                            className="w-fit text-xs lg:text-sm"
-                          >
-                            {battle.result === "win" ? t('dashboard.victory') : 
-                             battle.result === "lose" ? t('dashboard.defeat') : t('dashboard.draw')}
-                          </Badge>
-                          <p className="text-sm lg:text-lg font-bold text-right">{battle.score}</p>
+                        <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm lg:text-base truncate">{battle.player1} vs {battle.player2}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {battle.sport}
+                          </p>
                         </div>
                       </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        <Badge
+                          variant={
+                            battle.result === "win" ? "default" : 
+                            battle.result === "lose" ? "destructive" : "secondary"
+                          }
+                          className="w-fit text-xs lg:text-sm"
+                        >
+                          {battle.result === "win" ? t('dashboard.victory') : 
+                           battle.result === "lose" ? t('dashboard.defeat') : t('dashboard.draw')}
+                        </Badge>
+                        <p className="text-sm lg:text-lg font-bold text-right">{battle.score}</p>
+                      </div>
+                    </div>
                     ))}
                   </>
                 )}

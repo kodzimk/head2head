@@ -9,6 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 import Header from '../dashboard/header';
 import { debateService } from '../../shared/services/debate-service';
 import type { CreateDebateData } from '../../shared/services/debate-service';
+import { useTranslation } from 'react-i18next';
 
 interface CreateDebateForm {
   option1_name: string;
@@ -20,6 +21,7 @@ interface CreateDebateForm {
 
 export default function CreateDebate() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [form, setForm] = useState<CreateDebateForm>({
     option1_name: '',
@@ -162,8 +164,6 @@ export default function CreateDebate() {
     }
   };
 
-
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -180,16 +180,18 @@ export default function CreateDebate() {
 
         <Card>
           <CardHeader>
-            <h1 className="text-2xl font-bold">Create a New Debate</h1>
+            <h1 className="text-2xl font-bold">{t('forum.createDebate.title')}</h1>
             <p className="text-muted-foreground">
-              Start a discussion about a controversial topic in sports
+              {t('forum.createDebate.subtitle')}
             </p>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2 flex flex-col">
-              <Label htmlFor="option1_name" className="text-lg font-semibold text-primary">First Option Name</Label>
+              <Label htmlFor="option1_name" className="text-lg font-semibold text-primary">
+                {t('forum.createDebate.option1.name.label')}
+              </Label>
               <Input
                 id="option1_name"
                 name="option1_name"
@@ -207,12 +209,14 @@ export default function CreateDebate() {
                 <p className="text-sm text-red-500 font-medium">{validationErrors.option1_name}</p>
               )}
               <p className="text-xs text-muted-foreground font-medium">
-                {form.option1_name.length}/50 characters
+                {t('forum.createDebate.option1.name.characterCount', { count: form.option1_name.length })}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="option1_description" className="text-lg font-semibold text-primary">First Option Description</Label>
+              <Label htmlFor="option1_description" className="text-lg font-semibold text-primary">
+                {t('forum.createDebate.option1.description.label')}
+              </Label>
               <Textarea
                 id="option1_description"
                 name="option1_description"
@@ -230,12 +234,14 @@ export default function CreateDebate() {
                 <p className="text-sm text-destructive font-medium">{validationErrors.option1_description}</p>
               )}
               <p className="text-xs text-muted-foreground font-medium">
-                {form.option1_description.length}/500 characters
+                {t('forum.createDebate.option1.description.characterCount', { count: form.option1_description.length })}
               </p>
             </div>
 
             <div className="space-y-2 flex flex-col">
-              <Label htmlFor="option2_name" className="text-lg font-semibold text-primary">Second Option Name</Label>
+              <Label htmlFor="option2_name" className="text-lg font-semibold text-primary">
+                {t('forum.createDebate.option2.name.label')}
+              </Label>
               <Input
                 id="option2_name"
                 name="option2_name"
@@ -253,12 +259,14 @@ export default function CreateDebate() {
                 <p className="text-sm text-red-500 font-medium">{validationErrors.option2_name}</p>
               )}
               <p className="text-xs text-muted-foreground font-medium">
-                {form.option2_name.length}/50 characters
+                {t('forum.createDebate.option2.name.characterCount', { count: form.option2_name.length })}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="option2_description" className="text-lg font-semibold text-primary">Second Option Description</Label>
+              <Label htmlFor="option2_description" className="text-lg font-semibold text-primary">
+                {t('forum.createDebate.option2.description.label')}
+              </Label>
               <Textarea
                 id="option2_description"
                 name="option2_description"
@@ -276,27 +284,32 @@ export default function CreateDebate() {
                 <p className="text-sm text-destructive font-medium">{validationErrors.option2_description}</p>
               )}
               <p className="text-xs text-muted-foreground font-medium">
-                {form.option2_description.length}/500 characters
+                {t('forum.createDebate.option2.description.characterCount', { count: form.option2_description.length })}
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="sport" className="text-lg font-semibold text-primary">Sport</Label>
+              <Label className="text-lg font-semibold text-primary">
+                {t('forum.createDebate.category.label')}
+              </Label>
               <select
                 id="sport"
                 name="sport"
                 value={form.sport}
                 onChange={handleChange}
                 className={`w-full h-12 text-lg font-medium bg-background border-2 rounded-md px-3 transition-all duration-200 ${
-                  validationErrors.sport
+                  validationErrors.sport 
                     ? 'border-destructive focus-visible:ring-destructive' 
                     : 'border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20'
                 }`}
               >
-                <option value="Football">Football</option>
-                <option value="Basketball">Basketball</option>
-                <option value="Tennis">Tennis</option>
-                {/* Add more sports as needed */}
+                <option value="Football">{t('forum.createDebate.category.options.football')}</option>
+                <option value="Basketball">{t('forum.createDebate.category.options.basketball')}</option>
+                <option value="Tennis">{t('forum.createDebate.category.options.tennis')}</option>
+                <option value="Soccer">{t('forum.createDebate.category.options.soccer')}</option>
+                <option value="Volleyball">{t('forum.createDebate.category.options.volleyball')}</option>
+                <option value="Baseball">{t('forum.createDebate.category.options.baseball')}</option>
+                <option value="Hockey">{t('forum.createDebate.category.options.hockey')}</option>
               </select>
               {validationErrors.sport && (
                 <p className="text-sm text-destructive font-medium">{validationErrors.sport}</p>
@@ -317,7 +330,7 @@ export default function CreateDebate() {
                   variant="outline"
                   onClick={() => navigate('/forum')}
                 >
-                  Cancel
+                  {t('forum.createDebate.buttons.cancel')}
                 </Button>
                 <Button
                   type="submit"
