@@ -59,7 +59,7 @@ export default function Header() {
           >
             <Link to="/dashboard" className="nav-gaming">
               <div className="flex items-center gap-1.5 lg:gap-2">
-                <Home className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
+                <Home className="w-3.5 h-3.5 lg:w-4  lg:h-4 xl:w-5 xl:h-5" />
                 <span className="text-sm lg:text-base">{t('navigation.home')}</span>
               </div>
             </Link>

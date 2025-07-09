@@ -189,11 +189,6 @@ export function Dashboard() {
     }
   }, [showOnboarding, mobileOnboardingSteps, onboardingSteps]);
 
-  useEffect(() => {
-    const onboardingElements = [...document.querySelectorAll("[data-onboarding]")].map(e => e.getAttribute("data-onboarding"));
-    console.log('onboardingElements', onboardingElements[5]);
-  }, []);
-
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
     localStorage.setItem('head2head-dashboard-onboarding', 'completed');
@@ -221,6 +216,8 @@ export function Dashboard() {
   }, []);
 
   const fetchBattles = useCallback(async () => {
+    if (!user?.username) return;
+    
     try {
       const response = await axios.get(`${API_BASE_URL}/db/get-user-battles?username=${user?.username}`);
       const data = response.data;
@@ -305,7 +302,7 @@ export function Dashboard() {
     return () => {
       window.removeEventListener('battleFinished', handleBattleFinished);
     };
-  }, [user, fetchBattles, setUser]);
+  }, [user]);
 
   if (error || !user) {
     return (
