@@ -1200,6 +1200,11 @@
         "create": "Create Debate"
       }
     },
-    "backToForum": "Back to Forum"
+    "backToForum": "Back to Forum",
+    "transferNews": {
+      "noTransfersFound": "No Transfers Found",
+      "noRecentTransfers": "No recent transfers in {{sport}}",
+      "refreshTransfers": "Refresh Transfers"
+    }
   }
 } 

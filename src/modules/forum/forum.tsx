@@ -12,6 +12,7 @@ import {
   Filter,
   ChevronRight,
   ExternalLink,
+  TrendingUp,
 } from 'lucide-react';
 import Header from '../dashboard/header';
 import { 
@@ -22,6 +23,8 @@ import {
 } from '../../shared/ui/dropdown-menu';
 import { newsService } from '../../shared/services/news-service';
 import { debateService, type DebatePick } from '../../shared/services/debate-service';
+import { transferService } from '../../shared/services/transfer-service';
+import type { TransferNews } from '../../shared/services/transfer-service';
 import { useGlobalStore } from '../../shared/interface/gloabL_var';
 import { useTranslation } from 'react-i18next';
 
@@ -130,9 +133,10 @@ export default function Forum() {
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [debates, setDebates] = useState<DebatePick[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filteredPosts, setFilteredPosts] = useState<ForumPost[]>([]);
+
   const [newsError, setNewsError] = useState<string | null>(null);
   const [debateError, setDebateError] = useState<string | null>(null);
+  const [transferError, setTransferError] = useState<string | null>(null);
   const [likedArticles, setLikedArticles] = useState<Set<string>>(new Set());
 
   // Helper to load liked articles from localStorage
@@ -163,6 +167,7 @@ export default function Forum() {
       setIsLoading(true);
       setNewsError(null);
       setDebateError(null);
+      setTransferError(null);
       
       // Always get the latest liked articles from localStorage
       const latestLikedArticles = getLikedArticlesFromStorage();
@@ -213,23 +218,43 @@ export default function Forum() {
         console.error('Error fetching sports headlines:', error);
       }
 
-      // Fetch transfer data from server (also in user's language)
+      // Fetch transfer data from server
       try {
-        const transferResponse = await newsService.getTransferNews(['football', 'basketball', 'volleyball']);
+        const transferResponse = await transferService.getTransferNews(10);
         
-        transferPosts = transferResponse.data.map((article: any) => {
-          const post = newsService.convertToForumPost(article, 'transfer');
-          post.transferDetails = {
-            player: 'Various Players',
-            fromTeam: 'Multiple Teams',
-            toTeam: 'Various Destinations',
-            status: 'rumor' as const
+        transferPosts = transferResponse.map((article: TransferNews) => {
+          const post: ForumPost = {
+            id: article.id,
+            title: article.title,
+            content: article.description,
+            author: article.source,
+            authorAvatar: '/images/placeholder-user.jpg',
+            timestamp: new Date(article.publishedAt),
+            sport: article.sport,
+            likes: 0, // No likes for transfers
+            comments: 0,
+            isLiked: false,
+            tags: [article.sport, 'Transfer'],
+            type: 'transfer' as const,
+            transferDetails: {
+              player: article.player || 'Unknown Player',
+              fromTeam: article.fromTeam || 'Unknown Team',
+              toTeam: article.toTeam || 'Unknown Team',
+              fee: article.transferFee,
+              status: article.status || 'rumor'
+            }
           };
-          post.isLiked = latestLikedArticles.has(post.id);
           return post;
         });
+        
+        // Check if we're using fallback data (indicated by fallback IDs)
+        const isUsingFallback = transferResponse.some(transfer => transfer.id.startsWith('fallback-'));
+        if (isUsingFallback) {
+          setTransferError('Using sample transfer data due to API rate limits. Real-time data will resume shortly.');
+        }
       } catch (error) {
         console.error('Error fetching transfer news:', error);
+        setTransferError('Failed to load transfer news. Using sample data instead.');
       }
 
       // Combine all posts
@@ -294,75 +319,7 @@ export default function Forum() {
     return () => clearInterval(intervalId);
   }, [user, user?.username]);
 
-  // Filter and sort posts
-  useEffect(() => {
-    if (activeTab === 'debates') {
-      console.log('Current debates:', debates);
-      console.log('Selected sport:', selectedSport);
-      
-      // Normalize the selected sport
-      const normalizedSelectedSport = normalizeSportName(selectedSport);
-      const isAllSports = normalizedSelectedSport === normalizeSportName(t('forum.allSports'));
-      
-      let filteredDebates = debates.filter(debate => {
-        // Normalize the debate's category
-        const normalizedDebateSport = normalizeSportName(debate.category);
-        
-        const matchesSport = isAllSports || normalizedDebateSport === normalizedSelectedSport;
-        console.log(`Debate ${debate.id} - Category: ${debate.category}, Normalized: ${normalizedDebateSport}, Matches Sport: ${matchesSport}`);
-        return matchesSport;
-      });
-      
-      if (isAllSports) {
-        filteredDebates = filteredDebates.sort((a, b) => {
-          const idxA = SPORTS.indexOf(a.category);
-          const idxB = SPORTS.indexOf(b.category);
-          return idxA - idxB;
-        });
-      } else {
-        filteredDebates = filteredDebates.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      }
 
-      // Convert debates to ForumPost format for display
-      const debatePosts: ForumPost[] = filteredDebates.map(debate => {
-        console.log('Converting debate:', debate);
-        const forumPost: ForumPost = {
-          id: debate.id,
-          title: `${debate.option1_name} vs ${debate.option2_name}`,
-          content: debate.option1_description || debate.option2_description || '',
-          author: 'System',
-          authorAvatar: '/images/placeholder-user.jpg',
-          timestamp: new Date(debate.created_at),
-          sport: debate.category,
-          likes: debate.option1_votes + debate.option2_votes,
-          comments: 0, // We'll add comment count later
-          isLiked: false, // Will be handled separately
-          tags: [debate.category],
-          type: 'debate' as const,
-          debateDetails: {
-            option1: debate.option1_name,
-            option2: debate.option2_name,
-            votes: debate.option1_votes + debate.option2_votes,
-            trending: debateService.isTrending(debate)
-          }
-        };
-        console.log('Converted ForumPost:', forumPost);
-        return forumPost;
-      });
-
-      console.log('Filtered Debate Posts:', debatePosts);
-      setFilteredPosts(debatePosts);
-    } else {
-      // Handle news and transfer posts
-      let filtered = posts.filter(post => {
-        const matchesTab = post.type === activeTab;
-        const matchesSport = selectedSport === t('forum.allSports') || post.sport === selectedSport;
-        return matchesTab && matchesSport;
-      });
-
-      setFilteredPosts(filtered);
-    }
-  }, [posts, debates, activeTab, selectedSport, likedArticles, t]);
 
 
   const handlePostClick = (post: ForumPost) => {
@@ -434,6 +391,7 @@ export default function Forum() {
       setIsLoading(true);
       setNewsError(null);
       setDebateError(null);
+      setTransferError(null);
       
       // Refresh all data
       await loadData();
@@ -488,6 +446,54 @@ export default function Forum() {
     }
   };
 
+  const handleRefreshTransfers = async () => {
+    try {
+      setIsLoading(true);
+      setTransferError(null);
+      
+      const transferResponse = await transferService.getTransferNews(10);
+      const transferPosts = transferResponse.map((article: TransferNews) => ({
+        id: article.id,
+        title: article.title,
+        content: article.description,
+        author: article.source,
+        authorAvatar: '/images/placeholder-user.jpg',
+        timestamp: new Date(article.publishedAt),
+        sport: article.sport,
+        likes: 0,
+        comments: 0,
+        isLiked: false,
+        tags: [article.sport, 'Transfer'],
+        type: 'transfer' as const,
+        transferDetails: {
+          player: article.player || 'Unknown Player',
+          fromTeam: article.fromTeam || 'Unknown Team',
+          toTeam: article.toTeam || 'Unknown Team',
+          fee: article.transferFee,
+          status: article.status || 'rumor'
+        }
+      }));
+      
+      // Update only transfer posts in the existing posts array
+      setPosts(prevPosts => {
+        const nonTransferPosts = prevPosts.filter(post => post.type !== 'transfer');
+        return [...nonTransferPosts, ...transferPosts];
+      });
+      
+      // Check if we're using fallback data
+      const isUsingFallback = transferResponse.some(transfer => transfer.id.startsWith('fallback-'));
+      if (isUsingFallback) {
+        setTransferError('Using sample transfer data due to API rate limits. Real-time data will resume shortly.');
+      }
+      
+    } catch (error: any) {
+      console.error('Error refreshing transfers:', error);
+      setTransferError('Failed to refresh transfer news. Using sample data instead.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Refresh content when language changes
   useEffect(() => {
     const handleLanguageChange = async () => {
@@ -495,6 +501,7 @@ export default function Forum() {
         setIsLoading(true);
         setNewsError(null);
         setDebateError(null);
+        setTransferError(null);
         
         // Always refresh news and transfers
         const multiLanguageNewsResponse = await newsService.getTopSportsHeadlinesMultiLanguage();
@@ -510,9 +517,39 @@ export default function Forum() {
           return post;
         });
         
-        // Update posts
-        setPosts(newPosts);
+        // Fetch fresh transfer data
+        const transferResponse = await transferService.getTransferNews(10);
+        const transferPosts = transferResponse.map((article: TransferNews) => ({
+          id: article.id,
+          title: article.title,
+          content: article.description,
+          author: article.source,
+          authorAvatar: '/images/placeholder-user.jpg',
+          timestamp: new Date(article.publishedAt),
+          sport: article.sport,
+          likes: 0,
+          comments: 0,
+          isLiked: false,
+          tags: [article.sport, 'Transfer'],
+          type: 'transfer' as const,
+          transferDetails: {
+            player: article.player || 'Unknown Player',
+            fromTeam: article.fromTeam || 'Unknown Team',
+            toTeam: article.toTeam || 'Unknown Team',
+            fee: article.transferFee,
+            status: article.status || 'rumor'
+          }
+        }));
         
+        // Update posts with both news and transfers
+        setPosts([...newPosts, ...transferPosts]);
+        
+        // Check if we're using fallback data
+        const isUsingFallback = transferResponse.some(transfer => transfer.id.startsWith('fallback-'));
+        if (isUsingFallback) {
+          setTransferError('Using sample transfer data due to API rate limits. Real-time data will resume shortly.');
+        }
+
         // Refresh debates if user is authenticated
         if (user && user.username && localStorage.getItem('access_token')) {
           const debateData = await debateService.getDebates({ 
@@ -691,6 +728,118 @@ export default function Forum() {
     </Card>
   );
 
+  // Modify the transfers rendering logic
+  const TransferCard = ({ post }: { post: ForumPost }) => {
+    if (post.type !== 'transfer' || !post.transferDetails) {
+      return null;
+    }
+    
+    return (
+      <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer group">
+        <CardHeader className="pb-0">
+          <div className="flex items-start justify-between gap-2 sm:gap-3">
+            <Badge 
+              variant={
+                post.transferDetails.status === 'confirmed' ? 'default' :
+                post.transferDetails.status === 'rumor' ? 'secondary' : 'outline'
+              } 
+              className="text-xs"
+            >
+              {post.transferDetails.status.toUpperCase()}
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              {post.sport}
+            </Badge>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-2 p-4 sm:p-5">
+          <h3 className="font-bold text-base sm:text-lg mb-1 group-hover:text-primary transition-colors line-clamp-2">
+            {post.title}
+          </h3>
+          
+          <div className="bg-muted/50 rounded-lg p-2 sm:p-3 text-xs sm:text-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-medium truncate mr-2">
+                {post.transferDetails.player}
+              </span>
+            </div>
+            <div className="text-xs text-muted-foreground mt-1 truncate">
+              {post.transferDetails.fromTeam} → {post.transferDetails.toTeam}
+              {post.transferDetails.fee && (
+                <span className="ml-1 sm:ml-2">({post.transferDetails.fee})</span>
+              )}
+            </div>
+          </div>
+
+          <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed line-clamp-3">
+            {post.content}
+          </p>
+
+          <div className="flex flex-wrap gap-1 mt-2">
+            {post.tags.slice(0, 3).map((tag: string) => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                #{tag}
+              </Badge>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Use only real posts from API
+  const allPosts = posts;
+
+  const filteredPosts = useMemo(() => {
+    if (activeTab === 'debates') {
+      // Handle debates separately
+      const normalizedSelectedSport = normalizeSportName(selectedSport);
+      const isAllSports = normalizedSelectedSport === normalizeSportName(t('forum.allSports'));
+      
+      let filteredDebates = debates.filter(debate => {
+        const normalizedDebateSport = normalizeSportName(debate.category);
+        return isAllSports || normalizedDebateSport === normalizedSelectedSport;
+      });
+
+      // Convert debates to ForumPost format
+      return filteredDebates.map(debate => ({
+        id: debate.id,
+        title: `${debate.option1_name} vs ${debate.option2_name}`,
+        content: debate.option1_description || debate.option2_description || '',
+        author: 'System',
+        authorAvatar: '/images/placeholder-user.jpg',
+        timestamp: new Date(debate.created_at),
+        sport: debate.category,
+        likes: debate.option1_votes + debate.option2_votes,
+        comments: 0,
+        isLiked: false,
+        tags: [debate.category],
+        type: 'debate' as const,
+        debateDetails: {
+          option1: debate.option1_name,
+          option2: debate.option2_name,
+          votes: debate.option1_votes + debate.option2_votes,
+          trending: debateService.isTrending(debate)
+        }
+      }));
+    }
+
+    // Handle news and transfers
+    return allPosts.filter(post => {
+      // Filter by sport
+      if (selectedSport !== t('forum.allSports') && post.sport !== selectedSport) {
+        return false;
+      }
+      
+      // Filter by tab
+      if (activeTab === 'news' && post.type !== 'news') return false;
+      if (activeTab === 'transfers' && post.type !== 'transfer') return false;
+      
+      return true;
+    });
+  }, [allPosts, debates, selectedSport, activeTab, t]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -727,6 +876,11 @@ export default function Forum() {
                 {debateError}
               </div>
             )}
+            {transferError && (
+              <div className="mt-2 p-2 bg-destructive/10 text-destructive text-xs sm:text-sm rounded-md">
+                {transferError}
+              </div>
+            )}
           </div>
           {/* Add Create Debate button only for Debates tab */}
           {activeTab === 'debates' && (
@@ -742,7 +896,7 @@ export default function Forum() {
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-fit">
+          <TabsList className="grid w-full grid-cols-3 lg:w-fit">
             <TabsTrigger value="debates" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4" />
               {t('forum.debates')}
@@ -750,6 +904,10 @@ export default function Forum() {
             <TabsTrigger value="news" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <Newspaper className="w-3 h-3 sm:w-4 sm:h-4" />
               {t('forum.news')}
+            </TabsTrigger>
+            <TabsTrigger value="transfers" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
+              {t('forum.transfers')}
             </TabsTrigger>
           </TabsList>
 
@@ -884,6 +1042,27 @@ export default function Forum() {
                   </p>
                   <Button onClick={handleRefreshNews}>
                     {t('forum.refreshNews')}
+                  </Button>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="transfers" className="space-y-4">
+            <div className="grid gap-6">
+              {filteredPosts.length > 0 ? (
+                filteredPosts.map(post => (
+                  <TransferCard key={post.id} post={post} />
+                ))
+              ) : (
+                <Card className="p-12 text-center">
+                  <TrendingUp className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">{t('forum.transferNews.noTransfersFound')}</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {t('forum.transferNews.noRecentTransfers')}
+                  </p>
+                  <Button onClick={handleRefreshTransfers}>
+                    {t('forum.transferNews.refreshTransfers')}
                   </Button>
                 </Card>
               )}

@@ -1261,6 +1261,11 @@
         "cancel": "Отмена",
         "create": "Создать Дискуссию"
       }
+    },
+    "transferNews": {
+      "noTransfersFound": "Трансферы не найдены",
+      "noRecentTransfers": "Нет последних трансферов в {{sport}}",
+      "refreshTransfers": "Обновить Трансферы"
     }
   }
 } 
