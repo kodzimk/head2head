@@ -463,7 +463,7 @@ export default function Forum() {
         likes: 0,
         comments: 0,
         isLiked: false,
-        tags: ['Football', 'Transfer'],
+        tags: [],
         type: 'transfer' as const,
         transferDetails: {
           player: transfer.player_name,

@@ -555,7 +555,7 @@ export default function DebateDetail() {
                 {/* Reply count and toggle */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">
-                    {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
+                    {comment.replies.length} {comment.replies.length === 1 ? t('forum.reply') : t('forum.replies')}
                   </span>
                   {comment.replies.length > 1 && (
                     <Button
@@ -574,7 +574,7 @@ export default function DebateDetail() {
                       }}
                       className="text-xs text-muted-foreground hover:text-primary"
                     >
-                      {expandedReplies.has(comment.id) ? 'Show less' : `Show more ${comment.replies.length - 1} replies`}
+                      {expandedReplies.has(comment.id) ? t('forum.showLess') : `${t('forum.showMore')} ${comment.replies.length - 1} ${t('forum.replies')}`}
                     </Button>
                   )}
                 </div>

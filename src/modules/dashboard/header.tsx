@@ -165,7 +165,7 @@ export default function Header() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate('/forum')} className="hover:bg-card/50 py-2 sm:py-3">
                       <SlidersHorizontal className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-sm sm:text-base">Forum</span>
+                      <span className="text-sm sm:text-base">{t('forum.forum')}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => navigate(`/${user.username}/trainings`)} className="hover:bg-card/50 py-2 sm:py-3">
                       <Pickaxe className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />

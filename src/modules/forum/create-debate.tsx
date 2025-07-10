@@ -175,7 +175,7 @@ export default function CreateDebate() {
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Forum
+          {t('forum.backToForum')}
         </Button>
 
         <Card>
@@ -341,7 +341,7 @@ export default function CreateDebate() {
                       : 'border-primary/20 hover:border-primary/40 bg-primary text-primary-foreground focus:border-primary focus:ring-2 focus:ring-primary/20'
                   }`}
                 >
-                  {isSubmitting ? 'Creating Debate...' : 'Create Debate'}
+                  {isSubmitting ? t('forum.createDebate.buttons.creatingDebate') : t('forum.createDebate.buttons.createDebate')}
                 </Button>
                 {validationErrors.submit && (
                   <p className="text-sm text-red-500 font-medium">{validationErrors.submit}</p>

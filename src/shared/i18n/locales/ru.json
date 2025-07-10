@@ -1217,6 +1217,10 @@
     "refreshNews": "Обновить Новости",
     "refreshTransfers": "Обновить Трансферы",
     "refreshDebates": "Обновить Дискуссии",
+    "showMore":"Показать больше",
+    "showLess":"Показать меньше",
+    "replies":"ответов",
+    "postComment":"комментировать",
     "debate": {
       "notFound": {
         "title": "Дискуссия не найдена",
@@ -1260,7 +1264,9 @@
       },
       "buttons": {
         "cancel": "Отмена",
-        "create": "Создать Дискуссию"
+        "create": "Создать Дискуссию",
+        "creatingDebate": "Создание Дискуссии...",
+        "createDebate": "Создать Дискуссию"
       }
     },
     "transferNews": {

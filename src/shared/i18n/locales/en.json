@@ -1156,6 +1156,20 @@
     "refreshNews": "Refresh News",
     "refreshTransfers": "Refresh Transfers",
     "refreshDebates": "Refresh Debates",
+    "commentsSection": "Comments",
+    "shareYourThoughtsOnDebate": "Share your thoughts",
+    "clear":"clear",
+    "cancel":"cancel",
+    "castYourVote":"cast your vote",
+    "loadingDebate":"Loading debate...",
+    "loadingComments":"Loading comments...",
+    "loadingTransfers":"Loading transfers...",
+    "loadingNews":"Loading news...",
+    "writeReply":"Write a reply...",
+    "showMore":"Show more",
+    "showLess":"Show less",
+    "replies":"replies",
+    "postComment":"comment",
     "debate": {
       "notFound": {
         "title": "Debate Not Found",
@@ -1199,9 +1213,14 @@
       },
       "buttons": {
         "cancel": "Cancel",
-        "create": "Create Debate"
+        "create": "Create Debate",
+        "creatingDebate": "Creating Debate...",
+        "createDebate": "Create Debate"
       }
     },
+    "reply":"reply",
+    "replies":"replies",
+    "postComment":"comment",
     "backToForum": "Back to Forum",
     "transferNews": {
       "noTransfersFound": "No Transfers Found",
