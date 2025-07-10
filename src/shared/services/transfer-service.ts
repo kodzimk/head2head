@@ -1,196 +1,207 @@
-import axios from 'axios';
+import { API_BASE_URL } from '../interface/gloabL_var';
 
-export interface TransferNews {
-  id: string;
-  title: string;
-  description: string;
-  source: string;
-  publishedAt: string;
-  url: string;
-  imageUrl?: string;
-  sport: string;
-  status?: 'rumor' | 'confirmed' | 'completed';
-  player?: string;
-  fromTeam?: string;
-  toTeam?: string;
-  transferFee?: string;
+export interface Transfer {
+  player_name: string;
+  player_id: number;
+  from_team: string;
+  to_team: string;
+  transfer_date: string;
+  transfer_type: string;
+  fee?: string | null;
+  fee_value?: number | null;
+  currency?: string | null;
+}
+
+export interface TransferStatus {
+  status: string;
+  service: string;
+  data_count: number;
+  last_fetch_time: string | null;
+  is_fetching: boolean;
+  next_fetch_in_minutes: number;
+  background_task_running: boolean;
+}
+
+export interface TransferRefreshResponse {
+  status: string;
+  message: string;
+  transfer_count: number;
+  last_fetch_time: string;
 }
 
 class TransferService {
-  private rapidApiKey: string;
+  private baseUrl: string;
 
   constructor() {
-    // Use environment variables for API credentials
-    this.rapidApiKey = import.meta.env.VITE_RAPIDAPI_KEY || '';
+    this.baseUrl = `${API_BASE_URL}/api`;
   }
 
-  // Fallback transfer data when API is unavailable
-  private getFallbackTransfers(): TransferNews[] {
-    return [
-      {
-        id: 'fallback-1',
-        title: 'Haaland to Real Madrid',
-        description: 'Erling Haaland has completed his move to Real Madrid for a record fee of €200 million. The Norwegian striker will join the Spanish giants in a blockbuster transfer.',
-        source: 'Transfer News',
-        publishedAt: new Date().toISOString(),
-        url: '#',
-        imageUrl: '/images/sports-arena.jpg',
-        sport: 'Football',
-        status: 'completed',
-        player: 'Erling Haaland',
-        fromTeam: 'Manchester City',
-        toTeam: 'Real Madrid',
-        transferFee: '€200M'
-      },
-      {
-        id: 'fallback-2',
-        title: 'Mbappé to Liverpool',
-        description: 'Kylian Mbappé has signed for Liverpool in a surprise transfer deal. The French forward will join the Premier League side.',
-        source: 'Transfer News',
-        publishedAt: new Date().toISOString(),
-        url: '#',
-        imageUrl: '/images/sports-arena.jpg',
-        sport: 'Football',
-        status: 'confirmed',
-        player: 'Kylian Mbappé',
-        fromTeam: 'PSG',
-        toTeam: 'Liverpool',
-        transferFee: '€180M'
-      },
-      {
-        id: 'fallback-3',
-        title: 'LeBron James Contract Extension',
-        description: 'LeBron James has signed a contract extension with the Los Angeles Lakers, securing his future with the franchise.',
-        source: 'Basketball News',
-        publishedAt: new Date().toISOString(),
-        url: '#',
-        imageUrl: '/images/sports-arena.jpg',
-        sport: 'Basketball',
-        status: 'confirmed',
-        player: 'LeBron James',
-        fromTeam: 'Los Angeles Lakers',
-        toTeam: 'Los Angeles Lakers',
-        transferFee: '$97.1M'
-      },
-      {
-        id: 'fallback-4',
-        title: 'Kevin Durant Trade Rumors',
-        description: 'Kevin Durant trade rumors continue to swirl as the Brooklyn Nets consider their options for the upcoming season.',
-        source: 'Basketball News',
-        publishedAt: new Date().toISOString(),
-        url: '#',
-        imageUrl: '/images/sports-arena.jpg',
-        sport: 'Basketball',
-        status: 'rumor',
-        player: 'Kevin Durant',
-        fromTeam: 'Brooklyn Nets',
-        toTeam: 'Unknown',
-        transferFee: 'TBD'
-      }
-    ];
+  private getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('access_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    };
   }
 
-  // Fetch transfer news from multiple sources
-  async getTransferNews( limit: number = 10): Promise<TransferNews[]> {
-    // Validate API key
-    if (!this.rapidApiKey) {
-      console.warn('RapidAPI key is not set. Using fallback transfer data.');
-      return this.getFallbackTransfers().slice(0, limit);
-    }
-
+  /**
+   * Get latest transfer data from backend
+   */
+  async getTransfers(): Promise<Transfer[]> {
     try {
-      // Football transfer news
-      const footballResponse = await this.fetchFootballTransfers(limit);
-      
-      // Basketball transfer news
-      const basketballResponse = await this.fetchBasketballTransfers(limit);
+      const response = await fetch(`${this.baseUrl}/transfers`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
 
-      // Combine and limit results
-      const combinedTransfers = [...footballResponse, ...basketballResponse]
-        .slice(0, limit)
-        .map((transfer, index) => ({
-          ...transfer,
-          id: transfer.id || `transfer-${index}`
-        }));
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required');
+        }
+        if (response.status === 503) {
+          throw new Error('Transfer service temporarily unavailable');
+        }
+        throw new Error(`Failed to fetch transfers: ${response.status}`);
+      }
 
-      return combinedTransfers.length > 0 ? combinedTransfers : this.getFallbackTransfers().slice(0, limit);
+      const transfers: Transfer[] = await response.json();
+      return transfers;
     } catch (error) {
-      console.error('Error fetching transfer news, using fallback data:', error);
-      return this.getFallbackTransfers().slice(0, limit);
+      console.error('Error fetching transfers:', error);
+      throw error;
     }
   }
 
-  // Fetch football transfers
-  private async fetchFootballTransfers(limit: number): Promise<TransferNews[]> {
+  /**
+   * Get transfer service status
+   */
+  async getTransferStatus(): Promise<TransferStatus> {
     try {
-      const response = await axios.get('https://transfer-news.p.rapidapi.com/football/transfers', {
-        headers: {
-          'X-RapidAPI-Key': this.rapidApiKey,
-          'X-RapidAPI-Host': 'transfer-news.p.rapidapi.com'
-        },
-        params: { limit },
-        timeout: 10000 // 10 second timeout
+      const response = await fetch(`${this.baseUrl}/transfers/status`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
       });
 
-      return (response.data || []).map((transfer: any) => ({
-        id: transfer.id,
-        title: transfer.title || `${transfer.player} Transfer`,
-        description: transfer.description || `Transfer from ${transfer.fromTeam} to ${transfer.toTeam}`,
-        source: transfer.source || 'Football Transfer News',
-        publishedAt: transfer.publishedAt || new Date().toISOString(),
-        url: transfer.url || '#',
-        imageUrl: transfer.imageUrl || '/images/sports-arena.jpg',
-        sport: 'Football',
-        status: transfer.status || 'rumor',
-        player: transfer.player,
-        fromTeam: transfer.fromTeam,
-        toTeam: transfer.toTeam,
-        transferFee: transfer.transferFee
-      }));
-    } catch (error: any) {
-      console.error('Error fetching football transfers:', error);
-      if (error.response?.status === 429) {
-        console.warn('Rate limit exceeded for football transfers API');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch transfer status: ${response.status}`);
       }
-      return [];
+
+      const status: TransferStatus = await response.json();
+      return status;
+    } catch (error) {
+      console.error('Error fetching transfer status:', error);
+      throw error;
     }
   }
 
-  // Fetch basketball transfers
-  private async fetchBasketballTransfers(limit: number): Promise<TransferNews[]> {
+  /**
+   * Manually trigger transfer data refresh
+   */
+  async refreshTransfers(): Promise<TransferRefreshResponse> {
     try {
-      const response = await axios.get('https://transfer-news.p.rapidapi.com/basketball/transfers', {
-        headers: {
-          'X-RapidAPI-Key': this.rapidApiKey,
-          'X-RapidAPI-Host': 'transfer-news.p.rapidapi.com'
-        },
-        params: { limit },
-        timeout: 10000 // 10 second timeout
+      const response = await fetch(`${this.baseUrl}/transfers/refresh`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
       });
 
-      return (response.data || []).map((transfer: any) => ({
-        id: transfer.id,
-        title: transfer.title || `${transfer.player} Transfer`,
-        description: transfer.description || `Transfer from ${transfer.fromTeam} to ${transfer.toTeam}`,
-        source: transfer.source || 'Basketball Transfer News',
-        publishedAt: transfer.publishedAt || new Date().toISOString(),
-        url: transfer.url || '#',
-        imageUrl: transfer.imageUrl || '/images/sports-arena.jpg',
-        sport: 'Basketball',
-        status: transfer.status || 'rumor',
-        player: transfer.player,
-        fromTeam: transfer.fromTeam,
-        toTeam: transfer.toTeam,
-        transferFee: transfer.transferFee
-      }));
-    } catch (error: any) {
-      console.error('Error fetching basketball transfers:', error);
-      if (error.response?.status === 429) {
-        console.warn('Rate limit exceeded for basketball transfers API');
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error('Refresh already in progress. Please wait.');
+        }
+        if (response.status === 503) {
+          throw new Error('Failed to refresh transfer data. API may be unavailable.');
+        }
+        throw new Error(`Failed to refresh transfers: ${response.status}`);
       }
-      return [];
+
+      const result: TransferRefreshResponse = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error refreshing transfers:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if transfer service is healthy
+   */
+  async getTransferHealth(): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseUrl}/transfers/health`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Transfer health check failed: ${response.status}`);
+      }
+
+      const health = await response.json();
+      return health;
+    } catch (error) {
+      console.error('Error checking transfer health:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Format transfer fee for display
+   */
+  formatTransferFee(transfer: Transfer): string {
+    if (!transfer.fee) {
+      return 'Undisclosed';
+    }
+    
+    // If fee is already formatted (contains currency symbols), return as is
+    if (transfer.fee.includes('€') || transfer.fee.includes('$') || transfer.fee.includes('£')) {
+      return transfer.fee;
+    }
+
+    // If it's a numeric value, try to format it
+    if (transfer.fee_value && transfer.currency) {
+      return `${transfer.currency}${transfer.fee_value.toLocaleString()}`;
+    }
+
+    return transfer.fee;
+  }
+
+  /**
+   * Format transfer date for display
+   */
+  formatTransferDate(transfer: Transfer): string {
+    if (!transfer.transfer_date) {
+      return 'Unknown';
+    }
+
+    try {
+      const date = new Date(transfer.transfer_date);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return transfer.transfer_date;
+    }
+  }
+
+  /**
+   * Get transfer type badge color
+   */
+  getTransferTypeColor(transferType: string): string {
+    switch (transferType.toLowerCase()) {
+      case 'loan':
+        return 'bg-blue-100 text-blue-800';
+      case 'permanent':
+        return 'bg-green-100 text-green-800';
+      case 'free':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-purple-100 text-purple-800';
     }
   }
 }
 
+// Export singleton instance
 export const transferService = new TransferService(); 
+export default transferService; 

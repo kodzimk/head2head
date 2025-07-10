@@ -6,6 +6,7 @@ from battle_ws import router as battle_ws_router
 from training.router import training_router
 from selection.router import router as selection_router
 from news_router import router as news_router
+from transfer.router import router as transfer_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from websocket import app
@@ -116,6 +117,7 @@ app.include_router(battle_ws_router)
 app.include_router(training_router, prefix="/training", tags=["training"])
 app.include_router(selection_router)
 app.include_router(news_router)
+app.include_router(transfer_router, prefix="/api", tags=["transfers"])
 
 
 @app.on_event("startup")
@@ -135,6 +137,22 @@ async def startup_event():
         logger.info("News service background refresh started")
     except Exception as e:
         logger.error(f"Error starting news service: {e}")
+    
+    try:
+        from transfer.service import transfer_service
+       
+        logger.info("Fetching initial transfer data on startup (direct API-Football)...")
+        initial_fetch_success = await transfer_service.update_transfers_data()
+        if initial_fetch_success:
+            logger.info("Initial transfer data fetched successfully from API-Football on startup")
+        else:
+            logger.warning("Failed to fetch initial transfer data from API-Football on startup")
+        
+        # Start background transfer refresh task
+        await transfer_service.start_background_refresh()
+        logger.info("Transfer service background refresh started")
+    except Exception as e:
+        logger.error(f"Error starting transfer service: {e}")
 
 @app.on_event("startup")
 async def create_tables():

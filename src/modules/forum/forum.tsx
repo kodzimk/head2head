@@ -23,8 +23,7 @@ import {
 } from '../../shared/ui/dropdown-menu';
 import { newsService } from '../../shared/services/news-service';
 import { debateService, type DebatePick } from '../../shared/services/debate-service';
-import { transferService } from '../../shared/services/transfer-service';
-import type { TransferNews } from '../../shared/services/transfer-service';
+import { transferService, type Transfer } from '../../shared/services/transfer-service';
 import { useGlobalStore } from '../../shared/interface/gloabL_var';
 import { useTranslation } from 'react-i18next';
 
@@ -220,41 +219,42 @@ export default function Forum() {
 
       // Fetch transfer data from server
       try {
-        const transferResponse = await transferService.getTransferNews(10);
+        const transferResponse = await transferService.getTransfers();
         
-        transferPosts = transferResponse.map((article: TransferNews) => {
+        transferPosts = transferResponse.map((transfer: Transfer) => {
           const post: ForumPost = {
-            id: article.id,
-            title: article.title,
-            content: article.description,
-            author: article.source,
+            id: `transfer-${transfer.player_id}`,
+            title: `${transfer.player_name}`,
+            content: `${transfer.player_name} moved from ${transfer.from_team} to ${transfer.to_team}`,
+            author: 'Transfer News',
             authorAvatar: '/images/placeholder-user.jpg',
-            timestamp: new Date(article.publishedAt),
-            sport: article.sport,
+            timestamp: new Date(transfer.transfer_date || new Date()),
+            sport: 'Football',
             likes: 0, // No likes for transfers
             comments: 0,
             isLiked: false,
-            tags: [article.sport, 'Transfer'],
+            tags: ['Football', 'Transfer'],
             type: 'transfer' as const,
             transferDetails: {
-              player: article.player || 'Unknown Player',
-              fromTeam: article.fromTeam || 'Unknown Team',
-              toTeam: article.toTeam || 'Unknown Team',
-              fee: article.transferFee,
-              status: article.status || 'rumor'
+              player: transfer.player_name,
+              fromTeam: transfer.from_team,
+              toTeam: transfer.to_team,
+              fee: transferService.formatTransferFee(transfer),
+              status: (transfer.transfer_type.toLowerCase() === 'loan' ? 'confirmed' : 'completed') as 'rumor' | 'confirmed' | 'completed'
             }
           };
           return post;
         });
         
-        // Check if we're using fallback data (indicated by fallback IDs)
-        const isUsingFallback = transferResponse.some(transfer => transfer.id.startsWith('fallback-'));
-        if (isUsingFallback) {
-          setTransferError('Using sample transfer data due to API rate limits. Real-time data will resume shortly.');
-        }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching transfer news:', error);
-        setTransferError('Failed to load transfer news. Using sample data instead.');
+        if (error.message?.includes('Authentication required')) {
+          setTransferError('Please log in to view transfers');
+        } else if (error.message?.includes('temporarily unavailable')) {
+          setTransferError('Transfer service is temporarily unavailable. Please try again later.');
+        } else {
+          setTransferError('Failed to load transfer news');
+        }
       }
 
       // Combine all posts
@@ -451,26 +451,26 @@ export default function Forum() {
       setIsLoading(true);
       setTransferError(null);
       
-      const transferResponse = await transferService.getTransferNews(10);
-      const transferPosts = transferResponse.map((article: TransferNews) => ({
-        id: article.id,
-        title: article.title,
-        content: article.description,
-        author: article.source,
+      const transferResponse = await transferService.getTransfers();
+      const transferPosts = transferResponse.map((transfer: Transfer): ForumPost => ({
+        id: `transfer-${transfer.player_id}`,
+        title: `${transfer.player_name} Transfer`,
+        content: `${transfer.player_name} moved from ${transfer.from_team} to ${transfer.to_team}${transfer.fee ? ` for ${transfer.fee}` : ''}`,
+        author: 'Transfer News',
         authorAvatar: '/images/placeholder-user.jpg',
-        timestamp: new Date(article.publishedAt),
-        sport: article.sport,
+        timestamp: new Date(transfer.transfer_date || new Date()),
+        sport: 'Football',
         likes: 0,
         comments: 0,
         isLiked: false,
-        tags: [article.sport, 'Transfer'],
+        tags: ['Football', 'Transfer'],
         type: 'transfer' as const,
         transferDetails: {
-          player: article.player || 'Unknown Player',
-          fromTeam: article.fromTeam || 'Unknown Team',
-          toTeam: article.toTeam || 'Unknown Team',
-          fee: article.transferFee,
-          status: article.status || 'rumor'
+          player: transfer.player_name,
+          fromTeam: transfer.from_team,
+          toTeam: transfer.to_team,
+          fee: transferService.formatTransferFee(transfer),
+          status: (transfer.transfer_type.toLowerCase() === 'loan' ? 'confirmed' : 'completed') as 'rumor' | 'confirmed' | 'completed'
         }
       }));
       
@@ -480,15 +480,15 @@ export default function Forum() {
         return [...nonTransferPosts, ...transferPosts];
       });
       
-      // Check if we're using fallback data
-      const isUsingFallback = transferResponse.some(transfer => transfer.id.startsWith('fallback-'));
-      if (isUsingFallback) {
-        setTransferError('Using sample transfer data due to API rate limits. Real-time data will resume shortly.');
-      }
-      
     } catch (error: any) {
       console.error('Error refreshing transfers:', error);
-      setTransferError('Failed to refresh transfer news. Using sample data instead.');
+      if (error.message?.includes('Authentication required')) {
+        setTransferError('Please log in to view transfers');
+      } else if (error.message?.includes('temporarily unavailable')) {
+        setTransferError('Transfer service is temporarily unavailable. Please try again later.');
+      } else {
+        setTransferError('Failed to refresh transfer news');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -518,37 +518,31 @@ export default function Forum() {
         });
         
         // Fetch fresh transfer data
-        const transferResponse = await transferService.getTransferNews(10);
-        const transferPosts = transferResponse.map((article: TransferNews) => ({
-          id: article.id,
-          title: article.title,
-          content: article.description,
-          author: article.source,
+        const transferResponse = await transferService.getTransfers();
+        const transferPosts = transferResponse.map((transfer: Transfer): ForumPost => ({
+          id: `transfer-${transfer.player_id}`,
+          title: `${transfer.player_name} Transfer`,
+          content: `${transfer.player_name} moved from ${transfer.from_team} to ${transfer.to_team}${transfer.fee ? ` for ${transfer.fee}` : ''}`,
+          author: 'Transfer News',
           authorAvatar: '/images/placeholder-user.jpg',
-          timestamp: new Date(article.publishedAt),
-          sport: article.sport,
+          timestamp: new Date(transfer.transfer_date || new Date()),
+          sport: 'Football',
           likes: 0,
           comments: 0,
           isLiked: false,
-          tags: [article.sport, 'Transfer'],
+          tags: ['Football', 'Transfer'],
           type: 'transfer' as const,
           transferDetails: {
-            player: article.player || 'Unknown Player',
-            fromTeam: article.fromTeam || 'Unknown Team',
-            toTeam: article.toTeam || 'Unknown Team',
-            fee: article.transferFee,
-            status: article.status || 'rumor'
+            player: transfer.player_name,
+            fromTeam: transfer.from_team,
+            toTeam: transfer.to_team,
+            fee: transferService.formatTransferFee(transfer),
+            status: (transfer.transfer_type.toLowerCase() === 'loan' ? 'confirmed' : 'completed') as 'rumor' | 'confirmed' | 'completed'
           }
         }));
         
         // Update posts with both news and transfers
         setPosts([...newPosts, ...transferPosts]);
-        
-        // Check if we're using fallback data
-        const isUsingFallback = transferResponse.some(transfer => transfer.id.startsWith('fallback-'));
-        if (isUsingFallback) {
-          setTransferError('Using sample transfer data due to API rate limits. Real-time data will resume shortly.');
-        }
 
         // Refresh debates if user is authenticated
         if (user && user.username && localStorage.getItem('access_token')) {
@@ -759,22 +753,10 @@ export default function Forum() {
           </h3>
           
           <div className="bg-muted/50 rounded-lg p-2 sm:p-3 text-xs sm:text-sm">
-            <div className="flex items-center justify-between">
-              <span className="font-medium truncate mr-2">
-                {post.transferDetails.player}
-              </span>
-            </div>
             <div className="text-xs text-muted-foreground mt-1 truncate">
               {post.transferDetails.fromTeam} → {post.transferDetails.toTeam}
-              {post.transferDetails.fee && (
-                <span className="ml-1 sm:ml-2">({post.transferDetails.fee})</span>
-              )}
             </div>
           </div>
-
-          <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed line-clamp-3">
-            {post.content}
-          </p>
 
           <div className="flex flex-wrap gap-1 mt-2">
             {post.tags.slice(0, 3).map((tag: string) => (
