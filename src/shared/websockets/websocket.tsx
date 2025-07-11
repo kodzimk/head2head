@@ -116,6 +116,14 @@ export const acceptInvitation = (friend_username: string, battle_id: string) => 
         }))
 }
 
+export const rejectInvitation = (friend_username: string, battle_id: string) => {
+  newSocket?.send(JSON.stringify({
+    type: "reject_invitation",
+    friend_username: friend_username,
+    battle_id: battle_id
+  }))
+}
+
 export const joinBattle = (username: string, battle_id: string) => {
   newSocket?.send(JSON.stringify({
     type: "join_battle",

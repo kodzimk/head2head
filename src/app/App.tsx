@@ -7,6 +7,7 @@ import SignInPage from '../modules/sign-in/sign-in'
 import DashboardPage from '../modules/dashboard/dashboard'
 import ProfilePage from '../modules/profile/profile'
 import FriendsPage from '../modules/friends/friends'
+import ChatsPage from '../modules/friends/chats'
 import BattlesPage from '../modules/battle/battle'
 import WaitingPage from '../modules/battle/waiting-room'
 import { useState, useEffect } from 'react'
@@ -484,6 +485,8 @@ export default function App() {
                               <Route path="/:username" element={<DashboardPage />} />
                               <Route path="/:username/profile" element={<ProfilePage />} />
                               <Route path="/:username/friends" element={<FriendsPage user={user} />} />
+                              <Route path="/:username/chats" element={<ChatsPage user={user} />} />
+                              <Route path="/chats/:username" element={<ChatsPage user={user} />} />
                               <Route path="/battles" element={<BattlesPage />} />
                               <Route path="/waiting-room/:id" element={<WaitingPage />} />
                               <Route path="/view-profile/:username" element={<ViewProfile user={user} />} />

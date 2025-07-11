@@ -260,7 +260,6 @@ export default function WaitingRoom() {
                           <Button 
                             className="w-full" 
                             size="lg" 
-                            disabled={invitedFriends.length > 0}
                           >
                             <UserPlus className="w-5 h-5 mr-2" />
                             {t('battles.inviteFriends')}

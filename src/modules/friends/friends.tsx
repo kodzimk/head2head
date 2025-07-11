@@ -2,27 +2,30 @@ import { useState, useEffect } from 'react'
 import { Button } from '../../shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card'
 import { Input } from '../../shared/ui/input'
-import { Search, UserMinus} from 'lucide-react'
+import { Search, UserMinus, MessageCircle } from 'lucide-react'
 import axios from 'axios'
 import Header from '../dashboard/header'
-import type { Friend, User } from "../../shared/interface/user"
-import { useNavigate } from 'react-router-dom'
+import type { Friend, User } from "../../shared/interface/user" 
 import { removeFriend } from '../../shared/websockets/websocket'
 import { API_BASE_URL, useRefreshViewStore } from "../../shared/interface/gloabL_var"
 import { newSocket } from "../../app/App"
 import { UserAvatar } from "../../shared/ui/user-avatar"
 import { useTranslation } from 'react-i18next'
 import AvatarStorage from "../../shared/utils/avatar-storage"
+import FriendChat from './chat'
+import { useNavigate } from 'react-router-dom'
 
 export default function FriendsPage({user}: {user: User}) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [friends, setFriends] = useState<Friend[]>([])
   const [searchResults, setSearchResults] = useState<Friend[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearching, setIsSearching] = useState(false)
-  const navigate = useNavigate()
+  const [activeChatFriend, setActiveChatFriend] = useState<Friend | null>(null)
   const {refreshView} = useRefreshViewStore()
   const {setRefreshView} = useRefreshViewStore()
+  
   // Function to fetch friend data with enhanced avatar caching
   const fetchFriendData = async (friendUsername: string): Promise<Friend> => {
     try {
@@ -95,7 +98,6 @@ export default function FriendsPage({user}: {user: User}) {
 
   // Initial load and update when user.friends changes
   useEffect(() => {
-    console.log('Friends list changed:', user.friends);
     updateFriendsList(user.friends || []);
   }, [user.friends]);
 
@@ -108,7 +110,7 @@ export default function FriendsPage({user}: {user: User}) {
         setRefreshView(false)
       }, 100)
     }
-  }, [refreshView, setRefreshView])
+  }, [refreshView])
 
   // Handle websocket messages for real-time updates
   useEffect(() => {
@@ -135,6 +137,17 @@ export default function FriendsPage({user}: {user: User}) {
             updateFriendsList(updatedUserData.friends || []);
           }
         }
+        
+        // Listen for new chat messages for notification purposes
+        if (data.type === 'chat_message' && data.data) {
+          const messageData = data.data;
+          
+          // If we receive a message from a friend and we're not in that chat, show notification
+          if (messageData.receiverId === user.username && (!activeChatFriend || activeChatFriend.username !== messageData.senderId)) {
+            // Here you could add a notification system or unread message indicator
+            console.log('New message from:', messageData.senderId);
+          }
+        }
       } catch (error) {
         console.error('Error parsing websocket message:', error);
       }
@@ -149,7 +162,7 @@ export default function FriendsPage({user}: {user: User}) {
         newSocket.removeEventListener('message', handleWebSocketMessage);
       }
     };
-  }, [user.username])
+  }, [user.username, user.email, activeChatFriend])
 
   const handleRemoveFriend = async (username: string) => {
     removeFriend(user, username)
@@ -215,10 +228,40 @@ export default function FriendsPage({user}: {user: User}) {
       setSearchResults([])
     }
   }
+  
+  const handleOpenChat = (friend: Friend) => {
+    setActiveChatFriend(friend);
+  }
+  
+  const handleCloseChat = () => {
+    setActiveChatFriend(null);
+  }
+
+  const handleViewProfile = (username: string) => {
+    navigate(`/view-profile/${username}`)
+  }
 
   const displayedUsers = isSearching ? searchResults : friends
   const emptyMessage = isSearching ? t('friends.search.no_results') : t('friends.list.empty')
   const title = isSearching ? t('friends.search.title') : t('friends.title')
+
+  // If we have an active chat, show the chat component
+  if (activeChatFriend) {
+    return (
+      <div className="min-h-screen bg-background bg-gaming-pattern">
+        <Header />
+        <main className="flex-1 container-gaming py-6">
+          <div className="max-w-4xl mx-auto">
+            <FriendChat 
+              user={user} 
+              friend={activeChatFriend} 
+              onBack={handleCloseChat} 
+            />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background bg-gaming-pattern">
@@ -248,53 +291,59 @@ export default function FriendsPage({user}: {user: User}) {
 
           <Card>
             <CardHeader>
-              <CardTitle>{title}</CardTitle>
+              <CardTitle>{t('friends.list.title')}</CardTitle>
             </CardHeader>
             <CardContent>
-              {displayedUsers.length === 0 ? (
-                <div className="text-center py-4 text-muted-foreground">
-                  {emptyMessage}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4 w-full max-w-full">
-                  {displayedUsers.map((item) => (
-                    <div
-                      key={item.username}
-                      className="flex items-center justify-between p-4 bg-card/50 backdrop-blur-sm border border-border/50 rounded-lg"
+              {displayedUsers.length > 0 ? (
+                <div className="space-y-4">
+                  {displayedUsers.map((friend) => (
+                    <div 
+                      key={friend.username} 
+                      className="flex items-center justify-between p-4 bg-card rounded-lg shadow-md cursor-pointer hover:bg-accent/10"
+                      onClick={() => handleViewProfile(friend.username)}
                     >
-                      <div className="flex items-center gap-4">
-                        <UserAvatar
-                          user={item}
-                          size="lg"
+                      <div className="flex items-center space-x-4">
+                        <UserAvatar 
+                          user={{ 
+                            username: friend.username, 
+                            avatar: friend.avatar 
+                          }} 
+                          size="xl"
+                          className="w-12 h-12"
                         />
                         <div>
-                          <h3 className="text-base sm:text-lg font-semibold">{item.username}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {t('friends.list.rank')}: {item.rank}
-                          </p>
+                          <p className="font-semibold">{friend.username}</p>
+                          <p className="text-sm text-muted-foreground">{t('friends.rank', { rank: friend.rank })}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          onClick={() => navigate(`/view-profile/${item.username}`)}
-                          className="text-sm"
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleOpenChat(friend)
+                          }}
                         >
-                          {t('friends.list.view_profile')}
+                          <MessageCircle className="w-5 h-5" />
                         </Button>
-                        {!isSearching && (
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => handleRemoveFriend(item.username)}
-                            title={t('friends.list.remove_friend')}
-                          >
-                            <UserMinus className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <Button 
+                          variant="destructive" 
+                          size="icon" 
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRemoveFriend(friend.username)
+                          }}
+                        >
+                          <UserMinus className="w-5 h-5" />
+                        </Button>
                       </div>
                     </div>
                   ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  {emptyMessage}
                 </div>
               )}
             </CardContent>

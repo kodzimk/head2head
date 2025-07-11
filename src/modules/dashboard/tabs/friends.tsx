@@ -160,17 +160,30 @@ export default function Friends({user}: {user: User}) {
                             </p>
                           </div>
                         </div>
-                        <Button
-                          variant="outline"
-                          size="default"
-                          className="sm:flex-shrink-0 w-full sm:w-auto min-w-[120px]"
-                          onClick={e => {
-                            e.stopPropagation();
-                            navigate(`/view-profile/${friend.username}`);
-                          }}
-                        >
-                          {t('dashboard.viewProfile')}
-                        </Button>
+                        <div className="flex items-center gap-2 sm:flex-shrink-0 w-full sm:w-auto">
+                          <Button
+                            variant="outline"
+                            size="default"
+                            className="w-full sm:w-auto min-w-[120px]"
+                            onClick={e => {
+                              e.stopPropagation();
+                              navigate(`/view-profile/${friend.username}`);
+                            }}
+                          >
+                            {t('dashboard.viewProfile')}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="default"
+                            className="w-full sm:w-auto min-w-[120px]"
+                            onClick={e => {
+                              e.stopPropagation();
+                              navigate(`/chats/${friend.username}`);
+                            }}
+                          >
+                            {t('friends.actions.chat')}
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>

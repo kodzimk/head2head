@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { startBattle } from '../../shared/websockets/websocket';
 import { useCurrentQuestionStore } from '../../shared/interface/gloabL_var';
@@ -9,11 +9,77 @@ export default function BattleCountdown() {
   const { t } = useTranslation();
   const { id } = useParams() as { id: string };
   const navigate = useNavigate();
+  
+  // Precise countdown state and refs
   const [count, setCount] = useState(10);
+  const countRef = useRef(10);
+  const startTimeRef = useRef<number | null>(null);
+  
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
   const { currentQuestion } = useCurrentQuestionStore();
   const [countdownFinished, setCountdownFinished] = useState(false);
+  
+  // Audio management
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [canPlaySound, setCanPlaySound] = useState(false);
 
+  // Precise countdown function
+  const updateCountdown = useCallback(() => {
+    const currentTime = Date.now();
+    
+    // Calculate elapsed time since start
+    if (startTimeRef.current === null) {
+      startTimeRef.current = currentTime;
+    }
+    
+    const elapsedSeconds = Math.floor((currentTime - startTimeRef.current) / 1000);
+    const newCount = Math.max(0, 10 - elapsedSeconds);
+    
+    // Update count and handle countdown logic
+    setCount(newCount);
+    countRef.current = newCount;
+
+    // Play sound precisely at 9 seconds, let it play fully
+    if (newCount === 9 && canPlaySound && audioRef.current) {
+      try {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch(error => {
+          console.warn('Could not play countdown sound:', error);
+        });
+      } catch (error) {
+        console.warn('Error playing countdown sound:', error);
+      }
+    }
+
+    // Handle countdown completion
+    if (newCount === 0) {
+      // Do not stop the sound
+      setCountdownFinished(true);
+      if (newSocket && newSocket.readyState === WebSocket.OPEN) {
+        startBattle(id);
+      }
+      return;
+    }
+  }, [canPlaySound, id]);
+
+  // Initialize audio
+  useEffect(() => {
+    const audio = new Audio('/sounds/10 Second Timer.mp4');
+    audioRef.current = audio;
+
+    // Optimize audio loading
+    audio.preload = 'auto';
+    audio.addEventListener('canplaythrough', () => {
+      setCanPlaySound(true);
+    });
+
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, []);
+
+  // Connection status check
   useEffect(() => {
     const checkConnection = () => {
       if (newSocket && newSocket.readyState === WebSocket.OPEN) {
@@ -28,26 +94,35 @@ export default function BattleCountdown() {
     return () => clearInterval(interval);
   }, []);
 
+  // Precise countdown effect
   useEffect(() => {
-    if (count === 0) {
-      setCountdownFinished(true);
-      if (newSocket && newSocket.readyState === WebSocket.OPEN) {
-        startBattle(id);
-      }
-      return;
-    }
+    // Use requestAnimationFrame for smoother, more precise timing
+    let animationFrameId: number;
     
-    const timer = setTimeout(() => setCount(count - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [count, id]);
+    const runCountdown = () => {
+      updateCountdown();
+      
+      if (countRef.current > 0) {
+        animationFrameId = requestAnimationFrame(runCountdown);
+      }
+    };
 
-  // Only navigate when both countdown is finished and question is ready
+    // Start the countdown
+    animationFrameId = requestAnimationFrame(runCountdown);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [updateCountdown]);
+
+  // Navigation effect
   useEffect(() => {
     if (countdownFinished && currentQuestion) {
       console.log("Navigating to quiz page for battle", id);
       navigate(`/${id}/quiz`);
     }
-    // Fallback: if countdown finished but currentQuestion is not set after 2 seconds, force navigation
+    
+    // Fallback navigation
     if (countdownFinished && !currentQuestion) {
       const timer = setTimeout(() => {
         console.warn("Forcing navigation to quiz page due to missing currentQuestion", id);

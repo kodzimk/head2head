@@ -21,7 +21,10 @@
     "reject": "Reject",
     "step": "Step",
     "of": "of",
-    "finish": "Finish"
+    "finish": "Finish",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "undo": "Undo"
   },
   "navigation": {
     "home": "Home",
@@ -38,7 +41,8 @@
     "signout": "Sign Out",
     "welcomeBack": "Welcome back",
     "language": "Language",
-    "dailyPicks": "Daily Picks"
+    "dailyPicks": "Daily Picks",
+    "chats": "Chats"
   },
   "auth": {
     "signIn": "Sign In",
@@ -419,13 +423,27 @@
   },
   "friends": {
     "title": "Friends List",
+    "noFriends": "No friends found",
+    "empty": "No friends found",
     "search": {
       "title": "Search Results",
       "placeholder": "Search users...",
       "no_results": "No users found"
     },
+    
+    "actions":{
+     "chat":"Chat",
+     "remove":"Remove",
+     "addFriend":"Add Friend",
+     "removeFriend":"Remove Friend",
+     "viewProfile":"View Profile",
+     "rank":"Rank",
+     "friendActivity":"Friend Activity",
+     "comingSoon":"Coming Soon!"
+    },
     "list": {
-      "empty": "No friends found",
+  
+      "title":"Friends List",
       "view_profile": "View Profile",
       "remove_friend": "Remove Friend",
       "rank": "Rank"
@@ -1168,8 +1186,6 @@
     "writeReply":"Write a reply...",
     "showMore":"Show more",
     "showLess":"Show less",
-    "replies":"replies",
-    "postComment":"comment",
     "debate": {
       "notFound": {
         "title": "Debate Not Found",
@@ -1227,5 +1243,20 @@
       "noRecentTransfers": "No recent transfers in {{sport}}",
       "refreshTransfers": "Refresh Transfers"
     }
+  },
+  "chat": {
+    "title": "Chat",
+    "type_message": "Type a message...",
+    "send": "Send",
+    "empty": "No messages yet. Start the conversation!",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "new_message": "New message",
+    "back_to_friends": "Back to friends",
+    "loading": "Loading messages...",
+    "conversations": "Conversations",
+    "no_conversations": "No conversations yet. Start chatting with your friends!",
+    "no_messages": "No messages yet",
+    "you": "You"
   }
 } 

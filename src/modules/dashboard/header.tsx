@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home, Bell, User } from 'lucide-react';
+import { Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home, Bell, User, MessageCircle } from 'lucide-react';
 import { Button } from '../../shared/ui/button';
 import { 
   DropdownMenu,
@@ -192,6 +192,10 @@ export default function Header() {
                   <DropdownMenuItem onClick={() => navigate(`/${user.username}/friends`)} className="hover:bg-card/50 py-2 sm:py-3">
                     <Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="text-sm sm:text-base">{t('navigation.friends')}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(`/${user.username}/chats`)} className="hover:bg-card/50 py-2 sm:py-3">
+                    <MessageCircle className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className="text-sm sm:text-base">{t('chat.title')}</span>
                   </DropdownMenuItem>
                   
                   <DropdownMenuSeparator className="bg-border/50" />

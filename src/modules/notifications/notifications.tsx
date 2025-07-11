@@ -6,7 +6,7 @@ import { Card, CardDescription, CardHeader, CardTitle, CardContent } from "../..
 import { Avatar, AvatarFallback, AvatarImage } from "../../shared/ui/avatar"
 import { Check, X, Bell, Trophy } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { acceptFriendRequest, acceptInvitation, rejectFriendRequest, sendMessage } from "../../shared/websockets/websocket"
+import { acceptFriendRequest, acceptInvitation, rejectFriendRequest, rejectInvitation } from "../../shared/websockets/websocket"
 import { newSocket } from "../../app/App"
 import axios from "axios"
 import { API_BASE_URL, useRefreshViewStore } from "../../shared/interface/gloabL_var"
@@ -268,7 +268,7 @@ export default function NotificationsPage() {
   }
 
   const handleViewProfile = (username: string) => {
-    navigate(`/profile/${username}`)
+    navigate(`/view-profile/${username}`)
   }
 
   const handleAcceptInvitation = async (battle_id: string) => {
@@ -294,7 +294,7 @@ export default function NotificationsPage() {
   const handleRejectInvitation = async (battle_id: string) => {
     try {
       setProcessingInvitations(prev => new Set([...prev, battle_id]))
-      // Add your reject invitation logic here
+      await rejectInvitation(user.username, battle_id)
       setInvitationResponses(prev => new Map(prev).set(battle_id, 'rejected'))
       setProcessingInvitations(prev => {
         const newSet = new Set(prev)
@@ -309,44 +309,6 @@ export default function NotificationsPage() {
         return newSet
       })
     }
-  }
-
-  const handleUndoInvitationResponse = async (battle_id: string) => {
-      console.log('Sending new invitation for battle:', battle_id)
-      
-      // Get the battle details to find the creator
-      try {
-        const battleResponse = await axios.get(`${API_BASE_URL}/battle/get-battle?battle_id=${battle_id}`)
-        const battle = battleResponse.data
-        
-        if (battle && battle.first_opponent) {
-          // Send new invitation to the battle creator
-          const inviteResponse = await axios.post(`${API_BASE_URL}/battle/invite-friend?battle_id=${battle_id}&friend_username=${user.username}`)
-          console.log('New invitation sent successfully:', inviteResponse.data)
-          
-          // Reset invitation status to pending
-          setInvitations(prev => prev.map(inv => 
-            inv.battle_id === battle_id ? { ...inv, status: 'pending' as const } : inv
-          ))
-          
-          // Remove from responses
-          setInvitationResponses(prev => {
-            const newMap = new Map(prev)
-            newMap.delete(battle_id)
-            return newMap
-          })
-          
-          // Add back to user's invitations
-          if (!user.invitations.includes(battle_id)) {
-            user.invitations.push(battle_id)
-          }
-          
-          // Send user update to refresh the global state
-      sendMessage(user, "user_update")
-        }
-      } catch (error) {
-        console.error('Error sending new invitation:', error)
-      }
   }
 
   if (isLoading) {
@@ -486,14 +448,6 @@ export default function NotificationsPage() {
                               >
                                 {response === 'accepted' ? t('common.accepted') : t('common.rejected')}
                               </Badge>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="w-full sm:w-auto"
-                                onClick={() => handleUndoInvitationResponse(invitation.battle_id)}
-                              >
-                                {t('common.undo')}
-                              </Button>
                             </>
                           ) : (
                             <>
