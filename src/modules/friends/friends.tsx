@@ -303,7 +303,7 @@ export default function FriendsPage({user}: {user: User}) {
                       onClick={() => handleViewProfile(friend.username)}
                     >
                       <div className="flex items-center space-x-4">
-                        <UserAvatar 
+                        <UserAvatar
                           user={{ 
                             username: friend.username, 
                             avatar: friend.avatar 

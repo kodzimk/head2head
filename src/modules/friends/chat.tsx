@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '../../shared/ui/card';
 import { Button } from '../../shared/ui/button';
-import { Input } from '../../shared/ui/input';
-import { Send, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { UserAvatar } from '../../shared/ui/user-avatar';
 import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../../shared/interface/gloabL_var';
 import { newSocket } from '../../app/App';
 import type { User, Friend } from '../../shared/interface/user';
-
+import { BattleInput } from '../../shared/ui/input'
 // Message interface
 interface Message {
   id: string;
@@ -26,12 +25,10 @@ export default function FriendChat({ user, friend, onBack }: { user: User, frien
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  // Scroll to bottom of messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
   
-  // Load chat history
   useEffect(() => {
     const fetchChatHistory = async () => {
       setIsLoading(true);
@@ -59,12 +56,10 @@ export default function FriendChat({ user, friend, onBack }: { user: User, frien
     fetchChatHistory();
   }, [user.username, friend.username]);
   
-  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
   
-  // Listen for new messages from WebSocket
   useEffect(() => {
     const handleWebSocketMessage = (event: MessageEvent) => {
       try {
@@ -73,7 +68,6 @@ export default function FriendChat({ user, friend, onBack }: { user: User, frien
         if (data.type === 'chat_message' && data.data) {
           const messageData = data.data;
           
-          // Only add message if it's from the current chat
           if (
             (messageData.senderId === user.username && messageData.receiverId === friend.username) ||
             (messageData.senderId === friend.username && messageData.receiverId === user.username)
@@ -103,7 +97,6 @@ export default function FriendChat({ user, friend, onBack }: { user: User, frien
     };
   }, [user.username, friend.username]);
   
-  // Mark messages as read
   useEffect(() => {
     const markMessagesAsRead = async () => {
       try {
@@ -126,7 +119,6 @@ export default function FriendChat({ user, friend, onBack }: { user: User, frien
     markMessagesAsRead();
   }, [user.username, friend.username]);
   
-  // Send message
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
     
@@ -138,7 +130,6 @@ export default function FriendChat({ user, friend, onBack }: { user: User, frien
       read: false
     };
     
-    // Optimistically add message to UI
     const tempId = `temp-${Date.now()}`;
     setMessages(prevMessages => [
       ...prevMessages,
@@ -147,7 +138,6 @@ export default function FriendChat({ user, friend, onBack }: { user: User, frien
     
     setNewMessage('');
     
-    // Send via WebSocket
     if (newSocket && newSocket.readyState === WebSocket.OPEN) {
       newSocket.send(JSON.stringify({
         type: 'chat_message',
@@ -158,12 +148,10 @@ export default function FriendChat({ user, friend, onBack }: { user: User, frien
     }
   };
   
-  // Format timestamp
   const formatMessageTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
   
-  // Format date for message groups
   const formatMessageDate = (date: Date) => {
     const today = new Date();
     const yesterday = new Date(today);
@@ -177,8 +165,7 @@ export default function FriendChat({ user, friend, onBack }: { user: User, frien
       return date.toLocaleDateString();
     }
   };
-  
-  // Group messages by date
+        
   const groupedMessages = messages.reduce((groups: {[key: string]: Message[]}, message) => {
     const date = message.timestamp.toDateString();
     if (!groups[date]) {
@@ -254,24 +241,24 @@ export default function FriendChat({ user, friend, onBack }: { user: User, frien
         )}
       </CardContent>
       
-      <CardFooter className="border-t p-4">
-        <form 
-          className="flex w-full gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            sendMessage();
-          }}
-        >
-          <Input
+      <CardFooter>
+        <div className="flex items-center justify-center w-full space-x-2 px-4">
+          <BattleInput
             placeholder={t('chat.type_message')}
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            className="flex-1"
+            className="w-[80%] max-w-full"
           />
-          <Button type="submit" size="icon">
-            <Send className="h-4 w-4" />
+          <Button 
+            variant="default" 
+            size="lg" 
+            onClick={sendMessage}
+            disabled={!newMessage.trim()}
+            className="uppercase tracking-wide"
+          >
+            {t('chat.send')}
           </Button>
-        </form>
+        </div>
       </CardFooter>
     </Card>
   );
