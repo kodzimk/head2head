@@ -145,100 +145,73 @@ Example for {sport} {level} questions in {language.upper()}:
         
         return prompt
     
-    def _get_football_examples(self, level: str, language: str = "en") -> str:
-        """Get football-specific examples based on difficulty and language"""
-        if language == "ru":
-            if level == "easy":
-                return '''
-[
-    {
-        "question": "Сколько игроков в футбольной команде во время матча?",
-        "answers": [
-            {"text": "10", "correct": false},
-            {"text": "11", "correct": true},
-            {"text": "12", "correct": false},
-            {"text": "9", "correct": false}
-        ],
-        "time_limit": 30,
-        "difficulty": "easy"
-    }
-]'''
-            elif level == "medium":
-                return '''
-[
-    {
-        "question": "Какая команда выиграла больше всего титулов Лиги чемпионов УЕФА?",
-        "answers": [
-            {"text": "Реал Мадрид", "correct": true},
-            {"text": "Барселона", "correct": false},
-            {"text": "Бавария Мюнхен", "correct": false},
-            {"text": "Милан", "correct": false}
-        ],
-        "time_limit": 30,
-        "difficulty": "medium"
-    }
-]'''
-            else:  # hard
-                return '''
-[
-    {
-        "question": "Какой игрок забил больше всего голов за один сезон в Премьер-лиге?",
-        "answers": [
-            {"text": "Эрлинг Холанд (36 голов)", "correct": true},
-            {"text": "Мохамед Салах (32 гола)", "correct": false},
-            {"text": "Алан Ширер (34 гола)", "correct": false},
-            {"text": "Энди Коул (34 гола)", "correct": false}
-        ],
-        "time_limit": 30,
-        "difficulty": "hard"
-    }
-]'''
-        else:  # English examples (default)
-            if level == "easy":
-                return '''
-[
-    {
-        "question": "How many players are on a football team during a match?",
-        "answers": [
-            {"text": "10", "correct": false},
-            {"text": "11", "correct": true},
-            {"text": "12", "correct": false},
-            {"text": "9", "correct": false}
-        ],
-        "time_limit": 30,
-        "difficulty": "easy"
-    }
-]'''
-            elif level == "medium":
-                return '''
-[
-    {
-        "question": "Which team has won the most UEFA Champions League titles?",
-        "answers": [
-            {"text": "Real Madrid", "correct": true},
-            {"text": "Barcelona", "correct": false},
-            {"text": "Bayern Munich", "correct": false},
-            {"text": "AC Milan", "correct": false}
-        ],
-        "time_limit": 30,
-        "difficulty": "medium"
-    }
-]'''
-            else:  # hard
-                return '''
-[
-    {
-        "question": "Which player has scored the most goals in a single Premier League season?",
-        "answers": [
-            {"text": "Erling Haaland (36 goals)", "correct": true},
-            {"text": "Mohamed Salah (32 goals)", "correct": false},
-            {"text": "Alan Shearer (34 goals)", "correct": false},
-            {"text": "Andy Cole (34 goals)", "correct": false}
-        ],
-        "time_limit": 30,
-        "difficulty": "hard"
-    }
-]'''
+    def _get_football_examples(self, level: str, language: str) -> str:
+        """Generate soccer-specific examples to guide AI question generation"""
+        soccer_examples = {
+            "easy": [
+                {
+                    "question": "What is the primary objective in a soccer match?",
+                    "answers": [
+                        {"text": "Score more goals than the opponent", "correct": True},
+                        {"text": "Tackle the most players", "correct": False},
+                        {"text": "Keep the ball for the longest time", "correct": False},
+                        {"text": "Have the most corner kicks", "correct": False}
+                    ]
+                },
+                {
+                    "question": "How many players are on the field for each team during a soccer match?",
+                    "answers": [
+                        {"text": "11 players", "correct": True},
+                        {"text": "10 players", "correct": False},
+                        {"text": "9 players", "correct": False},
+                        {"text": "12 players", "correct": False}
+                    ]
+                }
+            ],
+            "medium": [
+                {
+                    "question": "What is the name of the most prestigious club competition in European soccer?",
+                    "answers": [
+                        {"text": "UEFA Champions League", "correct": True},
+                        {"text": "FIFA World Cup", "correct": False},
+                        {"text": "Europa League", "correct": False},
+                        {"text": "Premier League", "correct": False}
+                    ]
+                },
+                {
+                    "question": "Which country has won the most FIFA World Cup titles?",
+                    "answers": [
+                        {"text": "Brazil", "correct": True},
+                        {"text": "Germany", "correct": False},
+                        {"text": "Italy", "correct": False},
+                        {"text": "Argentina", "correct": False}
+                    ]
+                }
+            ],
+            "hard": [
+                {
+                    "question": "What is the offside rule in soccer?",
+                    "answers": [
+                        {"text": "A player is in an offside position if closer to the opponent's goal line than both the ball and the second-last opponent", "correct": True},
+                        {"text": "A player cannot pass the ball backwards", "correct": False},
+                        {"text": "A player must stay within their half of the field", "correct": False},
+                        {"text": "A player cannot touch the ball with their hands", "correct": False}
+                    ]
+                },
+                {
+                    "question": "Who holds the record for most goals in a single FIFA World Cup tournament?",
+                    "answers": [
+                        {"text": "Just Fontaine (France, 1958)", "correct": True},
+                        {"text": "Miroslav Klose (Germany, 2014)", "correct": False},
+                        {"text": "Ronaldo (Brazil, 2002)", "correct": False},
+                        {"text": "Gerd Müller (Germany, 1970)", "correct": False}
+                    ]
+                }
+            ]
+        }
+        
+        # Convert to JSON string for AI prompt
+        return json.dumps(soccer_examples.get(level, soccer_examples["medium"]), indent=2)
     
     def _get_basketball_examples(self, level: str, language: str = "en") -> str:
         """Get basketball-specific examples based on difficulty and language"""
