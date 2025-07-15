@@ -43,51 +43,93 @@ let isInitialConnection = true;
 export const createWebSocket = (username: string | null) => {
   if (!username) return null;
   
-  const ws = new WebSocket(`${WS_BASE_URL}/ws?username=${encodeURIComponent(username)}`);
-  
-  ws.onerror = (event: WebSocketEventMap['error']) => {
-    console.error("WebSocket error:", event);
-  };
-  
-  return ws;
+  try {
+    const encodedUsername = encodeURIComponent(username.trim());
+    const ws = new WebSocket(`${WS_BASE_URL}/ws?username=${encodedUsername}`);
+    
+    ws.onopen = () => {
+      console.log(`WebSocket connection established for username: ${username}`);
+    };
+    
+    ws.onerror = (event: WebSocketEventMap['error']) => {
+      console.error("WebSocket connection error:", {
+        event,
+        username,
+        url: `${WS_BASE_URL}/ws?username=${encodedUsername}`
+      });
+    };
+    
+    ws.onclose = (event) => {
+      console.warn("WebSocket connection closed:", {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+        username
+      });
+    };
+    
+    return ws;
+  } catch (error) {
+    console.error("Failed to create WebSocket:", {
+      error,
+      username,
+      url: `${WS_BASE_URL}/ws?username=${encodeURIComponent(username)}`
+    });
+    return null;
+  }
 };
 
 export const reconnectWebSocket = () => {
   const username = localStorage.getItem('username')?.replace(/"/g, '');
-  if (username) {
-    // Close existing connection if it exists
-    if (newSocket) {
-      newSocket.close();
-    }
-    // Create new connection
-    newSocket = createWebSocket(username);
-    if (newSocket) {
-      newSocket.onopen = () => {
-        // Send initial message to get user data
-        const user = {
-          username: username,
-          email: '',
-          wins: 0,
-          favoritesSport: '',
-          rank: 0,
-          winRate: 0,
-          totalBattles: 0,
-          streak: 0,
-          password: '',
-          friends: [],
-          friendRequests: [],
-          avatar: '',
-          battles: [],
-          invitations: []
-        };
-        sendMessage(user, "get_email");
-      };
-      newSocket.onerror = (error) => {
-        console.error("WebSocket reconnection error:", error);
-      };
+  if (!username) {
+    console.error("No username found for WebSocket reconnection");
+    return null;
+  }
 
+  // Close existing connection if it exists
+  if (newSocket) {
+    try {
+      newSocket.close();
+    } catch (error) {
+      console.warn("Error closing existing WebSocket:", error);
     }
   }
+
+  // Create new connection
+  const reconnectedSocket = createWebSocket(username);
+  if (reconnectedSocket) {
+    reconnectedSocket.onopen = () => {
+      // Send initial message to get user data
+      const user = {
+        username: username,
+        email: '',
+        wins: 0,
+        favoritesSport: '',
+        rank: 0,
+        winRate: 0,
+        totalBattles: 0,
+        streak: 0,
+        password: '',
+        friends: [],
+        friendRequests: [],
+        avatar: '',
+        battles: [],
+        invitations: []
+      };
+      
+      try {
+        sendMessage(user, "get_email");
+      } catch (error) {
+        console.error("Failed to send initial message after reconnection:", error);
+      }
+    };
+
+    // Update the global socket reference
+    newSocket = reconnectedSocket;
+  } else {
+    console.error("Failed to create WebSocket during reconnection");
+  }
+
   return newSocket;
 };
 
@@ -176,9 +218,23 @@ export default function App() {
   // Only create websocket on initial load if user exists
   useEffect(() => {
     const username = localStorage.getItem('username')?.replace(/"/g, '');
-    if (username && !newSocket) {
-      isInitialConnection = true; // Set flag for initial connection
-      newSocket = createWebSocket(username);
+    const accessToken = localStorage.getItem('access_token')?.replace(/"/g, '');
+    
+    if (username && accessToken && !newSocket) {
+      try {
+        isInitialConnection = true; // Set flag for initial connection
+        newSocket = createWebSocket(username);
+        
+        if (!newSocket) {
+          console.error("Failed to create initial WebSocket connection");
+          // Optionally, redirect to sign-in or show an error
+          navigate('/sign-in');
+        }
+      } catch (error) {
+        console.error("Error during initial WebSocket connection:", error);
+        // Optionally, redirect to sign-in or show an error
+        navigate('/sign-in');
+      }
     }
   }, []);
 
@@ -199,15 +255,38 @@ export default function App() {
         console.error("WebSocket connection failed due to invalid username");
         // Clear the invalid username from localStorage
         localStorage.removeItem('username');
+        localStorage.removeItem('access_token');
         
-        // Only redirect to sign-in if there's no username in localStorage
-        if (!localStorage.getItem('username') && !localStorage.getItem('access_token')) {
-          navigate('/sign-in');
-        }
+        // Redirect to sign-in page
+        navigate('/sign-in');
         return;
       }
       
-      // Don't automatically reconnect - only reconnect on manual reload or user change
+      // Log detailed WebSocket close information
+      console.warn("WebSocket connection closed:", {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean,
+        username: localStorage.getItem('username')?.replace(/"/g, '')
+      });
+      
+      // Attempt to reconnect after a short delay
+      if (!event.wasClean) {
+        console.log("Attempting to reconnect WebSocket...");
+        setTimeout(() => {
+          const username = localStorage.getItem('username')?.replace(/"/g, '');
+          const accessToken = localStorage.getItem('access_token')?.replace(/"/g, '');
+          
+          if (username && accessToken) {
+            try {
+              newSocket = createWebSocket(username);
+            } catch (error) {
+              console.error("Failed to reconnect WebSocket:", error);
+              navigate('/sign-in');
+            }
+          }
+        }, 3000); // 3-second delay before attempting reconnection
+      }
     };
 
     newSocket.onerror = (error) => {

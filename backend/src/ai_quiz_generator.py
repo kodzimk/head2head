@@ -37,6 +37,10 @@ class AIQuizGenerator:
         Returns:
             List of question dictionaries with proper format
         """
+        # FORCIBLY convert football to soccer
+        if sport.lower() in ['football', 'american football']:
+            sport = 'soccer'
+        
         try:
             logger.info(f"Generating {count} {level} {sport} questions for battle {battle_id} in {language}")
             
@@ -86,20 +90,29 @@ class AIQuizGenerator:
     def _build_question_prompt(self, sport: str, level: str, count: int, battle_context: str, language: str = "en") -> str:
         """Build a comprehensive prompt for question generation"""
         
+        # FORCIBLY convert football to soccer
+        if sport.lower() in ['football', 'american football']:
+            sport = 'soccer'
+        
         difficulty_guidelines = {
-            "easy": "Basic facts, rules, and common knowledge that most sports fans would know",
-            "medium": "Historical facts, notable players, championships, and intermediate-level knowledge",
-            "hard": "Detailed statistics, records, specific dates, advanced rules, and expert-level knowledge"
+            "easy": "Basic facts, rules, and common knowledge that most soccer fans would know",
+            "medium": "Historical facts, notable players, championships, and intermediate-level soccer knowledge",
+            "hard": "Detailed statistics, records, specific dates, advanced rules, and expert-level soccer knowledge"
         }
         
         # Language-specific instructions
         language_instructions = {
-            "en": "Generate questions in English.",
-            "ru": "Generate questions in Russian. Use proper Russian grammar and sports terminology."
+            "en": "Generate questions ONLY about soccer (association football). NO American football questions allowed.",
+            "ru": "Generate questions ONLY about soccer (association football). NO American football questions allowed."
         }
         
         prompt = f"""
-You are an expert sports quiz question generator. Generate exactly {count} unique multiple-choice questions about {sport}.
+You are an expert SOCCER quiz question generator. Generate exactly {count} unique multiple-choice questions about SOCCER.
+
+CRITICAL RULES:
+1. ONLY generate soccer (association football) questions
+2. NO American football questions are allowed under ANY circumstances
+3. Focus exclusively on soccer/football (the sport played with feet)
 
 Context: {battle_context}
 
@@ -109,15 +122,14 @@ Requirements:
 1. Difficulty Level: {level} - {difficulty_guidelines.get(level, "Medium difficulty")}
 2. Each question must have exactly 4 answer options (A, B, C, D)
 3. Only one answer must be correct
-4. Questions must be accurate and factually correct
-5. Questions should be engaging and test real knowledge
-6. Avoid repetitive or similar questions
-7. Include a mix of topics: rules, history, players, statistics, championships, etc.
-8. All text must be in {language.upper()} language
+4. Questions must be accurate and factually correct about SOCCER
+5. Avoid repetitive or similar questions
+6. Include a mix of topics: soccer rules, history, players, statistics, championships, etc.
+7. All text must be in {language.upper()} language
 
 Format each question exactly as follows:
 {{
-    "question": "Your question text here?",
+    "question": "Your soccer question text here?",
     "answers": [
         {{"text": "Answer A", "correct": true}},
         {{"text": "Answer B", "correct": false}},
@@ -128,20 +140,13 @@ Format each question exactly as follows:
     "difficulty": "{level}"
 }}
 
-Return ONLY a valid JSON array containing exactly {count} question objects. Do not include any other text, explanations, or formatting.
+Return ONLY a valid JSON array containing exactly {count} soccer question objects. Do not include any other text, explanations, or formatting.
 
-Example for {sport} {level} questions in {language.upper()}:
+Example for SOCCER {level} questions in {language.upper()}:
 """
         
-        # Add sport-specific examples
-        if sport.lower() == "football":
-            prompt += self._get_football_examples(level, language)
-        elif sport.lower() == "basketball":
-            prompt += self._get_basketball_examples(level, language)
-        elif sport.lower() == "tennis":
-            prompt += self._get_tennis_examples(level, language)
-        else:
-            prompt += self._get_general_examples(level, language)
+        # Use soccer-specific examples
+        prompt += self._get_football_examples(level, language)
         
         return prompt
     

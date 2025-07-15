@@ -1,5 +1,5 @@
 import type { User } from "../interface/user"
-import { newSocket } from "../../app/App"
+import { newSocket, reconnectWebSocket } from "../../app/App"
 
 export const checkWebSocketConnection = () => {
   if (!newSocket) {
@@ -16,49 +16,82 @@ export const checkWebSocketConnection = () => {
 };
 
 export const sendMessage = (user: User, type: string) => {
-      if (!checkWebSocketConnection()) {
-        console.error("Cannot send message - WebSocket not connected");
-        return false;
-      }
+  // Attempt to reconnect if WebSocket is not open
+  if (!newSocket || newSocket.readyState !== WebSocket.OPEN) {
+    console.warn("WebSocket not open. Attempting to reconnect...");
+    const reconnectedSocket = reconnectWebSocket();
+    
+    // If reconnection fails, return false
+    if (!reconnectedSocket) {
+      console.error("Failed to reconnect WebSocket");
+      return false;
+    }
+    
+    // Wait a short time for connection to establish
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        console.error("WebSocket reconnection timed out");
+        resolve(false);
+      }, 3000);
       
-      if(type === "user_update"){
-        newSocket?.send(JSON.stringify({
-          type: "user_update",
-          username: user.username,
-          email: user.email,
-          totalBattle: user.totalBattles,
-          winRate: user.winRate,
-          ranking: user.rank,
-          winBattle: user.wins,
-          favourite: user.favoritesSport,
-          streak: user.streak,
-          password: user.password,
-          friends: user.friends,
-          friendRequests: user.friendRequests,
-          avatar: user.avatar,
-          invitations: user.invitations,
-          battles: user.battles,
-        }))
-      }
-      else if(type === "get_email"){
-        const token = localStorage.getItem("access_token")?.replace(/"/g, '')
-        if(token){
-          newSocket?.send(JSON.stringify({
-            type: "get_email",
-            token: token
-          }))
-        }
-      }
-      else if(type === "get_waiting_battles"){
-         
-        newSocket?.send(JSON.stringify({
-          type: "get_waiting_battles",
-          username: user.username
-        }))
-      }
-      
+      reconnectedSocket.onopen = () => {
+        clearTimeout(timeout);
+        resolve(_sendMessageInternal(user, type, reconnectedSocket));
+      };
+    });
+  }
+  
+  // If WebSocket is open, send message immediately
+  return _sendMessageInternal(user, type, newSocket);
+};
+
+const _sendMessageInternal = (user: User, type: string, socket: WebSocket) => {
+  try {
+    if(type === "user_update"){
+      socket.send(JSON.stringify({
+        type: "user_update",
+        username: user.username,
+        email: user.email,
+        totalBattle: user.totalBattles,
+        winRate: user.winRate,
+        ranking: user.rank,
+        winBattle: user.wins,
+        favourite: user.favoritesSport,
+        streak: user.streak,
+        password: user.password,
+        friends: user.friends,
+        friendRequests: user.friendRequests,
+        avatar: user.avatar,
+        invitations: user.invitations,
+        battles: user.battles,
+      }));
       return true;
-}
+    }
+    else if(type === "get_email"){
+      const token = localStorage.getItem("access_token")?.replace(/"/g, '')
+      if(token){
+        socket.send(JSON.stringify({
+          type: "get_email",
+          token: token
+        }));
+        return true;
+      }
+    }
+    else if(type === "get_waiting_battles"){
+      socket.send(JSON.stringify({
+        type: "get_waiting_battles",
+        username: user.username
+      }));
+      return true;
+    }
+    
+    console.error("Unknown message type:", type);
+    return false;
+  } catch (error) {
+    console.error("Error sending WebSocket message:", error);
+    return false;
+  }
+};
 
 export const acceptFriendRequest = (user: User, friend_username: string) => {
   newSocket?.send(JSON.stringify({

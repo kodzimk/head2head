@@ -66,3 +66,10 @@ export interface Friend {
     avatar: string | null,
     rank: string,
 }
+
+export interface UserInterface {
+  username: string;
+  email: string;
+  avatar?: string;
+  online_status?: boolean;
+}

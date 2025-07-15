@@ -45,7 +45,7 @@ export class NewsService {
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || MEDIASTACK_API_KEY;
-    this.backendUrl = 'https://api.head2head.dev';
+    this.backendUrl = 'http://localhost:8000';
   }
 
   /**
@@ -134,7 +134,7 @@ export class NewsService {
         description: language === 'ru'
           ? 'Head2Head - это уникальная платформа, где спортивные знания становятся главным оружием. Соревнуйтесь, учитесь и становитесь лучшими!'
           : 'Head2Head is a unique platform where sports knowledge becomes your ultimate weapon. Compete, learn, and become the best!',
-        url: 'https://head2head.dev',
+        url: 'http://localhost:8000',
         image: '/images/sports-arena.jpg',
         published_at: new Date().toISOString(),
         source: 'Head2Head',
@@ -150,7 +150,7 @@ export class NewsService {
         description: language === 'ru'
           ? 'Наша платформа предлагает уникальные квизы и битвы, которые проверят ваши спортивные знания на прочность. Готовы бросить вызов?'
           : 'Our platform offers unique quizzes and battles that will test the strength of your sports knowledge. Are you ready to take the challenge?',
-        url: 'https://head2head.dev/about',
+        url: 'http://localhost:8000/about',
         image: '/images/h2h.png',
         published_at: new Date().toISOString(),
         source: 'Head2Head',
@@ -196,7 +196,7 @@ export class NewsService {
       author: news.author || 'Head2Head Custom News',
       title: news.title || 'Custom News Article',
       description: news.description || 'No description provided',
-      url: news.url || 'https://head2head.dev',
+      url: news.url || 'http://localhost:8000',
       image: news.image || '/images/sports-arena.jpg',
       published_at: news.published_at || new Date().toISOString(),
       source: news.source || 'Head2Head',

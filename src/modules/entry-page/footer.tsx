@@ -14,12 +14,7 @@ export default function Footer() {
           <span className="font-bold text-xl text-white">{t('footer.fullLogo')}</span>
         </div>
             <nav className="flex flex-wrap justify-center gap-4 md:gap-6">
-              <a href="https://www.instagram.com/head2head.app" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
-                {t('footer.instagram')}
-              </a>
-                <a href="https://www.linkedin.com/company/head2head-dev" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
-                  {t('footer.linkedin')}
-                </a>
+              {/* Removed social media links */}
                 <a href="#" className="text-xs md:text-sm text-slate-600 hover:text-slate-900 transition-colors">
                   {t('footer.support')}
                 </a>           

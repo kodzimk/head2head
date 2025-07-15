@@ -232,10 +232,6 @@ export default function FriendsPage({user}: {user: User}) {
   const handleOpenChat = (friend: Friend) => {
     setActiveChatFriend(friend);
   }
-  
-  const handleCloseChat = () => {
-    setActiveChatFriend(null);
-  }
 
   const handleViewProfile = (username: string) => {
     navigate(`/view-profile/${username}`)
@@ -252,11 +248,7 @@ export default function FriendsPage({user}: {user: User}) {
         <Header />
         <main className="flex-1 container-gaming py-6">
           <div className="max-w-4xl mx-auto">
-            <FriendChat 
-              user={user} 
-              friend={activeChatFriend} 
-              onBack={handleCloseChat} 
-            />
+            <FriendChat />
           </div>
         </main>
       </div>

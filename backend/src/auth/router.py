@@ -4,7 +4,7 @@ from init import SessionLocal, redis_email, redis_username
 from .init import auth_router
 import json
 import bcrypt
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, status
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
@@ -211,6 +211,41 @@ async def reset_data():
     for key in redis_username.scan_iter("*"):
         redis_username.delete(key)
     return True
+
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        # Decode the token
+        payload = decode_access_token(token)
+        
+        # Extract email from the token
+        email = payload.get("sub")
+        if email is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Retrieve user from Redis
+        user_data = redis_email.get(email)
+        if user_data is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        # Parse user data
+        user_dict = json.loads(user_data)
+        return UserData(**user_dict)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 

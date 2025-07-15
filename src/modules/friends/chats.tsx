@@ -277,11 +277,7 @@ export default function ChatsPage({ user }: { user: User }) {
     
     setActiveChatFriend(friend);
   };
-  
-  const handleCloseChat = () => {
-    setActiveChatFriend(null);
-  };
-  
+
   // If we have an active chat, show the chat component
   if (activeChatFriend) {
     return (
@@ -290,9 +286,7 @@ export default function ChatsPage({ user }: { user: User }) {
         <main className="flex-1 container-gaming py-6">
           <div className="max-w-4xl mx-auto">
             <FriendChat 
-              user={user} 
-              friend={activeChatFriend} 
-              onBack={handleCloseChat} 
+    
             />
           </div>
         </main>
