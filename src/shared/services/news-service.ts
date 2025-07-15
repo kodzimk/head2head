@@ -14,6 +14,7 @@ export interface MediaStackArticle {
   category: string;
   language: string;
   country: string;
+  tags?: string[]; // Add optional tags field
 }
 
 export interface MediaStackResponse {
@@ -120,22 +121,204 @@ export class NewsService {
   }
 
   /**
-   * Fetch top sports headlines in user's preferred language
+   * Generate manual news when no news is available
+   * @param language - Language of the manual news
+   */
+  generateManualNews(language: string = 'en'): MediaStackResponse {
+    const manualNews: MediaStackArticle[] = [
+      {
+        author: 'Head2Head Editorial Team',
+        title: language === 'ru' 
+          ? 'Добро пожаловать в мир спортивных баталий!' 
+          : 'Welcome to the World of Sports Battles!',
+        description: language === 'ru'
+          ? 'Head2Head - это уникальная платформа, где спортивные знания становятся главным оружием. Соревнуйтесь, учитесь и становитесь лучшими!'
+          : 'Head2Head is a unique platform where sports knowledge becomes your ultimate weapon. Compete, learn, and become the best!',
+        url: 'https://head2head.dev',
+        image: '/images/sports-arena.jpg',
+        published_at: new Date().toISOString(),
+        source: 'Head2Head',
+        category: 'Platform News',
+        language: language,
+        country: language === 'ru' ? 'RU' : 'US'
+      },
+      {
+        author: 'Head2Head Sports Insights',
+        title: language === 'ru' 
+          ? 'Новый уровень спортивных знаний' 
+          : 'A New Level of Sports Knowledge',
+        description: language === 'ru'
+          ? 'Наша платформа предлагает уникальные квизы и битвы, которые проверят ваши спортивные знания на прочность. Готовы бросить вызов?'
+          : 'Our platform offers unique quizzes and battles that will test the strength of your sports knowledge. Are you ready to take the challenge?',
+        url: 'https://head2head.dev/about',
+        image: '/images/h2h.png',
+        published_at: new Date().toISOString(),
+        source: 'Head2Head',
+        category: 'Platform Features',
+        language: language,
+        country: language === 'ru' ? 'RU' : 'US'
+      }
+    ];
+
+    return {
+      data: manualNews,
+      pagination: {
+        limit: 2,
+        offset: 0,
+        count: 2,
+        total: 2
+      }
+    };
+  }
+
+  /**
+   * Add or replace custom news
+   * @param customNews - Custom news articles to add or replace
+   * @param options - Options for adding custom news
+   */
+  addCustomNews(
+    customNews: Partial<MediaStackArticle>[], 
+    options: { 
+      replace?: boolean; 
+      language?: string 
+    } = {}
+  ): void {
+    const { 
+      replace = false, 
+      language = this.getCurrentLanguage() 
+    } = options;
+
+    // Retrieve existing custom news
+    const storedCustomNews = this.getCustomNews(language);
+
+    // Prepare new custom news with default values
+    const preparedCustomNews = customNews.map(news => ({
+      author: news.author || 'Head2Head Custom News',
+      title: news.title || 'Custom News Article',
+      description: news.description || 'No description provided',
+      url: news.url || 'https://head2head.dev',
+      image: news.image || '/images/sports-arena.jpg',
+      published_at: news.published_at || new Date().toISOString(),
+      source: news.source || 'Head2Head',
+      category: news.category || 'Custom News',
+      language: language,
+      country: news.country || (language === 'ru' ? 'RU' : 'US')
+    }));
+
+    // Either replace or append custom news
+    const updatedCustomNews = replace 
+      ? preparedCustomNews 
+      : [...storedCustomNews, ...preparedCustomNews];
+
+    // Store in localStorage
+    try {
+      localStorage.setItem(
+        `head2head_custom_news_${language}`, 
+        JSON.stringify(updatedCustomNews)
+      );
+    } catch (error) {
+      console.error('Failed to save custom news:', error);
+    }
+  }
+
+  /**
+   * Retrieve custom news for a specific language
+   * @param language - Language of custom news to retrieve
+   */
+  getCustomNews(language?: string): Partial<MediaStackArticle>[] {
+    const currentLanguage = language || this.getCurrentLanguage();
+    
+    try {
+      const storedNews = localStorage.getItem(`head2head_custom_news_${currentLanguage}`);
+      return storedNews ? JSON.parse(storedNews) : [];
+    } catch (error) {
+      console.error('Failed to retrieve custom news:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Clear custom news for a specific language or all languages
+   * @param language - Optional language to clear custom news for
+   */
+  clearCustomNews(language?: string): void {
+    if (language) {
+      localStorage.removeItem(`head2head_custom_news_${language}`);
+    } else {
+      // Clear custom news for all languages
+      ['en', 'ru'].forEach(lang => 
+        localStorage.removeItem(`head2head_custom_news_${lang}`)
+      );
+    }
+  }
+
+  /**
+   * Fetch top sports headlines with custom news integration
    * @param options - Configuration options for the request
    */
   async getTopSportsHeadlines() {
     try {
       const language = this.getCurrentLanguage();
       const response = await fetch(`${this.backendUrl}/news/sports?language=${language}`);
+      
       if (response.ok) {
         const data = await response.json();
+        
+        // Check for custom news
+        const customNews = this.getCustomNews(language);
+        
+        // If no news available, use custom news or generate manual news
+        if (!data.data || data.data.length === 0) {
+          console.warn('No news available, checking custom news');
+          
+          if (customNews.length > 0) {
+            return {
+              data: customNews,
+              pagination: {
+                limit: customNews.length,
+                offset: 0,
+                count: customNews.length,
+                total: customNews.length
+              }
+            };
+          }
+          
+          // Fallback to manual news if no custom news
+          return this.generateManualNews(language);
+        }
+        
+        // Prepend custom news to fetched news if available
+        if (customNews.length > 0) {
+          data.data = [...customNews, ...data.data];
+          data.pagination.total += customNews.length;
+          data.pagination.count += customNews.length;
+        }
+        
         return data;
       } else {
         throw new Error(`Backend responded with status: ${response.status}`);
       }
     } catch (error) {
       console.error('Failed to fetch news from backend:', error);
-      throw new Error('News service unavailable. Please try again later.');
+      
+      // Check for custom news on error
+      const language = this.getCurrentLanguage();
+      const customNews = this.getCustomNews(language);
+      
+      if (customNews.length > 0) {
+        return {
+          data: customNews,
+          pagination: {
+            limit: customNews.length,
+            offset: 0,
+            count: customNews.length,
+            total: customNews.length
+          }
+        };
+      }
+      
+      // Fallback to manual news if no custom news
+      return this.generateManualNews(language);
     }
   }
 

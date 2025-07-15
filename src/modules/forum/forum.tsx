@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '../../shared/ui/card';
 import { Button } from '../../shared/ui/button';
@@ -13,6 +13,7 @@ import {
   ChevronRight,
   ExternalLink,
   TrendingUp,
+
 } from 'lucide-react';
 import Header from '../dashboard/header';
 import { 
@@ -94,15 +95,25 @@ interface DebatePost extends ForumPost {
     trending: boolean;
   };
 }
-
 export default function Forum() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useGlobalStore();
   
-  // Normalize sport name for comparison
-  const normalizeSportName = (sport: string) => {
-    // Convert to lowercase and handle common variations
+  // Consolidate ALL state hooks at the top
+  const [activeTab, setActiveTab] = useState<'debates' | 'news' | 'transfers'>('debates');
+  const [selectedSport, setSelectedSport] = useState<string>(t('forum.allSports'));
+  const [posts, setPosts] = useState<ForumPost[]>([]);
+  const [debates, setDebates] = useState<DebatePick[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [newsError, setNewsError] = useState<string | null>(null);
+  const [debateError, setDebateError] = useState<string | null>(null);
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const [likedArticles, setLikedArticles] = useState<Set<string>>(new Set());
+
+  // Refs and other hooks
+  const normalizeSportName = useCallback((sport: string) => {
     const normalizedSport = sport.toLowerCase().trim();
     const sportMappings: {[key: string]: string} = {
       'soccer': 'football',
@@ -114,7 +125,7 @@ export default function Forum() {
       'hockey': 'hockey'
     };
     return sportMappings[normalizedSport] || normalizedSport;
-  };
+  }, []);
 
   const SPORTS = useMemo(() => [
     t('forum.allSports'),
@@ -126,17 +137,6 @@ export default function Forum() {
     t('forum.soccer'),
     t('forum.hockey')
   ], [t]);
-  
-  const [activeTab, setActiveTab] = useState<'debates' | 'news' | 'transfers'>('debates');
-  const [selectedSport, setSelectedSport] = useState<string>(t('forum.allSports'));
-  const [posts, setPosts] = useState<ForumPost[]>([]);
-  const [debates, setDebates] = useState<DebatePick[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const [newsError, setNewsError] = useState<string | null>(null);
-  const [debateError, setDebateError] = useState<string | null>(null);
-  const [transferError, setTransferError] = useState<string | null>(null);
-  const [likedArticles, setLikedArticles] = useState<Set<string>>(new Set());
 
   // Helper to load liked articles from localStorage
   const getLikedArticlesFromStorage = (): Set<string> => {
@@ -160,7 +160,105 @@ export default function Forum() {
     }
   };
 
-  // Load data function (backend only)
+  // Add a function to get sport-specific image
+  const getSportImage = (): string => {
+    // Always return sports-arena.jpg regardless of sport
+    return '/images/sports-arena.jpg';
+  };
+
+  // Modify mock news generation function
+  const generateMockNews = (): ForumPost[] => {
+    const mockNewsList: ForumPost[] = [
+      {
+        id: 'mock-news-1',
+        title: 'Historic Comeback in Champions League',
+        content: 'In an unprecedented match, underdog team overcomes 3-goal deficit to win in the final minutes. Fans and experts alike are calling it one of the most remarkable turnarounds in recent football history.',
+        author: 'Sports Insider',
+        authorAvatar: '/images/placeholder-user.jpg',
+        timestamp: new Date(),
+        sport: 'Football',
+        likes: 256,
+        comments: 42,
+        isLiked: false,
+        tags: ['Champions League', 'Football', 'Comeback'],
+        type: 'news',
+        newsDetails: {
+          source: 'Sports Insider',
+          importance: 'high',
+          breaking: true,
+          imageUrl: getSportImage(),
+          url: '#'
+        }
+      },
+      {
+        id: 'mock-news-2',
+        title: 'Basketball Star Sets New Scoring Record',
+        content: 'In a breathtaking performance, young basketball prodigy breaks the all-time scoring record, surpassing legends of the game. Analysts predict a bright future for this emerging talent.',
+        author: 'Basketball Weekly',
+        authorAvatar: '/images/placeholder-user.jpg',
+        timestamp: new Date(),
+        sport: 'Basketball',
+        likes: 189,
+        comments: 27,
+        isLiked: false,
+        tags: ['Basketball', 'Record', 'NBA'],
+        type: 'news',
+        newsDetails: {
+          source: 'Basketball Weekly',
+          importance: 'medium',
+          breaking: false,
+          imageUrl: getSportImage(),
+          url: '#'
+        }
+      },
+      {
+        id: 'mock-news-3',
+        title: 'Tennis Grand Slam Shocker',
+        content: 'Unexpected upset in the Grand Slam tournament as the world number one is eliminated in a stunning match. The tennis world is buzzing with discussions about this surprising turn of events.',
+        author: 'Tennis Insider',
+        authorAvatar: '/images/placeholder-user.jpg',
+        timestamp: new Date(),
+        sport: 'Tennis',
+        likes: 134,
+        comments: 19,
+        isLiked: false,
+        tags: ['Tennis', 'Grand Slam', 'Upset'],
+        type: 'news',
+        newsDetails: {
+          source: 'Tennis Insider',
+          importance: 'high',
+          breaking: true,
+          imageUrl: getSportImage(),
+          url: '#'
+        }
+      },
+      {
+        id: 'mock-news-4',
+        title: 'Hockey Team Wins Championship After 20-Year Drought',
+        content: 'In an emotional victory, the hometown hockey team clinches the championship, ending a 20-year title drought. The city erupts in celebration as fans witness a historic moment.',
+        author: 'Hockey Times',
+        authorAvatar: '/images/placeholder-user.jpg',
+        timestamp: new Date(),
+        sport: 'Hockey',
+        likes: 221,
+        comments: 35,
+        isLiked: false,
+        tags: ['Hockey', 'Championship', 'Victory'],
+        type: 'news',
+        newsDetails: {
+          source: 'Hockey Times',
+          importance: 'high',
+          breaking: true,
+          imageUrl: getSportImage(),
+          url: '#'
+        }
+      }
+    ];
+
+    return mockNewsList;
+  };
+
+  // Modify loadData method to include mock news
   const loadData = async () => {
     try {
       setIsLoading(true);
@@ -213,8 +311,17 @@ export default function Forum() {
           post.isLiked = latestLikedArticles.has(post.id);
           return post;
         });
+
+        // If no news found, use mock news
+        if (newsPosts.length === 0) {
+          console.warn('No news found. Using mock news.');
+          newsPosts = generateMockNews();
+        }
       } catch (error) {
         console.error('Error fetching sports headlines:', error);
+        
+        // Fallback to mock news if fetching fails
+        newsPosts = generateMockNews();
       }
 
       // Fetch transfer data from server
@@ -864,16 +971,6 @@ export default function Forum() {
               </div>
             )}
           </div>
-          {/* Add Create Debate button only for Debates tab */}
-          {activeTab === 'debates' && (
-            <div className="flex gap-2 self-end w-full sm:w-auto">
-              <Button
-                onClick={handleCreateDebate}
-              >
-                {t('forum.createDebateButton')}
-              </Button>
-            </div>
-          )}
         </div>
 
         {/* Tabs Navigation */}
@@ -910,7 +1007,6 @@ export default function Forum() {
                     <DropdownMenuItem 
                       key={sport}
                       onClick={() => {
-                        // Normalize the sport name when setting
                         const normalizedSport = sport === t('forum.allSports') 
                           ? t('forum.allSports') 
                           : normalizeSportName(sport);
