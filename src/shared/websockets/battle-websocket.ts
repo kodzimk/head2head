@@ -19,8 +19,8 @@ export class BattleWebSocket {
   }
 
   private connect() {
-    // Convert HTTP URL to WebSocket URL
-    const wsUrl = API_BASE_URL.replace('http://', 'ws://').replace('https://', 'ws://');
+    // Convert HTTP/HTTPS URL to WebSocket secure URL
+    const wsUrl = API_BASE_URL.replace('http://', 'wss://').replace('https://', 'wss://');
     this.ws = new WebSocket(`${wsUrl}/ws/battle/${this.battleId}?username=${encodeURIComponent(this.username)}`);
 
     this.ws.onopen = () => {
