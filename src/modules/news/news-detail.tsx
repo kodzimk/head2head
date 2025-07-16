@@ -70,7 +70,7 @@ export default function NewsDetail() {
     }
   };
 
-  const extractSport = (text: string): string => {
+  const extractSport = (text: string = ''): string => {
     const sports = ['Football', 'Basketball', 'Tennis', 'Baseball', 'Hockey', 'Volleyball', 'Cricket', 'Rugby', 'Golf'];
     const lowerText = text.toLowerCase();
     
@@ -82,7 +82,7 @@ export default function NewsDetail() {
     return 'Sports';
   };
 
-  const extractCategory = (title: string): string => {
+  const extractCategory = (title: string = ''): string => {
     const lowerTitle = title.toLowerCase();
     
     if (lowerTitle.includes('transfer') || lowerTitle.includes('trade') || lowerTitle.includes('signing')) {
@@ -100,7 +100,7 @@ export default function NewsDetail() {
     return 'General News';
   };
 
-  const extractTags = (text: string): string[] => {
+  const extractTags = (text: string = ''): string[] => {
     const tags: string[] = [];
     const lowerText = text.toLowerCase();
     
@@ -154,176 +154,118 @@ export default function NewsDetail() {
       try {
         setIsLoading(true);
         
-        const currentNewsData = localStorage.getItem('currentNewsData');
+        // Fetch news directly from backend
+        const newsResponse = await newsService.getTopSportsHeadlines();
         
-        if (currentNewsData) {
-          const parsedCurrentNews = JSON.parse(currentNewsData);
-          
-          const newsDetail: NewsDetail = {
-            id: parsedCurrentNews.id,
-            title: parsedCurrentNews.title,
-            content: parsedCurrentNews.content,
-            description: parsedCurrentNews.content.substring(0, 200) + '...',
-            author: parsedCurrentNews.author,
-            source: 'Sports News',
-            timestamp: new Date(parsedCurrentNews.timestamp),
-            sport: parsedCurrentNews.sport,
-            category: parsedCurrentNews.category,
-            tags: parsedCurrentNews.tags,
-            likes: 0,
-            isLiked: likedArticles.has(parsedCurrentNews.id),
-            comments: [],
-            breaking: false,
-            importance: 'medium',
-            imageUrl: parsedCurrentNews.imageUrl || undefined,
-            sourceUrl: parsedCurrentNews.sourceUrl || undefined
-          };
-          
-          console.log('News detail data:', {
-            id: newsDetail.id,
-            title: newsDetail.title,
-            imageUrl: newsDetail.imageUrl,
-            sourceUrl: newsDetail.sourceUrl
-          });
-          
-          setNewsDetail(newsDetail);
-          setIsLoading(false);
-          return;
-        }
+        // Find the specific news article by ID
+        const newsArticle = newsResponse.data.find((article: any) => 
+          article.url?.includes(id) || 
+          article.title?.toLowerCase().includes(id.toLowerCase()) ||
+          article.url?.split('/').pop() === id
+        );
         
-        const storedNewsData = localStorage.getItem('forumNewsData');
-        let newsArticle = null;
-        
-        if (storedNewsData) {
-          const parsedData = JSON.parse(storedNewsData);
-          
-          let newsData;
-          if (parsedData.en && parsedData.ru) {
-            const currentLanguage = localStorage.getItem('language') || 'en';
-            newsData = parsedData[currentLanguage as keyof typeof parsedData] || parsedData.en;
-          } else {
-            newsData = parsedData;
-          }
-          
-          newsArticle = newsData.data?.find((article: any) => 
-            article.url?.includes(id) || 
-            article.title?.toLowerCase().includes(id.toLowerCase()) ||
-            article.url?.split('/').pop() === id
-          );
-        }
-        
-        // If not found in localStorage, fetch fresh data from server
+        // If no news found, try custom news
         if (!newsArticle) {
-          const newsResponse = await newsService.getTopSportsHeadlines();
-          
-          newsArticle = newsResponse.data.find((article: any) => 
+          const customNews = newsService.getCustomNews();
+          const customNewsArticle = customNews.find((article: any) => 
             article.url?.includes(id) || 
             article.title?.toLowerCase().includes(id.toLowerCase()) ||
             article.url?.split('/').pop() === id
           );
           
-          if (!newsArticle) {
-            newsArticle = newsResponse.data[0];
+          if (customNewsArticle) {
+            // Convert custom news to NewsDetail format
+            const newsDetail: NewsDetail = {
+              id: (customNewsArticle as any).id || id,
+              title: customNewsArticle.title || 'News Article',
+              content: customNewsArticle.description || 'No content available',
+              description: customNewsArticle.description || 'No description available',
+              author: customNewsArticle.author || 'Unknown Author',
+              source: customNewsArticle.source || 'Head2Head',
+              timestamp: new Date(customNewsArticle.published_at || Date.now()),
+              sport: extractSport(customNewsArticle.title + ' ' + (customNewsArticle.description || '')),
+              category: extractCategory(customNewsArticle.title),
+              tags: extractTags(customNewsArticle.title + ' ' + (customNewsArticle.description || '')),
+              likes: 0,
+              isLiked: false,
+              comments: [], 
+              breaking: false,
+              importance: calculateImportance(customNewsArticle.title + ' ' + (customNewsArticle.description || '')),
+              imageUrl: customNewsArticle.image || '/images/sports-arena.jpg',
+              sourceUrl: customNewsArticle.url || ''
+            };
+            
+            setNewsDetail(newsDetail);
+            return;
           }
-        }
-        
-        if (!newsArticle) {
-          throw new Error('No news articles available');
-        }
-        
-                  // Convert to NewsDetail format
-          const newsDetail: NewsDetail = {
-            id: id,
-            title: newsArticle.title || 'News Article',
-            content: newsArticle.description || 'No content available',
-            description: newsArticle.description || 'No description available',
-            author: newsArticle.author || 'Unknown Author',
-            source: newsArticle.source || 'Unknown Source',
-            timestamp: new Date(newsArticle.published_at || Date.now()),
-            sport: extractSport(newsArticle.title + ' ' + newsArticle.description),
-            category: extractCategory(newsArticle.title),
-            tags: extractTags(newsArticle.title + ' ' + newsArticle.description),
-            likes: Math.floor(Math.random() * 1000) + 100,
-            isLiked: false,
-            comments: [
-              {
-                id: 'comment-1',
-                author: 'SportsFan2024',
-                authorAvatar: '/images/placeholder-user.jpg',
-                content: 'This is absolutely insane! Never saw this coming. The league is going to be completely different next season.',
-                timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-                likes: 23,
-                isLiked: false,
-                replies: [
-                  {
-                    id: 'reply-1',
-                    author: 'BasketballAnalyst',
-                    authorAvatar: '/images/placeholder-user.jpg',
-                    content: 'I agree! This changes everything. The salary cap implications alone are mind-blowing.',
-                    timestamp: new Date(Date.now() - 45 * 60 * 1000),
-                    likes: 8,
-                    isLiked: true,
-                    replies: []
-                  },
-                  {
-                    id: 'reply-2',
-                    author: 'TradeExpert',
-                    authorAvatar: '/images/placeholder-user.jpg',
-                    content: 'The timing of this trade is perfect. Both teams are getting exactly what they need.',
-                    timestamp: new Date(Date.now() - 40 * 60 * 1000),
-                    likes: 5,
-                    isLiked: false,
-                    replies: []
-                  },
-                  {
-                    id: 'reply-3',
-                    author: 'FanPerspective',
-                    authorAvatar: '/images/placeholder-user.jpg',
-                    content: 'As a fan, I\'m excited but also nervous about how this will affect team chemistry.',
-                    timestamp: new Date(Date.now() - 35 * 60 * 1000),
-                    likes: 12,
-                    isLiked: false,
-                    replies: []
-                  },
-                  {
-                    id: 'reply-4',
-                    author: 'StatsGuru',
-                    authorAvatar: '/images/placeholder-user.jpg',
-                    content: 'Looking at the numbers, this trade actually makes a lot of sense for both sides.',
-                    timestamp: new Date(Date.now() - 30 * 60 * 1000),
-                    likes: 7,
-                    isLiked: false,
-                    replies: []
-                  }
-                ]
-              },
-              {
-                id: 'comment-2',
-                author: 'CoachKnowsAll',
-                authorAvatar: '/images/placeholder-user.jpg',
-                content: 'From a strategic standpoint, this makes sense for both teams. The front office clearly has a long-term vision.',
-                timestamp: new Date(Date.now() - 30 * 60 * 1000),
-                likes: 15,
-                isLiked: false,
-                replies: []
-              }
-            ],
-            imageUrl: newsArticle.image || '/images/sports-arena.jpg',
-            sourceUrl: newsArticle.url,
-            breaking: isBreakingNews(newsArticle.published_at),
-            importance: calculateImportance(newsArticle.title + ' ' + newsArticle.description)
-          };
           
-          setNewsDetail(newsDetail);
+          // If no custom news, generate manual news
+          const currentLanguage = localStorage.getItem('language') || 'en';
+          const manualNews = newsService.generateManualNews(currentLanguage);
+          
+          if (manualNews.data.length > 0) {
+            const manualNewsArticle = manualNews.data[0];
+            const newsDetail: NewsDetail = {
+              id: manualNewsArticle.url.split('/').pop() || id,
+              title: manualNewsArticle.title || 'Head2Head News',
+              content: manualNewsArticle.description || 'No content available',
+              description: manualNewsArticle.description || 'No description available',
+              author: manualNewsArticle.author || 'Head2Head Team',
+              source: manualNewsArticle.source || 'Head2Head',
+              timestamp: new Date(manualNewsArticle.published_at || Date.now()),
+              sport: extractSport(manualNewsArticle.title + ' ' + (manualNewsArticle.description || '')),
+              category: extractCategory(manualNewsArticle.title),
+              tags: extractTags(manualNewsArticle.title + ' ' + (manualNewsArticle.description || '')),
+              likes: 0,
+              isLiked: false,
+              comments: [],
+              breaking: false,
+              importance: calculateImportance(manualNewsArticle.title + ' ' + (manualNewsArticle.description || '')),
+              imageUrl: manualNewsArticle.image || '/images/sports-arena.jpg',
+              sourceUrl: manualNewsArticle.url || ''
+            };
+            
+            setNewsDetail(newsDetail);
+            return;
+          }
+          
+          // If absolutely no news is available
+          throw new Error('No news articles found');
+        }
+        
+        // Convert to NewsDetail format
+        const newsDetail: NewsDetail = {
+          id: newsArticle.id || id,
+          title: newsArticle.title || 'News Article',
+          content: newsArticle.description || 'No content available',
+          description: newsArticle.description || 'No description available',
+          author: newsArticle.author || 'Unknown Author',
+          source: newsArticle.source || 'Unknown Source',
+          timestamp: new Date(newsArticle.published_at || Date.now()),
+          sport: extractSport(newsArticle.title + ' ' + newsArticle.description),
+          category: extractCategory(newsArticle.title),
+          tags: extractTags(newsArticle.title + ' ' + newsArticle.description),
+          likes: newsArticle.likes || 0,
+          isLiked: likedArticles.has(newsArticle.id),
+          comments: [], // Backend doesn't provide comments yet
+          breaking: isBreakingNews(newsArticle.published_at),
+          importance: calculateImportance(newsArticle.title + ' ' + newsArticle.description),
+          imageUrl: newsArticle.image || '/images/sports-arena.jpg',
+          sourceUrl: newsArticle.url
+        };
+        
+        setNewsDetail(newsDetail);
       } catch (error) {
         console.error('Error loading news detail:', error);
+        // Fallback to a generic error state
+        setNewsDetail(null);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadNewsDetail();
-  }, [id]);
+  }, [id, likedArticles]);
 
 
   const handleLike = async () => {

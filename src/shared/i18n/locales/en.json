@@ -1244,19 +1244,27 @@
       "refreshTransfers": "Refresh Transfers"
     }
   },
-  "chat": {
-    "title": "Chat",
-    "type_message": "Type a message...",
-    "send": "Send",
-    "empty": "No messages yet. Start the conversation!",
-    "today": "Today",
-    "yesterday": "Yesterday",
-    "new_message": "New message",
-    "back_to_friends": "Back to friends",
-    "loading": "Loading messages...",
-    "conversations": "Conversations",
-    "no_conversations": "No conversations yet. Start chatting with your friends!",
-    "no_messages": "No messages yet",
-    "you": "You"
+  "chat":{
+    "title":"Chats",
+    "noChats":"No conversations yet",
+    "noChatsDesc":"Start a conversation with your friends",
+    "sendMessage":"Send message",
+    "messagePlaceholder":"Write a message...", 
+    "conversation":"Conversation",
+    "conversations":"Conversations",
+    "noMessages":"No messages yet",
+    "noMessagesDesc":"Start a conversation with your friends",
+    "messageFailed":"Message failed to send",
+    "messageSentDesc":"Your message has been sent",
+    "no_messages":"No messages yet",
+    "no_messages_desc":"Start a conversation with your friends",
+    "message_failed":"Message failed to send",
+    "message_sent_desc":"Your message has been sent",
+    "no_conversations":"No conversations yet",
+    "no_conversations_desc":"Start a conversation with your friends",
+    "no_messages":"No messages yet",
+    "no_messages_desc":"Start a conversation with your friends",
+    "message_failed":"Message failed to send",
+    "message_sent_desc":"Your message has been sent"
   }
 } 

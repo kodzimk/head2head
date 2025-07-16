@@ -5,7 +5,6 @@ import { Search } from 'lucide-react';
 import Header from '../dashboard/header';
 import type { Friend, User } from "../../shared/interface/user";
 import { API_BASE_URL } from "../../shared/interface/gloabL_var";
-import { newSocket } from "../../app/App";
 import { UserAvatar } from "../../shared/ui/user-avatar";
 import { useTranslation } from 'react-i18next';
 import FriendChat from './chat';
@@ -163,79 +162,10 @@ export default function ChatsPage({ user }: { user: User }) {
     }
   };
   
-  // Listen for new messages from WebSocket
+  // Removed WebSocket message handling for chat messages
   useEffect(() => {
-    const handleWebSocketMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'chat_message' && data.data) {
-          const messageData = data.data;
-          
-          // Update chat previews when a new message arrives
-          if (messageData.senderId === user.username || messageData.receiverId === user.username) {
-            // Get the friend's username
-            const friendUsername = messageData.senderId === user.username ? 
-              messageData.receiverId : messageData.senderId;
-            
-            // Update chat previews
-            setChatPreviews(prevPreviews => {
-              const updatedPreviews = [...prevPreviews];
-              const previewIndex = updatedPreviews.findIndex(
-                preview => preview.friend.username === friendUsername
-              );
-              
-              if (previewIndex !== -1) {
-                // Update existing preview
-                const updatedPreview = { ...updatedPreviews[previewIndex] };
-                updatedPreview.lastMessage = {
-                  ...messageData,
-                  timestamp: new Date(messageData.timestamp)
-                };
-                
-                // Increment unread count if message is to current user and not from current user
-                if (messageData.receiverId === user.username && messageData.senderId !== user.username) {
-                  updatedPreview.unreadCount += 1;
-                }
-                
-                updatedPreviews[previewIndex] = updatedPreview;
-                
-                // Move this chat to the top
-                const [movedPreview] = updatedPreviews.splice(previewIndex, 1);
-                updatedPreviews.unshift(movedPreview);
-              } else {
-                // This is a new chat, fetch friend data and add preview
-                const friendData = friends.find(f => f.username === friendUsername);
-                if (friendData) {
-                  updatedPreviews.unshift({
-                    friend: friendData,
-                    lastMessage: {
-                      ...messageData,
-                      timestamp: new Date(messageData.timestamp)
-                    },
-                    unreadCount: messageData.receiverId === user.username ? 1 : 0
-                  });
-                }
-              }
-              
-              return updatedPreviews;
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error parsing websocket message:', error);
-      }
-    };
-
-    if (newSocket) {
-      newSocket.addEventListener('message', handleWebSocketMessage);
-    }
-
-    return () => {
-      if (newSocket) {
-        newSocket.removeEventListener('message', handleWebSocketMessage);
-      }
-    };
+    // Placeholder for future real-time updates if needed
+    return () => {};
   }, [user.username, friends]);
   
   // Format timestamp for display

@@ -137,17 +137,6 @@ export default function FriendsPage({user}: {user: User}) {
             updateFriendsList(updatedUserData.friends || []);
           }
         }
-        
-        // Listen for new chat messages for notification purposes
-        if (data.type === 'chat_message' && data.data) {
-          const messageData = data.data;
-          
-          // If we receive a message from a friend and we're not in that chat, show notification
-          if (messageData.receiverId === user.username && (!activeChatFriend || activeChatFriend.username !== messageData.senderId)) {
-            // Here you could add a notification system or unread message indicator
-            console.log('New message from:', messageData.senderId);
-          }
-        }
       } catch (error) {
         console.error('Error parsing websocket message:', error);
       }
@@ -162,7 +151,7 @@ export default function FriendsPage({user}: {user: User}) {
         newSocket.removeEventListener('message', handleWebSocketMessage);
       }
     };
-  }, [user.username, user.email, activeChatFriend])
+  }, [user.email, updateFriendsList]);
 
   const handleRemoveFriend = async (username: string) => {
     removeFriend(user, username)
