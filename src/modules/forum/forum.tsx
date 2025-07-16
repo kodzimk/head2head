@@ -107,9 +107,6 @@ export default function Forum() {
   const [debates, setDebates] = useState<DebatePick[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [newsError, setNewsError] = useState<string | null>(null);
-  const [debateError, setDebateError] = useState<string | null>(null);
-  const [transferError, setTransferError] = useState<string | null>(null);
   const [likedArticles, setLikedArticles] = useState<Set<string>>(new Set());
 
   // Refs and other hooks
@@ -262,9 +259,6 @@ export default function Forum() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      setNewsError(null);
-      setDebateError(null);
-      setTransferError(null);
       
       // Always get the latest liked articles from localStorage
       const latestLikedArticles = getLikedArticlesFromStorage();
@@ -285,16 +279,9 @@ export default function Forum() {
           setDebates(debateData);
         } catch (error: any) {
           console.error('Error fetching debates:', error);
-          if (error.message?.includes('Authorization header missing') || error.message?.includes('401')) {
-            setDebateError('Please log in to view debates');
-          } else {
-            setDebateError('Failed to load debates');
-          }
-        }
-      } else {
-        setDebateError('Please log in to view debates');
-      }
 
+        }
+      }
       // Fetch multi-language news data from server
       try {
         const multiLanguageNewsResponse = await newsService.getTopSportsHeadlinesMultiLanguage();
@@ -355,13 +342,6 @@ export default function Forum() {
         
       } catch (error: any) {
         console.error('Error fetching transfer news:', error);
-        if (error.message?.includes('Authentication required')) {
-          setTransferError('Please log in to view transfers');
-        } else if (error.message?.includes('temporarily unavailable')) {
-          setTransferError('Transfer service is temporarily unavailable. Please try again later.');
-        } else {
-          setTransferError('Failed to load transfer news');
-        }
       }
 
       // Combine all posts
@@ -370,7 +350,6 @@ export default function Forum() {
       
     } catch (error) {
       console.error('Error loading forum data:', error);
-      setNewsError(t('forum.failedToLoadNews'));
     } finally {
       setIsLoading(false);
     }
@@ -395,23 +374,17 @@ export default function Forum() {
           });
           console.log('Loaded debates:', debateData);
           setDebates(debateData);
-          setDebateError(null);
         } catch (error: any) {
           console.error('Error fetching debates:', error);
           const errorMessage = error.message || 'Failed to load debates';
           
           if (errorMessage.includes('Authorization') || errorMessage.includes('401')) {
-            setDebateError('Please log in to view debates');
           } else if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
-            setDebateError('Network error. Please check your connection.');
-          } else {
-            setDebateError(errorMessage);
           }
           
           setDebates([]);
         }
       } else {
-        setDebateError('Please log in to view debates');
         setDebates([]);
       }
     };
@@ -496,16 +469,12 @@ export default function Forum() {
   const handleRefreshNews = async () => {
     try {
       setIsLoading(true);
-      setNewsError(null);
-      setDebateError(null);
-      setTransferError(null);
       
       // Refresh all data
       await loadData();
       
     } catch (error) {
       console.error('Error refreshing data:', error);
-      setNewsError(t('forum.failedToRefreshNews'));
     } finally {
       setIsLoading(false);
     }
@@ -514,7 +483,6 @@ export default function Forum() {
   const handleRefreshDebates = async () => {
     try {
       setIsLoading(true);
-      setDebateError(null);
       
       if (user && user.username && localStorage.getItem('access_token')) {
         console.log('Refreshing debates for user:', user.username);
@@ -529,10 +497,8 @@ export default function Forum() {
         
         // If no debates found, set an informative message
         if (debateData.length === 0) {
-          setDebateError(t('forum.noDebatesFound'));
         }
       } else {
-        setDebateError('Please log in to view debates');
         setDebates([]);
       }
     } catch (error: any) {
@@ -540,11 +506,8 @@ export default function Forum() {
       const errorMessage = error.message || 'Failed to refresh debates';
       
       if (errorMessage.includes('Authorization') || errorMessage.includes('401')) {
-        setDebateError('Please log in to view debates');
       } else if (errorMessage.includes('Network') || errorMessage.includes('fetch')) {
-        setDebateError('Network error. Please check your connection.');
       } else {
-        setDebateError(errorMessage);
       }
       
       setDebates([]);
@@ -556,7 +519,6 @@ export default function Forum() {
   const handleRefreshTransfers = async () => {
     try {
       setIsLoading(true);
-      setTransferError(null);
       
       const transferResponse = await transferService.getTransfers();
       const transferPosts = transferResponse.map((transfer: Transfer): ForumPost => ({
@@ -590,11 +552,8 @@ export default function Forum() {
     } catch (error: any) {
       console.error('Error refreshing transfers:', error);
       if (error.message?.includes('Authentication required')) {
-        setTransferError('Please log in to view transfers');
       } else if (error.message?.includes('temporarily unavailable')) {
-        setTransferError('Transfer service is temporarily unavailable. Please try again later.');
       } else {
-        setTransferError('Failed to refresh transfer news');
       }
     } finally {
       setIsLoading(false);
@@ -606,9 +565,6 @@ export default function Forum() {
     const handleLanguageChange = async () => {
       try {
         setIsLoading(true);
-        setNewsError(null);
-        setDebateError(null);
-        setTransferError(null);
         
         // Always refresh news and transfers
         const multiLanguageNewsResponse = await newsService.getTopSportsHeadlinesMultiLanguage();
@@ -660,9 +616,7 @@ export default function Forum() {
           setDebates(debateData);
         }
       } catch (error) {
-        console.error('Error during language change refresh:', error);
-        setNewsError(t('forum.failedToRefreshNews'));
-        setDebateError(t('forum.failedToLoadNews'));
+        console.error('Error during language change refresh:', error);    
       } finally {
         setIsLoading(false);
       }
@@ -955,21 +909,6 @@ export default function Forum() {
             <p className="text-sm sm:text-base text-muted-foreground">
               {t('forum.joinDiscussion')}
             </p>
-            {newsError && (
-              <div className="mt-2 p-2 bg-destructive/10 text-destructive text-xs sm:text-sm rounded-md">
-                {newsError}
-              </div>
-            )}
-            {debateError && (
-              <div className="mt-2 p-2 bg-destructive/10 text-destructive text-xs sm:text-sm rounded-md">
-                {debateError}
-              </div>
-            )}
-            {transferError && (
-              <div className="mt-2 p-2 bg-destructive/10 text-destructive text-xs sm:text-sm rounded-md">
-                {transferError}
-              </div>
-            )}
           </div>
         </div>
 
