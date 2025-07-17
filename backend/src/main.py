@@ -1,6 +1,6 @@
 from auth.router import auth_router
 from db.router import db_router
-from friends.router import router_friend, chat_router
+from friends.router import router_friend
 from battle.router import battle_router
 from battle_ws import router as battle_ws_router
 from training.router import training_router
@@ -9,7 +9,7 @@ from news_router import router as news_router
 from transfer.router import router as transfer_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app_config import app
+from websocket import app
 import os
 import logging
 from models import UserData, BattleModel
@@ -118,7 +118,6 @@ app.include_router(training_router, prefix="/training", tags=["training"])
 app.include_router(selection_router)
 app.include_router(news_router)
 app.include_router(transfer_router, prefix="/api", tags=["transfers"])
-app.include_router(chat_router, prefix="/api", tags=["chat"])
 
 
 @app.on_event("startup")

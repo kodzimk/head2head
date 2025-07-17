@@ -590,6 +590,7 @@
           "placeholder": "Select your favorite sport",
           "description": "Used for personalized quiz content",
           "options": {
+            "soccer": "⚽ Soccer",
             "football": "🏈 Football",
             "basketball": "🏀 Basketball",
             "baseball": "⚾ Baseball",
@@ -706,6 +707,7 @@
     "title": "Sports Training Center",
     "subtitle": "Practice with your previously incorrect answers and improve your knowledge",
     "setup": {
+      
       "title": "Training Setup",
       "selectSport": "Select Sport",
       "chooseSport": "Choose sport",
@@ -757,6 +759,7 @@
     },
     "sports": {
       "all": "All Sports",
+      "soccer": "Soccer",
       "football": "Football",
       "basketball": "Basketball",
       "tennis": "Tennis",

@@ -445,7 +445,7 @@ export default function BattlePage() {
                       <SelectValue placeholder={t('battles.selectSport')} />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border">
-                      <SelectItem value="football">⚽ Football</SelectItem>
+                      <SelectItem value="soccer">⚽ Soccer</SelectItem>
                       <SelectItem value="basketball">🏀 Basketball</SelectItem>
                       <SelectItem value="baseball">⚾ Baseball</SelectItem>
                       <SelectItem value="hockey">🏒 Hockey</SelectItem>

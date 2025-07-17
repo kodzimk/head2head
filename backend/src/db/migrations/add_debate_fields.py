@@ -3,11 +3,11 @@ Migration script to add new fields to debate_picks table
 """
 import asyncio
 from sqlalchemy import text
-from init import get_async_session
+from init import get_db
 
 async def migrate():
     """Add new fields to debate_picks table"""
-    async for db in get_async_session():
+    async for db in get_db():
         try:
             # Add new columns to debate_picks table
             await db.execute(text("""

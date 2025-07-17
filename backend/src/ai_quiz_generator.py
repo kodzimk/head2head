@@ -37,10 +37,6 @@ class AIQuizGenerator:
         Returns:
             List of question dictionaries with proper format
         """
-        # FORCIBLY convert football to soccer
-        if sport.lower() in ['football', 'american football']:
-            sport = 'soccer'
-        
         try:
             logger.info(f"Generating {count} {level} {sport} questions for battle {battle_id} in {language}")
             
@@ -90,29 +86,20 @@ class AIQuizGenerator:
     def _build_question_prompt(self, sport: str, level: str, count: int, battle_context: str, language: str = "en") -> str:
         """Build a comprehensive prompt for question generation"""
         
-        # FORCIBLY convert football to soccer
-        if sport.lower() in ['football', 'american football']:
-            sport = 'soccer'
-        
         difficulty_guidelines = {
-            "easy": "Basic facts, rules, and common knowledge that most soccer fans would know",
-            "medium": "Historical facts, notable players, championships, and intermediate-level soccer knowledge",
-            "hard": "Detailed statistics, records, specific dates, advanced rules, and expert-level soccer knowledge"
+            "easy": "Basic facts, rules, and common knowledge that most sports fans would know",
+            "medium": "Historical facts, notable players, championships, and intermediate-level knowledge",
+            "hard": "Detailed statistics, records, specific dates, advanced rules, and expert-level knowledge"
         }
         
         # Language-specific instructions
         language_instructions = {
-            "en": "Generate questions ONLY about soccer (association football). NO American football questions allowed.",
-            "ru": "Generate questions ONLY about soccer (association football). NO American football questions allowed."
+            "en": "Generate questions in English.",
+            "ru": "Generate questions in Russian. Use proper Russian grammar and sports terminology."
         }
         
         prompt = f"""
-You are an expert SOCCER quiz question generator. Generate exactly {count} unique multiple-choice questions about SOCCER.
-
-CRITICAL RULES:
-1. ONLY generate soccer (association football) questions
-2. NO American football questions are allowed under ANY circumstances
-3. Focus exclusively on soccer/football (the sport played with feet)
+You are an expert sports quiz question generator. Generate exactly {count} unique multiple-choice questions about {sport}.
 
 Context: {battle_context}
 
@@ -122,14 +109,15 @@ Requirements:
 1. Difficulty Level: {level} - {difficulty_guidelines.get(level, "Medium difficulty")}
 2. Each question must have exactly 4 answer options (A, B, C, D)
 3. Only one answer must be correct
-4. Questions must be accurate and factually correct about SOCCER
-5. Avoid repetitive or similar questions
-6. Include a mix of topics: soccer rules, history, players, statistics, championships, etc.
-7. All text must be in {language.upper()} language
+4. Questions must be accurate and factually correct
+5. Questions should be engaging and test real knowledge
+6. Avoid repetitive or similar questions
+7. Include a mix of topics: rules, history, players, statistics, championships, etc.
+8. All text must be in {language.upper()} language
 
 Format each question exactly as follows:
 {{
-    "question": "Your soccer question text here?",
+    "question": "Your question text here?",
     "answers": [
         {{"text": "Answer A", "correct": true}},
         {{"text": "Answer B", "correct": false}},
@@ -140,83 +128,117 @@ Format each question exactly as follows:
     "difficulty": "{level}"
 }}
 
-Return ONLY a valid JSON array containing exactly {count} soccer question objects. Do not include any other text, explanations, or formatting.
+Return ONLY a valid JSON array containing exactly {count} question objects. Do not include any other text, explanations, or formatting.
 
-Example for SOCCER {level} questions in {language.upper()}:
+Example for {sport} {level} questions in {language.upper()}:
 """
         
-        # Use soccer-specific examples
-        prompt += self._get_football_examples(level, language)
+        # Add sport-specific examples
+        if sport.lower() == "soccer":
+            prompt += self._get_soccer_examples(level, language)
+        elif sport.lower() == "basketball":
+            prompt += self._get_basketball_examples(level, language)
+        elif sport.lower() == "tennis":
+            prompt += self._get_tennis_examples(level, language)
+        else:
+            prompt += self._get_general_examples(level, language)
         
         return prompt
     
-    def _get_football_examples(self, level: str, language: str) -> str:
-        """Generate soccer-specific examples to guide AI question generation"""
-        soccer_examples = {
-            "easy": [
-                {
-                    "question": "What is the primary objective in a soccer match?",
-                    "answers": [
-                        {"text": "Score more goals than the opponent", "correct": True},
-                        {"text": "Tackle the most players", "correct": False},
-                        {"text": "Keep the ball for the longest time", "correct": False},
-                        {"text": "Have the most corner kicks", "correct": False}
-                    ]
-                },
-                {
-                    "question": "How many players are on the field for each team during a soccer match?",
-                    "answers": [
-                        {"text": "11 players", "correct": True},
-                        {"text": "10 players", "correct": False},
-                        {"text": "9 players", "correct": False},
-                        {"text": "12 players", "correct": False}
-                    ]
-                }
-            ],
-            "medium": [
-                {
-                    "question": "What is the name of the most prestigious club competition in European soccer?",
-                    "answers": [
-                        {"text": "UEFA Champions League", "correct": True},
-                        {"text": "FIFA World Cup", "correct": False},
-                        {"text": "Europa League", "correct": False},
-                        {"text": "Premier League", "correct": False}
-                    ]
-                },
-                {
-                    "question": "Which country has won the most FIFA World Cup titles?",
-                    "answers": [
-                        {"text": "Brazil", "correct": True},
-                        {"text": "Germany", "correct": False},
-                        {"text": "Italy", "correct": False},
-                        {"text": "Argentina", "correct": False}
-                    ]
-                }
-            ],
-            "hard": [
-                {
-                    "question": "What is the offside rule in soccer?",
-                    "answers": [
-                        {"text": "A player is in an offside position if closer to the opponent's goal line than both the ball and the second-last opponent", "correct": True},
-                        {"text": "A player cannot pass the ball backwards", "correct": False},
-                        {"text": "A player must stay within their half of the field", "correct": False},
-                        {"text": "A player cannot touch the ball with their hands", "correct": False}
-                    ]
-                },
-                {
-                    "question": "Who holds the record for most goals in a single FIFA World Cup tournament?",
-                    "answers": [
-                        {"text": "Just Fontaine (France, 1958)", "correct": True},
-                        {"text": "Miroslav Klose (Germany, 2014)", "correct": False},
-                        {"text": "Ronaldo (Brazil, 2002)", "correct": False},
-                        {"text": "Gerd Müller (Germany, 1970)", "correct": False}
-                    ]
-                }
-            ]
-        }
-        
-        # Convert to JSON string for AI prompt
-        return json.dumps(soccer_examples.get(level, soccer_examples["medium"]), indent=2)
+    def _get_soccer_examples(self, level: str, language: str = "en") -> str:
+        """Get soccer-specific examples based on difficulty and language"""
+        if language == "ru":
+            if level == "easy":
+                return '''
+[
+    {
+        "question": "Сколько игроков в футбольной команде во время матча?",
+        "answers": [
+            {"text": "10", "correct": false},
+            {"text": "11", "correct": true},
+            {"text": "12", "correct": false},
+            {"text": "9", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "easy"
+    }
+]'''
+            elif level == "medium":
+                return '''
+[
+    {
+        "question": "Какая команда выиграла больше всего титулов Лиги чемпионов УЕФА?",
+        "answers": [
+            {"text": "Реал Мадрид", "correct": true},
+            {"text": "Барселона", "correct": false},
+            {"text": "Бавария Мюнхен", "correct": false},
+            {"text": "Милан", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "medium"
+    }
+]'''
+            else:  # hard
+                return '''
+[
+    {
+        "question": "Какой игрок забил больше всего голов за один сезон в Премьер-лиге?",
+        "answers": [
+            {"text": "Эрлинг Холанд (36 голов)", "correct": true},
+            {"text": "Мохамед Салах (32 гола)", "correct": false},
+            {"text": "Алан Ширер (34 гола)", "correct": false},
+            {"text": "Энди Коул (34 гола)", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "hard"
+    }
+]'''
+        else:  # English examples (default)
+            if level == "easy":
+                return '''
+[
+    {
+        "question": "How many players are on a football team during a match?",
+        "answers": [
+            {"text": "10", "correct": false},
+            {"text": "11", "correct": true},
+            {"text": "12", "correct": false},
+            {"text": "9", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "easy"
+    }
+]'''
+            elif level == "medium":
+                return '''
+[
+    {
+        "question": "Which team has won the most UEFA Champions League titles?",
+        "answers": [
+            {"text": "Real Madrid", "correct": true},
+            {"text": "Barcelona", "correct": false},
+            {"text": "Bayern Munich", "correct": false},
+            {"text": "AC Milan", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "medium"
+    }
+]'''
+            else:  # hard
+                return '''
+[
+    {
+        "question": "Which player has scored the most goals in a single Premier League season?",
+        "answers": [
+            {"text": "Erling Haaland (36 goals)", "correct": true},
+            {"text": "Mohamed Salah (32 goals)", "correct": false},
+            {"text": "Alan Shearer (34 goals)", "correct": false},
+            {"text": "Andy Cole (34 goals)", "correct": false}
+        ],
+        "time_limit": 30,
+        "difficulty": "hard"
+    }
+]'''
     
     def _get_basketball_examples(self, level: str, language: str = "en") -> str:
         """Get basketball-specific examples based on difficulty and language"""

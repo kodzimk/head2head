@@ -377,7 +377,7 @@ export class NewsService {
   /**
    * Get transfer news in user's preferred language from backend
    */
-  async getTransferNews(sports: string[] = ['football', 'basketball', 'volleyball']): Promise<any> {
+  async getTransferNews(sports: string[] = ['soccer', 'basketball', 'volleyball']): Promise<any> {
     try {
       const language = this.getCurrentLanguage();
       const response = await fetch(`${this.backendUrl}/news/sports?language=${language}`);

@@ -37,21 +37,9 @@ redis_email = redis.Redis(host='redis', port=6379, db=0)
 redis_username = redis.Redis(host='redis', port=6379, db=1)
 
 # Database dependency
-async def get_async_session():
+async def get_db():
     async with SessionLocal() as session:
         yield session
-
-# Explicitly define __all__ to control exports
-__all__ = [
-    'app', 
-    'engine', 
-    'Base', 
-    'SessionLocal', 
-    'redis_email', 
-    'redis_username', 
-    'get_async_session',
-    'init_models'
-]
 
 async def init_models():
     async with engine.begin() as conn:

@@ -99,7 +99,7 @@ export default function TrainingsPage() {
 
   const sports = [
     { value: "all", label: t('training.sports.all'), icon: <Trophy className="w-5 h-5" /> },
-    { value: "football", label: t('training.sports.football'), icon: <Trophy className="w-5 h-5" /> },
+    { value: "soccer", label: t('training.sports.soccer'), icon: <Trophy className="w-5 h-5" /> },
     { value: "basketball", label: t('training.sports.basketball'), icon: <Target className="w-5 h-5" /> },
     { value: "tennis", label: t('training.sports.tennis'), icon: <Zap className="w-5 h-5" /> },
     { value: "cricket", label: t('training.sports.cricket'), icon: <Sword className="w-5 h-5" /> },
@@ -567,7 +567,7 @@ export default function TrainingsPage() {
     } else {
       // Create sport-specific general terms
       const sportTerms = {
-        football: ['Goal', 'Assist', 'Clean Sheet', 'Hat-trick', 'Derby'],
+        soccer: ['Goal', 'Assist', 'Clean Sheet', 'Hat-trick', 'Derby'],
         basketball: ['Rebound', 'Assist', 'Block', 'Steal', 'Triple-Double'],
         tennis: ['Set', 'Game', 'Match Point', 'Break Point', 'Deuce'],
         cricket: ['Over', 'Wicket', 'Century', 'Six', 'Boundary'],

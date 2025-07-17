@@ -13,7 +13,7 @@ services:
       - ./src:/app/src
       - ./avatars:/app/avatars
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@postgres:5432/head2head
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/head2head
       - REDIS_URL=redis://redis:6379/0
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - MEDIASTACK_API_KEY=${MEDIASTACK_API_KEY}
@@ -35,7 +35,7 @@ services:
       - ./avatars:/app/avatars
     command: celery -A celery_app worker --loglevel=info --concurrency=4 --queues=default,ai_quiz
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@postgres:5432/head2head
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/head2head
       - REDIS_URL=redis://redis:6379/0
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - MEDIASTACK_API_KEY=${MEDIASTACK_API_KEY}
@@ -60,7 +60,7 @@ services:
       - ./src:/app/src
       - ./avatars:/app/avatars
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:Kais123@postgres:5432/head2head
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/head2head
       - REDIS_URL=redis://redis:6379/0
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - MEDIASTACK_API_KEY=${MEDIASTACK_API_KEY}
@@ -75,7 +75,7 @@ services:
     container_name: postgres-db
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=Kais123
+      - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=head2head
     ports:
       - "5432:5432"

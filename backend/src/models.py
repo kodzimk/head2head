@@ -1,11 +1,9 @@
-import uuid
-from sqlalchemy import Column, Integer, String, ARRAY, DateTime, Boolean, Text, ForeignKey, JSON, UUID, or_
+from sqlalchemy import Column, Integer, String, ARRAY, DateTime, Boolean, Text, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-from pydantic import BaseModel, EmailStr, UUID4, Field
+from pydantic import BaseModel, EmailStr
 from init import Base
 from datetime import datetime
 from typing import List, Optional, ForwardRef
-from sqlalchemy.sql import func
 
 class UserData(Base):
     __tablename__ = "user_data"
@@ -239,86 +237,3 @@ class DebatePickWithVoteResponse(BaseModel):
 
 # Update forward references
 DebateCommentResponse.model_rebuild()
-
-class User(Base):
-    __tablename__ = "users"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    username = Column(String(50), unique=True, nullable=False, index=True)
-    email = Column(String(120), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255), nullable=False)
-    avatar = Column(String(255), nullable=True)
-    online_status = Column(Boolean, default=False)
-    last_seen = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Relationships
-    sent_messages = relationship("ChatMessage", foreign_keys="[ChatMessage.sender_id]", back_populates="sender")
-    received_messages = relationship("ChatMessage", foreign_keys="[ChatMessage.receiver_id]", back_populates="receiver")
-    friendships = relationship("Friendship", 
-        primaryjoin="or_(User.id == Friendship.user_id, User.id == Friendship.friend_id)", 
-        foreign_keys="[Friendship.user_id, Friendship.friend_id]", 
-        back_populates="user")
-
-class Friendship(Base):
-    __tablename__ = "friendships"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    friend_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    status = Column(String(20), default='pending')  # pending, accepted, blocked
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
-    # Relationships
-    user = relationship("User", foreign_keys=[user_id], back_populates="friendships")
-    friend = relationship("User", foreign_keys=[friend_id])
-
-class ChatMessage(Base):
-    __tablename__ = "chat_messages"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    sender_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    receiver_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
-    content = Column(Text, nullable=False)
-    timestamp = Column(DateTime(timezone=True), server_default=func.now())
-    is_read = Column(Boolean, default=False)
-    message_type = Column(String(20), default='text')  # text, emoji, reaction
-    
-    # Relationships
-    sender = relationship("User", foreign_keys=[sender_id], back_populates="sent_messages")
-    receiver = relationship("User", foreign_keys=[receiver_id], back_populates="received_messages")
-
-class UserBase(BaseModel):
-    id: UUID4
-    username: str
-    email: EmailStr
-    avatar: Optional[str] = None
-    online_status: bool = False
-    last_seen: Optional[datetime] = None
-
-class FriendshipCreate(BaseModel):
-    friend_id: UUID4
-
-class FriendshipResponse(BaseModel):
-    id: UUID4
-    user_id: UUID4
-    friend_id: UUID4
-    status: str
-    created_at: datetime
-
-class ChatMessageCreate(BaseModel):
-    receiver_id: UUID4
-    content: str
-    message_type: str = 'text'
-
-class ChatMessageResponse(BaseModel):
-    id: UUID4
-    sender_id: UUID4
-    receiver_id: UUID4
-    content: str
-    timestamp: datetime
-    is_read: bool
-    message_type: str
-
-class FriendResponse(UserBase):
-    friendship_status: Optional[str] = None
-    last_message: Optional[ChatMessageResponse] = None

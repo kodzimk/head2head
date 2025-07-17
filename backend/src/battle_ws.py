@@ -11,7 +11,6 @@ import math
 import uuid
 from models import UserAnswer
 from init import SessionLocal
-from app_config import app
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

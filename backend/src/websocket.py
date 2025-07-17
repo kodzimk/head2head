@@ -1,7 +1,7 @@
 from fastapi import WebSocket, FastAPI, WebSocketDisconnect
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Dict
 from db.router import delete_user_data, get_user_data, update_user_data, get_user_by_username
 from friends.router import add_friend, cancel_friend_request, send_friend_request
 from battle.router import invite_friend, cancel_invitation, accept_invitation, get_waiting_battles
@@ -13,215 +13,11 @@ import asyncio
 import uuid
 from fastapi import HTTPException
 from ai_quiz_generator import ai_quiz_generator
-from datetime import datetime
-from sqlalchemy import select
-from models import User, ChatMessage
-from init import SessionLocal
-from chat_websocket import handle_chat_websocket
-from app_config import app
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Store active WebSocket connections
-active_connections: Dict[uuid.UUID, WebSocket] = {}
-
-async def handle_chat_websocket(websocket: WebSocket, username: str):
-    """
-    Handle WebSocket connection for chat functionality
-    """
-    try:
-        # Validate and sanitize username
-        actual_username = await validate_and_fix_username(username)
-        
-        # Store the connection
-        chat_manager.active_connections[actual_username] = websocket
-        logger.info(f"Chat WebSocket connection established for username: {actual_username}")
-        
-        while True:
-            try:
-                # Receive and process incoming messages
-                data = await websocket.receive_text()
-                message = json.loads(data)
-                logger.info(f"Received chat message from {actual_username}: {message}")
-                
-                # Handle different message types
-                if message.get('type') == 'chat':
-                    await handle_chat_message(
-                        sender_id=user_uuid, 
-                        message=message
-                    )
-                elif message.get('type') == 'typing':
-                    await handle_typing_indicator(
-                        sender_id=user_uuid, 
-                        message=message
-                    )
-                elif message.get('type') == 'read_receipt':
-                    await handle_read_receipt(
-                        sender_id=user_uuid, 
-                        message=message
-                    )
-                
-            except json.JSONDecodeError:
-                logger.error(f"Invalid JSON from {actual_username}")
-            except Exception as inner_error:
-                logger.error(f"Error processing message from {actual_username}: {inner_error}", exc_info=True)
-    
-    except WebSocketDisconnect:
-        # Remove the connection when disconnected
-        logger.info(f"WebSocket disconnected for username: {username}")
-        if username in chat_manager.active_connections:
-            del chat_manager.active_connections[username]
-    
-    except Exception as e:
-        # Handle any unexpected errors
-        logger.error(f"WebSocket error for username {username}: {e}", exc_info=True)
-        if username in chat_manager.active_connections:
-            del chat_manager.active_connections[username]
-
-async def handle_chat_message(sender_id: uuid.UUID, message: dict):
-    """
-    Process and forward chat messages
-    """
-    async with SessionLocal() as db:
-        try:
-            # Validate receiver (can be username or UUID)
-            try:
-                # First, try to convert to UUID
-                try:
-                    receiver_id = uuid.UUID(message['receiver_id'])
-                    receiver = await get_user_by_id(receiver_id)
-                except ValueError:
-                    # If not a valid UUID, treat as username
-                    receiver = await get_user_by_username(message['receiver_id'])
-                    if receiver:
-                        receiver_id = receiver.id
-                    else:
-                        logger.error(f"Receiver not found: {message['receiver_id']}")
-                        return None
-            except Exception as receiver_error:
-                logger.error(f"Error validating receiver: {receiver_error}")
-                return None
-
-            # Validate message content
-            try:
-                if not message.get('content'):
-                    logger.warning(f"Empty message from {sender_id}")
-                    return None
-
-                if len(message.get('content', '')) > 1000:
-                    logger.warning(f"Message too long from {sender_id}")
-                    return None
-            except Exception as content_error:
-                logger.error(f"Error validating message content: {content_error}")
-                return None
-
-            # Create chat message
-            chat_message = ChatMessage(
-                sender_id=sender_id,
-                receiver_id=receiver_id,
-                content=message['content']
-            )
-            db.add(chat_message)
-            await db.commit()
-            await db.refresh(chat_message)
-
-            # Send message to receiver if connected
-            receiver_socket = active_connections.get(receiver_id)
-            if receiver_socket:
-                await receiver_socket.send_json({
-                    'type': 'chat',
-                    'sender_id': str(sender_id),
-                    'receiver_id': str(receiver_id),
-                    'content': message['content'],
-                    'timestamp': datetime.utcnow().isoformat()
-                })
-
-            return chat_message
-
-        except ValueError as ve:
-            logger.error(f"Invalid message input: {ve}")
-            return None
-        except Exception as e:
-            logger.error(f"Error handling chat message: {e}", exc_info=True)
-            return None
-
-async def handle_typing_indicator(sender_id: uuid.UUID, message: dict):
-    """
-    Forward typing indicators
-    """
-    async with SessionLocal() as db:
-        try:
-            # Validate receiver (can be username or UUID)
-            try:
-                receiver_id = uuid.UUID(message['receiver_id'])
-                receiver = await get_user_by_id(receiver_id)
-            except ValueError:
-                # If not a UUID, try username
-                receiver = await get_user_by_username(message['receiver_id'])
-                if receiver:
-                    receiver_id = receiver.id
-                else:
-                    print(f"Receiver not found: {message['receiver_id']}")
-                    return
-
-            # Send typing indicator to receiver if connected
-            receiver_socket = active_connections.get(receiver_id)
-            if receiver_socket:
-                await receiver_socket.send_json({
-                    'type': 'typing',
-                    'sender_id': str(sender_id)
-                })
-        except Exception as e:
-            print(f"Error handling typing indicator: {e}")
-
-async def handle_read_receipt(sender_id: uuid.UUID, message: dict):
-    """
-    Process and forward read receipts
-    """
-    async with SessionLocal() as db:
-        try:
-            # Validate receiver (can be username or UUID)
-            try:
-                receiver_id = uuid.UUID(message['receiver_id'])
-                receiver = await get_user_by_id(receiver_id)
-            except ValueError:
-                # If not a UUID, try username
-                receiver = await get_user_by_username(message['receiver_id'])
-                if receiver:
-                    receiver_id = receiver.id
-                else:
-                    print(f"Receiver not found: {message['receiver_id']}")
-                    return
-
-            message_id = message['message_id']
-            
-            # Send read receipt to receiver if connected
-            receiver_socket = active_connections.get(receiver_id)
-            if receiver_socket:
-                await receiver_socket.send_json({
-                    'type': 'read_receipt',
-                    'message_id': message_id,
-                    'sender_id': str(sender_id)
-                })
-        except Exception as e:
-            print(f"Error handling read receipt: {e}")
-
-async def get_user_by_id(user_id: uuid.UUID) -> Optional[User]:
-    """
-    Retrieve user by UUID
-    """
-    async with SessionLocal() as db:
-        result = await db.execute(select(User).filter(User.id == user_id))
-        return result.scalar_one_or_none()
-
-async def get_user_by_username(username: str) -> Optional[User]:
-    """
-    Retrieve user by username
-    """
-    async with SessionLocal() as db:
-        result = await db.execute(select(User).filter(User.username == username))
-        return result.scalar_one_or_none()
+app = FastAPI()
 
 class ConnectionManager:
     def __init__(self):
@@ -351,25 +147,31 @@ user_last_activity = {}
 user_warnings_sent = {} 
 
 async def validate_and_fix_username(connecting_username: str) -> str:
-    # Trim and sanitize username
-    connecting_username = connecting_username.strip()
-    
-    # Basic username validation
-    if not connecting_username or len(connecting_username) < 3 or len(connecting_username) > 50:
-        logger.warning(f"Invalid username format: {connecting_username}")
-        return None
-    
     try:
-        # First, try to find the user directly
         user_data = await get_user_by_username(connecting_username)
         if user_data:
             return connecting_username  
-    except Exception as e:
-        logger.error(f"Error finding user {connecting_username}: {e}")
+    except Exception:
+        pass
     
-    # If user not found, log a warning but allow connection for new users
-    logger.warning(f"User {connecting_username} not found in database. Allowing connection for potential new user.")
-    return connecting_username
+    try:
+        from init import SessionLocal
+        from models import UserData
+        from sqlalchemy import select
+        
+        async with SessionLocal() as db:
+            all_users_stmt = select(UserData)
+            all_users_result = await db.execute(all_users_stmt)
+            all_users = all_users_result.scalars().all()
+            
+            for user in all_users:
+                if connecting_username in user.friends:
+                    logger.warning(f"User {connecting_username} tried to connect with old username, found in {user.username}'s friends list")
+                    return None  
+    except Exception as e:
+        logger.error(f"Error validating username {connecting_username}: {e}")
+    
+    return None  
 
 async def monitor_inactive_players():
     while True:
@@ -1226,13 +1028,6 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
         if actual_username is not None:
          await manager.disconnect(actual_username)
          logger.info(f"Cleaned up connection for client {actual_username}")
-
-@app.websocket("/chat")
-async def chat_websocket_endpoint(websocket: WebSocket, username: str):
-    """
-    Dedicated WebSocket endpoint for chat functionality
-    """
-    await handle_chat_websocket(websocket, username)
 
 @app.on_event("startup")
 async def startup_event():

@@ -9,7 +9,7 @@ import json
 import jwt
 import logging
 
-from init import get_async_session, redis_email
+from init import get_db, redis_email
 from models import (
     DebatePick, DebateComment, DebateVote, CommentLike,
     DebatePickCreate, DebatePickResponse, DebateCommentCreate, 
@@ -76,7 +76,7 @@ async def get_all_picks(
     category: Optional[str] = None,
     limit: int = 20,
     offset: int = 0,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Get all debate picks with optional category filter"""
@@ -113,7 +113,7 @@ async def get_all_picks(
 @router.get("/picks/{pick_id}", response_model=DebatePickResponse)
 async def get_pick(
     pick_id: str,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Get a specific debate pick"""
@@ -142,7 +142,7 @@ async def get_pick(
 @router.post("/picks", response_model=DebatePickResponse)
 async def create_pick(
     pick_data: DebatePickCreate,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Create a new debate pick"""
@@ -177,7 +177,7 @@ async def create_pick(
 @router.get("/picks/{pick_id}/comments", response_model=List[DebateCommentResponse])
 async def get_pick_comments(
     pick_id: str,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Get comments for a specific pick"""
@@ -257,7 +257,7 @@ async def get_pick_comments(
 async def create_comment(
     pick_id: str,
     comment_data: DebateCommentCreate,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Create a new comment on a pick"""
@@ -309,7 +309,7 @@ async def create_comment(
 @router.post("/comments/{comment_id}/like", response_model=CommentLikeResponse)
 async def like_comment(
     comment_id: str,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Like a comment"""
@@ -352,7 +352,7 @@ async def like_comment(
 @router.delete("/comments/{comment_id}/like")
 async def unlike_comment(
     comment_id: str,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Unlike a comment"""
@@ -375,7 +375,7 @@ async def unlike_comment(
 @router.get("/comments/{comment_id}/replies", response_model=List[DebateCommentResponse])
 async def get_comment_replies(
     comment_id: str,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Get replies for a specific comment"""
@@ -431,7 +431,7 @@ async def get_comment_replies(
     return response_replies
 
 @router.get("/categories")
-async def get_categories(db: AsyncSession = Depends(get_async_session)):
+async def get_categories(db: AsyncSession = Depends(get_db)):
     """Get all available categories"""
     query = select(DebatePick.category).distinct()
     result = await db.execute(query)
@@ -439,7 +439,7 @@ async def get_categories(db: AsyncSession = Depends(get_async_session)):
     return {"categories": categories}
 
 @router.post("/seed-debates")
-async def seed_debates(db: AsyncSession = Depends(get_async_session)):
+async def seed_debates(db: AsyncSession = Depends(get_db)):
     """Seed the database with daily debate picks for every sport available in the website"""
     
     # Check if any picks already exist for today to avoid duplicates
@@ -733,7 +733,7 @@ async def seed_debates(db: AsyncSession = Depends(get_async_session)):
 async def vote_on_pick(
     pick_id: str,
     vote_data: DebateVoteCreate,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Vote on a debate pick"""
@@ -808,7 +808,7 @@ async def vote_on_pick(
 @router.delete("/picks/{pick_id}/vote")
 async def remove_vote(
     pick_id: str,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Remove user's vote from a debate pick"""
@@ -845,7 +845,7 @@ async def remove_vote(
 @router.get("/picks/{pick_id}/vote")
 async def get_user_vote(
     pick_id: str,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Get user's vote for a specific pick"""
@@ -863,7 +863,7 @@ async def get_user_vote(
 @router.get("/picks/{pick_id}/with-vote", response_model=DebatePickWithVoteResponse)
 async def get_pick_with_user_vote(
     pick_id: str,
-    db: AsyncSession = Depends(get_async_session),
+    db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """Get a specific debate pick with user's vote information"""
