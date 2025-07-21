@@ -23,6 +23,460 @@ class AIQuizGenerator:
         self.model = model
         self.used_questions = set()  # Track used questions to ensure uniqueness
         
+        # Comprehensive sport-specific question generation guidelines
+        self.sport_guidelines = {
+            "tennis": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "court dimensions", 
+                        "scoring system", 
+                        "famous tournaments", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many sets are needed to win a Grand Slam match for men and women?",
+                        "What are the dimensions of a standard tennis court?",
+                        "What does 'love' mean in tennis scoring?",
+                        "Name the four Grand Slam tournaments in order of their occurrence in the year",
+                        "What is the official diameter of a tennis ball?"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "surface types", 
+                        "famous rivalries", 
+                        "technical rules"
+                    ],
+                    "example_topics": [
+                        "Which player has the most Grand Slam singles titles in tennis history?",
+                        "What are the characteristics of clay, grass, and hard court surfaces?",
+                        "Explain the tiebreak rule in tennis and when it is used",
+                        "Describe the most famous tennis rivalries in modern history",
+                        "How do professional tennis players earn ranking points?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced tactics", 
+                        "statistical records", 
+                        "technical strategies", 
+                        "historical innovations", 
+                        "complex rule interpretations"
+                    ],
+                    "example_topics": [
+                        "Analyze the physics behind different types of tennis spin (topspin, backspin, sidespin)",
+                        "What is the most challenging record in professional tennis and why?",
+                        "Compare and contrast playing strategies on different court surfaces",
+                        "How has tennis racket technology evolved to improve player performance?",
+                        "Explain the most complex rules in professional tennis tournaments, including Hawk-Eye technology"
+                    ]
+                }
+            },
+            "soccer": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "team composition", 
+                        "field dimensions", 
+                        "famous players", 
+                        "scoring"
+                    ],
+                    "example_topics": [
+                        "How many players are on a soccer field during a match?",
+                        "What is the size of a soccer goal?",
+                        "Explain the offside rule simply",
+                        "Name the most famous soccer players",
+                        "How is a goal scored in soccer?"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "team histories", 
+                        "tournament details", 
+                        "player achievements", 
+                        "tactical formations", 
+                        "international competitions"
+                    ],
+                    "example_topics": [
+                        "Which national team has won the most World Cups?",
+                        "Explain the different soccer formations",
+                        "What is the significance of the Champions League?",
+                        "Describe famous soccer team rivalries",
+                        "How do soccer leagues and promotions work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced tactics", 
+                        "statistical analysis", 
+                        "technical skills", 
+                        "historical innovations", 
+                        "complex strategic insights"
+                    ],
+                    "example_topics": [
+                        "Analyze the tactical evolution of soccer over decades",
+                        "Explain the most complex soccer strategies",
+                        "What are the most advanced player performance metrics?",
+                        "Describe the technical differences between soccer playing styles",
+                        "How do soccer teams develop unique tactical approaches?"
+                    ]
+                }
+            },
+            "basketball": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "scoring", 
+                        "court dimensions", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many points is a three-pointer worth?",
+                        "What is the size of a basketball court?",
+                        "How many players are on a basketball team?",
+                        "What are the basic rules of basketball?",
+                        "Describe the different types of basketball shots"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "team histories", 
+                        "tactical strategies", 
+                        "famous tournaments", 
+                        "league structures"
+                    ],
+                    "example_topics": [
+                        "Which NBA team has won the most championships?",
+                        "Explain different basketball defensive strategies",
+                        "What is the structure of the NBA playoffs?",
+                        "Describe famous basketball player rivalries",
+                        "How do basketball draft picks work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of basketball offensive strategies",
+                        "What are the most advanced basketball performance metrics?",
+                        "Describe the technical differences between playing styles",
+                        "How do teams develop unique basketball tactics?",
+                        "Explain the most complex basketball statistical analyses"
+                    ]
+                }
+            },
+            "baseball": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "field layout", 
+                        "scoring", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many innings are in a baseball game?",
+                        "What is a home run?",
+                        "How many players are on a baseball team?",
+                        "What are the basic rules of baseball?",
+                        "Describe the different types of baseball pitches"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "team histories", 
+                        "league structures", 
+                        "famous tournaments", 
+                        "tactical strategies"
+                    ],
+                    "example_topics": [
+                        "Which team has won the most World Series?",
+                        "Explain different baseball defensive strategies",
+                        "What is the structure of Major League Baseball?",
+                        "Describe famous baseball player rivalries",
+                        "How do baseball trades and drafts work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of baseball batting techniques",
+                        "What are the most advanced baseball performance metrics?",
+                        "Describe the technical differences between pitching styles",
+                        "How do teams develop unique baseball tactics?",
+                        "Explain the most complex baseball statistical analyses"
+                    ]
+                }
+            },
+            "hockey": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "rink layout", 
+                        "scoring", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many players are on the ice during a hockey game?",
+                        "What is a power play?",
+                        "How is a goal scored in hockey?",
+                        "What are the basic rules of hockey?",
+                        "Describe the different types of hockey penalties"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "team histories", 
+                        "league structures", 
+                        "famous tournaments", 
+                        "tactical strategies"
+                    ],
+                    "example_topics": [
+                        "Which team has won the most Stanley Cups?",
+                        "Explain different hockey defensive strategies",
+                        "What is the structure of the NHL?",
+                        "Describe famous hockey player rivalries",
+                        "How do hockey trades and drafts work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of hockey offensive strategies",
+                        "What are the most advanced hockey performance metrics?",
+                        "Describe the technical differences between playing styles",
+                        "How do teams develop unique hockey tactics?",
+                        "Explain the most complex hockey statistical analyses"
+                    ]
+                }
+            },
+            "golf": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "course layout", 
+                        "scoring", 
+                        "equipment", 
+                        "tournament formats"
+                    ],
+                    "example_topics": [
+                        "What is par in golf?",
+                        "How many clubs can a golfer carry?",
+                        "What is a birdie?",
+                        "What are the basic rules of golf?",
+                        "Describe the different types of golf shots"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "famous courses", 
+                        "major championships", 
+                        "scoring techniques"
+                    ],
+                    "example_topics": [
+                        "Which golfer has won the most major championships?",
+                        "What are the four major golf tournaments?",
+                        "Explain the Ryder Cup",
+                        "Describe famous golf course challenges",
+                        "How do golf rankings work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced techniques", 
+                        "statistical analysis", 
+                        "course strategy", 
+                        "equipment technology", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the physics of golf swing techniques",
+                        "What are the most advanced golf performance metrics?",
+                        "Describe the technical evolution of golf equipment",
+                        "How do professional golfers strategize course play?",
+                        "Explain the most complex golf statistical analyses"
+                    ]
+                }
+            },
+            "cricket": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "field layout", 
+                        "scoring", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many players are in a cricket team?",
+                        "What is a wicket?",
+                        "How is a run scored in cricket?",
+                        "What are the basic rules of cricket?",
+                        "Describe the different types of cricket deliveries"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "league structures", 
+                        "famous international competitions", 
+                        "tactical strategies"
+                    ],
+                    "example_topics": [
+                        "Which team has won the most Cricket World Cups?",
+                        "Explain different cricket batting strategies",
+                        "What is the structure of the IPL?",
+                        "Describe famous cricket player rivalries",
+                        "How do cricket tournaments and rankings work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of cricket bowling techniques",
+                        "What are the most advanced cricket performance metrics?",
+                        "Describe the technical differences between playing styles",
+                        "How do teams develop unique cricket tactics?",
+                        "Explain the most complex cricket statistical analyses"
+                    ]
+                }
+            },
+            "volleyball": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "court layout", 
+                        "scoring", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many players are on a volleyball team?",
+                        "What is a rally?",
+                        "How is a point scored in volleyball?",
+                        "What are the basic rules of volleyball?",
+                        "Describe the different types of volleyball serves"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "league structures", 
+                        "famous international competitions", 
+                        "tactical strategies"
+                    ],
+                    "example_topics": [
+                        "Which country has won the most Olympic volleyball medals?",
+                        "Explain different volleyball defensive strategies",
+                        "What is the structure of international volleyball tournaments?",
+                        "Describe famous volleyball player achievements",
+                        "How do volleyball rankings and leagues work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of volleyball offensive strategies",
+                        "What are the most advanced volleyball performance metrics?",
+                        "Describe the technical differences between playing styles",
+                        "How do teams develop unique volleyball tactics?",
+                        "Explain the most complex volleyball statistical analyses"
+                    ]
+                }
+            },
+            "rugby": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "field layout", 
+                        "scoring", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many players are on a rugby team?",
+                        "What is a try?",
+                        "How is a point scored in rugby?",
+                        "What are the basic rules of rugby?",
+                        "Describe the different types of rugby passes"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "league structures", 
+                        "famous international competitions", 
+                        "tactical strategies"
+                    ],
+                    "example_topics": [
+                        "Which team has won the most Rugby World Cups?",
+                        "Explain different rugby defensive strategies",
+                        "What is the structure of international rugby tournaments?",
+                        "Describe famous rugby player rivalries",
+                        "How do rugby rankings and leagues work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of rugby offensive strategies",
+                        "What are the most advanced rugby performance metrics?",
+                        "Describe the technical differences between playing styles",
+                        "How do teams develop unique rugby tactics?",
+                        "Explain the most complex rugby statistical analyses"
+                    ]
+                }
+            }
+        }
+        
     def generate_questions(self, sport: str, level: str, count: int = 5, battle_id: str = None, language: str = "en") -> List[Dict[str, Any]]:
         """
         Generate unique sports quiz questions using Gemini AI
@@ -54,13 +508,15 @@ class AIQuizGenerator:
             # Parse English questions
             english_questions = self._parse_ai_response(english_response.text, sport, level)
             
+            # Validate questions with sport-specific constraints
+            validated_questions = self._validate_questions(english_questions, count, sport)
+            
             # If target language is English, return the questions
             if language == "en":
-                validated_questions = self._validate_questions(english_questions, count)
                 return self._finalize_questions(validated_questions, battle_id)
             
             # For other languages, translate the questions
-            translation_prompt = self._build_translation_prompt(english_questions, language)
+            translation_prompt = self._build_translation_prompt(validated_questions, language)
             translation_response = self.model.generate_content(translation_prompt)
             
             if not translation_response.text:
@@ -71,10 +527,10 @@ class AIQuizGenerator:
             translated_questions = self._parse_ai_response(translation_response.text, sport, level)
             
             # Validate and format questions
-            validated_questions = self._validate_questions(translated_questions, count)
+            validated_translated_questions = self._validate_questions(translated_questions, count, sport)
             
             # Add labels and ensure uniqueness
-            final_questions = self._finalize_questions(validated_questions, battle_id)
+            final_questions = self._finalize_questions(validated_translated_questions, battle_id)
             
             logger.info(f"Successfully generated and translated {len(final_questions)} questions for {sport} {level} in {language}")
             return final_questions
@@ -84,12 +540,467 @@ class AIQuizGenerator:
             return self._get_fallback_questions(sport, level, count, language)
     
     def _build_question_prompt(self, sport: str, level: str, count: int, battle_context: str, language: str = "en") -> str:
-        """Build a comprehensive prompt for question generation"""
+        """Build a comprehensive prompt for question generation with enhanced sport-specific details"""
         
+        # Detailed sport-specific question generation guidelines
+        sport_guidelines = {
+            "tennis": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "court dimensions", 
+                        "scoring system", 
+                        "famous tournaments", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many sets are needed to win a Grand Slam match for men and women?",
+                        "What are the dimensions of a standard tennis court?",
+                        "What does 'love' mean in tennis scoring?",
+                        "Name the four Grand Slam tournaments in order of their occurrence in the year",
+                        "What is the official diameter of a tennis ball?"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "surface types", 
+                        "famous rivalries", 
+                        "technical rules"
+                    ],
+                    "example_topics": [
+                        "Which player has the most Grand Slam singles titles in tennis history?",
+                        "What are the characteristics of clay, grass, and hard court surfaces?",
+                        "Explain the tiebreak rule in tennis and when it is used",
+                        "Describe the most famous tennis rivalries in modern history",
+                        "How do professional tennis players earn ranking points?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced tactics", 
+                        "statistical records", 
+                        "technical strategies", 
+                        "historical innovations", 
+                        "complex rule interpretations"
+                    ],
+                    "example_topics": [
+                        "Analyze the physics behind different types of tennis spin (topspin, backspin, sidespin)",
+                        "What is the most challenging record in professional tennis and why?",
+                        "Compare and contrast playing strategies on different court surfaces",
+                        "How has tennis racket technology evolved to improve player performance?",
+                        "Explain the most complex rules in professional tennis tournaments, including Hawk-Eye technology"
+                    ]
+                }
+            },
+            "soccer": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "team composition", 
+                        "field dimensions", 
+                        "famous players", 
+                        "scoring"
+                    ],
+                    "example_topics": [
+                        "How many players are on a soccer field during a match?",
+                        "What is the size of a soccer goal?",
+                        "Explain the offside rule simply",
+                        "Name the most famous soccer players",
+                        "How is a goal scored in soccer?"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "team histories", 
+                        "tournament details", 
+                        "player achievements", 
+                        "tactical formations", 
+                        "international competitions"
+                    ],
+                    "example_topics": [
+                        "Which national team has won the most World Cups?",
+                        "Explain the different soccer formations",
+                        "What is the significance of the Champions League?",
+                        "Describe famous soccer team rivalries",
+                        "How do soccer leagues and promotions work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced tactics", 
+                        "statistical analysis", 
+                        "technical skills", 
+                        "historical innovations", 
+                        "complex strategic insights"
+                    ],
+                    "example_topics": [
+                        "Analyze the tactical evolution of soccer over decades",
+                        "Explain the most complex soccer strategies",
+                        "What are the most advanced player performance metrics?",
+                        "Describe the technical differences between soccer playing styles",
+                        "How do soccer teams develop unique tactical approaches?"
+                    ]
+                }
+            },
+            "basketball": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "scoring", 
+                        "court dimensions", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many points is a three-pointer worth?",
+                        "What is the size of a basketball court?",
+                        "How many players are on a basketball team?",
+                        "What are the basic rules of basketball?",
+                        "Describe the different types of basketball shots"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "team histories", 
+                        "tactical strategies", 
+                        "famous tournaments", 
+                        "league structures"
+                    ],
+                    "example_topics": [
+                        "Which NBA team has won the most championships?",
+                        "Explain different basketball defensive strategies",
+                        "What is the structure of the NBA playoffs?",
+                        "Describe famous basketball player rivalries",
+                        "How do basketball draft picks work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of basketball offensive strategies",
+                        "What are the most advanced basketball performance metrics?",
+                        "Describe the technical differences between playing styles",
+                        "How do teams develop unique basketball tactics?",
+                        "Explain the most complex basketball statistical analyses"
+                    ]
+                }
+            },
+            "baseball": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "field layout", 
+                        "scoring", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many innings are in a baseball game?",
+                        "What is a home run?",
+                        "How many players are on a baseball team?",
+                        "What are the basic rules of baseball?",
+                        "Describe the different types of baseball pitches"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "team histories", 
+                        "league structures", 
+                        "famous tournaments", 
+                        "tactical strategies"
+                    ],
+                    "example_topics": [
+                        "Which team has won the most World Series?",
+                        "Explain different baseball defensive strategies",
+                        "What is the structure of Major League Baseball?",
+                        "Describe famous baseball player rivalries",
+                        "How do baseball trades and drafts work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of baseball batting techniques",
+                        "What are the most advanced baseball performance metrics?",
+                        "Describe the technical differences between pitching styles",
+                        "How do teams develop unique baseball tactics?",
+                        "Explain the most complex baseball statistical analyses"
+                    ]
+                }
+            },
+            "hockey": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "rink layout", 
+                        "scoring", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many players are on the ice during a hockey game?",
+                        "What is a power play?",
+                        "How is a goal scored in hockey?",
+                        "What are the basic rules of hockey?",
+                        "Describe the different types of hockey penalties"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "team histories", 
+                        "league structures", 
+                        "famous tournaments", 
+                        "tactical strategies"
+                    ],
+                    "example_topics": [
+                        "Which team has won the most Stanley Cups?",
+                        "Explain different hockey defensive strategies",
+                        "What is the structure of the NHL?",
+                        "Describe famous hockey player rivalries",
+                        "How do hockey trades and drafts work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of hockey offensive strategies",
+                        "What are the most advanced hockey performance metrics?",
+                        "Describe the technical differences between playing styles",
+                        "How do teams develop unique hockey tactics?",
+                        "Explain the most complex hockey statistical analyses"
+                    ]
+                }
+            },
+            "golf": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "course layout", 
+                        "scoring", 
+                        "equipment", 
+                        "tournament formats"
+                    ],
+                    "example_topics": [
+                        "What is par in golf?",
+                        "How many clubs can a golfer carry?",
+                        "What is a birdie?",
+                        "What are the basic rules of golf?",
+                        "Describe the different types of golf shots"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "famous courses", 
+                        "major championships", 
+                        "scoring techniques"
+                    ],
+                    "example_topics": [
+                        "Which golfer has won the most major championships?",
+                        "What are the four major golf tournaments?",
+                        "Explain the Ryder Cup",
+                        "Describe famous golf course challenges",
+                        "How do golf rankings work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced techniques", 
+                        "statistical analysis", 
+                        "course strategy", 
+                        "equipment technology", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the physics of golf swing techniques",
+                        "What are the most advanced golf performance metrics?",
+                        "Describe the technical evolution of golf equipment",
+                        "How do professional golfers strategize course play?",
+                        "Explain the most complex golf statistical analyses"
+                    ]
+                }
+            },
+            "cricket": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "field layout", 
+                        "scoring", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many players are in a cricket team?",
+                        "What is a wicket?",
+                        "How is a run scored in cricket?",
+                        "What are the basic rules of cricket?",
+                        "Describe the different types of cricket deliveries"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "league structures", 
+                        "famous international competitions", 
+                        "tactical strategies"
+                    ],
+                    "example_topics": [
+                        "Which team has won the most Cricket World Cups?",
+                        "Explain different cricket batting strategies",
+                        "What is the structure of the IPL?",
+                        "Describe famous cricket player rivalries",
+                        "How do cricket tournaments and rankings work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of cricket bowling techniques",
+                        "What are the most advanced cricket performance metrics?",
+                        "Describe the technical differences between playing styles",
+                        "How do teams develop unique cricket tactics?",
+                        "Explain the most complex cricket statistical analyses"
+                    ]
+                }
+            },
+            "volleyball": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "court layout", 
+                        "scoring", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many players are on a volleyball team?",
+                        "What is a rally?",
+                        "How is a point scored in volleyball?",
+                        "What are the basic rules of volleyball?",
+                        "Describe the different types of volleyball serves"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "league structures", 
+                        "famous international competitions", 
+                        "tactical strategies"
+                    ],
+                    "example_topics": [
+                        "Which country has won the most Olympic volleyball medals?",
+                        "Explain different volleyball defensive strategies",
+                        "What is the structure of international volleyball tournaments?",
+                        "Describe famous volleyball player achievements",
+                        "How do volleyball rankings and leagues work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of volleyball offensive strategies",
+                        "What are the most advanced volleyball performance metrics?",
+                        "Describe the technical differences between playing styles",
+                        "How do teams develop unique volleyball tactics?",
+                        "Explain the most complex volleyball statistical analyses"
+                    ]
+                }
+            },
+            "rugby": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "field layout", 
+                        "scoring", 
+                        "team composition", 
+                        "equipment"
+                    ],
+                    "example_topics": [
+                        "How many players are on a rugby team?",
+                        "What is a try?",
+                        "How is a point scored in rugby?",
+                        "What are the basic rules of rugby?",
+                        "Describe the different types of rugby passes"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "league structures", 
+                        "famous international competitions", 
+                        "tactical strategies"
+                    ],
+                    "example_topics": [
+                        "Which team has won the most Rugby World Cups?",
+                        "Explain different rugby defensive strategies",
+                        "What is the structure of international rugby tournaments?",
+                        "Describe famous rugby player rivalries",
+                        "How do rugby rankings and leagues work?"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ],
+                    "example_topics": [
+                        "Analyze the evolution of rugby offensive strategies",
+                        "What are the most advanced rugby performance metrics?",
+                        "Describe the technical differences between playing styles",
+                        "How do teams develop unique rugby tactics?",
+                        "Explain the most complex rugby statistical analyses"
+                    ]
+                }
+            }
+        }
+        
+        # Difficulty-specific guidelines
         difficulty_guidelines = {
-            "easy": "Basic facts, rules, and common knowledge that most sports fans would know",
-            "medium": "Historical facts, notable players, championships, and intermediate-level knowledge",
-            "hard": "Detailed statistics, records, specific dates, advanced rules, and expert-level knowledge"
+            "easy": "Basic facts, common knowledge, straightforward questions",
+            "medium": "Intermediate knowledge, historical facts, player achievements",
+            "hard": "Advanced analysis, complex strategies, in-depth technical understanding"
         }
         
         # Language-specific instructions
@@ -98,22 +1009,45 @@ class AIQuizGenerator:
             "ru": "Generate questions in Russian. Use proper Russian grammar and sports terminology."
         }
         
+        # Select sport-specific guidelines, default to general if not found
+        sport_config = sport_guidelines.get(sport.lower(), {
+            "easy": {"topics": ["general sports knowledge"], "example_topics": ["What is a sport?"]},
+            "medium": {"topics": ["sports history"], "example_topics": ["What is a championship?"]},
+            "hard": {"topics": ["sports strategy"], "example_topics": ["How do teams develop strategies?"]}
+        })
+        
+        # Get level-specific configuration
+        level_config = sport_config.get(level.lower(), sport_config.get("medium"))
+        
+        # Build comprehensive prompt
         prompt = f"""
-You are an expert sports quiz question generator. Generate exactly {count} unique multiple-choice questions about {sport}.
+You are an expert {sport} quiz question generator. Generate {count} unique, non-repetitive multiple-choice questions about {sport}.
 
 Context: {battle_context}
 
 Language Instructions: {language_instructions.get(language, language_instructions["en"])}
 
+Difficulty Level: {level} - {difficulty_guidelines.get(level, "Medium difficulty")}
+
+Specific Guidelines:
+1. Focus on {", ".join(level_config["topics"])}
+2. Avoid previously used question patterns
+3. Ensure questions are engaging and test real knowledge
+4. Include a mix of factual and analytical questions
+5. Maintain the specified difficulty level
+
+Potential Topic Areas:
+{chr(10).join(f"- {topic}" for topic in level_config["topics"])}
+
+Example Question Areas:
+{chr(10).join(f"- {example}" for example in level_config["example_topics"])}
+
 Requirements:
-1. Difficulty Level: {level} - {difficulty_guidelines.get(level, "Medium difficulty")}
-2. Each question must have exactly 4 answer options (A, B, C, D)
-3. Only one answer must be correct
-4. Questions must be accurate and factually correct
-5. Questions should be engaging and test real knowledge
-6. Avoid repetitive or similar questions
-7. Include a mix of topics: rules, history, players, statistics, championships, etc.
-8. All text must be in {language.upper()} language
+1. Each question must have exactly 4 answer options (A, B, C, D)
+2. Only one answer must be correct
+3. Questions must be accurate and factually correct
+4. Avoid repetitive or similar questions
+5. All text must be in {language.upper()} language
 
 Format each question exactly as follows:
 {{
@@ -128,20 +1062,8 @@ Format each question exactly as follows:
     "difficulty": "{level}"
 }}
 
-Return ONLY a valid JSON array containing exactly {count} question objects. Do not include any other text, explanations, or formatting.
-
-Example for {sport} {level} questions in {language.upper()}:
+Return ONLY a valid JSON array containing exactly {count} unique question objects. Do not include any other text, explanations, or formatting.
 """
-        
-        # Add sport-specific examples
-        if sport.lower() == "soccer":
-            prompt += self._get_soccer_examples(level, language)
-        elif sport.lower() == "basketball":
-            prompt += self._get_basketball_examples(level, language)
-        elif sport.lower() == "tennis":
-            prompt += self._get_tennis_examples(level, language)
-        else:
-            prompt += self._get_general_examples(level, language)
         
         return prompt
     
@@ -478,13 +1400,118 @@ Example for {sport} {level} questions in {language.upper()}:
             logger.error(f"Error parsing AI response: {str(e)}")
             return []
     
-    def _validate_questions(self, questions: List[Dict[str, Any]], expected_count: int) -> List[Dict[str, Any]]:
-        """Validate and clean questions"""
+    def _validate_questions(self, questions: List[Dict[str, Any]], expected_count: int, sport: str = None) -> List[Dict[str, Any]]:
+        """Validate and clean questions with sport-specific constraints and diversity checks"""
         validated_questions = []
+        used_topics = set()
+        used_question_patterns = set()
+        
+        # Sport-specific validation rules (same as in previous edit)
+        sport_constraints = {
+            "tennis": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "court dimensions", 
+                        "scoring system", 
+                        "famous tournaments", 
+                        "equipment"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "tournament histories", 
+                        "surface types", 
+                        "famous rivalries", 
+                        "technical rules"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced tactics", 
+                        "statistical records", 
+                        "technical strategies", 
+                        "historical innovations", 
+                        "complex rule interpretations"
+                    ]
+                }
+            },
+            "soccer": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "team composition", 
+                        "field dimensions", 
+                        "famous players", 
+                        "scoring"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "team histories", 
+                        "tournament details", 
+                        "player achievements", 
+                        "tactical formations", 
+                        "international competitions"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced tactics", 
+                        "statistical analysis", 
+                        "technical skills", 
+                        "historical innovations", 
+                        "complex strategic insights"
+                    ]
+                }
+            },
+            "basketball": {
+                "easy": {
+                    "topics": [
+                        "basic rules", 
+                        "scoring", 
+                        "court dimensions", 
+                        "team composition", 
+                        "equipment"
+                    ]
+                },
+                "medium": {
+                    "topics": [
+                        "player achievements", 
+                        "team histories", 
+                        "tactical strategies", 
+                        "famous tournaments", 
+                        "league structures"
+                    ]
+                },
+                "hard": {
+                    "topics": [
+                        "advanced analytics", 
+                        "strategic innovations", 
+                        "technical skill analysis", 
+                        "historical tactical changes", 
+                        "complex performance metrics"
+                    ]
+                }
+            }
+        }
+        
+        def is_question_unique(question: Dict[str, Any]) -> bool:
+            """Check if the question is unique based on various criteria"""
+            # Extract key features of the question
+            question_text = question.get('question', '').lower()
+            question_topics = [topic for topic in sport_constraints.get(sport.lower(), {}).get(level.lower(), {}).get('topics', []) if topic.lower() in question_text]
+            
+            # Check against used topics and question patterns
+            topic_match = any(topic in used_topics for topic in question_topics)
+            pattern_match = any(pattern in question_text for pattern in used_question_patterns)
+            
+            return not (topic_match or pattern_match)
         
         for i, question in enumerate(questions):
             try:
-                # Check required fields
+                # Existing validation checks
                 if not all(key in question for key in ["question", "answers"]):
                     logger.warning(f"Question {i} missing required fields, skipping")
                     continue
@@ -507,11 +1534,36 @@ Example for {sport} {level} questions in {language.upper()}:
                         logger.warning(f"Question {i} answer {j} has invalid format, skipping")
                         continue
                 
+                # Sport-specific and diversity validation
+                if sport and sport.lower() in sport_constraints:
+                    sport_config = sport_constraints[sport.lower()]
+                    difficulty = question.get("difficulty", "medium").lower()
+                    
+                    # Check if question contains sport-specific topics
+                    if not any(topic in question.get("question", "").lower() for topic in sport_config.get(difficulty, {}).get("topics", [])):
+                        logger.warning(f"Question {i} does not relate to {sport} topics, skipping")
+                        continue
+                
+                # Uniqueness check
+                if not is_question_unique(question):
+                    logger.warning(f"Question {i} is too similar to previous questions, skipping")
+                    continue
+                
+                # Update used topics and patterns
+                question_text = question.get('question', '').lower()
+                question_topics = [topic for topic in sport_constraints.get(sport.lower(), {}).get(level.lower(), {}).get('topics', []) if topic.lower() in question_text]
+                used_topics.update(question_topics)
+                used_question_patterns.add(question_text)
+                
                 # Add default values
                 question.setdefault("time_limit", 30)
                 question.setdefault("difficulty", "medium")
                 
                 validated_questions.append(question)
+                
+                # Stop if we have enough unique questions
+                if len(validated_questions) == expected_count:
+                    break
                 
             except Exception as e:
                 logger.error(f"Error validating question {i}: {str(e)}")
@@ -520,7 +1572,7 @@ Example for {sport} {level} questions in {language.upper()}:
         # If we don't have enough questions, add fallback questions
         if len(validated_questions) < expected_count:
             logger.warning(f"Only got {len(validated_questions)} valid questions, adding fallback questions")
-            fallback_questions = self._get_fallback_questions("football", "easy", expected_count - len(validated_questions))
+            fallback_questions = self._get_fallback_questions(sport or "football", "easy", expected_count - len(validated_questions))
             validated_questions.extend(fallback_questions)
         
         return validated_questions[:expected_count]

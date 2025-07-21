@@ -449,7 +449,6 @@ export default function BattlePage() {
                       <SelectItem value="basketball">🏀 Basketball</SelectItem>
                       <SelectItem value="baseball">⚾ Baseball</SelectItem>
                       <SelectItem value="hockey">🏒 Hockey</SelectItem>
-                      <SelectItem value="tennis">🎾 Tennis</SelectItem>
                       <SelectItem value="golf">⛳ Golf</SelectItem>
                       <SelectItem value="cricket">🏏 Cricket</SelectItem>
                       <SelectItem value="rugby">🏉 Rugby</SelectItem>

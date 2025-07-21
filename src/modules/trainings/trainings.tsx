@@ -101,7 +101,7 @@ export default function TrainingsPage() {
     { value: "all", label: t('training.sports.all'), icon: <Trophy className="w-5 h-5" /> },
     { value: "soccer", label: t('training.sports.soccer'), icon: <Trophy className="w-5 h-5" /> },
     { value: "basketball", label: t('training.sports.basketball'), icon: <Target className="w-5 h-5" /> },
-    { value: "tennis", label: t('training.sports.tennis'), icon: <Zap className="w-5 h-5" /> },
+  
     { value: "cricket", label: t('training.sports.cricket'), icon: <Sword className="w-5 h-5" /> },
     { value: "baseball", label: t('training.sports.baseball'), icon: <Target className="w-5 h-5" /> },
     { value: "volleyball", label: t('training.sports.volleyball'), icon: <Zap className="w-5 h-5" /> },
