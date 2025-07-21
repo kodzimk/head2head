@@ -1,9 +1,9 @@
 // Frontend Configuration
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
-export const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000/ws';
-export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-export const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'ws://localhost:8000';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.head2head.dev/api';
+export const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || 'wss://api.head2head.dev/ws';
+export const API_URL = import.meta.env.VITE_API_URL || 'https://api.head2head.dev';
+export const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'wss://api.head2head.dev';
 
 // Add other configuration variables as needed
 export const APP_NAME = 'Head2Head';

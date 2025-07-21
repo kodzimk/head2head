@@ -29,35 +29,20 @@ app.mount("/avatars", StaticFiles(directory="avatars"), name="avatars")
 
 # Comprehensive CORS configuration for production and development
 origins = [
-    "http://localhost:3000",
-    "https://localhost:3000",
-    "http://localhost:8000",
-    "https://localhost:8000",
-    "http://localhost:5173",
-    "https://localhost:5173",
-    "http://localhost",
-    "https://localhost",
-    "http://127.0.0.1:3000",
-    "https://127.0.0.1:3000",
-    "http://127.0.0.1:8000",
-    "https://127.0.0.1:8000",
-    "http://127.0.0.1:5173",
-    "https://127.0.0.1:5173",
-    "http://127.0.0.1",
-    "https://127.0.0.1",
+    "https://head2head.dev",
+    "https://www.head2head.dev",
     "https://api.head2head.dev",
-    "http://api.head2head.dev"
+    "http://localhost:5173",
+    "https://localhost:5173"
 ]
 
 # Add CORS middleware with comprehensive configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
-    allow_credentials=True,  # Enable credentials
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],
-    max_age=86400,  # Cache preflight requests for 24 hours
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/health")

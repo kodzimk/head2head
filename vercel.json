@@ -1,19 +1,24 @@
 {
+  "version": 2,
+  "routes": [
+    { "src": "/(.*)", "dest": "/" }
+  ],
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/"
+    { 
+      "source": "/api/(.*)", 
+      "destination": "https://api.head2head.dev/api/$1" 
     }
   ],
-  "headers": [
-    {
-      "source": "/avatars/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
+  "redirects": [
+    { 
+      "source": "http://head2head.dev", 
+      "destination": "https://head2head.dev", 
+      "permanent": true 
+    },
+    { 
+      "source": "http://www.head2head.dev", 
+      "destination": "https://head2head.dev", 
+      "permanent": true 
     }
   ]
 }
