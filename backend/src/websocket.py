@@ -17,8 +17,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from models import Chat, ChatCreate
 from db.init import SessionLocal
-from sqlalchemy import func
-from models import User
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -152,27 +150,46 @@ manager = ConnectionManager()
 user_last_activity = {}
 user_warnings_sent = {} 
 
-# Existing WebSocket connection validation
-async def validate_and_fix_username(username: str, db: Session):
-    """
-    Validate and potentially fix the username for WebSocket connections
-    More permissive validation to support various connection scenarios
-    """
+async def validate_and_fix_username(connecting_username: str) -> str:
+    logger.info(f"Attempting to validate username: {connecting_username}")
+    
     try:
-        # Normalize username (lowercase, strip whitespace)
-        normalized_username = username.lower().strip()
+        # First, try to find the user directly
+        user_data = await get_user_by_username(connecting_username)
+        if user_data:
+            logger.info(f"Direct username match found: {connecting_username}")
+            return connecting_username  
+    except Exception as direct_error:
+        logger.warning(f"Error in direct username lookup: {direct_error}")
+    
+    try:
+        from init import SessionLocal
+        from models import UserData
+        from sqlalchemy import select
         
-        # Check if user exists in database
-        user = db.query(User).filter(func.lower(User.username) == normalized_username).first()
-        
-        if not user:
-            logger.warning(f"Username validation failed: {username}")
-            raise HTTPException(status_code=403, detail="Invalid username")
-        
-        return user.username  # Return the original username from database
+        async with SessionLocal() as db:
+            # Try to find a user with a similar username
+            all_users_stmt = select(UserData)
+            all_users_result = await db.execute(all_users_stmt)
+            all_users = all_users_result.scalars().all()
+            
+            # Check for exact case-insensitive match first
+            for user in all_users:
+                if user.username.lower() == connecting_username.lower():
+                    logger.warning(f"Found case-insensitive match for username {connecting_username}. Returning {user.username}")
+                    return user.username
+            
+            # Check if username exists in any friend list
+            for user in all_users:
+                if connecting_username in user.friends:
+                    logger.warning(f"User {connecting_username} found in {user.username}'s friends list. Returning {user.username}")
+                    return user.username
+            
+            logger.warning(f"No valid username found for {connecting_username}")
     except Exception as e:
-        logger.error(f"Username validation error: {e}")
-        raise HTTPException(status_code=403, detail="Username validation failed")
+        logger.error(f"Error validating username {connecting_username}: {e}")
+    
+    return None  # Return None if no valid username is found
 
 async def monitor_inactive_players():
     while True:
@@ -275,11 +292,7 @@ async def monitor_inactive_players():
 async def websocket_endpoint(websocket: WebSocket, username: str):
     actual_username = None  # Initialize to None to avoid UnboundLocalError
     try:
-        # Assuming db is available in this scope, e.g., from init_models or a global variable
-        # For now, we'll pass a dummy SessionLocal if not available directly
-        # In a real application, you'd manage a global db session or pass it explicitly
-        db = SessionLocal() 
-        valid_username = await validate_and_fix_username(username, db)
+        valid_username = await validate_and_fix_username(username)
         if valid_username is None:
             logger.warning(f"Rejecting WebSocket connection for invalid/old username: {username}")
             await websocket.close(code=4000, reason="Invalid username")
