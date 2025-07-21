@@ -28,6 +28,12 @@ export default function Header() {
           <nav className="hidden md:flex items-center space-x-3 lg:space-x-4">
             <Button 
               className="btn-neon text-sm lg:text-base"
+              onClick={() => navigate("/livestream")}
+            >
+              {t('livestream.title')}
+            </Button>
+            <Button 
+              className="btn-neon text-sm lg:text-base"
               onClick={() => navigate("/sign-up")}
             >
               {t('hero.startCompeting')}
@@ -55,6 +61,15 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-border/30 py-4">
             <nav className="flex flex-col space-y-3">
+              <Button 
+                className="btn-neon justify-start text-left w-full"
+                onClick={() => {
+                  navigate("/livestream");
+                  setIsMobileMenuOpen(false);
+                }}
+              >
+                {t('livestream.title')}
+              </Button>
               <Button 
                 className="btn-neon justify-start text-left w-full"
                 onClick={() => {

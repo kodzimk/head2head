@@ -36,6 +36,7 @@ import NotFoundPage from '../modules/entry-page/not-found'
 import { WS_BASE_URL } from "../shared/interface/gloabL_var";
 import AvatarStorage from '../shared/utils/avatar-storage';
 import { LanguageLoadingIndicator } from '../shared/ui/language-loading';
+import { LiveStreamPage } from '../modules/livestream/page';
 export let newSocket: WebSocket | null = null;
 let isManualReload = false; // Track if user manually reloaded
 let isInitialConnection = true;
@@ -581,6 +582,8 @@ export default function App() {
                               <Route path="/:id/quiz" element={<QuizQuestionPage />} />
                               <Route path="/:id/countdown" element={<BattleCountdown />} />
                               <Route path="/:id/battle-result" element={<BattleResultPage user={user} />} />
+                              <Route path="/livestream/:id" element={<LiveStreamPage />} />
+                              <Route path="/livestream" element={<LiveStreamPage />} />
                               <Route path="*" element={<NotFoundPage />} />
                          
                             </Routes>

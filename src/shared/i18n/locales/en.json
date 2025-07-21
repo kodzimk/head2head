@@ -1269,5 +1269,17 @@
     "no_messages_desc":"Start a conversation with your friends",
     "message_failed":"Message failed to send",
     "message_sent_desc":"Your message has been sent"
+  },
+  "livestream": {
+    "title": "Live Stream",
+    "onDevelopment": "On Development",
+    "comingSoon": "We're working hard to bring you an exciting live streaming experience. Stay tuned!",
+    "notifyMe": "Notify Me"
+  },
+  "header": {
+    "dashboard": "Dashboard",
+    "forum": "Forum",
+    "signIn": "Sign In",
+    "signUp": "Sign Up"
   }
 } 
