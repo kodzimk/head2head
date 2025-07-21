@@ -7,7 +7,7 @@ import axios from "axios";
 import { useGlobalStore } from "../../shared/interface/gloabL_var";
 import { initializeWebSocketForNewUser } from "../../app/App";
 import { useState } from "react";
-import { API_BASE_URL } from "../../shared/interface/gloabL_var";
+import { API_URL } from "../../shared/config";
 import { generateUsername, generateProperName } from "../../shared/utils/username-normalization";
 import { useTranslation } from "react-i18next";
 
@@ -54,7 +54,7 @@ export default function SignUpPage() {
     
     // Try sign-up, if fails, try sign-in
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/signup`, {
+      const response = await axios.post(`${API_URL}/auth/signup`, {
         email: decodedToken.email,
         password: credentialResponse.credential,
         username: normalizedUsername,
@@ -118,7 +118,7 @@ export default function SignUpPage() {
       if (error.response?.status === 401 || error.response?.status === 404) {
         try {
           const signInResponse = await axios.post(
-            `${API_BASE_URL}/auth/signin`,
+            `${API_URL}/auth/signin`,
             {
               username: decodedToken.email,
               password: credentialResponse.credential,
