@@ -75,7 +75,7 @@ services:
     container_name: postgres-db
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=postgres    
       - POSTGRES_DB=head2head
     ports:
       - "5432:5432"

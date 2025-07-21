@@ -1,7 +1,7 @@
 from fastapi import WebSocket, FastAPI, WebSocketDisconnect
 import json
 import logging
-from typing import Dict
+from typing import Dict, List
 from db.router import delete_user_data, get_user_data, update_user_data, get_user_by_username
 from friends.router import add_friend, cancel_friend_request, send_friend_request
 from battle.router import invite_friend, cancel_invitation, accept_invitation, get_waiting_battles
@@ -13,6 +13,10 @@ import asyncio
 import uuid
 from fastapi import HTTPException
 from ai_quiz_generator import ai_quiz_generator
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_
+from models import Chat, ChatCreate
+from db.init import SessionLocal
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -147,12 +151,16 @@ user_last_activity = {}
 user_warnings_sent = {} 
 
 async def validate_and_fix_username(connecting_username: str) -> str:
+    logger.info(f"Attempting to validate username: {connecting_username}")
+    
     try:
+        # First, try to find the user directly
         user_data = await get_user_by_username(connecting_username)
         if user_data:
+            logger.info(f"Direct username match found: {connecting_username}")
             return connecting_username  
-    except Exception:
-        pass
+    except Exception as direct_error:
+        logger.warning(f"Error in direct username lookup: {direct_error}")
     
     try:
         from init import SessionLocal
@@ -160,18 +168,28 @@ async def validate_and_fix_username(connecting_username: str) -> str:
         from sqlalchemy import select
         
         async with SessionLocal() as db:
+            # Try to find a user with a similar username
             all_users_stmt = select(UserData)
             all_users_result = await db.execute(all_users_stmt)
             all_users = all_users_result.scalars().all()
             
+            # Check for exact case-insensitive match first
+            for user in all_users:
+                if user.username.lower() == connecting_username.lower():
+                    logger.warning(f"Found case-insensitive match for username {connecting_username}. Returning {user.username}")
+                    return user.username
+            
+            # Check if username exists in any friend list
             for user in all_users:
                 if connecting_username in user.friends:
-                    logger.warning(f"User {connecting_username} tried to connect with old username, found in {user.username}'s friends list")
-                    return None  
+                    logger.warning(f"User {connecting_username} found in {user.username}'s friends list. Returning {user.username}")
+                    return user.username
+            
+            logger.warning(f"No valid username found for {connecting_username}")
     except Exception as e:
         logger.error(f"Error validating username {connecting_username}: {e}")
     
-    return None  
+    return None  # Return None if no valid username is found
 
 async def monitor_inactive_players():
     while True:
@@ -1043,3 +1061,96 @@ async def startup_event():
         logger.error(f"Error during old username cleanup: {e}")
     
     logger.info("WebSocket server started successfully")
+
+class ChatConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, List[WebSocket]] = {}
+        self.user_chats: Dict[str, str] = {}
+
+    async def connect(self, websocket: WebSocket, username: str, chat_id: str):
+        await websocket.accept()
+        if chat_id not in self.active_connections:
+            self.active_connections[chat_id] = []
+        self.active_connections[chat_id].append(websocket)
+        self.user_chats[username] = chat_id
+
+    def disconnect(self, websocket: WebSocket, username: str, chat_id: str):
+        self.active_connections[chat_id].remove(websocket)
+        if username in self.user_chats:
+            del self.user_chats[username]
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, chat_id: str, message: str, sender: str):
+        for connection in self.active_connections.get(chat_id, []):
+            await connection.send_text(message)
+
+    def save_message(self, chat_message: ChatCreate):
+        db = SessionLocal()
+        try:
+            db_message = Chat(
+                chat_id=f"{chat_message.sender}_{chat_message.receiver}",
+                sender=chat_message.sender,
+                receiver=chat_message.receiver,
+                message=chat_message.message,
+                message_type=chat_message.message_type or 'text'
+            )
+            db.add(db_message)
+            db.commit()
+            db.refresh(db_message)
+            return db_message
+        finally:
+            db.close()
+
+    def get_chat_history(self, sender: str, receiver: str):
+        db = SessionLocal()
+        try:
+            chat_id = f"{sender}_{receiver}"
+            messages = db.query(Chat).filter(
+                and_(
+                    Chat.chat_id == chat_id,
+                    or_(
+                        and_(Chat.sender == sender, Chat.receiver == receiver),
+                        and_(Chat.sender == receiver, Chat.receiver == sender)
+                    )
+                )
+            ).order_by(Chat.timestamp).all()
+            return [msg.to_dict() for msg in messages]
+        finally:
+            db.close()
+
+chat_manager = ChatConnectionManager()
+
+async def chat_websocket_endpoint(
+    websocket: WebSocket, 
+    username: str, 
+    receiver: str
+):
+    chat_id = f"{username}_{receiver}"
+    await chat_manager.connect(websocket, username, chat_id)
+    
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message_data = json.loads(data)
+            
+            chat_message = ChatCreate(
+                sender=username,
+                receiver=receiver,
+                message=message_data.get('message', ''),
+                message_type=message_data.get('type', 'text')
+            )
+            
+            # Save message to database
+            saved_message = chat_manager.save_message(chat_message)
+            
+            # Broadcast to all connections in this chat
+            await chat_manager.broadcast(
+                chat_id, 
+                json.dumps(saved_message.to_dict()), 
+                username
+            )
+    
+    except WebSocketDisconnect:
+        chat_manager.disconnect(websocket, username, chat_id)

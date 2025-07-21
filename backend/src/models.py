@@ -99,6 +99,45 @@ class TrainingAnswer(Base):
     answered_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     original_answer_id = Column(String, index=True, nullable=True)  # Reference to original incorrect answer
 
+class Chat(Base):
+    __tablename__ = "chats"
+    id = Column(String, primary_key=True, index=True)
+    chat_id = Column(String, index=True, nullable=False)  # Unique identifier for chat session
+    sender = Column(String, index=True, nullable=False)
+    receiver = Column(String, index=True, nullable=False)
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    message_type = Column(String, nullable=False, default='text')  # text, emoji, image, etc.
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'chat_id': self.chat_id,
+            'sender': self.sender,
+            'receiver': self.receiver,
+            'message': self.message,
+            'is_read': self.is_read,
+            'message_type': self.message_type,
+            'timestamp': self.timestamp.isoformat()
+        }
+
+class ChatCreate(BaseModel):
+    sender: str
+    receiver: str
+    message: str
+    message_type: Optional[str] = 'text'
+
+class ChatResponse(BaseModel):
+    id: str
+    chat_id: str
+    sender: str
+    receiver: str
+    message: str
+    is_read: bool
+    message_type: str
+    timestamp: datetime
+
 class DebatePick(Base):
     __tablename__ = "debate_picks"
     

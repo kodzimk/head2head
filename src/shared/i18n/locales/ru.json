@@ -474,7 +474,14 @@
     "conversations": "Беседы",
     "no_conversations": "Пока нет бесед. Начните общаться со своими друзьями!",
     "no_messages": "Пока нет сообщений",
-    "you": "Вы"
+    "you": "Вы",
+    "messagePlaceholder": "Введите сообщение...",
+    "send": "Отправить",
+    "noMessages": "Пока нет сообщений",
+    "online": "В сети",
+    "typing": "Печатает...",
+    "attachFile": "Прикрепить файл",
+    "addEmoji": "Добавить эмоджи"
   },
   "leaderboard": {
     "globalLeaderboard": "Глобальный рейтинг",
