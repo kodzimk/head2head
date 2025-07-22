@@ -17,6 +17,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from models import Chat, ChatCreate
 from db.init import SessionLocal
+import redis
+import os
+import json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1154,3 +1157,37 @@ async def chat_websocket_endpoint(
     
     except WebSocketDisconnect:
         chat_manager.disconnect(websocket, username, chat_id)
+
+async def get_cached_questions(battle_id: str):
+    """
+    Retrieve cached questions for a specific battle
+    
+    Args:
+        battle_id: Unique identifier for the battle
+    
+    Returns:
+        List of questions or None if not found
+    """
+    try:
+        # Use the same Redis URL as in other parts of the application
+        redis_client = redis.Redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+        
+        # Construct the key used for caching questions
+        questions_key = f"battle_questions:{battle_id}"
+        
+        # Retrieve and decode the cached questions
+        cached_questions = redis_client.get(questions_key)
+        
+        if cached_questions:
+            try:
+                questions = json.loads(cached_questions)
+                return questions
+            except json.JSONDecodeError:
+                logger.error(f"Failed to decode cached questions for battle {battle_id}")
+                return None
+        
+        return None
+    
+    except Exception as e:
+        logger.error(f"Error retrieving cached questions for battle {battle_id}: {str(e)}")
+        return None

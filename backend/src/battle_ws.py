@@ -107,6 +107,12 @@ async def get_battle_questions(battle_id: str, sport: str, level: str):
                 questions_key = f"battle_questions:{battle_id}"
                 redis_client.setex(questions_key, 3600, json.dumps(questions))
                 logger.info(f"[BATTLE_WS] Cached {len(questions)} AI-generated questions for battle {battle_id}")
+                
+                # Log detailed question information for debugging
+                for i, q in enumerate(questions, 1):
+                    logger.debug(f"[BATTLE_WS] Question {i}: {q.get('question', 'No question text')}")
+                    correct_answer = next((ans['text'] for ans in q.get('answers', []) if ans.get('correct', False)), 'No correct answer')
+                    logger.debug(f"[BATTLE_WS] Correct Answer for Question {i}: {correct_answer}")
             except Exception as e:
                 logger.error(f"[BATTLE_WS] Error caching questions for battle {battle_id}: {str(e)}")
         
