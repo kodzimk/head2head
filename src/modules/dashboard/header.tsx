@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home, Bell, User, MessageCircle, Video } from 'lucide-react';
+import { Users, LogOut, Target, Zap, SlidersHorizontal, Pickaxe, Home, Bell, User, MessageCircle } from 'lucide-react';
 import { Button } from '../../shared/ui/button';
 import { 
   DropdownMenu,
@@ -79,12 +79,6 @@ export default function Header() {
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <SlidersHorizontal className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
                 <span className="text-sm lg:text-base">{t('forum.forum')}</span>
-              </div>
-            </Link>
-            <Link to="/livestream" className="nav-gaming">
-              <div className="flex items-center gap-1.5 lg:gap-2">
-                <Video className="w-3.5 h-3.5 lg:w-4 lg:h-4 xl:w-5 xl:h-5" />
-                <span className="text-sm lg:text-base">{t('livestream.title')}</span>
               </div>
             </Link>
             <Link to={`/${user?.username}/trainings`} className="nav-gaming"> 
@@ -177,10 +171,7 @@ export default function Header() {
                       <Pickaxe className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
                       <span className="text-sm sm:text-base">{t('navigation.training')}</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/livestream')} className="hover:bg-card/50 py-2 sm:py-3">
-                      <Video className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="text-sm sm:text-base">{t('livestream.title')}</span>
-                    </DropdownMenuItem>
+                    
                     <DropdownMenuSeparator className="bg-border/50" />
                   </div>
 

@@ -21,6 +21,8 @@ import redis
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import asyncio
 from websocket import chat_websocket_endpoint
+from friends.simple_chat_router import simple_chat_router
+from websocket import simple_chat_websocket_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +108,11 @@ app.include_router(news_router)
 app.include_router(transfer_router, prefix="/api", tags=["transfers"])
 # Include chat router
 app.include_router(chat_router, prefix="/api", tags=["chat"])
+# Include simple chat router
+app.include_router(simple_chat_router, prefix="/api", tags=["simple-chat"])
+
+# Add compatibility route for chat-preview
+app.include_router(simple_chat_router, prefix="/friends", tags=["friends-compat"])
 
 # Add to WebSocket routes
 @app.websocket("/ws/chat")
@@ -115,6 +122,15 @@ async def websocket_chat_endpoint(
     receiver: str
 ):
     await chat_websocket_endpoint(websocket, username, receiver)
+
+# Add simple chat WebSocket endpoint
+@app.websocket("/ws/simple-chat")
+async def websocket_simple_chat_endpoint(
+    websocket: WebSocket, 
+    username: str, 
+    receiver: str
+):
+    await simple_chat_websocket_endpoint(websocket, username, receiver)
 
 
 @app.on_event("startup")

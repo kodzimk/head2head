@@ -20,6 +20,7 @@ from db.init import SessionLocal
 import redis
 import os
 import json
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -1191,3 +1192,136 @@ async def get_cached_questions(battle_id: str):
     except Exception as e:
         logger.error(f"Error retrieving cached questions for battle {battle_id}: {str(e)}")
         return None
+
+class SimpleChatConnectionManager:
+    def __init__(self):
+        self.active_connections: Dict[str, List[WebSocket]] = {}
+        self.user_connections: Dict[str, WebSocket] = {}
+
+    async def connect(self, websocket: WebSocket, username: str):
+        await websocket.accept()
+        self.user_connections[username] = websocket
+        print(f"User {username} connected to simple chat")
+
+    def disconnect(self, username: str):
+        if username in self.user_connections:
+            del self.user_connections[username]
+            print(f"User {username} disconnected from simple chat")
+
+    async def send_personal_message(self, username: str, message: dict):
+        if username in self.user_connections:
+            try:
+                await self.user_connections[username].send_text(json.dumps(message))
+                return True
+            except:
+                # Connection might be closed, remove it
+                self.disconnect(username)
+                return False
+        return False
+
+    async def save_message_to_db_async(self, sender: str, receiver: str, message: str, message_type: str = 'text'):
+        """Save message to simple chat database using async operations"""
+        try:
+            from models import SimpleChatMessage
+            from db.init import AsyncSessionLocal
+            import uuid
+            from datetime import datetime
+            
+            # Create async database session
+            async with AsyncSessionLocal() as db:
+                try:
+                    # Create new message
+                    new_message = SimpleChatMessage(
+                        id=str(uuid.uuid4()),
+                        sender_username=sender,
+                        receiver_username=receiver,
+                        message_content=message,
+                        message_type=message_type,
+                        sent_at=datetime.utcnow(),
+                        is_read=False
+                    )
+                    
+                    # Add and commit to database
+                    db.add(new_message)
+                    await db.commit()
+                    await db.refresh(new_message)
+                    
+                    # Return message data
+                    return new_message.to_dict()
+                    
+                except Exception as db_error:
+                    print(f"Database error saving message: {db_error}")
+                    await db.rollback()
+                    return None
+                    
+        except Exception as import_error:
+            print(f"Import error saving message: {import_error}")
+            return None
+
+    def save_message_to_db(self, sender: str, receiver: str, message: str, message_type: str = 'text'):
+        """Save message to simple chat database (sync wrapper for async function)"""
+        import asyncio
+        
+        try:
+            # Get the current event loop or create a new one
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            # Run the async function
+            if loop.is_running():
+                # If loop is already running, create a task
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(asyncio.run, self.save_message_to_db_async(sender, receiver, message, message_type))
+                    return future.result()
+            else:
+                # If no loop is running, run directly
+                return loop.run_until_complete(self.save_message_to_db_async(sender, receiver, message, message_type))
+                
+        except Exception as e:
+            print(f"Error in sync wrapper: {e}")
+            return None
+
+simple_chat_manager = SimpleChatConnectionManager()
+
+async def simple_chat_websocket_endpoint(
+    websocket: WebSocket, 
+    username: str, 
+    receiver: str
+):
+    """Simple chat WebSocket endpoint"""
+    await simple_chat_manager.connect(websocket, username)
+    
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message_data = json.loads(data)
+            
+            # Save message to database
+            saved_message = simple_chat_manager.save_message_to_db(
+                sender=username,
+                receiver=receiver,
+                message=message_data.get('message', ''),
+                message_type=message_data.get('type', 'text')
+            )
+            
+            if saved_message:
+                # Send message to receiver if they're online
+                await simple_chat_manager.send_personal_message(receiver, saved_message)
+                
+                # Send confirmation back to sender
+                await simple_chat_manager.send_personal_message(username, saved_message)
+            else:
+                # Send error message
+                await websocket.send_text(json.dumps({
+                    'error': 'Failed to save message'
+                }))
+    
+    except WebSocketDisconnect:
+        simple_chat_manager.disconnect(username)
+    except Exception as e:
+        print(f"Error in simple chat websocket: {e}")
+        simple_chat_manager.disconnect(username)

@@ -462,7 +462,7 @@ export class NewsService {
         importance,
         breaking: isBreaking,
         url: article.url,
-        imageUrl: article.image || '/images/sports-arena.jpg' // Fallback image
+        imageUrl: article.image || article.urlToImage || article.imageUrl || '/images/sports-arena.jpg' // Use API image if available, fallback otherwise
       }
     };
   }

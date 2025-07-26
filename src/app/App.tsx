@@ -36,7 +36,7 @@ import NotFoundPage from '../modules/entry-page/not-found'
 import { WS_BASE_URL } from "../shared/interface/gloabL_var";
 import AvatarStorage from '../shared/utils/avatar-storage';
 import { LanguageLoadingIndicator } from '../shared/ui/language-loading';
-import { LiveStreamPage } from '../modules/livestream/page';
+
 export let newSocket: WebSocket | null = null;
 let isManualReload = false; // Track if user manually reloaded
 let isInitialConnection = true;
@@ -146,6 +146,17 @@ export const initializeWebSocketForNewUser = (username: string) => {
   return newSocket;
 };
 
+// Helper to check if JWT is expired
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    if (!payload.exp) return false;
+    // exp is in seconds since epoch
+    return Date.now() >= payload.exp * 1000;
+  } catch (e) {
+    return false;
+  }
+}
 
 export default function App() {
   const [user, setUser] = useState<User>(initialUser)
@@ -540,8 +551,15 @@ export default function App() {
     // Clean up any base64 avatar data in user localStorage on app start
     AvatarStorage.cleanupUserStorageData();
    
-    // ... existing initialization code ...
-  }, []);
+    // Check access token on app load
+    const accessToken = localStorage.getItem('access_token');
+    if (accessToken && isTokenExpired(accessToken)) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('user');
+      navigate('/sign-in');
+    }
+  }, [navigate]);
 
   return (
     <>
@@ -582,8 +600,6 @@ export default function App() {
                               <Route path="/:id/quiz" element={<QuizQuestionPage />} />
                               <Route path="/:id/countdown" element={<BattleCountdown />} />
                               <Route path="/:id/battle-result" element={<BattleResultPage user={user} />} />
-                              <Route path="/livestream/:id" element={<LiveStreamPage />} />
-                              <Route path="/livestream" element={<LiveStreamPage />} />
                               <Route path="*" element={<NotFoundPage />} />
                          
                             </Routes>

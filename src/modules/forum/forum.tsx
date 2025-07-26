@@ -183,7 +183,7 @@ export default function Forum() {
           source: 'Sports Insider',
           importance: 'high',
           breaking: true,
-          imageUrl: getSportImage(),
+          imageUrl:getSportImage(),
           url: '#'
         }
       },

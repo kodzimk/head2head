@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import NullPool
 import os
@@ -12,22 +13,43 @@ DATABASE_URL = os.getenv(
     'postgresql://postgres:postgres@localhost/head2head'
 )
 
-# Create engine with connection pooling disabled for better performance in async contexts
+# Create sync engine for backward compatibility
+sync_database_url = DATABASE_URL.replace('postgresql+asyncpg://', 'postgresql://')
 engine = create_engine(
-    DATABASE_URL, 
+    sync_database_url, 
     poolclass=NullPool
 )
 
-# Create a configured "Session" class
+# Create async engine for new async operations
+async_engine = create_async_engine(
+    DATABASE_URL,
+    poolclass=NullPool
+)
+
+# Create a configured "Session" class for sync operations
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create async session maker
+AsyncSessionLocal = async_sessionmaker(
+    async_engine, 
+    expire_on_commit=False
+)
 
 # Base class for declarative models
 Base = declarative_base()
 
-# Dependency to get database session
+# Dependency to get sync database session
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+# Dependency to get async database session
+async def get_async_db() -> AsyncSession:
+    async with AsyncSessionLocal() as db:
+        try:
+            yield db
+        finally:
+            await db.close()

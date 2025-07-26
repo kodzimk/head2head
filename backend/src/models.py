@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr
 from init import Base
 from datetime import datetime
 from typing import List, Optional, ForwardRef
+import uuid
 
 class UserData(Base):
     __tablename__ = "user_data"
@@ -137,6 +138,43 @@ class ChatResponse(BaseModel):
     is_read: bool
     message_type: str
     timestamp: datetime
+
+class SimpleChatMessage(Base):
+    __tablename__ = "simple_chat_messages"
+    
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    sender_username = Column(String, index=True, nullable=False)
+    receiver_username = Column(String, index=True, nullable=False)
+    message_content = Column(Text, nullable=False)
+    message_type = Column(String, default='text', nullable=False)
+    sent_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    is_read = Column(Boolean, default=False)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'sender': self.sender_username,
+            'receiver': self.receiver_username,
+            'message': self.message_content,
+            'message_type': self.message_type,
+            'timestamp': int(self.sent_at.timestamp() * 1000),  # Convert to milliseconds
+            'is_read': self.is_read
+        }
+
+class SimpleChatCreate(BaseModel):
+    sender_username: str
+    receiver_username: str
+    message_content: str
+    message_type: Optional[str] = 'text'
+
+class SimpleChatResponse(BaseModel):
+    id: str
+    sender: str
+    receiver: str
+    message: str
+    message_type: str
+    timestamp: int
+    is_read: bool
 
 class DebatePick(Base):
     __tablename__ = "debate_picks"

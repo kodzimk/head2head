@@ -1255,6 +1255,7 @@
     "messagePlaceholder":"Type a message...", 
     "conversation":"Conversation",
     "conversations":"Conversations",
+    "new_message":"New message",
     "noMessages":"No messages yet",
     "noMessagesDesc":"Start a conversation with your friends",
     "messageFailed":"Message failed to send",

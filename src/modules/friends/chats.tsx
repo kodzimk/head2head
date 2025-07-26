@@ -1,41 +1,89 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
-import { Input } from '../../shared/ui/input';
-import { Search } from 'lucide-react';
-import Header from '../dashboard/header';
-import type { Friend, User } from "../../shared/interface/user";
-import { API_BASE_URL } from "../../shared/interface/gloabL_var";
-import { UserAvatar } from "../../shared/ui/user-avatar";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import FriendChat from './chat';
+import { Search } from 'lucide-react';
+import { CompetitiveInput } from '../../shared/ui/input';
+import { UserAvatar } from '../../shared/ui/user-avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '../../shared/ui/card';
+import Header from '../dashboard/header';
+import type { User, Friend } from '../../shared/interface/user';
+import { API_BASE_URL } from '../../shared/config';
+import AvatarStorage from '../../shared/utils/avatar-storage';
+import ChatInterface from './chat';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
 
-// Message interface
-interface Message {
-  id: string;
-  senderId: string;
-  receiverId: string;
-  content: string;
-  timestamp: Date;
-  read: boolean;
-}
-
-// Chat preview interface
 interface ChatPreview {
   friend: Friend;
-  lastMessage: Message | null;
+  lastMessage: {
+    id: string;
+    sender: string;
+    message: string;
+    timestamp: Date;
+    senderId: string;
+  } | null;
   unreadCount: number;
 }
 
 export default function ChatsPage({ user }: { user: User }) {
   const { username: urlUsername } = useParams<{ username?: string }>();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [chatPreviews, setChatPreviews] = useState<ChatPreview[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [activeChatFriend, setActiveChatFriend] = useState<Friend | null>(null);
+
+  // Enhanced avatar fetching function with caching
+  const fetchFriendDataWithAvatar = async (friendUsername: string): Promise<Friend> => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`);
+      
+      // Enhanced avatar handling with caching
+      let avatarUrl = null;
+      if (response.data.avatar) {
+        // Check for persistent avatar first
+        const persistentAvatar = await AvatarStorage.getAvatar(friendUsername);
+        if (persistentAvatar === null) {
+          // Cache server avatar locally for faster future access
+          try {
+            const fullAvatarUrl = response.data.avatar.startsWith('http') 
+              ? response.data.avatar 
+              : `${API_BASE_URL}${response.data.avatar}`;
+            
+            // Fetch and cache the server avatar
+            const avatarResponse = await fetch(fullAvatarUrl);
+            if (avatarResponse.ok) {
+              const blob = await avatarResponse.blob();
+              const file = new File([blob], 'avatar.jpg', { type: blob.type });
+              await AvatarStorage.saveAvatar(friendUsername, file);
+              console.log('[Chat Page] Cached server avatar for', friendUsername);
+            }
+          } catch (error) {
+            console.warn('[Chat Page] Failed to cache server avatar:', error);
+          }
+        }
+        avatarUrl = response.data.avatar.startsWith('http') 
+          ? response.data.avatar 
+          : `${API_BASE_URL}${response.data.avatar}`;
+      }
+      
+      return {
+        username: response.data.username,
+        status: "",
+        avatar: avatarUrl,
+        rank: response.data.ranking.toString()
+      };
+    } catch (error) {
+      console.error("Error fetching friend data:", error);
+      return {
+        username: friendUsername,
+        status: "",
+        avatar: null,
+        rank: "0"
+      };
+    }
+  };
 
   // Check if the URL username is a valid friend
   useEffect(() => {
@@ -69,28 +117,9 @@ export default function ChatsPage({ user }: { user: User }) {
       }
 
       try {
-        const friendPromises = user.friends.map(async (friendUsername) => {
-          try {
-            const response = await axios.get(`${API_BASE_URL}/db/get-user-by-username?username=${friendUsername}`);
-            
-            return {
-              username: response.data.username,
-              status: "",
-              avatar: response.data.avatar ? 
-                (response.data.avatar.startsWith('http') ? response.data.avatar : `${API_BASE_URL}${response.data.avatar}`) : 
-                null,
-              rank: response.data.ranking.toString()
-            };
-          } catch (error) {
-            console.error(`Error fetching friend data for ${friendUsername}:`, error);
-            return {
-              username: friendUsername,
-              status: "",
-              avatar: null,
-              rank: "0"
-            };
-          }
-        });
+        const friendPromises = user.friends.map(friendUsername => 
+          fetchFriendDataWithAvatar(friendUsername)
+        );
         
         const friendsData = await Promise.all(friendPromises);
         setFriends(friendsData);
@@ -195,6 +224,8 @@ export default function ChatsPage({ user }: { user: User }) {
     chatPreviews;
   
   const handleOpenChat = (friend: Friend) => {
+    console.log('Opening chat with friend:', friend.username);
+    
     // Mark messages as read when opening chat
     setChatPreviews(prevPreviews => {
       return prevPreviews.map(preview => {
@@ -205,7 +236,15 @@ export default function ChatsPage({ user }: { user: User }) {
       });
     });
     
+    // Set active chat friend
     setActiveChatFriend(friend);
+    
+    // Navigate to the chat URL to update the browser URL
+    navigate(`/chats/${friend.username}`);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
   };
 
   // If we have an active chat, show the chat component
@@ -215,9 +254,7 @@ export default function ChatsPage({ user }: { user: User }) {
         <Header />
         <main className="flex-1 container-gaming py-6">
           <div className="max-w-4xl mx-auto">
-            <FriendChat 
-    
-            />
+            <ChatInterface friendUsername={activeChatFriend.username} />
           </div>
         </main>
       </div>
@@ -234,11 +271,11 @@ export default function ChatsPage({ user }: { user: User }) {
             <div className="w-full sm:w-auto">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                <Input
+                <CompetitiveInput
                   type="text"
                   placeholder={t('friends.search.placeholder')}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={handleInputChange}
                   className="pl-10 w-full sm:w-64 bg-card text-white border"
                 />
               </div>
@@ -280,14 +317,6 @@ export default function ChatsPage({ user }: { user: User }) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium">{chatPreview.friend.username}</div>
-                          <div className="text-sm text-muted-foreground truncate">
-                            {chatPreview.lastMessage ? (
-                              chatPreview.lastMessage.senderId === user.username ? (
-                                <span className="text-muted-foreground/70">{t('chat.you')}: </span>
-                              ) : null
-                            ) : null}
-                            {chatPreview.lastMessage?.content || t('chat.no_messages')}
-                          </div>
                         </div>
                         {chatPreview.lastMessage && (
                           <div className="text-xs text-muted-foreground whitespace-nowrap ml-2">
