@@ -45,6 +45,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ friendUsername }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const websocketRef = useRef<WebSocket | null>(null);
   const originalTitleRef = useRef<string>('');
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Use friendUsername prop if available, otherwise fall back to URL parameter
   const username = friendUsername || urlUsername;
@@ -56,6 +58,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ friendUsername }) => {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const [friendData, setFriendData] = useState<Friend | null>(null);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
+  const [firstUnreadMessageId, setFirstUnreadMessageId] = useState<string | null>(null);
 
   // Enhanced avatar fetching function with caching
   const fetchFriendDataWithAvatar = async (friendUsername: string): Promise<Friend> => {
@@ -106,6 +109,67 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ friendUsername }) => {
         rank: "0"
       };
     }
+  };
+
+  // Mark messages as read
+  const markMessagesAsRead = async () => {
+    if (isSelfChat || !username) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/simple-chat/mark-read?sender=${username}&receiver=${user.username}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        console.log('Messages marked as read');
+        // Update local messages to mark them as read
+        setMessages(prev => prev.map(msg => 
+          msg.sender === username && msg.receiver === user.username 
+            ? { ...msg, is_read: true }
+            : msg
+        ));
+        setFirstUnreadMessageId(null);
+      }
+    } catch (error) {
+      console.error('Failed to mark messages as read:', error);
+    }
+  };
+
+  // Find first unread message
+  const findFirstUnreadMessage = () => {
+    const unreadMessage = messages.find(msg => 
+      msg.sender === username && 
+      msg.receiver === user.username && 
+      !msg.is_read
+    );
+    setFirstUnreadMessageId(unreadMessage?.id || null);
+  };
+
+  // Check if user has scrolled to bottom
+  const isScrolledToBottom = (element: HTMLDivElement) => {
+    const threshold = 50; // 50px from bottom
+    return element.scrollHeight - element.scrollTop - element.clientHeight <= threshold;
+  };
+
+  // Debounced scroll handler
+  const handleScroll = () => {
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollTimeoutRef.current = setTimeout(() => {
+      const container = messagesContainerRef.current;
+      if (container && isScrolledToBottom(container)) {
+        // User scrolled to bottom, mark messages as read
+        if (firstUnreadMessageId && !isSelfChat) {
+          console.log('User scrolled to bottom - marking messages as read');
+          markMessagesAsRead();
+        }
+      }
+    }, 200); // 200ms debounce for responsive feel
   };
 
   // Check if user is trying to chat with themselves
@@ -241,6 +305,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ friendUsername }) => {
         // Trigger visual notification for messages from others
         if (newMsg.sender !== user.username) {
           updateTitleNotification();
+          
+          // Update first unread message if this is the first unread message
+          if (!firstUnreadMessageId && !newMsg.is_read) {
+            setFirstUnreadMessageId(newMsg.id);
+          }
         }
       } catch (error) {
         console.error('Failed to parse WebSocket message', error);
@@ -311,6 +380,47 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ friendUsername }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Track unread messages when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      findFirstUnreadMessage();
+    }
+  }, [messages]);
+
+  // Mark messages as read when chat opens and when user focuses
+  useEffect(() => {
+    if (messages.length > 0 && !isSelfChat) {
+      markMessagesAsRead();
+    }
+  }, [username, isSelfChat]);
+
+  // Mark messages as read when window gets focus
+  useEffect(() => {
+    const handleFocus = () => {
+      if (messages.length > 0 && !isSelfChat) {
+        markMessagesAsRead();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [messages, isSelfChat]);
+
+  // Add scroll listener to messages container
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
+      };
+    }
+  }, [firstUnreadMessageId, isSelfChat]);
 
   const handleSendMessage = async () => {
     if (newMessage.trim() === '' || isSelfChat) return;
@@ -391,6 +501,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ friendUsername }) => {
     inputRef.current?.focus();
   };
 
+  // Unread Messages Divider Component
+  const UnreadMessagesDivider = () => (
+    <div className="flex items-center justify-center my-4">
+      <div className="flex-grow border-t border-destructive/30"></div>
+      <div className="mx-4 px-3 py-1 bg-destructive/10 text-destructive text-xs font-medium rounded-full border border-destructive/30">
+        {t('chat.unread_messages')}
+      </div>
+      <div className="flex-grow border-t border-destructive/30"></div>
+    </div>
+  );
+
   // Show error message if user tries to chat with themselves
   if (isSelfChat) {
     return (
@@ -447,38 +568,47 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ friendUsername }) => {
       </header>
 
       {/* Messages */}
-      <div className="flex-grow overflow-y-auto p-4 space-y-4">
+      <div 
+        ref={messagesContainerRef}
+        className="flex-grow overflow-y-auto p-4 space-y-4"
+      >
         {messages && messages.map((msg) => (
-          <div 
-            key={msg.id} 
-            className={`flex items-end space-x-2 ${
-              msg.sender === user.username ? 'justify-end' : 'justify-start'
-            }`}
-          >
-            {msg.sender !== user.username && (
-              <UserAvatar 
-                user={{ username: msg.sender, avatar: friendData?.avatar || null }} 
-                size="sm" 
-              />
+          <div key={msg.id}>
+            {/* Show unread divider before first unread message */}
+            {firstUnreadMessageId === msg.id && (
+              <UnreadMessagesDivider />
             )}
+            
             <div 
-              className={`max-w-[70%] p-3 rounded-lg ${
-                msg.sender === user.username 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted'
+              className={`flex items-end space-x-2 ${
+                msg.sender === user.username ? 'justify-end' : 'justify-start'
               }`}
             >
-              <p>{msg.message}</p>
-              <span className="text-xs opacity-50 block text-right mt-1">
-                {formatTimestamp(msg.timestamp)}
-              </span>
+              {msg.sender !== user.username && (
+                <UserAvatar 
+                  user={{ username: msg.sender, avatar: friendData?.avatar || null }} 
+                  size="sm" 
+                />
+              )}
+              <div 
+                className={`max-w-[70%] p-3 rounded-lg ${
+                  msg.sender === user.username 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted'
+                }`}
+              >
+                <p>{msg.message}</p>
+                <span className="text-xs opacity-50 block text-right mt-1">
+                  {formatTimestamp(msg.timestamp)}
+                </span>
+              </div>
+              {msg.sender === user.username && (
+                <UserAvatar 
+                  user={{ username: user.username, avatar: currentUserAvatar }} 
+                  size="sm" 
+                />
+              )}
             </div>
-            {msg.sender === user.username && (
-              <UserAvatar 
-                user={{ username: user.username, avatar: currentUserAvatar }} 
-                size="sm" 
-              />
-            )}
           </div>
         ))}
         <div ref={messagesEndRef} />
@@ -522,7 +652,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ friendUsername }) => {
             variant="outline"
           >
             <Send className="h-4 w-4 mr-2" />
-            {connectionStatus === 'connecting' ? 'Connecting...' : t('chat.send')}
+            {connectionStatus === 'connecting' ? 'Connecting...' : t('friends.actions.sendMessage')}
           </Button>
         </div>
       </div>

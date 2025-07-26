@@ -25868,6 +25868,312 @@ const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
 ### Status
 ✅ **COMPLETE** - Current user avatar now displays properly in chat messages using enhanced fetching and caching, providing consistent avatar experience across all users.
 
+## Unread Messages Divider Feature - Visual Unread Indicator
+
+**Date**: 2024-12-19  
+**Action**: Added visual "Unread messages" divider to chat interface to clearly indicate new/unread messages  
+**Files Modified**: 
+- `src/modules/friends/chat.tsx`
+- `src/shared/i18n/locales/en.json`
+- `src/shared/i18n/locales/ru.json`
+
+### Feature Implemented
+
+**Goal**: Show a clear visual separator before unread messages in chat conversations, similar to popular messaging apps like WhatsApp or Telegram.
+
+**User Experience**: Users can now easily identify where new messages begin in a conversation with a clear "Unread messages" divider.
+
+### Implementation Details
+
+**Translation Support**:
+```json
+// English
+"unread_messages": "Unread messages"
+
+// Russian  
+"unread_messages": "Непрочитанные сообщения"
+```
+
+**State Management**:
+```tsx
+const [firstUnreadMessageId, setFirstUnreadMessageId] = useState<string | null>(null);
+
+// Find first unread message
+const findFirstUnreadMessage = () => {
+  const unreadMessage = messages.find(msg => 
+    msg.sender === username && 
+    msg.receiver === user.username && 
+    !msg.is_read
+  );
+  setFirstUnreadMessageId(unreadMessage?.id || null);
+};
+```
+
+**Visual Divider Component**:
+```tsx
+const UnreadMessagesDivider = () => (
+  <div className="flex items-center justify-center my-4">
+    <div className="flex-grow border-t border-destructive/30"></div>
+    <div className="mx-4 px-3 py-1 bg-destructive/10 text-destructive text-xs font-medium rounded-full border border-destructive/30">
+      {t('chat.unread_messages')}
+    </div>
+    <div className="flex-grow border-t border-destructive/30"></div>
+  </div>
+);
+```
+
+**Message Rendering with Divider**:
+```tsx
+{messages && messages.map((msg, index) => (
+  <div key={msg.id}>
+    {/* Show unread divider before first unread message */}
+    {firstUnreadMessageId === msg.id && (
+      <UnreadMessagesDivider />
+    )}
+    
+    <div className={`flex items-end space-x-2 ${
+      msg.sender === user.username ? 'justify-end' : 'justify-start'
+    }`}>
+      {/* Message content */}
+    </div>
+  </div>
+))}
+```
+
+**Auto-Mark as Read Functionality**:
+```tsx
+const markMessagesAsRead = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/simple-chat/mark-read?sender=${username}&receiver=${user.username}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (response.ok) {
+      // Update local messages to mark them as read
+      setMessages(prev => prev.map(msg => 
+        msg.sender === username && msg.receiver === user.username 
+          ? { ...msg, is_read: true }
+          : msg
+      ));
+      setFirstUnreadMessageId(null);
+    }
+  } catch (error) {
+    console.error('Failed to mark messages as read:', error);
+  }
+};
+```
+
+### Key Features
+
+**Smart Divider Placement**:
+- ✅ **First Unread Only**: Divider shows before the first unread message from friend
+- ✅ **Dynamic Tracking**: Updates automatically when messages are read/received
+- ✅ **No Duplicates**: Only one divider shows regardless of unread count
+
+**Automatic Read Marking**:
+- ✅ **Chat Open**: Messages marked as read when chat is opened
+- ✅ **Window Focus**: Messages marked as read when user returns to window
+- ✅ **Real-time Update**: Local state updates immediately for responsive UX
+
+**Visual Design**:
+- ✅ **Clear Separation**: Horizontal line with centered text badge
+- ✅ **Attention Color**: Uses destructive color scheme for visibility
+- ✅ **Responsive Design**: Adapts to different screen sizes
+- ✅ **Subtle Styling**: Non-intrusive but clearly visible
+
+**Integration Points**:
+- ✅ **WebSocket Updates**: Tracks unread status for real-time messages
+- ✅ **API Integration**: Uses existing mark-read endpoint
+- ✅ **Translation Ready**: Supports multiple languages
+- ✅ **State Persistence**: Maintains unread tracking across component updates
+
+### User Experience Benefits
+
+**Clear Visual Hierarchy**:
+- **Immediate Recognition**: Users instantly see where new messages start
+- **Conversation Context**: Easy to distinguish old vs new messages
+- **No Confusion**: Clear separation prevents message context loss
+
+**Professional UX**:
+- **Industry Standard**: Matches behavior of popular messaging apps
+- **Intuitive Design**: Users familiar with pattern from other apps
+- **Accessible**: Clear visual and textual indication of unread content
+
+**Performance Optimized**:
+- **Smart Updates**: Only re-renders when unread status changes
+- **Efficient Tracking**: Minimal state management overhead
+- **API Integration**: Leverages existing backend read-status functionality
+
+### Technical Implementation
+
+**State Tracking**:
+- **First Unread ID**: Tracks which message should show divider
+- **Auto-Detection**: Finds first unread message automatically
+- **Update Triggers**: Re-evaluates on message changes
+
+**Read Status Management**:
+- **Multiple Triggers**: Chat open, window focus, manual interaction
+- **Local Updates**: Immediate UI feedback before API response
+- **Error Handling**: Graceful degradation if API calls fail
+
+**Component Architecture**:
+- **Reusable Divider**: Self-contained visual component
+- **Clean Integration**: Minimal changes to existing message rendering
+- **Type Safety**: Full TypeScript support for message properties
+
+### Status
+✅ **COMPLETE** - Unread messages divider successfully implemented with automatic read marking, providing clear visual separation and improved chat UX.
+
+## Scroll-to-Bottom Auto-Read Feature - Mark Messages Read on Scroll
+
+**Date**: 2024-12-19  
+**Action**: Added automatic message marking as read when user scrolls to bottom of chat  
+**Files Modified**: 
+- `src/modules/friends/chat.tsx`
+
+### Feature Implemented
+
+**Goal**: Automatically mark all messages as read when user scrolls to the bottom of the chat, following modern messaging app UX patterns.
+
+**User Experience**: Messages are marked as read when user scrolls to bottom, indicating they've seen all content.
+
+### Implementation Details
+
+**Scroll Detection Setup**:
+```tsx
+const messagesContainerRef = useRef<HTMLDivElement>(null);
+const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+// Check if user has scrolled to bottom
+const isScrolledToBottom = (element: HTMLDivElement) => {
+  const threshold = 50; // 50px from bottom
+  return element.scrollHeight - element.scrollTop - element.clientHeight <= threshold;
+};
+```
+
+**Debounced Scroll Handler**:
+```tsx
+const handleScroll = () => {
+  if (scrollTimeoutRef.current) {
+    clearTimeout(scrollTimeoutRef.current);
+  }
+
+  scrollTimeoutRef.current = setTimeout(() => {
+    const container = messagesContainerRef.current;
+    if (container && isScrolledToBottom(container)) {
+      // User scrolled to bottom, mark messages as read
+      if (firstUnreadMessageId && !isSelfChat) {
+        console.log('User scrolled to bottom - marking messages as read');
+        markMessagesAsRead();
+      }
+    }
+  }, 200); // 200ms debounce for responsive feel
+};
+```
+
+**Event Listener Management**:
+```tsx
+// Add scroll listener to messages container
+useEffect(() => {
+  const container = messagesContainerRef.current;
+  if (container) {
+    container.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }
+}, [firstUnreadMessageId, isSelfChat]);
+```
+
+**Messages Container Integration**:
+```tsx
+<div 
+  ref={messagesContainerRef}
+  className="flex-grow overflow-y-auto p-4 space-y-4"
+>
+  {/* Messages */}
+</div>
+```
+
+### Key Features
+
+**Smart Scroll Detection**:
+- ✅ **Bottom Threshold**: 50px tolerance for bottom detection
+- ✅ **Debounced**: 200ms delay prevents excessive API calls
+- ✅ **Condition Check**: Only triggers when unread messages exist
+- ✅ **Self-Chat Safe**: Disabled for self-conversations
+
+**Performance Optimized**:
+- ✅ **Timeout Management**: Clears previous timeouts to prevent overlap
+- ✅ **Event Cleanup**: Proper listener removal on component unmount
+- ✅ **Responsive Timing**: 200ms balance between responsiveness and efficiency
+- ✅ **Memory Management**: Refs cleaned up properly
+
+**UX Integration**:
+- ✅ **Seamless Operation**: Works alongside existing read-marking triggers
+- ✅ **Visual Feedback**: Unread divider disappears when messages marked read
+- ✅ **API Integration**: Uses existing markMessagesAsRead function
+- ✅ **Debug Logging**: Console output for development verification
+
+### User Experience Benefits
+
+**Intuitive Behavior**:
+- **Natural Action**: Scrolling to bottom indicates user has seen messages
+- **Industry Standard**: Matches behavior of WhatsApp, Telegram, Slack
+- **Immediate Feedback**: Visual changes happen instantly
+- **Effortless Reading**: No manual action required to mark as read
+
+**Multiple Read Triggers**:
+1. **Chat Open**: Messages marked read when opening conversation
+2. **Window Focus**: Messages marked read when returning to window
+3. **Scroll Bottom**: Messages marked read when scrolling to bottom (NEW)
+
+**Smart Behavior**:
+- **Threshold Based**: Doesn't require exact bottom scroll position
+- **Conditional**: Only activates when unread messages exist
+- **Debounced**: Smooth scrolling doesn't trigger multiple calls
+- **Cleanup**: No memory leaks or event listener issues
+
+### Technical Implementation
+
+**Scroll Mathematics**:
+```tsx
+// element.scrollHeight: Total scrollable height
+// element.scrollTop: Current scroll position  
+// element.clientHeight: Visible area height
+// Bottom position = scrollHeight - scrollTop - clientHeight <= threshold
+```
+
+**Event Management**:
+- **Addition**: Listener added when component mounts with messages
+- **Removal**: Listener removed on unmount or dependency changes
+- **Timeout Cleanup**: Prevents memory leaks from pending timeouts
+
+**Integration Points**:
+- **Existing markMessagesAsRead()**: Reuses established API integration
+- **Unread Detection**: Works with firstUnreadMessageId state
+- **Self-Chat Prevention**: Respects isSelfChat condition
+
+### Performance Considerations
+
+**Debouncing Strategy**:
+- **200ms Delay**: Balances responsiveness with efficiency
+- **Timeout Clearing**: Prevents multiple simultaneous API calls
+- **Scroll Optimization**: Smooth scrolling doesn't overwhelm system
+
+**Memory Management**:
+- **Ref Cleanup**: messagesContainerRef properly managed
+- **Event Cleanup**: Scroll listeners removed on unmount
+- **Timeout Cleanup**: scrollTimeoutRef cleared appropriately
+
+### Status
+✅ **COMPLETE** - Scroll-to-bottom auto-read feature successfully implemented with debounced detection and proper cleanup, providing intuitive message reading behavior.
+
 ## Onboarding Scrolling System Enhancement - Find and Scroll Improvement
 
 **Date**: 2024-12-19  

@@ -1,4 +1,6 @@
--- Create simple chat messages table without foreign keys
+-- Simple Chat Messages Table Creation
+-- Execute this after fixing the database password issue
+
 DROP TABLE IF EXISTS simple_chat_messages CASCADE;
 
 CREATE TABLE simple_chat_messages (
@@ -11,16 +13,17 @@ CREATE TABLE simple_chat_messages (
     is_read BOOLEAN DEFAULT FALSE
 );
 
--- Create indexes for better performance
+-- Create performance indexes
 CREATE INDEX idx_simple_chat_sender ON simple_chat_messages(sender_username);
 CREATE INDEX idx_simple_chat_receiver ON simple_chat_messages(receiver_username);
 CREATE INDEX idx_simple_chat_timestamp ON simple_chat_messages(sent_at);
+CREATE INDEX idx_simple_chat_unread ON simple_chat_messages(receiver_username, is_read);
 
--- Insert some sample data for testing
+-- Insert test data
 INSERT INTO simple_chat_messages (sender_username, receiver_username, message_content) VALUES
-('alice', 'bob', 'Hello Bob!'),
-('bob', 'alice', 'Hi Alice! How are you?'),
-('alice', 'bob', 'I am doing great, thanks!');
+('testuser1', 'testuser2', 'Hello! Authentication fixed!'),
+('testuser2', 'testuser1', 'Great! Chat system working!');
 
--- Display sample data
-SELECT * FROM simple_chat_messages ORDER BY sent_at; 
+-- Verify creation
+SELECT 'Table created successfully with Kais123 password!' as status;
+SELECT COUNT(*) as message_count FROM simple_chat_messages; 

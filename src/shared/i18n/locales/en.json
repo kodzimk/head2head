@@ -433,6 +433,7 @@
     
     "actions":{
      "chat":"Chat",
+     "sendMessage":"Send",
      "remove":"Remove",
      "addFriend":"Add Friend",
      "removeFriend":"Remove Friend",
@@ -1256,6 +1257,7 @@
     "conversation":"Conversation",
     "conversations":"Conversations",
     "new_message":"New message",
+    "unread_messages":"Unread messages",
     "noMessages":"No messages yet",
     "noMessagesDesc":"Start a conversation with your friends",
     "messageFailed":"Message failed to send",

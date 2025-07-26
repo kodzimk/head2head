@@ -10,7 +10,7 @@ db_router = APIRouter(prefix="/db", tags=["db"])
 # Database URL from environment variable or default
 DATABASE_URL = os.getenv(
     'DATABASE_URL', 
-    'postgresql://postgres:postgres@localhost/head2head'
+    'postgresql://postgres:Kais123@localhost/head2head'
 )
 
 # Create sync engine for backward compatibility
